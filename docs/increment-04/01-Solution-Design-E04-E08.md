@@ -142,7 +142,7 @@ organisations**: `PARTNER_PROVIDER` (existing role, first used for real here) an
 "OH roles" = `Roles.OH_TEAM`; "Clinicians" = OH roles minus `CASE_MANAGER`; "Physicians" = `OH_PHYSICIAN, AME, CMO` –
 unchanged from Increment 3.
 
-Demo users: `claims1` (S8701, /AIRLINE), `adjuster1` (X8702, /PARTNERS/GULFTPA), `legal1` (S8703), `finance1` (S8704),
+Demo users: `claims1` (S8711, /AIRLINE), `adjuster1` (X8702, /PARTNERS/GULFTPA), `legal1` (S8703), `finance1` (S8704),
 `procurement1` (S8705), `physio1` (X8706, /PARTNERS/PHYSIOPLUS, new) and the existing `partner1` (P9101,
 /PARTNERS/CITYHOSP).
 

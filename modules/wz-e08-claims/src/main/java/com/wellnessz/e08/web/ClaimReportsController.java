@@ -129,7 +129,7 @@ public class ClaimReportsController {
     @PostMapping("/integration/claims/reports/{ref}/acknowledgement")
     @PreAuthorize("hasRole('INTEGRATION')")
     public ReportService.ReportView integrationAck(@PathVariable @Pattern(regexp = Patterns.REF) String ref, @Valid @RequestBody IntegrationAckBody b) {
-        return reports.integrationAck(ref, b.ackRef(), b.receivedAt(), b.status(), b.reason());
+        return reports.integrationAck(users.require(), ref, b.ackRef(), b.receivedAt(), b.status(), b.reason());
     }
 
     static byte[] bytes(MultipartFile file) {

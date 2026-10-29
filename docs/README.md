@@ -26,6 +26,10 @@ generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
 | 19 | Increment 3 – Requirements Traceability Matrix | Project sponsor, QA, OH governance | `increment-03/02-Requirements-Traceability-Matrix.md` | – |
 | 20 | Increment 3 – Release Notes | All | `increment-03/03-Release-Notes-Increment-3.md` | – |
 | 21 | Increment 3 – API Contract E06/E07/E14 | Engineering, integrators | `increment-03/API-Contract-E06-E07-E14.md` | – |
+| 22 | Increment 4 – Solution Design E04/E08 | Architects, OH governance, DPO, legal, engineering | `increment-04/01-Solution-Design-E04-E08.md` | – |
+| 23 | Increment 4 – Requirements Traceability Matrix | Project sponsor, QA, OH governance | `increment-04/02-Requirements-Traceability-Matrix.md` | – |
+| 24 | Increment 4 – Release Notes | All | `increment-04/03-Release-Notes-Increment-4.md` | – |
+| 25 | Increment 4 – API Contract E04/E08 | Engineering, integrators, partner and insurer IT | `increment-04/API-Contract-E04-E08.md` | – |
 | – | Design brief (contract between components) | Engineering | `00-design-brief.md` | – |
 | – | OpenAPI 3 contract of the core API | Integrators | `api/openapi.json` | – |
 
@@ -42,7 +46,14 @@ Documents 1–9 were updated again for increment 3 (E06 absence & sickness manag
 statutory medicals & immunisation, E14 scheduling, clinic operations & resource management): doc 01 Sections
 14.22–14.25 and 21 (plus module status, schemas, roles, SPIs, risks and open items), doc 02 Section 13, doc 03
 Section 16, doc 04 Section 19, increment-3 steps in each setup guide and Sections 3.1, 3.3 and the checklists of the
-CI/CD Guide. Rendered copies in `docs/dist/` must be regenerated.
+CI/CD Guide.
+
+Documents 1–9 were updated again for increment 4 (E04 injury & illness management, treatment coordination & partner
+referrals, E08 workers' compensation, insurance & claims coordination, partner portal): doc 01 Sections 14.26–14.30
+and 22 (plus module status, schemas, roles, SPIs, MFA for external users, FHIR partner exchange, gateways, risks,
+decisions and open items), doc 02 Section 14, doc 03 Section 17, doc 04 Section 20, increment-4 steps in each setup
+guide (partner portal, MFA for partner and adjuster users, new schemas and roles) and Sections 3.1, 3.4, 10.3 and the
+checklists of the CI/CD Guide. Rendered copies in `docs/dist/` must be regenerated.
 
 Supporting material:
 
@@ -64,12 +75,19 @@ Supporting material:
   crew certificates, immunisation, compliance, chart tabs, diary, reception kiosk, queue board, campaigns, capacity and
   the service catalogue; employee advice review, absence, candidate portal, surveillance and appointments; manager / HR
   absence, advice requests, team absence, pre-employment and compliance)
+* `images/screens/increment-04/` – increment-4 screenshots captured by `tools/e2e/e2e-increment4.js` (26 images: OH
+  case treatment plan, referral worklist, provider directory and scorecards, medications, case outcomes, telehealth,
+  recovery variance, chart treatment tab, claims, claim reports, claim disclosure sets, case claim tab, nurse
+  assignment, finance costs, legal, DPO claim disclosures; partner portal referral inbox and detail,
+  pre-authorisations, adjuster claims, claim collaboration and shared documents; employee treatment plan and
+  telehealth; HR claim status)
 * Executive videos for C-level stakeholders and the sponsor (1080p, English subtitles), shipped in the documents
   bundle (`05-Video/`) rather than in Git:
   * `WellnessZ-Executive-Briefing.mp4` – base framework concept (6 min)
   * `WellnessZ-Increment1-Executive-Briefing.mp4` – increment 1: intake rules, triage queues & SLAs (6 min)
   * `WellnessZ-Increment2-Executive-Briefing.mp4` – increment 2: health record, fitness for duty & return to work (6 min)
   * `WellnessZ-Increment3-Executive-Briefing.mp4` – increment 3: absence & sickness, medical surveillance, scheduling & clinic operations (6 min)
+  * `WellnessZ-Increment4-Executive-Briefing.mp4` – increment 4: treatment coordination & partner referrals, claims coordination and the partner portal (6 min)
 
 ## Verification summary (base framework)
 
@@ -117,3 +135,16 @@ Supporting material:
 | API contract | `api/openapi.json` regenerated – 391 paths (was 240) |
 | New dependency | none |
 | Not yet exercised | Increment-3 changes on AKS/GKE/hybrid; Entra app roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE` and a candidate identity solution; real HRIS / time & attendance / crew absence connectors (`AbsenceFeedConnector` default no-op), IoT fridge gateway, telehealth video; CMO validation of the 13 surveillance programmes and CAA confirmation of the crew examination formats |
+
+## Verification summary (increment 4 – E04, E08, partner portal)
+
+| Check | Result |
+|---|---|
+| Java build & tests (`./mvnw verify`) | 275 tests – wz-core-app 112 (adds `Increment4TreatmentIntegrationTest` 10, `Increment4ClaimsIntegrationTest` 10), module unit tests E04 11 (`TreatmentRulesTest`), E08 28, `wz-security` 7 including `MfaRoleGateTest` (3); 17 ArchUnit rules (new: earlier increments independent of E04 / E08, E04 and E08 mutually independent, E08 never depends on the clinical record E03) – all passing. Recreate the test database before each run when `WZ_TEST_DB_URL` points at a persistent database |
+| SAST (SpotBugs + FindSecBugs, effort Max) | 0 findings; still 6 justified exclusions in `config/spotbugs-exclude.xml` (none added) |
+| Web apps (`npm run lint && npm test && npm run build`) | oh-workspace 570 tests, employee-app 223, manager-workspace 164, partner-portal 119 (new) – 1,076, passing, lint 0 warnings, all builds clean |
+| End-to-end (`tools/e2e/e2e-increment4.js`, real Keycloak logins via the BFF, four apps) | 22/22 checks (increment 1 18/18, increment 2 25/25 and increment 3 32/32 re-run – 97 checks): injury report with partner and insurer consent, treatment plan and employee view, referral data-set and consent checks with letter and FHIR payload, partner accept / appointment / seen / report / invoice, other organisation `404`, report rating and overdue worklist, provider directory and scorecards, pre-authorisation approved by the TPA adjuster, expired medication batch refused, outcomes, telehealth consent and secure chat, treatment KPIs; claim with automatic nurse case manager and case badge, first report of injury with statutory deadline, consent-gated disclosure set visible to the adjuster with disclosure log, adjuster collaboration with clinical wording refused and providers without claim access, nurse assignment KPI, finance roll-up and reconciled ERP export without claim detail, legal hold and medico-legal report, HR status only, DPO disclosure report |
+| Helm | New component `partnerPortal` (host `partners.<domain>`) – `helm lint`, `helm template` and kubeconform clean for all values files |
+| API contract | `api/openapi.json` regenerated – 509 paths (was 391) |
+| New dependency | none (new web app with the same pinned toolchain as the other apps) |
+| Not yet exercised | Increment-4 changes on AKS/GKE/hybrid; MFA enrolment in the production IdP (Entra ID Conditional Access for B2B guests or Keycloak OTP / WebAuthn) and the `amr` / `acr` claims it produces; real insurer, authority and ERP connectors (`ClaimsSubmissionGateway` default = outbox + e-mail); a live FHIR exchange with a partner hospital (tested with a simulated partner); a telehealth video platform (link provider + token redemption ready); e-prescribing (decision memo pending); Legal / HSE sign-off of the report forms; procurement's contracted provider network |

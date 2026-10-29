@@ -93,7 +93,9 @@ class Increment4ClaimsIntegrationTest extends IntegrationTestBase {
     static final JwtRequestPostProcessor HSE = user("hse1", "HS1", "/AIRLINE", "HSE_OFFICER");
     static final JwtRequestPostProcessor HR_OPS = user("hr1", "H1", "/AIRLINE/OPS", "HR");
     static final JwtRequestPostProcessor HR_CARGO = user("hr9", "H9", "/AIRLINE/CARGO", "HR");
-    static final JwtRequestPostProcessor INTEGRATION = user("insurer-system", null, null, "INTEGRATION");
+    /** The payer's system (org_scope /PARTNERS/GULFTPA). */
+    static final JwtRequestPostProcessor INTEGRATION = user("insurer-system", null, "/PARTNERS/GULFTPA", "INTEGRATION");
+    static final JwtRequestPostProcessor OTHER_INSURER_SYSTEM = user("groupmed-system", null, "/PARTNERS/GROUPMED", "INTEGRATION");
 
     static final int YEAR = LocalDate.now(ZoneOffset.UTC).getYear();
     static final String DEMO_WC_CLAIM = "8e080000-0000-4000-b000-000000000001";
@@ -531,7 +533,9 @@ class Increment4ClaimsIntegrationTest extends IntegrationTestBase {
         assertThat(payload).contains(claim.get("claimRef").asString()).doesNotContain("Slipped").doesNotContain("Tom Tarmac");
         postJson("/api/v1/claims/reports/" + fnolId + "/submit", CLAIMS, "{\"channel\":\"API\"}").andExpect(status().isConflict());
 
-        // acknowledgement by the insurer system
+        // acknowledgement by the insurer system – another insurer's system cannot acknowledge it
+        postJson("/api/v1/integration/claims/reports/" + fnol.get("ref").asString() + "/acknowledgement", OTHER_INSURER_SYSTEM,
+                "{\"ackRef\":\"GM-ACK-1\",\"status\":\"ACKNOWLEDGED\"}").andExpect(status().isNotFound());
         postJson("/api/v1/integration/claims/reports/" + fnol.get("ref").asString() + "/acknowledgement", INTEGRATION,
                 "{\"ackRef\":\"GULF-ACK-1\",\"status\":\"ACKNOWLEDGED\"}").andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACKNOWLEDGED")).andExpect(jsonPath("$.ackRef").value("GULF-ACK-1"));

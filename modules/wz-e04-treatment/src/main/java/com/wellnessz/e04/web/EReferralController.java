@@ -142,13 +142,13 @@ public class EReferralController {
     @GetMapping("/integration/referrals/{id}/fhir")
     @PreAuthorize(Spel.INTEGRATION)
     public Map<String, Object> fhir(@PathVariable UUID id) {
-        return referrals.fhir(users.require().username(), id);
+        return referrals.fhir(users.require(), id);
     }
 
     @PostMapping("/integration/referrals/fhir/document-reference")
     @PreAuthorize(Spel.INTEGRATION)
     public EReferralService.DocumentReferenceResult documentReference(@RequestBody @Size(max = 20) Map<String, Object> body) {
-        return referrals.documentReference(users.require().username(), body);
+        return referrals.documentReference(users.require(), body);
     }
 
     public record TokenRequest(@NotBlank @Pattern(regexp = "[A-Za-z0-9_\\-]{20,100}") String token) {

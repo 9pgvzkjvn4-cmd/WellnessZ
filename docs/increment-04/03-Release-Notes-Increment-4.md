@@ -109,7 +109,7 @@ outcomes, telehealth, redaction, medico-legal reports), `NURSING_HEAD` (formular
 
 | User | Role(s) | Employee ID / org scope | Used for |
 |---|---|---|---|
-| `claims1` (new) | CLAIMS_COORDINATOR | S8701, /AIRLINE | Claims, first reports, disclosure sets, invoices |
+| `claims1` (new) | CLAIMS_COORDINATOR | S8711, /AIRLINE | Claims, first reports, disclosure sets, invoices |
 | `adjuster1` (new) | TPA_ADJUSTER | X8702, **/PARTNERS/GULFTPA** | Partner portal: claims, collaboration, pre-authorisation decisions |
 | `legal1` (new) | LEGAL_COUNSEL | S8703, /AIRLINE | Litigation hold, medico-legal report |
 | `finance1` (new) | FINANCE | S8704, /AIRLINE | Cost roll-up, budgets, ERP export |

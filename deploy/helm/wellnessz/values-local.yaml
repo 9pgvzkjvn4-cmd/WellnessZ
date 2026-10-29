@@ -54,10 +54,14 @@ core:
     requests: { cpu: 100m, memory: 512Mi }
     limits: { memory: 1Gi }
   env:
+    WZ_EMPLOYEE_PORTAL_URL: "http://employee.localtest.me"
+    WZ_MANAGER_WORKSPACE_URL: "http://manager.localtest.me"
+    WZ_OH_WORKSPACE_URL: "http://oh.localtest.me"
+    WZ_PARTNER_PORTAL_URL: "http://partners.localtest.me"
     WZ_DB_URL: "jdbc:postgresql://host.docker.internal:5432/wellnessz"
     WZ_DB_SSLMODE: prefer
     WZ_OIDC_ISSUERS: "http://host.docker.internal:8180/realms/wellnessz"
-    WZ_CORS_ORIGINS: "http://employee.localtest.me,http://manager.localtest.me,http://oh.localtest.me"
+    WZ_CORS_ORIGINS: "http://employee.localtest.me,http://manager.localtest.me,http://oh.localtest.me,http://partners.localtest.me"
     WZ_EHS_MAILBOX_MODE: imap
     WZ_IMAP_HOST: host.docker.internal
     WZ_IMAP_PORT: "3143"

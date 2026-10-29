@@ -27,7 +27,7 @@ New roles (realm, `Roles.java`, Keycloak scope mappings of `wellnessz-bff` / `we
 
 | Role | Purpose | Demo user (employeeId, org_scope) |
 |---|---|---|
-| `CLAIMS_COORDINATOR` | claims, e-reporting, costs, disclosure sets, pre-authorisation follow-up | `claims1` (S8701, /AIRLINE) |
+| `CLAIMS_COORDINATOR` | claims, e-reporting, costs, disclosure sets, pre-authorisation follow-up | `claims1` (S8711, /AIRLINE) |
 | `TPA_ADJUSTER` | external adjuster (partner portal) | `adjuster1` (X8702, /PARTNERS/GULFTPA) |
 | `LEGAL_COUNSEL` | litigation hold, privilege, medico-legal requests | `legal1` (S8703, /AIRLINE) |
 | `FINANCE` | cost roll-ups, budgets, ERP export | `finance1` (S8704, /AIRLINE) |

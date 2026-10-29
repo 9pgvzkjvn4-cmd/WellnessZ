@@ -249,9 +249,16 @@ public class PreauthService {
     }
 
     @Transactional
-    public PreauthView decideByRef(String actor, String ref, DecisionCommand cmd) {
+    public PreauthView decideByRef(CurrentUser client, String ref, DecisionCommand cmd) {
         Preauth a = preauths.findByRef(ref).orElseThrow(() -> ApiException.notFound("Pre-authorisation"));
-        decide(a, actor, cmd);
+        // an insurer / TPA system may only decide requests addressed to its own organisation (org_scope /PARTNERS/<payer>)
+        String org = client.partnerOrganisation();
+        if (org == null || !org.equals(a.getPayerCode())) {
+            audit.recordAs(client.username(), "INTEGRATION", "PREAUTH_DECISION", "PREAUTH", a.getId().toString(), AuditService.Outcome.DENIED,
+                    "client organisation " + org + " is not the payer");
+            throw ApiException.notFound("Pre-authorisation");
+        }
+        decide(a, client.username(), cmd);
         return partnerView(a);
     }
 

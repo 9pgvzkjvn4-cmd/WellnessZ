@@ -26,6 +26,13 @@
 > absence feeds, industrial hygiene, dosimetry, recruiting and the IoT fridge gateway (section 5), three Flyway-created
 > schemas (section 8), E18 business configuration after deployment (section 12) and increment-3 smoke checks
 > (section 14).
+>
+> **Increment 4** (E04 treatment coordination & partner referrals, E08 claims coordination) adds one Kubernetes
+> component – the **partner portal** (`partnerPortal`, host `partners.<domain>`) – behind the existing global load
+> balancer, Cloud Armor policy and a Google-managed certificate (section 10), but no new GCP resource. It adds five
+> app roles and groups and **MFA for partner and adjuster guests** at the IdP (section 5), two Flyway-created schemas
+> (section 8), `WZ_PARTNER_PORTAL_URL` and business configuration (section 12) and increment-4 smoke checks
+> (section 14).
 
 ## 1. Overview of the steps
 
@@ -116,10 +123,11 @@ GKE does not change the identity model. Users still authenticate with **Microsof
 
 * the groups (including the nine increment-1 groups for OH_PHYSICIAN, AME, CMO, NURSING_HEAD, HSE_OFFICER,
   CREW_SCHEDULING, HYGIENE_MANAGER, CLINIC_RECEPTION and FIRST_AIDER);
-* `wellnessz-api` with app roles (20, including the nine increment-1 roles; 21 with the increment-2 role `DPO`; 25 with the increment-3 roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE`), the `access_as_user` scope and v2 tokens;
+* `wellnessz-api` with app roles (20, including the nine increment-1 roles; 21 with the increment-2 role `DPO`; 25 with the increment-3 roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE`; 30 with the increment-4 roles `CLAIMS_COORDINATOR`, `TPA_ADJUSTER`, `LEGAL_COUNSEL`, `FINANCE`, `PROCUREMENT`), the `access_as_user` scope and v2 tokens;
 * the `employee_id` / `org_scope` claims;
 * `wellnessz-bff`, with redirect URIs `https://employee.<domain>/login/oauth2/code/wellnessz`,
-  `https://manager.<domain>/login/oauth2/code/wellnessz` and (increment 1) `https://oh.<domain>/login/oauth2/code/wellnessz`;
+  `https://manager.<domain>/login/oauth2/code/wellnessz`, (increment 1) `https://oh.<domain>/login/oauth2/code/wellnessz`
+  and (increment 4) `https://partners.<domain>/login/oauth2/code/wellnessz`;
 * `wellnessz-mobile`;
 * M2M apps, including the **EHS webhook client** with the `INTEGRATION` application role (Azure guide, section 5.6);
 * (increment 2) the `DPO` app role and group `sg-wellnessz-dpo`, `org_scope=/PARTNERS/<ORG>` for partner users
@@ -128,11 +136,19 @@ GKE does not change the identity model. Users still authenticate with **Microsof
 * (increment 3) groups `sg-wellnessz-clinic-schedulers`, `sg-wellnessz-biomedical`, `sg-wellnessz-crew-licensing`
   with their app roles, a candidate identity source with `CANDIDATE`, `employee_id` = candidate id and
   `org_scope=/CANDIDATES` (Azure guide, sections 5.1–5.3), and one `INTEGRATION` client per new gateway – absence
-  feed per source system, industrial hygiene, dosimetry, recruiting, IoT fridge gateway (Azure guide, section 5.6).
+  feed per source system, industrial hygiene, dosimetry, recruiting, IoT fridge gateway (Azure guide, section 5.6);
+* (increment 4) groups `sg-wellnessz-claims`, `sg-wellnessz-tpa-adjusters`, `sg-wellnessz-legal`,
+  `sg-wellnessz-finance`, `sg-wellnessz-procurement` with their app roles; partner and adjuster **B2B guests** with
+  `org_scope=/PARTNERS/<CODE>` and a **Conditional Access policy requiring an authentication strength** for guest /
+  external users on `wellnessz-bff` and `wellnessz-api` (Azure guide, sections 5.1–5.3a) – the core grants
+  `PARTNER_PROVIDER` / `TPA_ADJUSTER` only when the token carries `amr: mfa`; and one `INTEGRATION` client per partner
+  hospital (FHIR), insurer system and, once selected, the video platform (Azure guide, section 5.6).
 
 Those steps need only Entra ID, not an Azure subscription. If the airline uses **Keycloak**, follow section 5.7 of
-the Azure guide; keep the nine increment-1 roles, the increment-2 role `DPO` and the four increment-3 roles in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`
-(`fullScopeAllowed=false`). On GKE, run Keycloak with the Keycloak Operator and a separate Cloud SQL database, behind its own
+the Azure guide; keep the nine increment-1 roles, the increment-2 role `DPO`, the four increment-3 roles and the five increment-4 roles in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`
+(`fullScopeAllowed=false`), add the `partners.<domain>` redirect URI, post-logout URI and web origin, and require OTP
+or WebAuthn for every partner and adjuster account with an AMR mapper or a level-of-authentication flow so that the
+token carries `amr` / `acr` proof (Azure guide, section 5.7; setup guide 05, section 6.1). On GKE, run Keycloak with the Keycloak Operator and a separate Cloud SQL database, behind its own
 Ingress and Cloud Armor policy.
 
 Note for section 11: the **issuer**, **audience** (Entra: API client ID), **BFF client ID** and **mobile client
@@ -278,10 +294,10 @@ On GCP no password variables are passed: Terraform already set them. The script:
 * grants `CONNECT` to the runtime roles.
 
 The schema list is `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance,
-scheduling, analytics` – `triage` since increment 1, `docs`, `ohrecord`, `fitness` since increment 2 and `absence`,
-`surveillance`, `scheduling` since increment 3. For an instance bootstrapped earlier, Flyway V5, V6–V8 and V10–V12
-create the schemas and grant `USAGE` to `wz_app` during the next deployment; re-run the idempotent script to align
-the roles' `search_path`.
+scheduling, treatment, claims, analytics` – `triage` since increment 1, `docs`, `ohrecord`, `fitness` since
+increment 2, `absence`, `surveillance`, `scheduling` since increment 3 and `treatment`, `claims` since increment 4. For
+an instance bootstrapped earlier, Flyway V5, V6–V8, V10–V12 and V14–V15 create the schemas and grant `USAGE` to
+`wz_app` during the next deployment; re-run the idempotent script to align the roles' `search_path`.
 
 ```bash
 kubectl delete namespace wz-admin
@@ -315,12 +331,22 @@ crane copy flyway/flyway:11.20.3-alpine europe-west4-docker.pkg.dev/<project-id>
 
 ## 10. DNS and certificates
 
-1. Create A records for `employee.<domain>`, `manager.<domain>`, `oh.<domain>` (OH workspace, increment 1) and
-   `api.<domain>` pointing to `ingress_static_ip`.
-2. The chart creates `ManagedCertificate` resources; the `oh.<domain>` host is added to the certificate domains
-   automatically when `ohWorkspace.enabled` is true and `ingress.hosts.ohWorkspace` is set. Adding a domain to an
-   existing certificate re-provisions it. Provisioning starts after the Ingress exists and DNS
-   resolves, and takes 15–60 minutes.
+1. Create A records for `employee.<domain>`, `manager.<domain>`, `oh.<domain>` (OH workspace, increment 1),
+   `partners.<domain>` (partner portal, increment 4) and `api.<domain>` pointing to `ingress_static_ip`.
+2. The chart creates `ManagedCertificate` resources; the `oh.<domain>` and `partners.<domain>` hosts are added to the
+   certificate domains automatically when the component is enabled (`ohWorkspace.enabled`, `partnerPortal.enabled`)
+   and its `ingress.hosts.*` value is set. Adding a domain to an existing certificate re-provisions it. Provisioning
+   starts after the Ingress exists and DNS resolves, and takes 15–60 minutes.
+3. **Exposure (increment 4).** `partners.<domain>` must be reachable from the internet for external partners and
+   adjusters. Restrict `manager.<domain>` and `oh.<domain>` to the corporate egress ranges with a Cloud Armor rule on
+   the host name (all components share one policy, `gcp.backendConfig.securityPolicy`), for example:
+
+   ```bash
+   gcloud compute security-policies rules create 900 --security-policy=<cloud_armor_policy_name> --expression="(request.headers['host'] == 'oh.<domain>' || request.headers['host'] == 'manager.<domain>') && !inIpRange(origin.ip, '<corporate-cidr>')" --action=deny-403 --description="internal WellnessZ apps from the corporate network only"
+   ```
+
+   Keep the rate-based ban on login paths for every host; Identity-Aware Proxy is an alternative for the internal
+   hosts but adds a second sign-in.
 
 ```bash
 kubectl -n wellnessz get managedcertificate
@@ -373,6 +399,22 @@ Copy `values-gcp.yaml` placeholders into an overrides file, for example `deploy/
 | `core.env.WZ_OH_WORKSPACE_URL`, `WZ_OH_CONTACT` (increment 1) | `https://oh.<domain>`; the OH service-desk contact line for notifications |
 | `core.env.WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL`, `WZ_DPO_EMAIL` (increment 2) | `https://employee.<domain>`, `https://manager.<domain>`; the DPO mailbox for break-glass alerts |
 | `core.env.WZ_DOCUMENTS_FONT_PATH`, `WZ_DOCUMENTS_RETENTION_CRON`, `WZ_DIAGNOSIS_REQUIRED_ON_CLOSE` (increment 2, optional) | Font path inside a derived core image (Arabic PDFs); default `0 30 2 * * *`; default `true` |
+
+**Increment 4** adds one required value and configuration:
+
+| Value | Set to |
+|---|---|
+| `ingress.hosts.partnerPortal` | `partners.<domain>` (component enabled by default; `partnerPortal.enabled: false` to keep it off) |
+| `core.env.WZ_PARTNER_PORTAL_URL` | `https://partners.<domain>` – links in partner and adjuster notifications (not set in `values-gcp.yaml`; the default is for local use only) |
+| `core.env.WZ_MFA_REQUIRED_ROLES` | Leave unset (default `PARTNER_PROVIDER,TPA_ADJUSTER`); never empty outside local development |
+| `core.extraEnv` (optional) | `WELLNESSZ_TREATMENT_VARIANCEJOBCRON`, `WELLNESSZ_TREATMENT_CHASEJOBCRON`, `WELLNESSZ_TREATMENT_SCORECARDJOBCRON`, `WELLNESSZ_CLAIMS_REPORTDEADLINESCRON` |
+
+The partner portal needs no CORS entry (same-origin BFF). After the first deployment set the E18 keys `claims.mailbox-email`,
+`claims.legal-email`, `claims.employer-ref`, `claims.employer-name`, `claims.fx-rates`, `treatment.telehealth.base-url`
+and `treatment.network.cities` (Azure guide, section 11, increment 4). Insurer, authority and ERP messages stay in the
+outbox until connectors exist; a future connector calls out through Cloud NAT (public endpoints, FQDN allow-list on a
+Secure Web Proxy or firewall policy) or Private Service Connect / Interconnect (private ERP) with a
+`networkPolicy.extraEgress.core` rule.
 
 **Increment 3** adds no required value. Optional `core.extraEnv`: `WELLNESSZ_RECORD_REQUIREREGISTEREDDEVICES=true`
 once every result-producing device is in the equipment register, and job schedule overrides
@@ -428,8 +470,8 @@ Never add `classpath:db/demo` to `WZ_FLYWAY_LOCATIONS` outside local development
    kubectl -n wellnessz get pods,ingress,backendconfig,managedcertificate,secretproviderclass
    ```
 
-   Expected: all pods `Running` (including `wellnessz-oh-workspace`); the Ingress has the static IP; the BackendConfig
-   references `wellnessz-waf`.
+   Expected: all pods `Running` (including `wellnessz-oh-workspace` and, since increment 4, `wellnessz-partner-portal`);
+   the Ingress has the static IP; the BackendConfigs reference `wellnessz-waf`.
 
 5. After a successful release, switch Binary Authorization to enforcement. Set
    `binauthz_enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"`, then:
@@ -481,6 +523,15 @@ Run the same checklist as the Azure guide, section 14, with these GCP specifics:
   Armor must accept multipart uploads of up to 10 MB on `/bff/api/me/absence/certificates` and
   `/bff/api/me/pre-employment/documents`, and JSON batches of up to 5,000 rows on `/api/v1/integration/absence/episodes`
   and `/api/v1/integration/cold-chain/readings`; check `jsonPayload.enforcedSecurityPolicy` for false positives.
+* **Increment 4:** run checks 33–42 of the Azure guide, section 14: partner portal host (`curl -sI
+  https://partners.<domain>/` → `200` with HSTS and CSP; `ManagedCertificate` `Active` with the new domain), new
+  schemas, E04 / E08 `IMPLEMENTED`, MFA gate positive and negative with a partner guest, organisation isolation,
+  adjuster view, non-clinical roles, FHIR partner endpoint, notification links and `tools/e2e/e2e-increment4.js`
+  (22 `PASS` lines, with `WZ_E2E_PARTNER_URL=https://partners.<domain>`) on a fresh dev database. Cloud Armor must
+  accept multipart uploads of up to 10 MB on `/bff/api/partner/referrals/*/report` and `/invoice` (PDF / JPEG / PNG)
+  and FHIR JSON with base64 attachments on `/api/v1/integration/referrals/fhir/document-reference`; check
+  `jsonPayload.enforcedSecurityPolicy` for false positives. The internal-host rule of section 10 must return `403` for
+  `oh.<domain>` from outside the corporate range and must not affect `partners.<domain>`.
 
 ## 15. EHS mailbox and MDM
 
@@ -508,6 +559,11 @@ private ranges are excluded.
 | Scheduler, biomedical, crew-licensing or candidate account sees *Access restricted* | Increment-3 app role missing or not assigned; candidate without `org_scope=/CANDIDATES` | Azure guide, sections 5.2–5.3 |
 | Certificate upload `403` at the load balancer | Cloud Armor rule matched the multipart body | Scoped exclusion for the upload paths; the core still checks type and size |
 | Certificate upload `400` from the BFF | BFF multipart parsing re-enabled by an override | Keep the shipped `spring.servlet.multipart.enabled=false` |
+| ManagedCertificate stays `Provisioning` after adding `partners.<domain>` | DNS for the new host missing; the whole certificate re-provisions | Create the A record (section 10) and wait up to an hour |
+| Partner or adjuster sees *multi-factor sign-in required* | Token without `amr` / `acr` proof (Conditional Access not enforced for guests, or Keycloak without AMR mapper / LoA flow) | Azure guide, section 5.3a / 5.7 |
+| Partner report or invoice upload `403` at the load balancer | Cloud Armor rule matched the multipart body | Scoped exclusion for `/bff/api/partner/referrals/*/report` and `/invoice`; the core checks type and size |
+| Internal hosts blocked for staff working remotely | Host-based Cloud Armor rule without the VPN egress range | Add the VPN / ZTNA egress ranges to the rule |
+| Partner e-mails link to `partners.wellnessz.local` | `WZ_PARTNER_PORTAL_URL` not set | Section 12 |
 
 ## 17. Teardown (dev/test only)
 

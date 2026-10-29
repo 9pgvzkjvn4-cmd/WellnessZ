@@ -30,13 +30,20 @@
 > and gateway connectivity from HRIS / time & attendance / crew systems, industrial hygiene, dosimetry, recruiting and
 > IoT fridge gateways to the on-prem API. Absence episodes, certificates, surveillance results and cold-chain readings
 > stay on-premises. Changes are in sections 4, 8, 10 and 12.
+>
+> **Increment 4** (E04 treatment coordination & partner referrals, E08 claims coordination) adds the **partner portal**
+> to the cloud web tier (`partners.<domain>`, the first host for users outside the airline, MFA required), schemas
+> `treatment` and `claims` to the on-prem database, five roles, four scheduled jobs in the on-prem core and inbound
+> connectivity from partner hospital systems, insurer systems and (later) the video platform to the on-prem API.
+> Referrals, provider reports and invoices, claims, costs and medico-legal reports stay on-premises; the edge holds
+> no partner data. Changes are in sections 1, 4, 8, 9, 10 and 12.
 
 ## 1. Target state
 
 | Location | Runs | Values / manifests |
 |---|---|---|
 | On-premises cluster (RKE2 ≥ 1.31 or OpenShift ≥ 4.18) | `wz-core-app`, Flyway Job, CloudNativePG cluster `wellnessz-db`, Vault CSI provider, External Secrets, cert-manager | `deploy/helm/wellnessz/values-hybrid.yaml`, `deploy/hybrid/cnpg/*`, `deploy/hybrid/external-secrets/*` |
-| Cloud cluster (AKS from guide 06, or GKE from guide 07) | `employee-portal`, `manager-workspace`, `oh-workspace` (increment 1), `wz-bff`; small managed PostgreSQL for BFF sessions | `values-azure.yaml` (or `values-gcp.yaml`) + `deploy/hybrid/values-hybrid-cloud-edge.yaml` |
+| Cloud cluster (AKS from guide 06, or GKE from guide 07) | `employee-portal`, `manager-workspace`, `oh-workspace` (increment 1), `partner-portal` (increment 4), `wz-bff`; small managed PostgreSQL for BFF sessions | `values-azure.yaml` (or `values-gcp.yaml`) + `deploy/hybrid/values-hybrid-cloud-edge.yaml` |
 | Between them | ExpressRoute / Interconnect / IPsec VPN; only TCP 443 from the BFF egress range to the on-prem API ingress | Firewall change request |
 
 ## 2. Prerequisites
@@ -124,6 +131,14 @@ gcloud container fleet policycontroller enable --memberships=wz-onprem-prod
    management), industrial hygiene / dosimetry, recruiting and the **IoT fridge gateway** on the site networks (clinic
    VLANs). If an `AbsenceFeedConnector` is later added to pull from a source system, that is the first outbound
    connection of the core: add a `networkPolicy.extraEgress.core` entry and a firewall rule for exactly that system.
+   Increment 4: partner portal users arrive at the **cloud edge** like every other browser user, so no new user-facing
+   rule is needed on the link (the edge BFF already reaches the on-prem API). **Partner hospital systems (FHIR) and
+   insurer systems are outside the corporate network**: publish only `/api/v1/integration/referrals/**`,
+   `/integration/preauthorisations/**`, `/integration/claims/reports/**` and `/integration/telehealth/tokens/redeem` of
+   the on-prem API through the DMZ reverse proxy / API gateway with a WAF, mutual TLS or certificate-bound client
+   credentials and a source-IP allow-list per partner – never the whole API. Future insurer, authority and ERP
+   connectors are outbound connections of the on-prem core: one firewall rule per destination through the corporate
+   proxy plus a `networkPolicy.extraEgress.core` entry; nothing is sent from the cloud edge.
 4. **DNS.** A conditional forwarder for `onprem.example.internal`: Azure Private DNS Resolver, Cloud DNS
    forwarding zone or on-prem DNS.
 5. **TLS.** The API ingress certificate comes from the internal PKI. Add the internal root CA to the BFF JVM
@@ -315,7 +330,8 @@ The pre-upgrade Flyway Job migrates `wellnessz` as `wz_migrator` and grants the 
   (`kubectl cnpg psql wellnessz-db -n wellnessz-db`).
 * `values-hybrid.yaml` disables `ohWorkspace` on-prem (like the other web apps) and already lists
   `https://oh.wellnessz.example.com` in `WZ_CORS_ORIGINS`; replace the host with yours.
-* Set `WZ_OH_WORKSPACE_URL=https://oh.<domain>` and `WZ_OH_CONTACT` in the core `env` of your overrides file.
+* Set `WZ_OH_WORKSPACE_URL=https://oh.<domain>` (`values.yaml` ships `https://oh.wellnessz.example.com` – override it
+  with your domain) and `WZ_OH_CONTACT` in the core `env` of your overrides file.
 * Register the EHS webhook client (Entra app with the `INTEGRATION` application role, guide 06 section 5.6). Its
   calls go to `https://api.wellnessz.onprem.example.internal/api/v1/intake/ehs/incidents`.
 * Load the OH staff roster (`masterdata.staff_member`) with a reviewed SQL script; never enable `classpath:db/demo`.
@@ -326,7 +342,8 @@ The pre-upgrade Flyway Job migrates `wellnessz` as `wz_migrator` and grants the 
   (`postInitApplicationSQL` and the grants loop of `deploy/hybrid/cnpg/03-cluster.yaml`). A cluster initialised
   earlier gets them from Flyway V6–V8; then align `search_path` as `postgres`:
   `ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics;`
-* Core `env` in your overrides file: `WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL` (cloud hosts),
+* Core `env` in your overrides file: `WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL` (cloud hosts; `values.yaml`
+  sets the `*.wellnessz.example.com` hosts – override them with your domain),
   `WZ_DPO_EMAIL` (on-prem or M365 DPO mailbox reachable through the SMTP relay).
 * Optional PDF font and Tesseract OCR: build a derived core image in your pipeline and push it to the registry mirror;
   set `WZ_DOCUMENTS_FONT_PATH` and, for OCR, `WELLNESSZ_DOCUMENTS_OCR_TESSERACTPATH=/usr/bin/tesseract` and
@@ -354,6 +371,37 @@ The pre-upgrade Flyway Job migrates `wellnessz` as `wz_migrator` and grants the 
 * The cloud edge BFF ships with multipart parsing disabled, so certificate photos and candidate documents are streamed
   unchanged across the link to the on-prem core; keep the MTU / MSS settings of section 12 in mind for 10 MB uploads.
 
+**Increment 4 on-prem.**
+
+* Schemas `treatment` and `claims` are in `migrations.job.core.schemas` and in the CNPG bootstrap
+  (`postInitApplicationSQL` and the grants loop of `deploy/hybrid/cnpg/03-cluster.yaml`). A cluster initialised
+  earlier gets them from Flyway V14–V15 (V13 adds the partner organisations and the `CLAIM_RECORD` retention class);
+  then align `search_path` as `postgres`:
+  `ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, treatment, claims, analytics;`
+  (and the same for `wz_migrator`).
+* `values-hybrid.yaml` disables `partnerPortal` on-prem (`enabled: false`, empty host) – the portal runs on the edge.
+* Core `env` in your overrides file: `WZ_PARTNER_PORTAL_URL=https://partners.<domain>` (cloud host; set in
+  `values.yaml` to `https://partners.wellnessz.example.com` – override it with your domain); leave `WZ_MFA_REQUIRED_ROLES` unset so the default `PARTNER_PROVIDER,TPA_ADJUSTER` applies.
+* Add `CLAIMS_COORDINATOR`, `TPA_ADJUSTER`, `LEGAL_COUNSEL`, `FINANCE` and `PROCUREMENT` to the IdP (Entra app roles or
+  Keycloak realm roles plus BFF / mobile scope mappings); partner and adjuster accounts as B2B guests (or in a Keycloak
+  partner realm) with `org_scope=/PARTNERS/<CODE>` and **MFA**: Entra Conditional Access with an authentication
+  strength for guest / external users (guide 06, section 5.3a) or Keycloak OTP / WebAuthn required action with an AMR
+  mapper or level-of-authentication flow (guide 06, section 5.7). The on-prem core verifies the `amr` / `acr` / `acrs` claim.
+* Register one `INTEGRATION` client per partner hospital (FHIR), insurer system and, once selected, the video platform
+  (guide 06, section 5.6). Each partner-hospital and insurer client carries a fixed `org_scope=/PARTNERS/<CODE>` claim
+  (Keycloak hardcoded-claim mapper; Entra ID app role / optional claim or claims-mapping policy): the on-prem core
+  serves it only its own organisation's referrals, pre-authorisations and reports and refuses unbound clients; their calls reach `https://api.wellnessz.onprem.example.internal/api/v1/integration/{referrals/**,preauthorisations/{ref}/decision,claims/reports/{ref}/acknowledgement,telehealth/tokens/redeem}`
+  through the DMZ path of section 4.
+* After the first deployment set the E18 keys `claims.mailbox-email`, `claims.legal-email`, `claims.employer-ref`,
+  `claims.employer-name`, `claims.fx-rates`, `treatment.telehealth.base-url`, `treatment.network.cities` (guide 06,
+  section 11). The claims and legal mailboxes must be reachable through the SMTP relay; insurer contact e-mails
+  (content-free, pointing to the partner portal) also leave through the relay.
+* The four new jobs (`treatment-variance`, `referral-chase`, `provider-scorecards`, hourly `claims-report-deadlines`) run
+  in the on-prem core; outbox events to `insurer-gateway`, `authority-gateway` and `erp-finance` stay on-prem until a
+  connector is configured.
+* Provider reports and invoices (≤ 10 MB) uploaded in the partner portal cross the link like certificate uploads; the
+  MTU / MSS settings of section 12 apply.
+
 Verify:
 
 ```bash
@@ -380,6 +428,14 @@ kubectl -n wellnessz get pods && kubectl -n wellnessz logs deploy/wellnessz-core
    file. Create the DNS record and certificate for `oh.<domain>` at the cloud edge, and add
    `https://oh.<domain>/login/oauth2/code/wellnessz` to the `wellnessz-bff` redirect URIs. The OH workspace holds no
    data; all clinical calls go through the BFF to the on-prem core.
+6. **Partner portal (increment 4).** The edge release inherits `partnerPortal.enabled: true` and
+   `ingress.hosts.partnerPortal` from `values.yaml` / `values-azure.yaml` (or `values-gcp.yaml`); set your host in the
+   overrides file. Create the public DNS record and certificate for `partners.<domain>` at the cloud edge and add
+   `https://partners.<domain>/login/oauth2/code/wellnessz` (post-logout `https://partners.<domain>/`) to the
+   `wellnessz-bff` registration. `partners.<domain>` is internet-facing for external users; keep `manager.<domain>` and
+   `oh.<domain>` restricted to the corporate network where possible (guide 06, section 9, step 5; guide 07,
+   section 10, step 3). The portal holds no data; every call goes through the edge BFF to the on-prem core, which
+   enforces the MFA gate and organisation isolation.
 
 ```bash
 helm upgrade --install wellnessz-edge deploy/helm/wellnessz -n wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-azure.yaml -f deploy/hybrid/values-hybrid-cloud-edge.yaml -f deploy/env/prod-hybrid-edge.yaml --set-string global.imageTag=v0.1.0 --atomic --wait
@@ -414,6 +470,13 @@ The Azure workload identity federated credentials expect the release name `welln
 | 20 | Certificate upload in the employee portal (cloud edge) | Upload succeeds; the document is stored in the on-prem `docs` schema |
 | 21 | Scheduler test account on `https://oh.<domain>` | *Clinic diary* loads; the absence queue is not available |
 | 22 | `tools/e2e/e2e-increment3.js` with the same `WZ_E2E_*` settings as check 12 (dev/test only, against a dev database with the increment-3 demo data) | 32 `PASS` lines |
+| 23 | Increment-4 schema location: `kubectl -n wellnessz-db exec wellnessz-db-1 -c postgres -- psql -U postgres -d wellnessz -c '\dn'` | `treatment`, `claims` present on-prem; the cloud session database still holds only `bff` |
+| 24 | `GET /api/v1/modules` through the edge | E04 and E08 `IMPLEMENTED` |
+| 25 | `curl -sI https://partners.<domain>/` from the internet; `kubectl get deploy` on both clusters | `200` with HSTS and CSP; `wellnessz-partner-portal` runs only on the edge cluster |
+| 26 | Partner test guest with MFA on `https://partners.<domain>`; the same account without MFA | Referral inbox from the on-prem core; without MFA the *multi-factor sign-in required* page and `403` on partner calls |
+| 27 | Partner system from the internet through the DMZ path: `GET https://<published-api-host>/api/v1/integration/referrals/<id>/fhir` with its `INTEGRATION` token (bound to the referral's provider by `org_scope`) | `200` with a `ServiceRequest`; any non-published path (for example `/api/v1/cases`) is not reachable from outside |
+| 28 | Provider report upload (≤ 10 MB) in the partner portal | Upload succeeds; the document is stored in the on-prem `docs` schema |
+| 29 | `tools/e2e/e2e-increment4.js` with the settings of check 12 plus `WZ_E2E_PARTNER_URL=https://partners.<domain>` (dev/test only, fresh dev database with the increment-3 and increment-4 demo data, scripts 1 → 4 in order) | 22 `PASS` lines |
 
 ## 11. Backup restore test (quarterly, SOC 2 A1.3)
 
@@ -474,6 +537,11 @@ Then delete the test cluster.
 | Certificate uploads from the portal fail with `400` | BFF multipart parsing re-enabled by an override on the edge | Keep the shipped `spring.servlet.multipart.enabled=false` |
 | Certificate uploads fail or hang for larger files | MTU / MSS on the VPN | MSS clamp to 1350 (see *Edge BFF 504* above) |
 | HR absence, crew-licensing or calibration e-mails not received | E18 mailbox keys not set or rejected by the SMTP relay | Set the keys (guide 06, section 11); check the notification log |
+| Partner or adjuster sees *multi-factor sign-in required* | Token without `amr` / `acr` / `acrs` proof (Conditional Access not enforced for guests, or Keycloak without AMR mapper / LoA flow) | Guide 06, sections 5.3a and 5.7 |
+| Partner portal login error on the edge (`AADSTS50011` / *Invalid redirect_uri*) | `partners.<domain>` redirect URI missing on `wellnessz-bff` | Section 9, step 6 |
+| Partner hospital or insurer system times out | DMZ publication or source-IP allow-list for that partner missing | Section 4, step 3 |
+| Partner e-mails link to `partners.wellnessz.example.com` (or `.local`) | `WZ_PARTNER_PORTAL_URL` not overridden with your domain in the on-prem core | Section 8, increment 4 |
+| Partner hospital or insurer system gets `404` for its own referral, pre-authorisation or report | Client token without `org_scope=/PARTNERS/<CODE>` or with another organisation's code (audit `DENIED`) | Guide 06, section 5.6 |
 
 ## 13. Teardown
 

@@ -406,8 +406,9 @@ job codes for the surveillance programmes, retention classes `ABSENCE_RECORD` an
 `absence`), V11 (schema `surveillance`) and V12 (schema `scheduling`). Demo data for the `local` and `test` profiles
 only: `R__demo_e06_absence.sql`, `R__demo_e07_surveillance.sql`, `R__demo_e14_scheduling.sql` and five more HRIS
 employees (`E1006`–`E1010`) in `R__demo_reference_people.sql`; encrypted columns are left empty in demo data because
-field keys differ per environment. The schema list in all five places named above now reads
-`platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics`.
+field keys differ per environment. The schema list in all five places named above then read
+`platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics`
+(extended by increment 4, below).
 The runtime role has no `DELETE` on clinical tables in the new schemas (corrections are state changes); exceptions are
 technical rows (`surveillance.immunisation_reminder`, `surveillance.compliance_snapshot`, `scheduling.diary_template`).
 
@@ -665,7 +666,8 @@ responsibilities and segregation of duties are described in document 02, Section
 **MFA gate for external roles (increment 4).** `WellnessZJwtConverter` drops every role listed in
 `wellnessz.security.mfa-required-roles` (env `WZ_MFA_REQUIRED_ROLES`, default `PARTNER_PROVIDER,TPA_ADJUSTER`) unless
 the token proves multi-factor authentication: an `amr` value in `wellnessz.security.mfa-amr-values` (default `mfa`,
-`otp`, `totp`, `hwk`, `swk`, `sms`, `webauthn`, `fido` – RFC 8176 plus common IdP values) or an `acr` value in
+`otp`, `totp`, `hwk`, `swk`, `sms`, `webauthn`, `fido` – RFC 8176 plus common IdP values), or an `acr` value or an
+entry of the Entra ID **`acrs`** array (satisfied authentication contexts such as `c1`) in
 `wellnessz.security.mfa-acr-values` (default `2`, `3`, `mfa`, `c1`). A partner who signed in with a password only
 therefore holds no partner role, `GET /api/v1/me` reports no partner role and the portal shows its *multi-factor
 sign-in required* page; every partner endpoint answers `403`. The gate is on by default and switched off only in the
@@ -989,7 +991,7 @@ partners.
 |---|---|---|---|
 | Workforce SSO, MFA, Conditional Access, device compliance (Intune) | native | via external IdP brokering | native (own policy engine) |
 | Partner / external identities | Entra External ID (B2B/B2C) | realms per audience | Okta CIC / Ping |
-| MFA proof in the access token (increment 4) | `amr` (for example `mfa`) after Conditional Access; authentication context `c1` via `acrs` (Section 14.30) | `acr` level of authentication (`2` after OTP / WebAuthn step-up) and optional AMR mapper | `amr` / `acr` configurable |
+| MFA proof in the access token (increment 4) | `amr` (for example `mfa`) after Conditional Access, or an authentication context (`c1`) in the `acrs` array, which the core reads (Section 14.30) | `acr` level of authentication (`2` after OTP / WebAuthn step-up) and optional AMR mapper | `amr` / `acr` / `acrs` configurable |
 | Operating effort | SaaS | must be operated, patched, made HA | SaaS |
 | Cost | often included in M365 E3/E5 | none (support optional) | per user |
 | Framework support | app roles + group GUID mapping | realm/client roles | configurable claim paths |
@@ -1416,7 +1418,12 @@ publishes the referral as a FHIR **`ServiceRequest`** (`GET /api/v1/integration/
 the `urn:wellnessz:*` systems, status mapped from the referral status) and accepts the report as a **`DocumentReference`**
 (`POST /api/v1/integration/referrals/fhir/document-reference`, `context.related` = the ServiceRequest id, base64
 attachment). Both endpoints use the existing `INTEGRATION` client-credentials pattern; the provider's integration
-client is registered like every other gateway. The mapping (`FhirMapper`) is plain JSON over the HAPI structures that
+client is registered like every other gateway, but is additionally **bound to its organisation**: its token must carry
+the fixed claim `org_scope=/PARTNERS/<CODE>` (Keycloak hardcoded-claim mapper; in Entra ID an app role / optional
+claim or claims-mapping policy), `CurrentUser.partnerOrganisation()` extracts `<CODE>`, and only the referral's
+provider organisation may read the `ServiceRequest` or post a `DocumentReference` – any other client, including
+unbound gateway clients, gets `404` and a `DENIED` audit entry. The insurer endpoints (pre-authorisation decision,
+first-report acknowledgement) are bound the same way to the payer / report recipient. The mapping (`FhirMapper`) is plain JSON over the HAPI structures that
 the platform already ships – no FHIR server is introduced.
 
 | Option | Assessment |
@@ -1462,7 +1469,7 @@ External users reach patient-identifiable data from devices the airline does not
 
 | IdP | How MFA is enforced | What the core sees | Configuration |
 |---|---|---|---|
-| Microsoft Entra ID – partners and adjusters as B2B guests | Conditional Access policy for *guest or external users* on the WellnessZ applications (`wellnessz-bff`, `wellnessz-api`) with grant *Require authentication strength* (*Multifactor authentication* or *Phishing-resistant MFA*); optionally trust the home tenant's MFA in the cross-tenant access settings; sign-in frequency 12 h, no persistent browser session | `amr` contains `mfa` | Default `mfa-amr-values` already contains `mfa`. Authentication contexts (`c1`) are emitted in the **`acrs`** array, which the gate does not read – rely on `amr`, and verify with a decoded guest access token in a test tenant before go-live |
+| Microsoft Entra ID – partners and adjusters as B2B guests | Conditional Access policy for *guest or external users* on the WellnessZ applications (`wellnessz-bff`, `wellnessz-api`) with grant *Require authentication strength* (*Multifactor authentication* or *Phishing-resistant MFA*); optionally trust the home tenant's MFA in the cross-tenant access settings; sign-in frequency 12 h, no persistent browser session | `amr` contains `mfa`; with an authentication context, `acrs` contains it (e.g. `c1`) | Default `mfa-amr-values` already contains `mfa`. Authentication contexts are emitted in the **`acrs`** array; the gate accepts an entry listed in `mfa-acr-values` (default contains `c1`; add other context ids you use). Verify with a decoded guest access token in a test tenant before go-live |
 | Keycloak (partner realm or the workforce realm) | Required action `CONFIGURE_TOTP` (or *WebAuthn Register*) for every partner / adjuster account; the browser flow's conditional OTP step then always runs for them | `acr` = `2` when a step-up flow with *Condition – Level of Authentication* (level 1 password, level 2 OTP / WebAuthn) is used; or `amr` containing `otp` / `webauthn` with the *Authentication Method Reference (AMR)* mapper | Without a level-of-authentication flow or the AMR mapper the token carries `acr` = `1` and the gate drops the partner role – test with a decoded token |
 | Other OIDC providers | Provider policy | `amr` / `acr` per provider | Extend `wellnessz.security.mfa-amr-values` / `mfa-acr-values` |
 
@@ -1617,7 +1624,7 @@ no clinical content (increment-4 E2E run).*
 | R21 | Increment 3: device results recorded on unregistered devices are accepted (`wellnessz.record.require-registered-devices=false` by default) | Medium | Medium | Register all audiometers, spirometers, ECGs and vision screeners; then set the flag to `true` |
 | R22 | Increment 3: telehealth link points to an external service not yet assessed; IoT gateway not selected | Medium | Medium | DPO approval of the video service (D15); manual cold-chain logging until the gateway exists (D16) |
 | R23 | Increment 4: external users (partners, adjusters) access personal health data from unmanaged devices; a phished password would expose referrals or claims | Medium | High | MFA enforced at the IdP **and** verified by the core (`mfa-required-roles`); organisation isolation (`404`); consent-gated shares; WAF and rate limits on `partners.<domain>`; disclosure log; quarterly access review of partner accounts |
-| R24 | Increment 4: MFA claims differ per IdP (Entra ID authentication context in `acrs`, Keycloak `acr` only with a level-of-authentication flow) – a correct IdP policy may still be rejected, or an operator may disable the gate to "fix" it | Medium | High | Decode a test token per IdP before go-live (Section 14.30); never empty `WZ_MFA_REQUIRED_ROLES` outside `local`; configuration review in the release checklist |
+| R24 | Increment 4: MFA claims differ per IdP (Entra ID `amr` or authentication context in `acrs`, Keycloak `acr` only with a level-of-authentication flow) – a correct IdP policy may still be rejected, or an operator may disable the gate to "fix" it | Medium → Low (the core reads `amr`, `acr` and the Entra ID `acrs` array) | High | The gate accepts all three claims (`MfaRoleGateTest`); decode a test token per IdP before go-live (Section 14.30) – the Keycloak `acr` = `1` case still needs a level-of-authentication flow or the AMR mapper; never empty `WZ_MFA_REQUIRED_ROLES` outside `local`; configuration review in the release checklist |
 | R25 | Increment 4: over-disclosure to insurers (wrong document in a disclosure set, unredacted clinical detail) | Low | High | Allowed document types, provider / external reports only by OH roles, privileged and medico-legal material excluded, redacted copies, consent check per send, revocation, DPO disclosure report |
 | R26 | Increment 4: statutory deadlines missed because authority and insurer connectors are not built (default outbox + e-mail) and form mappings await sign-off | Medium | High | Deadline dashboard and hourly reminders, manual submission channel, sign-off of the three forms (E08-BL-003), connectors (D18) |
 | R27 | Increment 4: partner network data, rates and SLAs are illustrative; scorecards and network gaps are only as good as procurement's data | High (until replaced) | Medium | Procurement loads the contracted network (master data API, contracts endpoint) before go-live |
@@ -2155,8 +2162,8 @@ All jobs run in the core, use cron expressions in UTC and run once per run key a
 |---|---|---|---|
 | `spring.flyway.schemas` | `application.yml` | adds `treatment, claims` | Flyway-managed schemas |
 | `wellnessz.security.mfa-required-roles` | `application.yml`, env `WZ_MFA_REQUIRED_ROLES` | `PARTNER_PROVIDER,TPA_ADJUSTER` (empty in the `local` profile) | Roles granted only with MFA proof |
-| `wellnessz.security.mfa-amr-values`, `wellnessz.security.mfa-acr-values` | properties (relaxed binding `WELLNESSZ_SECURITY_MFAAMRVALUES`, `…_MFAACRVALUES`) | `mfa,otp,totp,hwk,swk,sms,webauthn,fido` / `2,3,mfa,c1` | Claim values accepted as MFA proof |
-| `wellnessz.notification.partner-portal-url` | `application.yml`, env `WZ_PARTNER_PORTAL_URL` | `https://partners.wellnessz.local` | Links in partner and adjuster notifications |
+| `wellnessz.security.mfa-amr-values`, `wellnessz.security.mfa-acr-values` | properties (relaxed binding `WELLNESSZ_SECURITY_MFAAMRVALUES`, `…_MFAACRVALUES`) | `mfa,otp,totp,hwk,swk,sms,webauthn,fido` / `2,3,mfa,c1` | Claim values accepted as MFA proof (`amr`; `acr` and the Entra ID `acrs` array) |
+| `wellnessz.notification.partner-portal-url` | `application.yml`, env `WZ_PARTNER_PORTAL_URL` (set in Helm `values.yaml` to `https://partners.wellnessz.example.com`, `values-local.yaml` `http://partners.localtest.me`) | `https://partners.wellnessz.local` | Links in partner and adjuster notifications |
 | `wellnessz.integration.outbound-allowlist.{insurer-gateway,authority-gateway,erp-finance}` | `application.yml` | Section 7.3 | Reference-only claim, report and cost destinations |
 | `wellnessz.security.cors-origins` (local profile) | `application.yml`, env `WZ_CORS_ORIGINS` | adds `http://localhost:5176` | Partner portal dev server |
 | Job crons of Section 22.3 | properties | see 22.3 | Job schedules |

@@ -27,4 +27,17 @@ public record CurrentUser(String subject, String username, String employeeId, St
         }
         return false;
     }
+
+    /**
+     * External partner organisation of the caller – partner portal users and partner / insurer machine clients carry
+     * {@code org_scope = /PARTNERS/<CODE>} (a claim mapper on their own IdP client). {@code null} for internal users and
+     * for machine clients that are not bound to an organisation.
+     */
+    public String partnerOrganisation() {
+        if (orgScope == null || !orgScope.startsWith("/PARTNERS/")) {
+            return null;
+        }
+        String code = orgScope.substring("/PARTNERS/".length());
+        return code.matches("[A-Z0-9_]{2,40}") ? code : null;
+    }
 }

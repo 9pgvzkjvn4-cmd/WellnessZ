@@ -11,7 +11,7 @@ All apps are React 19 + TypeScript 6 + Vite 8, no UI framework and no router lib
 pinned dependency versions and a committed `package-lock.json`.
 
 ```bash
-cd web/employee-app       # or web/manager-workspace, web/oh-workspace
+cd web/employee-app       # or web/manager-workspace, web/oh-workspace, web/partner-portal
 npm ci && npm run lint && npm test && npm run build
 npm run dev               # proxies /bff /oauth2 /login /logout → http://localhost:8090 (apps/wz-bff)
 ```
@@ -29,7 +29,7 @@ npm run dev               # proxies /bff /oauth2 /login /logout → http://local
 * **Status-only** for managers/HR – the workspace whitelists status fields client-side as defence in depth.
 * **No PHI in logs or caches** – ESLint bans `console.*` and `localStorage`/`sessionStorage`; the service worker caches
   the app shell only; all API calls are `no-store`.
-* **15-minute idle logout** in both apps.
+* **15-minute idle logout** in all browser apps.
 * **Containers:** multi-stage Dockerfiles → `nginxinc/nginx-unprivileged` (non-root, port 8080, `/healthz`), strict
   security headers, SPA fallback, `index.html` never cached. Run with a read-only root FS plus a writable `/tmp`.
 * **Ingress contract:** each app's host must route `/bff`, `/oauth2`, `/login`, `/logout` to `wz-bff:8090`
@@ -40,6 +40,7 @@ npm run dev               # proxies /bff /oauth2 /login /logout → http://local
 | `wellnessz/employee-app` | `web/employee-app` (`--build-arg VITE_CSP_CONNECT_SRC=...` only needed for native-style builds) |
 | `wellnessz/manager-workspace` | `web/manager-workspace` |
 | `wellnessz/oh-workspace` | `web/oh-workspace` |
+| `wellnessz/partner-portal` | `web/partner-portal` (increment 4; host `partners.<domain>`, Helm component `partnerPortal`) |
 
 ## OH workspace (`oh-workspace`) – increment 1 (E01 intake, E02 triage / queues / SLA)
 
@@ -51,3 +52,14 @@ registration with an **in-memory** offline retry queue (no PHI in browser storag
 with a keyboard alternative) and the E01/E02 configuration screens. Role gating in the UI is convenience only; the BFF
 and core API enforce access. Same stack, security conventions, CSP, nginx and container layout as the other apps.
 See [`oh-workspace/README.md`](oh-workspace/README.md).
+
+## Partner portal (`partner-portal`) – increment 4 (E04, E08)
+
+Portal for **external** users built against
+[`docs/increment-04/API-Contract-E04-E08.md`](../docs/increment-04/API-Contract-E04-E08.md): partner providers
+(`PARTNER_PROVIDER` – referral inbox, accept / decline, appointment, seen, report and invoice upload, telehealth,
+shared documents) and TPA / insurer adjusters (`TPA_ADJUSTER` – own payer's claims with RTW status only, tasks,
+messages, pre-authorisation decisions). The core grants both roles only when the token proves multi-factor
+authentication, so the portal decides access on the roles in `GET /bff/api/me` and shows an MFA / no-access page
+otherwise; the organisation is the last segment of `org_scope`. Dev port 5176, same stack, CSP, nginx and container
+layout as the other apps. See [`partner-portal/README.md`](partner-portal/README.md).

@@ -239,6 +239,11 @@ core:
     WZ_EHS_MAILBOX_MODE: none
     WZ_SMTP_HOST: ""
     WZ_SMTP_PORT: "587"
+    # links in content-free notifications – keep in line with ingress.hosts
+    WZ_EMPLOYEE_PORTAL_URL: "https://employee.wellnessz.example.com"
+    WZ_MANAGER_WORKSPACE_URL: "https://manager.wellnessz.example.com"
+    WZ_OH_WORKSPACE_URL: "https://oh.wellnessz.example.com"
+    WZ_PARTNER_PORTAL_URL: "https://partners.wellnessz.example.com"
     OTEL_EXPORTER_OTLP_ENDPOINT: ""
     OTEL_SERVICE_NAME: wz-core-app
   extraEnv: []

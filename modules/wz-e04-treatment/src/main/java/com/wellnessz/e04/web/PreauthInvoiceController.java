@@ -67,7 +67,7 @@ public class PreauthInvoiceController {
     @PreAuthorize(Spel.INTEGRATION)
     public PreauthService.PreauthView decideIntegration(@PathVariable @Pattern(regexp = "PA-\\d{4}-\\d{6}") String ref,
                                                         @Valid @RequestBody PreauthService.DecisionCommand cmd) {
-        return preauth.decideByRef(users.require().username(), ref, cmd);
+        return preauth.decideByRef(users.require(), ref, cmd);
     }
 
     @GetMapping("/preauthorisations")

@@ -248,7 +248,7 @@ mappings.
 | `partner1` (increment 4 use) | PARTNER_PROVIDER (`P9101`, `/PARTNERS/CITYHOSP`) | **Partner portal** (5176): referral inbox of City General Hospital (demo referral awaiting acceptance), documents |
 | `physio1` (increment 4) | PARTNER_PROVIDER (`X8706`, `/PARTNERS/PHYSIOPLUS`) | Partner portal: PhysioPlus referrals – accept, appointment, seen, report and invoice upload, telehealth |
 | `adjuster1` (increment 4) | TPA_ADJUSTER (`X8702`, `/PARTNERS/GULFTPA`) | Partner portal: GULFTPA claims (RTW status, tasks, messages, consented documents) and pre-authorisation decisions |
-| `claims1` (increment 4) | CLAIMS_COORDINATOR (`S8701`, `/AIRLINE`) | OH workspace: claims, first reports and deadlines, disclosure sets, costs, pre-authorisation follow-up; no clinical screens |
+| `claims1` (increment 4) | CLAIMS_COORDINATOR (`S8711`, `/AIRLINE`) | OH workspace: claims, first reports and deadlines, disclosure sets, costs, pre-authorisation follow-up; no clinical screens |
 | `legal1` (increment 4) | LEGAL_COUNSEL (`S8703`, `/AIRLINE`) | OH workspace *Legal & litigation*: litigation hold, privilege, medico-legal requests and reports |
 | `finance1` (increment 4) | FINANCE (`S8704`, `/AIRLINE`) | OH workspace *Claim & treatment costs*: roll-ups by unit (no names), budget vs actual, ERP export and reconciliation |
 | `procurement1` (increment 4) | PROCUREMENT (`S8705`, `/AIRLINE`) | OH workspace *Provider network*: directory, contracts, rates, SLAs, network gaps, scorecards |

@@ -390,8 +390,10 @@ public class EReferralService implements ExternalReferralGateway {
     // ------------------------------------------------------------------ integration (FHIR)
 
     @Transactional(readOnly = true)
-    public Map<String, Object> fhir(String actor, UUID id) {
+    public Map<String, Object> fhir(CurrentUser client, UUID id) {
+        String actor = client.username();
         Referral r = referrals.findById(id).filter(x -> !"DRAFT".equals(x.getStatus())).orElseThrow(() -> ApiException.notFound("Referral"));
+        requireProviderClient(client, r);
         audit.recordAs(actor, "INTEGRATION", "REFERRAL_FHIR_READ", "REFERRAL", id.toString(), AuditService.Outcome.SUCCESS, r.getProviderCode());
         disclosures.record(r.getEmployeeId(), "PARTNER", "Partner " + r.getProviderCode() + " (FHIR)", "REFERRAL", r.getId().toString(),
                 "Referral " + r.getRef(), "TREATMENT", r.getConsentId(), actor);
@@ -403,7 +405,8 @@ public class EReferralService implements ExternalReferralGateway {
 
     /** Inbound FHIR R4 DocumentReference with the provider's report → REPORT_RECEIVED. */
     @Transactional
-    public DocumentReferenceResult documentReference(String actor, Map<String, Object> body) {
+    public DocumentReferenceResult documentReference(CurrentUser client, Map<String, Object> body) {
+        String actor = client.username();
         String related = FhirMapper.relatedServiceRequest(body)
                 .orElseThrow(() -> ApiException.badRequest("invalid_document_reference", "DocumentReference.context.related must reference the ServiceRequest"));
         Referral r;
@@ -415,6 +418,7 @@ public class EReferralService implements ExternalReferralGateway {
         if (r == null) {
             throw ApiException.notFound("Referral");
         }
+        requireProviderClient(client, r);
         FhirMapper.Attachment a = FhirMapper.attachment(body)
                 .orElseThrow(() -> ApiException.badRequest("invalid_document_reference", "DocumentReference.content[0].attachment.data required"));
         byte[] bytes;
@@ -426,6 +430,19 @@ public class EReferralService implements ExternalReferralGateway {
         UUID docId = receiveReport(r, actor, bytes, a.title(), a.description());
         audit.recordAs(actor, "INTEGRATION", "REFERRAL_REPORT_FHIR", "REFERRAL", r.getId().toString(), AuditService.Outcome.SUCCESS, null);
         return new DocumentReferenceResult(r.getId(), r.getRef(), r.getStatus(), docId);
+    }
+
+    /**
+     * A partner hospital system may only read or report on referrals addressed to its own organisation: the machine
+     * client must carry {@code org_scope /PARTNERS/<providerCode>}; anything else is reported as not found (and audited).
+     */
+    private void requireProviderClient(CurrentUser client, Referral r) {
+        String org = client.partnerOrganisation();
+        if (org == null || !org.equals(r.getProviderCode())) {
+            audit.recordAs(client.username(), "INTEGRATION", "REFERRAL_FHIR_ACCESS", "REFERRAL", r.getId().toString(), AuditService.Outcome.DENIED,
+                    "client organisation " + org + " is not the referral's provider");
+            throw ApiException.notFound("Referral");
+        }
     }
 
     /** Stores the provider's report (PROVIDER_REPORT on the case) and moves the referral to REPORT_RECEIVED. */

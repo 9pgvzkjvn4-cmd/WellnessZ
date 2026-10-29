@@ -51,6 +51,11 @@ public class WellnessZJwtConverter implements Converter<Jwt, AbstractAuthenticat
             return true;
         }
         String acr = jwt.getClaimAsString("acr");
-        return acr != null && properties.getMfaAcrValues().contains(acr);
+        if (acr != null && properties.getMfaAcrValues().contains(acr)) {
+            return true;
+        }
+        // Microsoft Entra ID reports satisfied Conditional Access authentication contexts in "acrs" (e.g. ["c1"])
+        Object acrs = jwt.getClaims().get("acrs");
+        return acrs instanceof Collection<?> contexts && contexts.stream().map(String::valueOf).anyMatch(properties.getMfaAcrValues()::contains);
     }
 }

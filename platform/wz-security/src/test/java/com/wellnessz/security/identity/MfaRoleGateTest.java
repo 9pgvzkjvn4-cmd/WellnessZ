@@ -39,6 +39,8 @@ class MfaRoleGateTest {
     void partnerRoleIsGrantedWithAmrOrAcrProof() {
         assertThat(roles(token(Map.of("amr", List.of("pwd", "otp"))))).containsExactly("ROLE_EMPLOYEE", "ROLE_PARTNER_PROVIDER");
         assertThat(roles(token(Map.of("acr", "2")))).containsExactly("ROLE_EMPLOYEE", "ROLE_PARTNER_PROVIDER");
+        // Entra ID Conditional Access authentication context
+        assertThat(roles(token(Map.of("acrs", List.of("c1"))))).containsExactly("ROLE_EMPLOYEE", "ROLE_PARTNER_PROVIDER");
     }
 
     @Test

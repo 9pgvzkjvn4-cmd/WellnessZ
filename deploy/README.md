@@ -11,9 +11,9 @@ Step-by-step guides: [`docs/deployment/Deployment-Architecture.md`](../docs/depl
 | Path | What it is |
 |---|---|
 | [`local/`](local/) | Docker Compose dev stack: PostgreSQL 16, Keycloak 26 (realm import), Mailpit, GreenMail IMAP, OTel collector, optional core + bff |
-| [`local/keycloak/wellnessz-realm.json`](local/keycloak/wellnessz-realm.json) | Realm `wellnessz`: roles (incl. the nine increment-1 roles, the increment-2 role `DPO` and the increment-3 roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE`), clients (bff, mobile, api, integration), test users |
+| [`local/keycloak/wellnessz-realm.json`](local/keycloak/wellnessz-realm.json) | Realm `wellnessz`: roles (incl. the nine increment-1 roles, the increment-2 role `DPO`, the increment-3 roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE` and the increment-4 roles `CLAIMS_COORDINATOR`, `TPA_ADJUSTER`, `LEGAL_COUNSEL`, `FINANCE`, `PROCUREMENT`), clients (bff, mobile, api, integration; bff redirects for the four dev servers 5173–5176), test users |
 | [`docker/`](docker/) | `Dockerfile.core`, `Dockerfile.bff` (+ per-Dockerfile `.dockerignore`) |
-| [`helm/wellnessz/`](helm/wellnessz/) | Helm chart (core, bff, employee-portal, manager-workspace, oh-workspace) + `values-{local,azure,gcp,hybrid}.yaml`, `values.schema.json` |
+| [`helm/wellnessz/`](helm/wellnessz/) | Helm chart (core, bff, employee-portal, manager-workspace, oh-workspace, partner-portal) + `values-{local,azure,gcp,hybrid}.yaml`, `values.schema.json` |
 | [`terraform/azure/`](terraform/azure/) | AKS, PostgreSQL Flexible Server, Key Vault, ACR, App Gateway WAF v2 / Front Door, Log Analytics, identities |
 | [`terraform/gcp/`](terraform/gcp/) | GKE (Autopilot/Standard), Cloud SQL, Secret Manager, Artifact Registry, Cloud Armor, KMS, Binary Authorization |
 | [`hybrid/`](hybrid/) | On-prem core + CloudNativePG, cloud edge values, External Secrets / Vault – see [hybrid/README.md](hybrid/README.md) |
@@ -48,7 +48,7 @@ containers additionally run read-only with `cap_drop: ALL` and a `/tmp` tmpfs.
 
 | Role | Purpose | Privileges |
 |---|---|---|
-| `wz_migrator` | Flyway only | owns `wellnessz` and schemas `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics` (+ `bff` created by BFF migrations; `triage` since increment 1; `docs`, `ohrecord`, `fitness` since increment 2; `absence`, `surveillance`, `scheduling` since increment 3) |
+| `wz_migrator` | Flyway only | owns `wellnessz` and schemas `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, treatment, claims, analytics` (+ `bff` created by BFF migrations; `triage` since increment 1; `docs`, `ohrecord`, `fitness` since increment 2; `absence`, `surveillance`, `scheduling` since increment 3; `treatment`, `claims` since increment 4) |
 | `wz_app` | core runtime | `CONNECT` + schema `USAGE`; **table privileges are granted only by the Flyway migrations** (e.g. `platform.audit_event` is SELECT/INSERT = append-only) |
 | `wz_bff` | BFF session store | `CONNECT`; DML on `bff.spring_session*` via BFF migrations; no access to clinical schemas |
 | `keycloak` | IdP | owns the separate `keycloak` database |
@@ -58,7 +58,7 @@ containers additionally run read-only with `cap_drop: ALL` and a `/tmp` tmpfs.
 (audience only, added to access tokens of bff/mobile/integration via audience
 mappers), `wellnessz-integration` (client-credentials, role `INTEGRATION`).
 Least-privilege scope mappings (no full-scope – every role a token may carry,
-including the increment-1 roles, `DPO` and the four increment-3 roles, must be listed in the scope mappings of
+including the increment-1 roles, `DPO`, the four increment-3 roles and the five increment-4 roles, must be listed in the scope mappings of
 `wellnessz-bff` and `wellnessz-mobile`), direct-access grants disabled,
 brute-force detection (5 failures, up to 15 min lockout), password policy
 (≥12 chars, mixed classes, history 5, not username/email), access token 5 min,
@@ -68,11 +68,16 @@ Test users `employee1, manager1, hr1, clinician1, psych1, auditor1, admin1` and
 crewsched1, hygiene1, reception1, firstaider1` and (increment 2) `dpo1` (DPO) and
 `partner1` (PARTNER_PROVIDER, `org_scope=/PARTNERS/CITYHOSP`) and (increment 3) `scheduler1`
 (CLINIC_SCHEDULER), `biomed1` (BIOMEDICAL), `crewlicensing1` (CREW_LICENSING, `org_scope=/AIRLINE/OPS`) and
-`candidate1` (CANDIDATE, `employee_id=C9001`, `org_scope=/CANDIDATES`) use the temporary password
+`candidate1` (CANDIDATE, `employee_id=C9001`, `org_scope=/CANDIDATES`) and (increment 4) `claims1`
+(CLAIMS_COORDINATOR), `adjuster1` (TPA_ADJUSTER, `org_scope=/PARTNERS/GULFTPA`), `legal1` (LEGAL_COUNSEL), `finance1`
+(FINANCE), `procurement1` (PROCUREMENT) and `physio1` (PARTNER_PROVIDER, `org_scope=/PARTNERS/PHYSIOPLUS`) use the temporary password
 `ChangeMe!123` and must change it on first login. The realm is imported only
 when it does not exist: after a realm change run `./down.sh --purge` and `./up.sh`.
-The BFF client allows redirects for the dev servers on 5173, 5174 and 5175
-(OH workspace).
+The BFF client allows redirects, post-logout redirects and web origins for the dev servers on 5173, 5174, 5175
+(OH workspace) and 5176 (partner portal, increment 4). The demo realm has no OTP enrolment, so the core's `local`
+profile switches the MFA gate for `PARTNER_PROVIDER` / `TPA_ADJUSTER` off (`WZ_MFA_REQUIRED_ROLES` empty); every other
+profile requires `amr` / `acr` proof in the token. The Compose core service lists all four dev origins in
+`WZ_CORS_ORIGINS`.
 
 **Issuer inside containers**: tokens carry `iss=http://localhost:8180/realms/wellnessz`.
 In the `apps` profile a tiny socat container (`apps-net`) owns the network
@@ -95,8 +100,9 @@ docker build -f deploy/docker/Dockerfile.bff  -t wellnessz/wz-bff:dev .
 * Non-root `10001:10001`, application files root-owned/read-only, only `/tmp` writable
   (`readOnlyRootFilesystem`), `JAVA_TOOL_OPTIONS` with `MaxRAMPercentage=75`, `ExitOnOutOfMemoryError`, UTC.
 * Web images are built from `web/<app>/Dockerfile` (owned by the web team; nginx-unprivileged on 8080):
-  `employee-app`, `manager-workspace` and, since increment 1, `oh-workspace`
-  (`docker build -t wellnessz/oh-workspace:dev web/oh-workspace`).
+  `employee-app`, `manager-workspace`, since increment 1 `oh-workspace`
+  (`docker build -t wellnessz/oh-workspace:dev web/oh-workspace`) and since increment 4 `partner-portal`
+  (`docker build -t wellnessz/partner-portal:dev web/partner-portal`).
 
 ## 3. Kubernetes (`deploy/helm/wellnessz`)
 
@@ -131,15 +137,29 @@ call `/api/v1/integration/**` on the API host with `INTEGRATION` client-credenti
 [`docs/deployment/Deployment-Architecture.md`](../docs/deployment/Deployment-Architecture.md), Section 18.
 
 Increment 3 adds no component either: schemas `absence`, `surveillance` and `scheduling` are added to the same four
-places (and `search_path` of `wz_app` / `wz_migrator`), so the list now reads
-`platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,analytics`. The
-new jobs (absence feed / triggers / LTA, surveillance due list, crew certificates, pre-employment purge, appointment
+places (and `search_path` of `wz_app` / `wz_migrator`), so the list then read
+`platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,analytics` (extended
+by increment 4, below). The new jobs (absence feed / triggers / LTA, surveillance due list, crew certificates, pre-employment purge, appointment
 reminders and no-shows, equipment calibration) run inside the core and are guarded once per run across replicas.
 New machine endpoints on the API host (`INTEGRATION` role): `/api/v1/integration/absence/{episodes,certificates}`,
 `/api/v1/integration/ih-measurements`, `/api/v1/integration/cosmic-dose`, `/api/v1/integration/pre-employment` and the
 IoT fridge readings `/api/v1/integration/cold-chain/readings`. The BFF must run with
 `spring.servlet.multipart.enabled=false` (shipped in its `application.yml`) so that browser uploads reach the core
 untouched – see Section 19 of the deployment architecture.
+
+Increment 4 adds the component `partnerPortal` (image `partner-portal`, nginx-unprivileged on 8080, `/healthz`, HPA
+2–4, PDB; host `ingress.hosts.partnerPortal`, e.g. `partners.wellnessz.example.com`, `partners.localtest.me` locally;
+disabled on-prem in `values-hybrid.yaml`, served by the cloud edge) – it is in every component list of the templates
+(`_helpers.tpl`, `deployment-web.yaml`, `service.yaml`, `serviceaccount.yaml`, `hpa.yaml`, `pdb.yaml`,
+`networkpolicy.yaml`, `ingress.yaml`, `gke.yaml`, `NOTES.txt`). It is the first host intended for users outside the
+airline; its users need MFA at the IdP and the core verifies it (`WZ_MFA_REQUIRED_ROLES`, default
+`PARTNER_PROVIDER,TPA_ADJUSTER`). Schemas `treatment` and `claims` are added to the same four places, so the list now
+reads `platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,treatment,claims,analytics`.
+Set `WZ_PARTNER_PORTAL_URL` in `core.env` (not in the shipped values files). New machine endpoints on the API host:
+`/api/v1/integration/referrals/**` (FHIR R4), `/api/v1/integration/preauthorisations/{ref}/decision`,
+`/api/v1/integration/claims/reports/{ref}/acknowledgement` and `/api/v1/integration/telehealth/tokens/redeem`; the
+outbound destinations `insurer-gateway`, `authority-gateway` and `erp-finance` carry references only – see Section 20 of
+the deployment architecture.
 
 Platform files: `values-local.yaml` (kind / minikube / Docker Desktop, secrets
 from pre-created K8s Secrets), `values-azure.yaml`, `values-gcp.yaml`,
@@ -217,9 +237,9 @@ the CSI driver picks up the new file (Azure rotation every 2 min).
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `ci.yml` | PR, push `main` | Java 21 `./mvnw verify` (JaCoCo, Surefire reports, CycloneDX SBOM) + SpotBugs/FindSecBugs (`-Psecurity`); web lint/test/build/`npm audit`/CycloneDX for the three apps; gitleaks (full history); OWASP dependency-check (fail CVSS ≥ 7, `NVD_API_KEY`, SARIF to code scanning); dependency review on PRs; Helm lint/template, `terraform fmt`, Trivy IaC scan |
+| `ci.yml` | PR, push `main` | Java 21 `./mvnw verify` (JaCoCo, Surefire reports, CycloneDX SBOM) + SpotBugs/FindSecBugs (`-Psecurity`); web lint/test/build/`npm audit`/CycloneDX for the four apps (incl. `partner-portal`, increment 4); gitleaks (full history); OWASP dependency-check (fail CVSS ≥ 7, `NVD_API_KEY`, SARIF to code scanning); dependency review on PRs; Helm lint/template, `terraform fmt`, Trivy IaC scan |
 | `codeql.yml` | PR, push, weekly | CodeQL `java-kotlin` + `javascript-typescript`, `security-extended` |
-| `container.yml` | push `main`/tags, dispatch, `workflow_call` | Build 5 images (incl. `oh-workspace`) → Trivy gate (CRITICAL/HIGH, fixed) → push to GHCR / ACR / Artifact Registry (OIDC) → SBOM + SLSA provenance attestations → cosign keyless signature → Binary Authorization attestation (GAR) |
+| `container.yml` | push `main`/tags, dispatch, `workflow_call` | Build 6 images (incl. `oh-workspace` and `partner-portal`) → Trivy gate (CRITICAL/HIGH, fixed) → push to GHCR / ACR / Artifact Registry (OIDC) → SBOM + SLSA provenance attestations → cosign keyless signature → Binary Authorization attestation (GAR) |
 | `cd.yml` (+ `deploy-env.yml`) | tag `v*`, dispatch | dev → test → prod through GitHub Environments; cosign verification of every image before deploy; Azure (`azure/login` OIDC + kubelogin + AKS context or `az aks command invoke` for private clusters) or GCP (WIF + `get-gke-credentials`); `helm upgrade --install --atomic --wait` |
 
 All actions are pinned to full commit SHAs (version in comment), every workflow

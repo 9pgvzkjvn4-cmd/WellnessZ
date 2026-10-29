@@ -128,7 +128,13 @@ class Increment4TreatmentIntegrationTest extends IntegrationTestBase {
     static final JwtRequestPostProcessor ADJUSTER = user("adjuster1", "X8702", "/PARTNERS/GULFTPA", "TPA_ADJUSTER");
     static final JwtRequestPostProcessor OTHER_ADJUSTER = user("adjuster9", "X8799", "/PARTNERS/AVIA_INSURE", "TPA_ADJUSTER");
     static final JwtRequestPostProcessor MANAGER = user("manager1", "M2001", "/AIRLINE/CATERING", "MANAGER");
-    static final JwtRequestPostProcessor INTEGRATION = user("cityhosp-system", null, null, "INTEGRATION");
+    /** Partner hospital system bound to its organisation (org_scope /PARTNERS/CITYHOSP). */
+    static final JwtRequestPostProcessor INTEGRATION = user("cityhosp-system", null, "/PARTNERS/CITYHOSP", "INTEGRATION");
+    static final JwtRequestPostProcessor PHYSIO_SYSTEM = user("physioplus-system", null, "/PARTNERS/PHYSIOPLUS", "INTEGRATION");
+    /** Insurer / TPA system of the payer GULFTPA. */
+    static final JwtRequestPostProcessor PAYER_SYSTEM = user("gulftpa-system", null, "/PARTNERS/GULFTPA", "INTEGRATION");
+    /** Machine client not bound to any partner organisation (e.g. the absence feed). */
+    static final JwtRequestPostProcessor UNBOUND_SYSTEM = user("absence-feed", null, null, "INTEGRATION");
     static final LocalDate TODAY = LocalDate.now(ZoneOffset.UTC);
     static final byte[] PDF = "%PDF-1.4\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF".getBytes(StandardCharsets.US_ASCII);
 
@@ -412,6 +418,9 @@ class Increment4TreatmentIntegrationTest extends IntegrationTestBase {
         assertThat(ok(post("/api/v1/referrals/" + id + "/rating"), NURSE, "{\"rating\":4,\"comment\":\"Clear report\"}").path("rating").asInt())
                 .isEqualTo(4);
         assertThat(ok(get("/api/v1/integration/referrals/" + id + "/fhir"), INTEGRATION, null).path("status").asString()).isEqualTo("completed");
+        // other organisations' systems and unbound machine clients cannot read the referral
+        call(get("/api/v1/integration/referrals/" + id + "/fhir"), PAYER_SYSTEM, null).andExpect(status().isNotFound());
+        call(get("/api/v1/integration/referrals/" + id + "/fhir"), UNBOUND_SYSTEM, null).andExpect(status().isNotFound());
         call(get("/api/v1/integration/referrals/" + id + "/fhir"), NURSE, null).andExpect(status().isForbidden());
         assertThat(ok(get("/api/v1/cases/" + caseId + "/invoices"), CLAIMS, null).size()).isEqualTo(1);
 
@@ -463,10 +472,12 @@ class Increment4TreatmentIntegrationTest extends IntegrationTestBase {
                  "context":{"related":[{"reference":"ServiceRequest/%s"}]},
                  "content":[{"attachment":{"contentType":"application/pdf","title":"Discharge","data":"%s"}}]}"""
                 .formatted(a, Base64.getEncoder().encodeToString(PDF));
-        JsonNode res = ok(post("/api/v1/integration/referrals/fhir/document-reference"), INTEGRATION, docRef);
+        // only the referral's own provider system may post the report (CITYHOSP's system gets 404)
+        call(post("/api/v1/integration/referrals/fhir/document-reference"), INTEGRATION, docRef).andExpect(status().isNotFound());
+        JsonNode res = ok(post("/api/v1/integration/referrals/fhir/document-reference"), PHYSIO_SYSTEM, docRef);
         assertThat(res.path("status").asString()).isEqualTo("REPORT_RECEIVED");
         assertThat(res.path("documentId").asString()).isNotBlank();
-        problem(post("/api/v1/integration/referrals/fhir/document-reference"), INTEGRATION, "{\"resourceType\":\"Patient\"}", 400);
+        problem(post("/api/v1/integration/referrals/fhir/document-reference"), PHYSIO_SYSTEM, "{\"resourceType\":\"Patient\"}", 400);
 
         // cancel revokes the partner shares
         String letter = sentB.path("letterDocumentId").asString();
@@ -625,7 +636,9 @@ class Increment4TreatmentIntegrationTest extends IntegrationTestBase {
         ok(post("/api/v1/preauthorisations/" + pa2.path("id").asString() + "/submit"), NURSE, null);
         call(post("/api/v1/preauthorisations/" + pa2.path("id").asString() + "/decision"), NURSE, "{\"status\":\"APPROVED\"}")
                 .andExpect(status().isForbidden());
-        assertThat(ok(post("/api/v1/integration/preauthorisations/" + pa2.path("ref").asString() + "/decision"), INTEGRATION,
+        call(post("/api/v1/integration/preauthorisations/" + pa2.path("ref").asString() + "/decision"), INTEGRATION,
+                "{\"status\":\"APPROVED\"}").andExpect(status().isNotFound()); // a provider system is not the payer
+        assertThat(ok(post("/api/v1/integration/preauthorisations/" + pa2.path("ref").asString() + "/decision"), PAYER_SYSTEM,
                 "{\"status\":\"DECLINED\",\"note\":\"Not covered by the policy\"}").path("status").asString()).isEqualTo("DECLINED");
         JsonNode claimsList = ok(get("/api/v1/preauthorisations"), CLAIMS, null);
         assertThat(texts(claimsList, "id")).contains(paId, pa2.path("id").asString());

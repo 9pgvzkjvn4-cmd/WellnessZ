@@ -294,8 +294,15 @@ public class ReportService {
     }
 
     @Transactional
-    public ReportView integrationAck(String ref, String ackRef, Instant receivedAt, String status, String reason) {
+    public ReportView integrationAck(CurrentUser client, String ref, String ackRef, Instant receivedAt, String status, String reason) {
         FirstReport r = reports.findByReportRef(ref).orElseThrow(() -> ApiException.notFound("Report"));
+        // only the recipient's own system (org_scope /PARTNERS/<recipientCode>) may acknowledge or reject a report
+        String org = client.partnerOrganisation();
+        if (org == null || !org.equals(r.getRecipientCode())) {
+            audit.recordAs(client.username(), "INTEGRATION", "CLAIM_REPORT_ACK", "FIRST_REPORT", r.getId().toString(), AuditService.Outcome.DENIED,
+                    "client organisation " + org + " is not the recipient");
+            throw ApiException.notFound("Report");
+        }
         ReportStatus s = "REJECTED".equals(status) ? ReportStatus.REJECTED : ReportStatus.ACKNOWLEDGED;
         if (!ReportStatus.SUBMITTED.name().equals(r.getStatus())) {
             if (s.name().equals(r.getStatus()) && ackRef != null && ackRef.equals(r.getAckRef())) {
