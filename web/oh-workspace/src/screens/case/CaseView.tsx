@@ -10,13 +10,27 @@ import { ChecklistsTab } from './ChecklistsTab';
 import { ComplexityTab } from './ComplexityTab';
 import { DuplicatesTab } from './DuplicatesTab';
 import { EscalationTab } from './EscalationTab';
-import { FitnessTab, StatusTab } from './StatusTabs';
+import { FitnessDecisionTab } from './FitnessDecisionTab';
+import { CaseDocumentsTab, CaseEncountersTab, SummaryTab } from './RecordTabs';
+import { RestrictionsDutiesTab } from './RestrictionsDutiesTab';
+import { RtwPlanTab } from './RtwPlanTab';
+import { CrewTab, FoodHandlerTab, IhrTab } from './SpecialistTabs';
+import { StatusTab } from './StatusTabs';
 import { OverviewTab } from './OverviewTab';
 import { RecordabilityTab } from './RecordabilityTab';
 import { TasksTab } from './TasksTab';
 import { TimelineTab } from './TimelineTab';
 import { TriageTab } from './TriageTab';
 import type { CaseTabProps } from './caseTabProps';
+
+const CREW_CATEGORIES = ['FLIGHT_CREW', 'CABIN_CREW'];
+
+/** Increment-1 tabs first, then the E03 / E05 tabs (crew and food-handler tabs only for those safety categories). */
+function caseTabs(detail?: CaseDetail): TabDef[] {
+  return CASE_TABS.map((t) =>
+    t.id === 'crew' ? { ...t, hidden: !CREW_CATEGORIES.includes(detail?.safetyCategory ?? '') } : t.id === 'food-handler' ? { ...t, hidden: detail?.safetyCategory !== 'FOOD_HANDLER' } : t,
+  );
+}
 
 const CASE_TABS: TabDef[] = [
   { id: 'overview', label: 'Overview' },
@@ -29,7 +43,15 @@ const CASE_TABS: TabDef[] = [
   { id: 'duplicates', label: 'Duplicates' },
   { id: 'tasks', label: 'Tasks' },
   { id: 'timeline', label: 'Timeline' },
+  { id: 'encounters', label: 'Encounters' },
   { id: 'fitness', label: 'Fitness' },
+  { id: 'restrictions', label: 'Restrictions & duties' },
+  { id: 'rtw', label: 'RTW plan' },
+  { id: 'food-handler', label: 'Food handler' },
+  { id: 'crew', label: 'Crew' },
+  { id: 'ihr', label: 'IHR' },
+  { id: 'documents', label: 'Documents' },
+  { id: 'summary', label: 'Summary' },
   { id: 'status', label: 'Status' },
 ];
 
@@ -44,7 +66,15 @@ function TabBody({ tab, props }: { tab: string; props: CaseTabProps }) {
     case 'duplicates': return <DuplicatesTab {...props} />;
     case 'tasks': return <TasksTab {...props} />;
     case 'timeline': return <TimelineTab {...props} />;
-    case 'fitness': return <FitnessTab {...props} />;
+    case 'encounters': return <CaseEncountersTab {...props} />;
+    case 'fitness': return <FitnessDecisionTab {...props} />;
+    case 'restrictions': return <RestrictionsDutiesTab {...props} />;
+    case 'rtw': return <RtwPlanTab {...props} />;
+    case 'food-handler': return <FoodHandlerTab {...props} />;
+    case 'crew': return <CrewTab {...props} />;
+    case 'ihr': return <IhrTab {...props} />;
+    case 'documents': return <CaseDocumentsTab {...props} />;
+    case 'summary': return <SummaryTab {...props} />;
     case 'status': return <StatusTab {...props} />;
     default: return <OverviewTab {...props} />;
   }
@@ -101,7 +131,8 @@ export function CaseView(props: ScreenProps & { caseId: string; tab: string }) {
   };
   const d = detail.data;
   const tabProps: CaseTabProps | undefined = d ? { ...props, caseId, detail: d, refresh } : undefined;
-  const current = CASE_TABS.some((t) => t.id === tab) ? tab : 'overview';
+  const tabs = caseTabs(d);
+  const current = tabs.some((t) => t.id === tab && !t.hidden) ? tab : 'overview';
 
   return (
     <section>
@@ -116,9 +147,15 @@ export function CaseView(props: ScreenProps & { caseId: string; tab: string }) {
           This case was merged. <a href={`#/cases/${encodeURIComponent(d.mergedIntoCaseId)}`}>Open the surviving case</a>.
         </div>
       )}
+      {d && (
+        <p className="case-links small">
+          <a href={`#/employees/${encodeURIComponent(d.employeeId)}/chart`}>Open OH chart</a> <span aria-hidden="true">·</span>{' '}
+          <a href={`#/employees/${encodeURIComponent(d.employeeId)}/timeline`}>Employee timeline</a>
+        </p>
+      )}
       {!!header.error && !detail.error && <ErrorAlert error={header.error} />}
       <CaseHeaderPanel h={header.data} detail={d} />
-      <TabNav tabs={CASE_TABS} current={current} label="Case sections" hrefFor={(id) => `#/cases/${encodeURIComponent(caseId)}/${id}`} />
+      <TabNav tabs={tabs} current={current} label="Case sections" hrefFor={(id) => `#/cases/${encodeURIComponent(caseId)}/${id}`} />
       <div className="tab-panel">
         {detail.loading && !d && <Loading label="Loading case…" />}
         {!!detail.error && <ErrorAlert error={detail.error} />}

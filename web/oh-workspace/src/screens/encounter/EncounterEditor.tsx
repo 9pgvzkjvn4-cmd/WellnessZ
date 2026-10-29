@@ -4,7 +4,8 @@ import { codingText, recordApi, type AnswerValue, type BodyMapMark, type Clinica
 import { can } from '../../auth/roles';
 import { CdsAlertList } from '../../components/CdsOverride';
 import { Dialog } from '../../components/Dialog';
-import { ErrorSummary, IdField, errorFor, type FieldError } from '../../components/forms';
+import { ErrorSummary, IdField, type FieldError } from '../../components/forms';
+import { errorFor } from '../../domain/validation';
 import { formatBytes, formatDate, humanise } from '../../components/format';
 import { TerminologyPicker } from '../../components/TerminologyPicker';
 import { ActionFeedback, Alert, Dl, ErrorAlert, Loading, PageTitle, StatusBadge } from '../../components/ui';

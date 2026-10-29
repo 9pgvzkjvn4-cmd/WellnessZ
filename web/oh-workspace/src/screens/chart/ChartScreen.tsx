@@ -13,7 +13,7 @@ import type { ChartTabProps } from './chartTabProps';
 import { MedicationsTab } from './MedicationsTab';
 import { AllergiesTab, ImmunisationsTab, JobsTab, ProblemsTab, RecordTimelineTab } from './RecordLists';
 
-export const CHART_TABS: TabDef[] = [
+const CHART_TABS: TabDef[] = [
   { id: 'problems', label: 'Problems' },
   { id: 'medications', label: 'Medications' },
   { id: 'allergies', label: 'Allergies' },

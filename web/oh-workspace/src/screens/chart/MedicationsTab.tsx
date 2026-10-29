@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { codingText, MEDICATION_SOURCES, MEDICATION_STATUSES, recordApi, type CdsAlert, type Coding, type Medication, type MedicationInput } from '../../api/record';
-import { CdsOverridePanel, overrideFieldId } from '../../components/CdsOverride';
-import { ErrorSummary, IdField, errorFor, type FieldError } from '../../components/forms';
+import { CdsOverridePanel } from '../../components/CdsOverride';
+import { ErrorSummary, IdField, type FieldError } from '../../components/forms';
+import { errorFor } from '../../domain/validation';
 import { formatDay, humanise } from '../../components/format';
 import { TerminologyPicker } from '../../components/TerminologyPicker';
 import { ActionFeedback, Empty, ErrorAlert, Loading, SelectOptions, StatusBadge } from '../../components/ui';
 import { useAction, useAsync } from '../../components/useAsync';
-import { cdsAlertsOf, missingOverrideReasons, toOverrides } from '../../domain/cds';
+import { cdsAlertsOf, missingOverrideReasons, overrideFieldId, toOverrides } from '../../domain/cds';
 import type { ChartTabProps } from './chartTabProps';
 
 interface MedForm {

@@ -1191,3 +1191,334 @@ td.flags {
     animation: none !important;
   }
 }
+
+/* ------------------------------------------------------------------ increment 2: E03 record / E05 fitness */
+.error-summary {
+  border: 3px solid var(--c-red);
+  border-radius: var(--radius);
+  background: var(--c-error-bg);
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+}
+.error-summary:focus {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}
+.error-summary-title {
+  font-size: 1.05rem;
+  margin: 0 0 0.4rem;
+  color: var(--c-error);
+}
+.error-summary ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+.error-summary a {
+  color: var(--c-error);
+  font-weight: 600;
+}
+.field-error {
+  border-left: 4px solid var(--c-red);
+  padding-left: 0.6rem;
+}
+.field-error-text {
+  display: block;
+  color: var(--c-error);
+  font-weight: 600;
+}
+[aria-invalid='true'] {
+  border-color: var(--c-red);
+  box-shadow: 0 0 0 1px var(--c-red);
+}
+
+/* dialog */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 30, 0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4vh 1rem;
+  z-index: 50;
+  overflow-y: auto;
+}
+.dialog {
+  background: var(--c-surface);
+  color: var(--c-text);
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  width: min(40rem, 100%);
+  padding: 1rem 1.25rem 1.25rem;
+}
+.dialog:focus {
+  outline: 3px solid var(--c-focus);
+}
+.dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.dialog-head h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+/* severity / flags / overdue (symbol + text, never colour alone) */
+.sev-high,
+.sev-critical,
+.flag-critical,
+.flag-abnormal,
+.badge-overdue,
+.badge-high-criticality,
+.badge-lapsed,
+.badge-excluded,
+.badge-inappropriate,
+.badge-temporarily-unfit,
+.badge-permanently-unfit,
+.badge-unfit,
+.badge-awaiting-signoff,
+.badge-rejected {
+  background: var(--c-red-bg);
+  color: var(--c-red);
+  border-color: var(--c-red);
+}
+.sev-medium,
+.sev-warning,
+.flag-high,
+.flag-low,
+.badge-expiring,
+.badge-return-pending-clearance,
+.badge-fit-with-restrictions,
+.badge-fit-with-limitations,
+.badge-limited,
+.badge-under-review,
+.badge-preliminary,
+.badge-awaiting-cmo,
+.badge-appealed,
+.badge-proposed,
+.badge-partial,
+.badge-queued {
+  background: var(--c-amber-bg);
+  color: var(--c-amber);
+}
+.sev-low,
+.sev-info {
+  background: var(--c-info-bg);
+}
+.flag-normal,
+.badge-signed,
+.badge-final,
+.badge-active,
+.badge-complete,
+.badge-fit-to-handle-food,
+.badge-appropriate,
+.badge-resulted,
+.badge-completed {
+  background: var(--c-green-bg);
+  color: var(--c-green);
+}
+.badge-entered-in-error,
+.badge-superseded,
+.badge-revoked {
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+.badge-ai {
+  background: #ece6ff;
+  color: #3d2a87;
+  border-color: #8b7ad6;
+}
+@media (prefers-color-scheme: dark) {
+  .badge-ai {
+    background: #2a2347;
+    color: #d6ccff;
+  }
+}
+
+/* chart */
+.chart-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.chart-summary-block {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+}
+.chart-summary-block h2 {
+  font-size: 1rem;
+  margin: 0.2rem 0 0.4rem;
+}
+.chart-summary-block h3 {
+  font-size: 0.92rem;
+  margin: 0.6rem 0 0.3rem;
+}
+.alert-list li,
+.cds-list li {
+  margin-bottom: 0.3rem;
+}
+.break-glass {
+  margin: 0.75rem 0;
+}
+.case-links {
+  margin: 0 0 0.5rem;
+}
+.chip-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.3rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.chip {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  padding: 0.05rem 0.6rem;
+  font-size: 0.85rem;
+}
+.snippet {
+  background: var(--c-surface-2);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+.break {
+  word-break: break-all;
+}
+
+/* terminology picker */
+.term-picker,
+.template-section,
+.body-map,
+.restriction-picker,
+.phase {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.9rem 0.75rem;
+  margin: 0 0 1rem;
+}
+.term-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+.term-list li {
+  padding: 0.15rem 0;
+  border-bottom: 1px solid var(--c-surface-2);
+}
+.fav-toggle {
+  font-size: 1.1rem;
+}
+.selected-code {
+  margin: 0.4rem 0;
+}
+.span-all {
+  grid-column: 1 / -1;
+}
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+.value-input {
+  width: 6rem;
+}
+
+/* body map */
+.body-regions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+}
+.region-toggle {
+  background: var(--c-surface);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  text-align: left;
+}
+.region-toggle.region-on {
+  background: var(--c-red-bg);
+  color: var(--c-red);
+  border-color: var(--c-red);
+  font-weight: 700;
+}
+.marked-sites li {
+  margin-bottom: 0.3rem;
+}
+
+/* CDS */
+.cds-panel {
+  border: 2px solid var(--c-amber);
+  background: var(--c-warn-bg);
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  margin: 1rem 0;
+}
+.cds-panel h3 {
+  margin: 0 0 0.3rem;
+}
+.cds-alert {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--c-border);
+}
+.cds-critical {
+  border-left: 4px solid var(--c-red);
+  padding-left: 0.5rem;
+}
+
+/* encounters / results */
+.signature {
+  border: 1px solid var(--c-green);
+  background: var(--c-green-bg);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.9rem;
+  margin: 0.75rem 0;
+}
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--c-bg);
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--c-border);
+}
+.ai-draft {
+  border: 1px dashed #8b7ad6;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.8rem;
+  margin-top: 0.75rem;
+}
+.audiogram-grid .grid-input {
+  width: 4.2rem;
+}
+.audiogram-grid td,
+.audiogram-grid th {
+  text-align: center;
+}
+.standard-ref {
+  background: var(--c-surface-2);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.8rem;
+  margin-bottom: 0.75rem;
+}
+details.legacy {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--c-border);
+  padding-top: 0.75rem;
+}
+details.legacy > summary {
+  cursor: pointer;
+  font-weight: 600;
+}

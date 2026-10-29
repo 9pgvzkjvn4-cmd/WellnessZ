@@ -36,9 +36,6 @@ export function ErrorSummary({ errors, title = 'There is a problem' }: { errors:
   );
 }
 
-/** First error message for a field id. */
-export const errorFor = (errors: readonly FieldError[], field: string): string | undefined => errors.find((e) => e.field === field)?.message;
-
 /**
  * Field with a caller-chosen id (so the error summary can link to it). `children(describedBy)` renders the control;
  * pass `aria-describedby={describedBy}` and `aria-invalid={!!error}` on it.

@@ -26,3 +26,9 @@ const SEVERITY_ORDER: Record<string, number> = { CRITICAL: 0, WARNING: 1, INFO: 
 export function sortAlerts<T extends { severity?: string }>(alerts: readonly T[]): T[] {
   return [...alerts].sort((a, b) => (SEVERITY_ORDER[a.severity ?? ''] ?? 3) - (SEVERITY_ORDER[b.severity ?? ''] ?? 3));
 }
+
+/** E03-F07: `503 code=ai_not_configured` – no AI documentation provider is enabled. */
+export const isAiNotConfigured = (e: unknown): boolean => e instanceof ApiError && e.status === 503 && e.problem?.code === 'ai_not_configured';
+
+/** Field id of the override-reason box for an alert (error-summary target). */
+export const overrideFieldId = (code: string): string => `cds-reason-${code.replace(/[^A-Za-z0-9_-]/g, '_')}`;

@@ -7,7 +7,8 @@ import { useAction, useAsync } from './useAsync';
 export interface FieldSpec {
   key: string;
   label: string;
-  kind: 'text' | 'number' | 'bool' | 'select' | 'tristate';
+  /** `list`: string array edited as comma-separated text. */
+  kind: 'text' | 'number' | 'bool' | 'select' | 'tristate' | 'list';
   options?: readonly string[];
   /** Empty value is sent as null (wildcard / optional). */
   nullable?: boolean;
@@ -24,6 +25,7 @@ export type ConfigRow = Record<string, unknown>;
 function toApiValue(f: FieldSpec, v: unknown): unknown {
   if (f.kind === 'bool') return v === true;
   if (f.kind === 'tristate') return v === true || v === 'true' ? true : v === false || v === 'false' ? false : null;
+  if (f.kind === 'list') return Array.isArray(v) ? v : String(v ?? '').split(',').map((x) => x.trim()).filter(Boolean);
   if (v === '' || v === undefined || v === null) return f.nullable ? null : f.kind === 'number' ? 0 : '';
   if (f.kind === 'number') return typeof v === 'number' ? v : Number(v);
   return v;
@@ -32,6 +34,7 @@ function toApiValue(f: FieldSpec, v: unknown): unknown {
 function cellDisplay(f: FieldSpec, v: unknown): string {
   if (f.kind === 'bool') return v === true ? 'Yes' : 'No';
   if (f.kind === 'tristate') return v === true ? 'Yes' : v === false ? 'No' : 'Any';
+  if (f.kind === 'list') return Array.isArray(v) && v.length ? v.join(', ') : '–';
   if (v === null || v === undefined || v === '') return f.nullable ? 'Any' : '–';
   if (f.kind === 'select') return humanise(String(v));
   if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) return formatDate(v);
@@ -77,7 +80,7 @@ function RowForm({ fields, initial, onSubmit, onCancel, busy, submitLabel }: { f
                       id={id}
                       type={f.kind === 'number' ? 'number' : 'text'}
                       required={f.required}
-                      value={v[f.key] == null ? '' : String(v[f.key])}
+                      value={v[f.key] == null ? '' : Array.isArray(v[f.key]) ? (v[f.key] as unknown[]).join(', ') : String(v[f.key])}
                       onChange={(e) => setV({ ...v, [f.key]: f.kind === 'number' ? (e.target.value === '' ? '' : e.target.valueAsNumber) : e.target.value })}
                     />
                   )
@@ -114,6 +117,10 @@ export interface ConfigTableProps {
   updatePath?: (row: ConfigRow) => string;
   newRow?: ConfigRow;
   rowExtra?: (row: ConfigRow) => ReactNode;
+  /** `PUT`: new rows are upserted with `PUT updatePath(row)` (master data keyed by code). Default POST createPath. */
+  createMethod?: 'POST' | 'PUT';
+  /** Shape the request body (e.g. drop server-managed `version`). */
+  toBody?: (row: ConfigRow) => ConfigRow;
 }
 
 /** Generic admin table: list, edit and create config rows from a field spec. */
@@ -133,8 +140,9 @@ export function ConfigTable(p: ConfigTableProps) {
       return;
     }
     const ok = await action.run(async () => {
-      if (index === 'new') await p.client.api(p.createPath ?? p.listPath, { method: 'POST', body: row });
-      else await p.client.api(p.updatePath ? p.updatePath(row) : p.listPath, { method: 'PUT', body: row });
+      const body = p.toBody ? p.toBody(row) : row;
+      if (index === 'new' && p.createMethod !== 'PUT') await p.client.api(p.createPath ?? p.listPath, { method: 'POST', body });
+      else await p.client.api(p.updatePath ? p.updatePath(row) : p.listPath, { method: 'PUT', body });
       return 'Saved.';
     });
     if (ok) {

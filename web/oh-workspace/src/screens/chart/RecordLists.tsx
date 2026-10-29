@@ -16,11 +16,13 @@ import {
   type ProblemInput,
 } from '../../api/record';
 import { WORK_RELATED } from '../../api/types';
-import { ErrorSummary, IdField, errorFor, type FieldError } from '../../components/forms';
+import { ErrorSummary, IdField, type FieldError } from '../../components/forms';
+import { errorFor } from '../../domain/validation';
 import { formatDate, formatDay, humanise } from '../../components/format';
 import { TerminologyPicker } from '../../components/TerminologyPicker';
 import { ActionFeedback, Empty, ErrorAlert, Loading, SelectOptions, StatusBadge } from '../../components/ui';
 import { useAction, useAsync } from '../../components/useAsync';
+import { parseHazards } from '../../domain/imports';
 import type { ChartTabProps } from './chartTabProps';
 
 function SelectedCode({ value, onClear }: { value?: Coding; onClear: () => void }) {
@@ -393,18 +395,6 @@ interface JobForm {
   hazards: string;
 }
 const blankJob: JobForm = { jobTitle: '', jobCode: '', employer: '', industry: '', startDate: '', endDate: '', current: false, duties: '', weeklyHours: '', hazards: '' };
-
-/** "NOISE, DUST:Wood dust" → hazards (code[:name]). */
-export function parseHazards(text: string): { code: string; name: string }[] {
-  return text
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => {
-      const [code = '', ...rest] = s.split(':');
-      return { code: code.trim().toUpperCase().replace(/\s+/g, '_'), name: rest.join(':').trim() || code.trim() };
-    });
-}
 
 export function JobsTab({ client, onSessionExpired, employeeId, canWrite }: ChartTabProps) {
   const api = recordApi(client);

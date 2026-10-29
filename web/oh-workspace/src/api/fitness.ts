@@ -188,6 +188,28 @@ export interface CrewDashboard {
   trend: { week: string; unfit: unknown; limited: unknown }[];
   minGroupSize?: number;
 }
+export interface RosterMessage {
+  messageId: string;
+  employeeId: string;
+  rosterStatus: string;
+  validFrom?: string;
+  validUntil?: string;
+  operationalLimitations?: string | string[];
+  sentAt: string;
+  ackAt?: string;
+}
+/** `GET /cases/{id}/food-handler` – the contract states "food-handler episodes of a case" without a shape; read defensively. */
+export interface FoodHandlerEpisode {
+  id?: string;
+  status: FoodHandlerStatus;
+  reasonCategory?: string;
+  excludedFrom?: string;
+  expectedReturn?: string;
+  returnRequestedAt?: string;
+  clearedAt?: string;
+  clearedBy?: string;
+  documentId?: string;
+}
 export interface RosterReconciliation {
   sent: number;
   acknowledged: number;
@@ -262,13 +284,16 @@ export function fitnessApi(c: AuthClient) {
     limitationCodes: () => c.api<LimitationCode[]>('/crew/limitation-codes'),
     crewAssessment: (caseId: string, r: CrewAssessmentRequest) => c.api<FitnessDecision>(`${cs(caseId)}/crew-assessment`, { method: 'POST', body: r }),
     crewDashboard: (from?: string, to?: string) => c.api<CrewDashboard>(`/crew/dashboard${buildQuery({ from, to })}`),
-    rosterReconciliation: () => c.api<RosterReconciliation>('/integration/roster-feed/reconciliation'),
+    /** People use the `/crew/...` alias; `/integration/**` is reserved for machine clients. */
+    rosterReconciliation: () => c.api<RosterReconciliation>('/crew/roster-feed/reconciliation'),
+    rosterFeed: (since?: string) => c.api<RosterMessage[]>(`/crew/roster-feed${buildQuery({ since })}`),
 
     foodExclude: (caseId: string, body: { reasonCategory: string; excludedFrom: string; expectedReturn?: string; checklistAnswers: Record<string, boolean> }) =>
       c.api<{ status: FoodHandlerStatus }>(`${cs(caseId)}/food-handler/exclude`, { method: 'POST', body }),
     foodReturnRequest: (caseId: string) => c.api<{ status: FoodHandlerStatus }>(`${cs(caseId)}/food-handler/return-request`, { method: 'POST' }),
     foodClear: (caseId: string, body: { criteria: { symptomFree48h: boolean; clearanceSamples?: string }; note: string }) =>
       c.api<{ status: FoodHandlerStatus; documentId?: string }>(`${cs(caseId)}/food-handler/clear`, { method: 'POST', body }),
+    foodEpisodes: (caseId: string) => c.api<FoodHandlerEpisode[]>(`${cs(caseId)}/food-handler`),
     foodHandlers: (department?: string) =>
       c.api<{ employeeId: string; displayName: string; department?: string; status: FoodHandlerStatus; excludedFrom?: string; expectedReturn?: string; clearedAt?: string }[]>(
         `/fitness/food-handlers${buildQuery({ department })}`,

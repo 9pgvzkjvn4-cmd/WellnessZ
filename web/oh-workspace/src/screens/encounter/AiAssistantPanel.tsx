@@ -1,14 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { recordApi, type AiDraft, type Soap } from '../../api/record';
-import { ApiError, type AuthClient } from '../../auth/AuthClient';
+import type { AuthClient } from '../../auth/AuthClient';
 import { formatDate, humanise } from '../../components/format';
 import { ActionFeedback, Alert } from '../../components/ui';
 import { useAction } from '../../components/useAsync';
+import { isAiNotConfigured } from '../../domain/cds';
 
-export const DEFAULT_AI_CONSENT =
+const DEFAULT_AI_CONSENT =
   'The employee was told that an AI documentation assistant will draft this note from the consultation, that the clinician reviews and signs the note, and agreed verbally.';
-
-export const isAiNotConfigured = (e: unknown): boolean => e instanceof ApiError && e.status === 503 && e.problem?.code === 'ai_not_configured';
 
 /**
  * E03-F07 AI documentation assistant (optional): consent capture → draft request. Drafts are never saved

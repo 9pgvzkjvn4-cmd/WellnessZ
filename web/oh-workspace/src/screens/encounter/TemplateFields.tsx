@@ -1,6 +1,7 @@
 import { codingText, type AnswerValue, type Coding, type EncounterTemplate, type TemplateField } from '../../api/record';
 import type { AuthClient } from '../../auth/AuthClient';
-import { errorFor, IdField, type FieldError } from '../../components/forms';
+import { IdField, type FieldError } from '../../components/forms';
+import { errorFor } from '../../domain/validation';
 import { TerminologyPicker } from '../../components/TerminologyPicker';
 import { answerFieldId } from '../../domain/encounter';
 

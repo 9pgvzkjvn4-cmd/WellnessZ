@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { SIGNED_OUT, type AuthClient, type Session } from './auth/AuthClient';
 import { can, featureForRoute, hasWorkspaceAccess, homeRoute, navFor, type NavItem } from './auth/roles';
 import { Alert, Loading, Restricted } from './components/ui';
@@ -23,11 +23,42 @@ import type { ScreenProps } from './screens/types';
 import { startIdleTimer } from './security/idleTimeout';
 import { errorName, log } from './security/log';
 
+// Increment-2 areas are code-split per module (loaded on first use; same-origin chunks, CSP script-src 'self').
+const FitnessAdmin = () => import('./screens/admin/FitnessAdmin');
+const RecordAdmin = () => import('./screens/admin/RecordAdmin');
+const Dpo = () => import('./screens/dpo/DpoScreens');
+const Work = () => import('./screens/fitness/WorkScreens');
+const FitnessStandardsAdmin = lazy(() => FitnessAdmin().then((m) => ({ default: m.FitnessStandardsAdmin })));
+const RestrictionCatalogueAdmin = lazy(() => FitnessAdmin().then((m) => ({ default: m.RestrictionCatalogueAdmin })));
+const JobDemandsAdmin = lazy(() => FitnessAdmin().then((m) => ({ default: m.JobDemandsAdmin })));
+const EncounterTemplatesAdmin = lazy(() => RecordAdmin().then((m) => ({ default: m.EncounterTemplatesAdmin })));
+const TerminologyAdmin = lazy(() => RecordAdmin().then((m) => ({ default: m.TerminologyAdmin })));
+const CdsStatistics = lazy(() => import('./screens/CdsStatistics').then((m) => ({ default: m.CdsStatistics })));
+const ChartScreen = lazy(() => import('./screens/chart/ChartScreen').then((m) => ({ default: m.ChartScreen })));
+const EmployeeChartSearch = lazy(() => import('./screens/chart/EmployeeChartSearch').then((m) => ({ default: m.EmployeeChartSearch })));
+const ScanDocuments = lazy(() => import('./screens/documents/ScanDocuments').then((m) => ({ default: m.ScanDocuments })));
+const BreakGlassReviews = lazy(() => Dpo().then((m) => ({ default: m.BreakGlassReviews })));
+const BreakGlassReport = lazy(() => Dpo().then((m) => ({ default: m.BreakGlassReport })));
+const DisclosureLog = lazy(() => Dpo().then((m) => ({ default: m.DisclosureLog })));
+const RetentionScreen = lazy(() => Dpo().then((m) => ({ default: m.RetentionScreen })));
+const EncounterEditor = lazy(() => import('./screens/encounter/EncounterEditor').then((m) => ({ default: m.EncounterEditor })));
+const UnsignedNotes = lazy(() => import('./screens/encounter/UnsignedNotes').then((m) => ({ default: m.UnsignedNotes })));
+const SignoffQueue = lazy(() => Work().then((m) => ({ default: m.SignoffQueue })));
+const ActiveRestrictions = lazy(() => Work().then((m) => ({ default: m.ActiveRestrictions })));
+const RtwOverdue = lazy(() => Work().then((m) => ({ default: m.RtwOverdue })));
+const CrewDashboard = lazy(() => Work().then((m) => ({ default: m.CrewDashboard })));
+const RosterReconciliation = lazy(() => Work().then((m) => ({ default: m.RosterReconciliation })));
+const ResultsWorklist = lazy(() => import('./screens/results/ResultsWorklist').then((m) => ({ default: m.ResultsWorklist })));
+
 type Notice = 'idle' | 'expired' | undefined;
 
 function renderRoute(route: string, props: ScreenProps): ReactNode {
   const caseMatch = /^\/cases\/([^/]+)(?:\/([a-z-]+))?$/.exec(route);
   if (caseMatch?.[1]) return <CaseView key={caseMatch[1]} {...props} caseId={decodeURIComponent(caseMatch[1])} tab={caseMatch[2] ?? 'overview'} />;
+  const chartMatch = /^\/employees\/([^/]+)\/chart(?:\/([a-z-]+))?$/.exec(route);
+  if (chartMatch?.[1]) return <ChartScreen key={chartMatch[1]} {...props} employeeId={decodeURIComponent(chartMatch[1])} tab={chartMatch[2]} />;
+  const encMatch = /^\/encounters\/([^/]+)$/.exec(route);
+  if (encMatch?.[1] && encMatch[1] !== 'unsigned') return <EncounterEditor key={encMatch[1]} {...props} encounterId={decodeURIComponent(encMatch[1])} />;
   const empMatch = /^\/employees\/([^/]+)\/timeline$/.exec(route);
   if (empMatch?.[1]) return <EmployeeTimelineScreen {...props} employeeId={decodeURIComponent(empMatch[1])} />;
   const incMatch = /^\/intake\/incidents(?:\/([^/]+))?$/.exec(route);
@@ -49,6 +80,25 @@ function renderRoute(route: string, props: ScreenProps): ReactNode {
     case '/admin/intake-rules': return <IntakeRules {...props} />;
     case '/admin/notifications': return <NotificationMatrix {...props} />;
     case '/admin/recordability-mapping': return <RecordabilityMapping {...props} />;
+    case '/employees': return <EmployeeChartSearch {...props} />;
+    case '/encounters/unsigned': return <UnsignedNotes {...props} />;
+    case '/results/worklist': return <ResultsWorklist {...props} />;
+    case '/documents/scan': return <ScanDocuments {...props} />;
+    case '/cds/statistics': return <CdsStatistics {...props} />;
+    case '/fitness/signoff': return <SignoffQueue {...props} />;
+    case '/restrictions': return <ActiveRestrictions {...props} />;
+    case '/rtw/overdue': return <RtwOverdue {...props} />;
+    case '/crew/dashboard': return <CrewDashboard {...props} />;
+    case '/crew/roster-feed': return <RosterReconciliation {...props} />;
+    case '/admin/fitness-standards': return <FitnessStandardsAdmin {...props} />;
+    case '/admin/restrictions': return <RestrictionCatalogueAdmin {...props} />;
+    case '/admin/job-demands': return <JobDemandsAdmin {...props} />;
+    case '/admin/encounter-templates': return <EncounterTemplatesAdmin {...props} />;
+    case '/admin/terminology': return <TerminologyAdmin {...props} />;
+    case '/dpo/break-glass': return <BreakGlassReviews {...props} />;
+    case '/dpo/break-glass-report': return <BreakGlassReport {...props} />;
+    case '/dpo/disclosures': return <DisclosureLog {...props} />;
+    case '/dpo/retention': return <RetentionScreen {...props} />;
     default:
       return (
         <section>
@@ -133,7 +183,11 @@ export function App({ client }: { client: AuthClient }) {
   const feature = featureForRoute(route);
   const screen = route === '/' ? <Loading /> : feature && !can(session.roles, feature) ? <Restricted /> : renderRoute(route, props);
   const nav = navFor(session.roles);
-  const current = route.startsWith('/cases/') ? '/queues' : route.replace(/^(\/intake\/incidents)\/.*$/, '$1');
+  const current = route.startsWith('/cases/')
+    ? '/queues'
+    : /^\/employees\/./.test(route) || (route.startsWith('/encounters/') && route !== '/encounters/unsigned')
+      ? '/employees'
+      : route.replace(/^(\/intake\/incidents)\/.*$/, '$1');
 
   return (
     <div className="shell">
@@ -169,8 +223,8 @@ export function App({ client }: { client: AuthClient }) {
             </div>
           ))}
         </nav>
-        <main id="main" tabIndex={-1} key={route.replace(/^(\/cases\/[^/]+)\/.*$/, '$1')}>
-          {screen}
+        <main id="main" tabIndex={-1} key={route.replace(/^(\/cases\/[^/]+)\/.*$/, '$1').replace(/^(\/employees\/[^/]+\/chart)\/.*$/, '$1')}>
+          <Suspense fallback={<Loading />}>{screen}</Suspense>
         </main>
       </div>
     </div>

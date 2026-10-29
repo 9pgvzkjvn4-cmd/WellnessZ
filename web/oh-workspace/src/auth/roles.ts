@@ -200,5 +200,5 @@ export function featureForRoute(route: string): Feature | undefined {
   if (/^\/encounters\/[^/]+$/.test(route)) return 'encounters';
   if (/^\/employees\/[^/]+\/timeline$/.test(route)) return 'employeeTimeline';
   if (/^\/intake\/incidents(\/[^/]+)?$/.test(route)) return 'incidentCases';
-  return NAV.find((n) => n.path === route)?.feature;
+  return undefined;
 }

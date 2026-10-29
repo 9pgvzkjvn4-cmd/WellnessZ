@@ -1,9 +1,8 @@
 import type { CdsAlert } from '../api/record';
-import { sortAlerts } from '../domain/cds';
+import { overrideFieldId, sortAlerts } from '../domain/cds';
 import { humanise } from './format';
-import { errorFor, IdField, type FieldError } from './forms';
-
-export const overrideFieldId = (code: string) => `cds-reason-${code.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+import { IdField, type FieldError } from './forms';
+import { errorFor } from '../domain/validation';
 
 const SYMBOL: Record<string, string> = { CRITICAL: '!!', WARNING: '!', INFO: 'i' };
 

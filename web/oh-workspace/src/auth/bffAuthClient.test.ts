@@ -54,6 +54,33 @@ describe('BffAuthClient', () => {
   });
 });
 
+describe('increment 2 client additions', () => {
+  it('sends FormData as multipart (no JSON content type, body untouched) with the CSRF header', async () => {
+    const g = globalThis as Record<string, unknown>;
+    g.document = { cookie: 'XSRF-TOKEN=t' };
+    try {
+      const fetchMock = vi.fn(async () => json({ documentId: 'd1' }));
+      const fd = new FormData();
+      fd.append('consent', 'true');
+      await new BffAuthClient(fetchMock as unknown as typeof fetch, () => {}).api('/encounters/e1/photos', { method: 'POST', body: fd });
+      const init = (fetchMock.mock.calls as unknown as [string, RequestInit][])[0]?.[1];
+      expect(init?.body).toBe(fd);
+      expect(init?.headers).not.toHaveProperty('Content-Type');
+      expect(init?.headers).toMatchObject({ 'X-XSRF-TOKEN': 't' });
+    } finally {
+      delete g.document;
+    }
+  });
+
+  it('keeps cds_alert alerts (known string fields only) on the ApiError problem', async () => {
+    const body = { status: 409, code: 'cds_alert', alerts: [{ code: 'ALLERGY_CLASS', severity: 'CRITICAL', message: 'm', secret: 'x' }, { nope: 1 }] };
+    const c = new BffAuthClient((async () => json(body, 409)) as typeof fetch, () => {});
+    const err = await c.api('/employees/E1/medications', { method: 'POST', body: {} }).catch((e: unknown) => e);
+    expect((err as { problem?: unknown }).problem).toMatchObject({ code: 'cds_alert', alerts: [{ code: 'ALLERGY_CLASS', severity: 'CRITICAL', message: 'm', reference: undefined }] });
+    expect(JSON.stringify((err as { problem?: unknown }).problem)).not.toContain('secret');
+  });
+});
+
 describe('readXsrfToken', () => {
   it('reads the XSRF-TOKEN cookie', () => {
     expect(readXsrfToken('a=1; XSRF-TOKEN=abc%3D%3D; b=2')).toBe('abc==');

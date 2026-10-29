@@ -29,6 +29,22 @@ import { Suggestions } from './intake/Suggestions';
 import { Queues } from './Queues';
 import { Reception } from './Reception';
 import { TriageAudit } from './TriageAudit';
+import { FitnessStandardsAdmin, JobDemandsAdmin, RestrictionCatalogueAdmin } from './admin/FitnessAdmin';
+import { EncounterTemplatesAdmin, TerminologyAdmin } from './admin/RecordAdmin';
+import { FitnessDecisionTab } from './case/FitnessDecisionTab';
+import { CaseDocumentsTab, CaseEncountersTab, SummaryTab } from './case/RecordTabs';
+import { RestrictionsDutiesTab } from './case/RestrictionsDutiesTab';
+import { RtwPlanTab } from './case/RtwPlanTab';
+import { CrewTab, FoodHandlerTab, IhrTab } from './case/SpecialistTabs';
+import { CdsStatistics } from './CdsStatistics';
+import { ChartScreen } from './chart/ChartScreen';
+import { EmployeeChartSearch } from './chart/EmployeeChartSearch';
+import { ScanDocuments } from './documents/ScanDocuments';
+import { BreakGlassReport, BreakGlassReviews, DisclosureLog, RetentionScreen } from './dpo/DpoScreens';
+import { EncounterEditor } from './encounter/EncounterEditor';
+import { UnsignedNotes } from './encounter/UnsignedNotes';
+import { ActiveRestrictions, CrewDashboard, RosterReconciliation, RtwOverdue, SignoffQueue } from './fitness/WorkScreens';
+import { ResultsWorklist } from './results/ResultsWorklist';
 
 /** Initial render (SSR, no effects) of every screen – catches render-time errors without a browser. */
 const client: AuthClient = {
@@ -80,6 +96,37 @@ const screens: [string, ReactElement][] = [
   ['IntakeRules', <IntakeRules {...base} />],
   ['NotificationMatrix', <NotificationMatrix {...base} />],
   ['RecordabilityMapping', <RecordabilityMapping {...base} />],
+  // increment 2 (E03 / E05)
+  ...(['problems', 'medications', 'allergies', 'immunisations', 'jobs', 'results', 'documents', 'encounters', 'timeline'].map((t) => [`Chart ${t}`, <ChartScreen {...base} employeeId="E1004" tab={t} />]) as [string, ReactElement][]),
+  ['EmployeeChartSearch', <EmployeeChartSearch {...base} />],
+  ['EncounterEditor', <EncounterEditor {...base} encounterId="enc1" />],
+  ['UnsignedNotes', <UnsignedNotes {...base} />],
+  ['ResultsWorklist', <ResultsWorklist {...base} />],
+  ['ScanDocuments', <ScanDocuments {...base} />],
+  ['CdsStatistics', <CdsStatistics {...base} />],
+  ['FitnessDecisionTab', <FitnessDecisionTab {...tab} />],
+  ['RestrictionsDutiesTab', <RestrictionsDutiesTab {...tab} />],
+  ['RtwPlanTab', <RtwPlanTab {...tab} />],
+  ['FoodHandlerTab', <FoodHandlerTab {...tab} />],
+  ['CrewTab', <CrewTab {...tab} />],
+  ['IhrTab', <IhrTab {...tab} />],
+  ['CaseDocumentsTab', <CaseDocumentsTab {...tab} />],
+  ['CaseEncountersTab', <CaseEncountersTab {...tab} />],
+  ['SummaryTab', <SummaryTab {...tab} />],
+  ['SignoffQueue', <SignoffQueue {...base} />],
+  ['ActiveRestrictions', <ActiveRestrictions {...base} />],
+  ['RtwOverdue', <RtwOverdue {...base} />],
+  ['CrewDashboard', <CrewDashboard {...base} />],
+  ['RosterReconciliation', <RosterReconciliation {...base} />],
+  ['FitnessStandardsAdmin', <FitnessStandardsAdmin {...base} />],
+  ['RestrictionCatalogueAdmin', <RestrictionCatalogueAdmin {...base} />],
+  ['JobDemandsAdmin', <JobDemandsAdmin {...base} />],
+  ['EncounterTemplatesAdmin', <EncounterTemplatesAdmin {...base} />],
+  ['TerminologyAdmin', <TerminologyAdmin {...base} />],
+  ['BreakGlassReviews', <BreakGlassReviews {...base} />],
+  ['BreakGlassReport', <BreakGlassReport {...base} />],
+  ['DisclosureLog', <DisclosureLog {...base} />],
+  ['RetentionScreen', <RetentionScreen {...base} />],
 ];
 
 describe('screen render smoke test', () => {

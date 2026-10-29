@@ -1,13 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { codingText, ORDER_CATEGORIES, recordApi, type CdsAlert, type Coding, type OrderCategory, type OrderRequest } from '../../api/record';
 import type { AuthClient } from '../../auth/AuthClient';
-import { CdsOverridePanel, overrideFieldId } from '../../components/CdsOverride';
-import { ErrorSummary, IdField, errorFor, type FieldError } from '../../components/forms';
+import { CdsOverridePanel } from '../../components/CdsOverride';
+import { ErrorSummary, IdField, type FieldError } from '../../components/forms';
+import { errorFor } from '../../domain/validation';
 import { humanise } from '../../components/format';
 import { TerminologyPicker } from '../../components/TerminologyPicker';
 import { ActionFeedback, ErrorAlert, SelectOptions } from '../../components/ui';
 import { useAction, useAsync } from '../../components/useAsync';
-import { cdsAlertsOf, missingOverrideReasons, toOverrides } from '../../domain/cds';
+import { cdsAlertsOf, missingOverrideReasons, overrideFieldId, toOverrides } from '../../domain/cds';
 
 /**
  * Order entry (E03-F04): an order set or individual coded items, priority and an optional clinical note. Duplicate-test

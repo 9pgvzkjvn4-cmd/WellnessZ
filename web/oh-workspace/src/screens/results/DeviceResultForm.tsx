@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { DEVICE_CATEGORIES, recordApi, type DeviceCategory } from '../../api/record';
 import type { AuthClient } from '../../auth/AuthClient';
-import { ErrorSummary, IdField, errorFor, type FieldError } from '../../components/forms';
+import { ErrorSummary, IdField, type FieldError } from '../../components/forms';
+import { errorFor } from '../../domain/validation';
 import { humanise, localToIso, toLocalInput } from '../../components/format';
 import { ActionFeedback, SelectOptions } from '../../components/ui';
 import { useAction } from '../../components/useAsync';
