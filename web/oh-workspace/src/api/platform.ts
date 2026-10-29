@@ -156,6 +156,10 @@ export interface RetentionDueItem {
   employeeId?: string;
   dueSince?: string;
   retentionEndsAt?: string;
+  /** backend name for the end of the retention period */
+  retainUntil?: string;
+  type?: string;
+  createdAt?: string;
 }
 
 /** Typed platform calls. */

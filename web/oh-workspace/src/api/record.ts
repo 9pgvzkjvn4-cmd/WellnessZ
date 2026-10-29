@@ -208,6 +208,14 @@ export interface Soap {
   plan?: string;
 }
 export type BodySide = 'FRONT' | 'BACK';
+/** Body-map entry as stored by the API: anatomical region, laterality, body view and mechanism. */
+export interface BodyMapEntry {
+  region: string;
+  side: 'LEFT' | 'RIGHT' | 'BILATERAL' | 'MIDLINE';
+  view: BodySide;
+  mechanism?: string | null;
+}
+/** UI body-map mark: view + region code with laterality (e.g. LEFT_KNEE). */
 export interface BodyMapMark {
   region: string;
   side: BodySide;
@@ -226,7 +234,7 @@ export interface CdsAlert {
 export interface ClinicalEncounter extends EncounterSummary {
   answers: Record<string, AnswerValue>;
   soap: Soap;
-  bodyMap: BodyMapMark[];
+  bodyMap: (BodyMapEntry | BodyMapMark)[];
   diagnoses: Diagnosis[];
   addenda: { id: string; text: string; author: string; signedAt: string }[];
   photos: { documentId: string; bodyRegion?: string | null; takenAt?: string }[];
@@ -240,7 +248,7 @@ export interface ClinicalEncounter extends EncounterSummary {
 export interface EncounterUpdate {
   answers: Record<string, AnswerValue>;
   soap: Soap;
-  bodyMap: BodyMapMark[];
+  bodyMap: BodyMapEntry[];
   diagnoses: Diagnosis[];
   fitnessStandardCode?: string | null;
   /** Set when any part of an AI draft was accepted into the note (E03-F07). */

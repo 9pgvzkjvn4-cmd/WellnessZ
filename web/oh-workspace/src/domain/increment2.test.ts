@@ -140,3 +140,21 @@ describe('imports', () => {
     expect(parseHazards('noise, DUST:Wood dust ,')).toEqual([{ code: 'NOISE', name: 'noise' }, { code: 'DUST', name: 'Wood dust' }]);
   });
 });
+
+describe('body map API mapping', () => {
+  it('splits laterality and view for the API and restores the UI codes', async () => {
+    const { toApiBodyMap, fromApiBodyMap } = await import('./encounter');
+    const ui = [
+      { side: 'FRONT' as const, region: 'LEFT_KNEE', mechanism: 'FALL' },
+      { side: 'BACK' as const, region: 'LOWER_BACK', mechanism: null },
+      { side: 'FRONT' as const, region: 'EYES', mechanism: 'BURN_CHEMICAL' },
+    ];
+    const api = toApiBodyMap(ui);
+    expect(api).toEqual([
+      { region: 'KNEE', side: 'LEFT', view: 'FRONT', mechanism: 'FALL' },
+      { region: 'LOWER_BACK', side: 'MIDLINE', view: 'BACK', mechanism: null },
+      { region: 'EYE', side: 'MIDLINE', view: 'FRONT', mechanism: 'BURN_CHEMICAL' },
+    ]);
+    expect(fromApiBodyMap(api)).toEqual(ui);
+  });
+});

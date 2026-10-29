@@ -153,7 +153,7 @@ public class ClinicalEncounterService {
 
     public record BodyMapEntry(@NotBlank @Pattern(regexp = REGION_PATTERN) String region,
                                @Pattern(regexp = "LEFT|RIGHT|BILATERAL|MIDLINE") String side, @Pattern(regexp = "FRONT|BACK") String view,
-                               @NotBlank @Pattern(regexp = MECHANISM_PATTERN) String mechanism) {
+                               @Pattern(regexp = MECHANISM_PATTERN) String mechanism) {
     }
 
     public record DiagnosisInput(@NotBlank @Pattern(regexp = "SNOMED_CT|ICD_10|ICD_11") String system,

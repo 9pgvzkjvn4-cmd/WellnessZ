@@ -1,4 +1,4 @@
-import type { AnswerValue, BodyMapMark, BodySide, Diagnosis, EncounterTemplate, EncounterType } from '../api/record';
+import type { AnswerValue, BodyMapEntry, BodyMapMark, BodySide, Diagnosis, EncounterTemplate, EncounterType } from '../api/record';
 import type { FieldError } from './devices';
 
 /** Encounter types that need ≥ 1 coded diagnosis before signing (contract §4.2), on top of the template flag. */
@@ -58,6 +58,32 @@ export const BODY_REGIONS: Record<BodySide, string[]> = {
   FRONT: ['HEAD', 'FACE', 'EYES', 'NECK', 'CHEST', 'ABDOMEN', 'PELVIS_GROIN', ...lateral(LIMBS)],
   BACK: ['HEAD', 'NECK', 'UPPER_BACK', 'LOWER_BACK', 'BUTTOCKS', ...lateral(LIMBS)],
 };
+
+const REGION_TO_API: Record<string, string> = { EYES: 'EYE', PELVIS_GROIN: 'PELVIS', BUTTOCKS: 'PELVIS' };
+const REGION_FROM_API: Record<string, Partial<Record<BodySide, string>>> = {
+  EYE: { FRONT: 'EYES' },
+  PELVIS: { FRONT: 'PELVIS_GROIN', BACK: 'BUTTOCKS' },
+};
+
+/** UI mark (view + lateral region code such as LEFT_KNEE) → API entry. */
+export function toApiBodyMap(marks: readonly BodyMapMark[]): BodyMapEntry[] {
+  return marks.map((m) => {
+    const lat = /^(LEFT|RIGHT)_(.+)$/.exec(m.region);
+    const base = lat ? lat[2]! : m.region;
+    return { region: REGION_TO_API[base] ?? base, side: lat ? (lat[1] as 'LEFT' | 'RIGHT') : 'MIDLINE', view: m.side, mechanism: m.mechanism ?? null };
+  });
+}
+
+/** API entry → UI mark. */
+export function fromApiBodyMap(entries: readonly (BodyMapEntry | BodyMapMark)[] | null | undefined): BodyMapMark[] {
+  return (entries ?? []).map((e) => {
+    if (!('view' in e)) return e as BodyMapMark;
+    const view: BodySide = e.view === 'BACK' ? 'BACK' : 'FRONT';
+    const base = REGION_FROM_API[e.region]?.[view] ?? e.region;
+    const region = e.side === 'LEFT' || e.side === 'RIGHT' ? `${e.side}_${base}` : base;
+    return { region, side: view, mechanism: e.mechanism ?? null };
+  });
+}
 
 export function toggleRegion(marks: readonly BodyMapMark[], side: BodySide, region: string): BodyMapMark[] {
   const exists = marks.some((m) => m.side === side && m.region === region);

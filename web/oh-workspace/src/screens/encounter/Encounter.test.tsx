@@ -70,7 +70,7 @@ describe('EncounterEditor', () => {
     expect(api.find('PUT', '/encounters/enc1')[0]?.body).toEqual({
       answers: { mechanismText: 'Lifted a bag' },
       soap: { subjective: 'Wrist pain' },
-      bodyMap: [{ side: 'BACK', region: 'LOWER_BACK', mechanism: 'LIFTING' }],
+      bodyMap: [{ region: 'LOWER_BACK', side: 'MIDLINE', view: 'BACK', mechanism: 'LIFTING' }],
       diagnoses: [{ system: 'ICD_10', code: 'S63.5', display: 'Sprain of wrist', primary: true }],
       fitnessStandardCode: null,
     });

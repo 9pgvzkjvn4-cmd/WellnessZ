@@ -209,6 +209,11 @@ export interface FoodHandlerEpisode {
   clearedAt?: string;
   clearedBy?: string;
   documentId?: string;
+  /** backend name of the FOOD_HANDLER_CLEARANCE document */
+  clearanceDocumentId?: string;
+  caseId?: string;
+  employeeId?: string;
+  department?: string;
 }
 export interface RosterReconciliation {
   sent: number;
@@ -292,7 +297,7 @@ export function fitnessApi(c: AuthClient) {
       c.api<{ status: FoodHandlerStatus }>(`${cs(caseId)}/food-handler/exclude`, { method: 'POST', body }),
     foodReturnRequest: (caseId: string) => c.api<{ status: FoodHandlerStatus }>(`${cs(caseId)}/food-handler/return-request`, { method: 'POST' }),
     foodClear: (caseId: string, body: { criteria: { symptomFree48h: boolean; clearanceSamples?: string }; note: string }) =>
-      c.api<{ status: FoodHandlerStatus; documentId?: string }>(`${cs(caseId)}/food-handler/clear`, { method: 'POST', body }),
+      c.api<FoodHandlerEpisode>(`${cs(caseId)}/food-handler/clear`, { method: 'POST', body }),
     foodEpisodes: (caseId: string) => c.api<FoodHandlerEpisode[]>(`${cs(caseId)}/food-handler`),
     foodHandlers: (department?: string) =>
       c.api<{ employeeId: string; displayName: string; department?: string; status: FoodHandlerStatus; excludedFrom?: string; expectedReturn?: string; clearedAt?: string }[]>(

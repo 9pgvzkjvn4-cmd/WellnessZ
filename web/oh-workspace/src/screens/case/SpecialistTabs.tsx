@@ -69,7 +69,7 @@ export function FoodHandlerTab({ client, session, onSessionExpired, caseId, deta
     if (errs.length) return;
     const ok = await action.run(async () => {
       const r = await api.foodClear(caseId, { criteria: { symptomFree48h: true, ...(clear.clearanceSamples.trim() ? { clearanceSamples: clear.clearanceSamples.trim() } : {}) }, note: clear.note.trim() });
-      return `Cleared to handle food.${r.documentId ? ' A food-handler clearance document was generated.' : ''}`;
+      return `Cleared to handle food.${(r.clearanceDocumentId ?? r.documentId) ? ' A food-handler clearance document was generated.' : ''}`;
     });
     if (ok) {
       status.reload();

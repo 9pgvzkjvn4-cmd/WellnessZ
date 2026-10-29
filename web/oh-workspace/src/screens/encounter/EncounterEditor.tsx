@@ -10,7 +10,7 @@ import { formatBytes, formatDate, humanise } from '../../components/format';
 import { TerminologyPicker } from '../../components/TerminologyPicker';
 import { ActionFeedback, Alert, Dl, ErrorAlert, Loading, PageTitle, StatusBadge } from '../../components/ui';
 import { useAction, useAsync } from '../../components/useAsync';
-import { addDiagnosis, removeDiagnosis, setPrimary, signBlockers } from '../../domain/encounter';
+import { addDiagnosis, fromApiBodyMap, removeDiagnosis, setPrimary, signBlockers, toApiBodyMap } from '../../domain/encounter';
 import type { ScreenProps } from '../types';
 import { AiAssistantPanel } from './AiAssistantPanel';
 import { BodyMap } from './BodyMap';
@@ -31,7 +31,7 @@ interface Draft {
 const draftOf = (e: ClinicalEncounter): Draft => ({
   answers: e.answers ?? {},
   soap: e.soap ?? {},
-  bodyMap: e.bodyMap ?? [],
+  bodyMap: fromApiBodyMap(e.bodyMap),
   diagnoses: e.diagnoses ?? [],
   fitnessStandardCode: e.fitnessStandardCode ?? e.fitnessStandard?.code ?? '',
   aiAssisted: !!e.aiAssisted,
@@ -140,7 +140,7 @@ export function EncounterEditor({ client, session, onSessionExpired, encounterId
 
   function body(): EncounterUpdate {
     const x = d as Draft;
-    return { answers: x.answers, soap: x.soap, bodyMap: x.bodyMap, diagnoses: x.diagnoses, fitnessStandardCode: x.fitnessStandardCode || null, ...(x.aiAssisted ? { aiAssisted: true } : {}) };
+    return { answers: x.answers, soap: x.soap, bodyMap: toApiBodyMap(x.bodyMap), diagnoses: x.diagnoses, fitnessStandardCode: x.fitnessStandardCode || null, ...(x.aiAssisted ? { aiAssisted: true } : {}) };
   }
 
   async function save() {

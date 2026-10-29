@@ -324,7 +324,7 @@ export function RetentionScreen({ client, session, onSessionExpired }: ScreenPro
                         <th scope="row">{r.title ?? r.documentNumber ?? id}</th>
                         <td>{humanise(r.recordClass)}</td>
                         <td className="mono">{r.employeeId ?? '–'}</td>
-                        <td>{formatDay(r.retentionEndsAt ?? r.dueSince)}</td>
+                        <td>{formatDay(r.retainUntil ?? r.retentionEndsAt ?? r.dueSince)}</td>
                         <td>
                           {id && (
                             <button type="button" className="secondary small-button" onClick={() => setHoldDoc(id)}>
