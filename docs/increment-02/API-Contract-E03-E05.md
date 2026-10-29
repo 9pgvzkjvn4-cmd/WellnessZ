@@ -4,7 +4,8 @@ Source of truth shared by the backend (`platform/wz-documents`, kernel / securit
 `modules/wz-e03-record`, `modules/wz-e05-fitness`) and the UIs (`web/oh-workspace`, `web/employee-app`,
 `web/manager-workspace`). Conventions are unchanged from increment 1: paths relative to `/api/v1` (browser apps call
 `/bff/api/...`), RFC 9457 problem details `{type,title,status,detail,code,correlationId}`, ISO-8601 UTC timestamps,
-`YYYY-MM-DD` dates, plain JSON arrays unless a page object is stated. Denied access to a record is reported as `404`.
+`YYYY-MM-DD` dates, plain JSON arrays unless a page object is stated. Denied access to a record is reported as `404`. Null-valued fields are omitted from responses (`non_null` serialisation).
+`/api/v1/integration/**` is reserved for machine clients (INTEGRATION role); people use the `/crew/...` aliases.
 
 Confidentiality rule (both epics): **managers, HR, crew scheduling, catering hygiene and claims roles see fitness /
 restriction status and functional restrictions only – never diagnoses, clinical notes, results or encounter content.**
@@ -266,9 +267,9 @@ Rules: licensed standards (`requiresSignoffRole=AME`) can only be decided by AME
 | POST | `/cases/{id}/crew-assessment` | AME, CMO | `{standardCode: CAA_CLASS1|CAA_CLASS2|CABIN_CREW, outcome, limitationCodes, validFrom, validUntil, reviewDate, examinationDate, rationale}` → `FitnessDecision` + CREW_MEDICAL_REPORT / CABIN_CREW_MEDICAL_REPORT document (local CAA layout) |
 | GET | `/crew/limitation-codes` | OH roles, CREW_SCHEDULING | `[{code:"OML", label:"Valid only as or with qualified co-pilot", appliesTo:["CAA_CLASS1"], operational:true}]` |
 | GET | `/status/crew` | CREW_SCHEDULING (existing) | adds `rosterStatus`, `validFrom`, `validUntil`, `operationalLimitations` (operational codes only, e.g. OML) |
-| GET | `/integration/roster-feed?since=` | INTEGRATION, CREW_SCHEDULING | messages `[{messageId, employeeId, rosterStatus, validFrom, validUntil, operationalLimitations, sentAt, ackAt}]` |
+| GET | `/integration/roster-feed?since=` (machine clients) · `/crew/roster-feed?since=` (people) | INTEGRATION · CREW_SCHEDULING, CMO, OH_ADMIN | messages `[{messageId, employeeId, rosterStatus, validFrom, validUntil, operationalLimitations, sentAt, ackAt}]` |
 | POST | `/integration/roster-feed/{messageId}/ack` | INTEGRATION | rostering acknowledgement |
-| GET | `/integration/roster-feed/reconciliation` | CREW_SCHEDULING, CMO, OH_ADMIN | `{sent, acknowledged, unacknowledgedOver15Min:[…], p95LatencySeconds}` |
+| GET | `/crew/roster-feed/reconciliation` (alias `/integration/roster-feed/reconciliation` for INTEGRATION) | CREW_SCHEDULING, CMO, OH_ADMIN | `{sent, acknowledged, unacknowledgedOver15Min:[…], p95LatencySeconds}` |
 | GET | `/crew/dashboard?from&to` | CMO | E05-BL-013 `{unfitByBase:[{base, count, avgDays}], limitedByBase:[…], byFleet:[…], trend:[{week, unfit, limited}]}` – no identifiers, cells < 5 suppressed |
 
 Roster-status mapping: FIT→FIT, FIT_WITH_RESTRICTIONS→LIMITED, TEMPORARILY_UNFIT/PERMANENTLY_UNFIT→UNFIT, UNFIT_PENDING/UNDER_REVIEW/NOT_ASSESSED→PENDING.
@@ -280,6 +281,7 @@ Rostering payload (`CaseEvents.RosterStatusChanged`, allow-list): `messageId, em
 | POST | `/cases/{id}/food-handler/exclude` | OH roles | `{reasonCategory: GI_ILLNESS|SKIN_INFECTION|TYPHOID_PARATYPHOID|HEPATITIS_A|STEC|OTHER (OH-only), excludedFrom, expectedReturn?, checklistAnswers:{…}}` → status EXCLUDED; hygiene notified (status only) |
 | POST | `/cases/{id}/food-handler/return-request` | OH roles | → RETURN_PENDING_CLEARANCE |
 | POST | `/cases/{id}/food-handler/clear` | OH_CLINICIAN, Physicians | `{criteria:{symptomFree48h:true, clearanceSamples?:…}, note}` → FIT_TO_HANDLE_FOOD + FOOD_HANDLER_CLEARANCE document |
+| GET | `/cases/{id}/food-handler` | OH roles | food-handler episodes of a case |
 | GET | `/fitness/food-handlers?department=CATERING` | HYGIENE_MANAGER, OH roles | `[{employeeId, displayName, department, status, excludedFrom, expectedReturn, clearedAt}]` – status & dates only, audited |
 
 ### 5.6 Restriction expiry & manager view (E05-F06)

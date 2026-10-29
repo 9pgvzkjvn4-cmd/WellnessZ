@@ -166,7 +166,7 @@ public class DocumentService {
     /** E-signature: locks the document; the signature hash binds the content hash, signer and time. */
     @Transactional
     public DocumentView sign(CurrentUser user, UUID id) {
-        Document d = requireOh(user, id, AccessPolicy.Action.UPDATE, "DOCUMENT_SIGN");
+        Document d = requireIssuer(user, id, AccessPolicy.Action.UPDATE, "DOCUMENT_SIGN");
         if (d.getStatus() != Document.Status.DRAFT) {
             throw ApiException.conflict("not_draft", "Only draft documents can be signed");
         }
@@ -246,7 +246,10 @@ public class DocumentService {
 
     @Transactional
     public ShareView share(CurrentUser user, UUID id, DocumentShare.Target target, String partnerOrg, UUID consentId) {
-        Document d = requireOh(user, id, AccessPolicy.Action.EXPORT, "DOCUMENT_SHARE");
+        Document d = requireIssuer(user, id, AccessPolicy.Action.EXPORT, "DOCUMENT_SHARE");
+        if (!user.hasAnyRole(Roles.OH_TEAM) && target != DocumentShare.Target.EMPLOYEE) {
+            throw ApiException.forbidden("HR may only issue its own documents to the employee");
+        }
         if (d.getStatus() != Document.Status.SIGNED) {
             throw ApiException.conflict("not_signed", "Sign the document before sharing it");
         }
@@ -588,6 +591,24 @@ public class DocumentService {
         return null;
     }
 
+    /**
+     * OH team members act on any document they may read clinically; HR acts only on non-clinical templates it is
+     * allowed to generate (the alternative-duty job offer) for employees inside its org scope.
+     */
+    private Document requireIssuer(CurrentUser user, UUID id, AccessPolicy.Action action, String auditAction) {
+        if (user.hasAnyRole(Roles.OH_TEAM)) {
+            return requireOh(user, id, action, auditAction);
+        }
+        Document d = documents.findById(id).orElseThrow(() -> ApiException.notFound("Document"));
+        DocumentTemplates.Template t = d.getTemplateCode() == null ? null : templates.find(d.getTemplateCode()).orElse(null);
+        if (t == null || t.containsClinical() || t.generatorRoles().stream().noneMatch(user::hasRole)) {
+            audit.record(auditAction, "DOCUMENT", id.toString(), AuditService.Outcome.DENIED, "Not an issuer of this template");
+            throw ApiException.notFound("Document");
+        }
+        records.requireStatus(user, d.getEmployeeId(), auditAction);
+        return d;
+    }
+
     private Document requireOh(CurrentUser user, UUID id, AccessPolicy.Action action, String auditAction) {
         Document d = documents.findById(id).orElseThrow(() -> ApiException.notFound("Document"));
         if (!user.hasAnyRole(Roles.OH_TEAM)) {
@@ -656,6 +677,9 @@ public class DocumentService {
     }
 
     private void notifyShare(Document d, Employee e, DocumentShare.Target target) {
+        if ("JOB_OFFER".equals(d.getType())) {
+            return; // the job-offer workflow sends its own "offer issued" nudge with the respond-by date
+        }
         String template = "FITNESS_CERTIFICATE".equals(d.getType()) ? "certificate.available" : "document.shared";
         if (target == DocumentShare.Target.EMPLOYEE && e.getEmail() != null) {
             notifications.enqueue(e.getEmployeeId(), e.getEmail(), Channel.EMAIL, Priority.NORMAL, template,

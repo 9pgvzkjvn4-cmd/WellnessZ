@@ -137,7 +137,10 @@ public class JobOfferService {
             f.put("contactEmail", cmd.contactEmail());
         }
         f.put("respondBy", cmd.respondBy().toString());
-        o.setDocumentId(documents.generate(user, "JOB_OFFER", c.getEmployeeId(), c.getId(), f).id());
+        java.util.UUID documentId = documents.generate(user, "JOB_OFFER", c.getEmployeeId(), c.getId(), f).id();
+        documents.sign(user, documentId); // HR is the signer of its own offer letter
+        documents.share(user, documentId, com.wellnessz.documents.model.DocumentShare.Target.EMPLOYEE, null, null);
+        o.setDocumentId(documentId);
         offers.save(o);
         support.notifyEmployee(c.getEmployeeId(), "job-offer.issued", Map.of("dueDate", cmd.respondBy().toString()));
         timeline.record(c.getId(), "JOB_OFFER", "Alternative-duty offer issued by HR: " + jobTitle);

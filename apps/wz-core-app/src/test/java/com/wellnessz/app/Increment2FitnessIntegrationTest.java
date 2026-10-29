@@ -348,6 +348,10 @@ class Increment2FitnessIntegrationTest extends IntegrationTestBase {
         String offerId = body(issued).get("id").asString();
         assertThat(notifications("employee1@wellnessz.local", "job-offer.issued", TODAY.plusDays(5).toString())).isPositive();
         assertThat(text(mvc.perform(get("/api/v1/me/job-offers").with(ERIN)).andReturn())).contains(offerId);
+        // the signed offer letter is issued to the employee portal by HR (no OH involvement needed)
+        String offerDoc = body(issued).get("documentId").asString();
+        mvc.perform(get("/api/v1/me/documents").with(ERIN))
+                .andExpect(jsonPath("$[?(@.id=='" + offerDoc + "' && @.status=='SIGNED')]").exists());
         mvc.perform(get("/api/v1/cases/" + caseId + "/job-offers").with(HR)).andExpect(jsonPath("$[0].payBasis").value("PROTECTED_PAY"));
         postJson("/api/v1/me/job-offers/" + offerId + "/respond", ERIN, "{\"accept\":true,\"comment\":\"Happy to start\"}")
                 .andExpect(jsonPath("$.status").value("ACCEPTED"));

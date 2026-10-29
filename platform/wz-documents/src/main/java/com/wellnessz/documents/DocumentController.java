@@ -102,7 +102,7 @@ public class DocumentController {
 
     @PostMapping("/documents/{id}/share")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize(Roles.OH_TEAM_SPEL)
+    @PreAuthorize(Roles.OH_TEAM_SPEL + " or hasRole('HR')")
     public DocumentService.ShareView share(@PathVariable UUID id, @Valid @RequestBody ShareRequest r) {
         return documents.share(users.require(), id, r.target(), r.partnerOrg(), r.consentId());
     }
