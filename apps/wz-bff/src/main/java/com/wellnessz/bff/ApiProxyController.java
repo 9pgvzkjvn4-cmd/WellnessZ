@@ -107,9 +107,11 @@ public class ApiProxyController {
                 });
     }
 
-    /** Core endpoints that natively live under {@code /api/v1/workspace/...} (increment 2 manager / HR views). */
+    /** Core endpoints that natively live under {@code /api/v1/workspace/...} (increment 2 and 3 manager / HR views). */
     static final java.util.List<String> CORE_WORKSPACE_RESOURCES = java.util.List.of("/workspace/team-restrictions", "/workspace/duty-proposals",
-            "/workspace/rtw-plans", "/workspace/documents");
+            "/workspace/rtw-plans", "/workspace/documents",
+            // increment 3: E06 absence / advice, E07 surveillance compliance / pre-employment, E14 team appointments
+            "/workspace/absence", "/workspace/advice-requests", "/workspace/surveillance", "/workspace/pre-employment");
 
     static boolean isCoreWorkspaceResource(String path) {
         return CORE_WORKSPACE_RESOURCES.stream().anyMatch(r -> path.equals(r) || path.startsWith(r + "/"));

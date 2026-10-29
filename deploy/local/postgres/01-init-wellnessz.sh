@@ -26,7 +26,7 @@ set -euo pipefail
 : "${WZ_BFF_DB_PASSWORD:?WZ_BFF_DB_PASSWORD must be set}"
 : "${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD must be set}"
 
-SCHEMAS=(platform masterdata intake casemgmt triage docs ohrecord fitness analytics)
+SCHEMAS=(platform masterdata intake casemgmt triage docs ohrecord fitness absence surveillance scheduling analytics)
 
 psql -v ON_ERROR_STOP=1 \
      --username "$POSTGRES_USER" --dbname postgres \
@@ -49,10 +49,10 @@ CREATE ROLE keycloak LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLI
 -- Runtime guard rails for the application role
 ALTER ROLE wz_app SET statement_timeout = '30s';
 ALTER ROLE wz_app SET idle_in_transaction_session_timeout = '60s';
-ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics;
+ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics;
 ALTER ROLE wz_bff SET statement_timeout = '10s';
 ALTER ROLE wz_bff SET search_path = bff;
-ALTER ROLE wz_migrator SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics;
+ALTER ROLE wz_migrator SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics;
 
 CREATE DATABASE wellnessz OWNER wz_migrator ENCODING 'UTF8' LC_COLLATE 'C.UTF-8' LC_CTYPE 'C.UTF-8' TEMPLATE template0;
 CREATE DATABASE keycloak  OWNER keycloak    ENCODING 'UTF8' TEMPLATE template0;

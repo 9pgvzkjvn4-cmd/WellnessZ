@@ -33,6 +33,9 @@
     <module>modules/wz-e02-triage</module>
     <module>modules/wz-e03-record</module>
     <module>modules/wz-e05-fitness</module>
+    <module>modules/wz-e06-absence</module>
+    <module>modules/wz-e07-surveillance</module>
+    <module>modules/wz-e14-scheduling</module>
     <module>apps/wz-core-app</module>
     <module>apps/wz-bff</module>
   </modules>
@@ -70,6 +73,9 @@
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e02-triage</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e03-record</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e05-fitness</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e06-absence</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e07-surveillance</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e14-scheduling</artifactId><version>${project.version}</version></dependency>
 
       <dependency><groupId>ca.uhn.hapi.fhir</groupId><artifactId>hapi-fhir-structures-r4</artifactId><version>${hapi-fhir.version}</version></dependency>
       <dependency><groupId>ca.uhn.hapi</groupId><artifactId>hapi-base</artifactId><version>${hapi-hl7v2.version}</version></dependency>

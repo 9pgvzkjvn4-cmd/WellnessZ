@@ -126,6 +126,36 @@ public class DocumentTemplates {
                             "Name: {{employeeName}}  Staff number: {{employeeId}}  Date of birth: {{dateOfBirth}}",
                             "Date of examination: {{examinationDate}}", "Assessment: {{assessment}}", "Limitations: {{limitations}}",
                             "Valid until: {{validUntil}}", "Examiner: {{ameName}} ({{ameNumber}})")),
+            // increment 3 – E06 OH advice report: fitness, adjustments and prognosis only (no diagnosis), released after the employee step
+            new Template("OH_ADVICE_REPORT", "OH_ADVICE_REPORT", "Occupational Health advice report", "EMPLOYEE,MANAGER,HR", false,
+                    "ABSENCE_RECORD", OH, CLINICIANS,
+                    List.of(f("employeeName", "Employee"), f("employeeId", "Employee number"), f("requestRef", "Advice request"),
+                            o("requestedBy", "Requested by"), f("fitness", "Fitness for work"), t("adjustments", "Recommended adjustments", false),
+                            t("restrictions", "Work restrictions", false), f("prognosis", "Prognosis"), o("expectedReturn", "Expected return to work"),
+                            o("reviewDate", "Next OH review"), t("answers", "Answers to the questions asked", false),
+                            t("employeeComment", "Employee comment", false), f("issuedBy", "Issued by")),
+                    List.of("Occupational Health advice for {{employeeName}} ({{employeeId}}) in response to advice request {{requestRef}} from {{requestedBy}}.",
+                            "Fitness for work: {{fitness}}.", "Recommended adjustments: {{adjustments}}", "Work restrictions: {{restrictions}}",
+                            "Prognosis: {{prognosis}}. Expected return to work: {{expectedReturn}}. Next OH review: {{reviewDate}}.",
+                            "Answers to the questions asked: {{answers}}", "Employee comment: {{employeeComment}}",
+                            "Issued by {{issuedBy}}, Occupational Health. This report states functional advice only. It contains no medical "
+                                    + "diagnosis or clinical information and was released with the employee's knowledge.")),
+            // increment 3 – E07 vaccination certificate (employee only)
+            new Template("VACCINATION_CERTIFICATE", "VACCINATION_CERTIFICATE", "Vaccination certificate", "EMPLOYEE", true,
+                    "OH_RECORD", OH, CLINICIANS,
+                    List.of(f("employeeName", "Employee"), f("employeeId", "Employee number"), t("vaccinations", "Vaccinations", true),
+                            f("issuedOn", "Issued on"), f("issuedBy", "Issued by")),
+                    List.of("Certificate of vaccination for {{employeeName}} ({{employeeId}}), issued on {{issuedOn}}.",
+                            "Vaccinations recorded by Occupational Health: {{vaccinations}}",
+                            "Issued by {{issuedBy}}, Occupational Health. Present this certificate where proof of vaccination is required.")),
+            // increment 3 – E07 pre-employment outcome for HR onboarding (status only)
+            new Template("PRE_EMPLOYMENT_OUTCOME", "PRE_EMPLOYMENT_OUTCOME", "Pre-employment health clearance", "HR", false,
+                    "PRE_EMPLOYMENT", OH, CLINICIANS,
+                    List.of(f("candidateName", "Candidate"), f("offerRef", "Offer reference"), f("jobTitle", "Role"), f("outcome", "Clearance status"),
+                            o("conditions", "Workplace adjustments for onboarding"), f("issuedBy", "Issued by")),
+                    List.of("Pre-employment health clearance for {{candidateName}}, offer {{offerRef}}, role {{jobTitle}}.",
+                            "Clearance status: {{outcome}}.", "Workplace adjustments for onboarding: {{conditions}}",
+                            "Issued by {{issuedBy}}, Occupational Health. Status only – the health questionnaire and examination stay with OH.")),
             new Template("RESULT_LETTER", "RESULT_LETTER", "Result letter", "EMPLOYEE", true, "OH_RECORD", OH, CLINICIANS,
                     List.of(f("employeeName", "Employee"), f("testName", "Test"), f("performedOn", "Date"), t("resultSummary", "Result", true),
                             t("interpretation", "What this means", true), t("action", "Next steps", false), f("clinician", "Clinician")),
@@ -146,7 +176,10 @@ public class DocumentTemplates {
         return switch (type) {
             case "FITNESS_CERTIFICATE", "RESTRICTION_NOTE", "FOOD_HANDLER_CLEARANCE" -> "FITNESS_CERTIFICATE";
             case "CABIN_CREW_MEDICAL_REPORT", "CREW_MEDICAL_REPORT" -> "AEROMEDICAL_RECORD";
-            case "RESULT_LETTER" -> "OH_RECORD";
+            case "RESULT_LETTER", "VACCINATION_CERTIFICATE", "VACCINATION_RECORD" -> "OH_RECORD";
+            case "SICK_CERTIFICATE", "OH_ADVICE_REPORT" -> "ABSENCE_RECORD";
+            case "PRE_EMPLOYMENT_DOCUMENT", "PRE_EMPLOYMENT_OUTCOME" -> "PRE_EMPLOYMENT";
+            case "EXTERNAL_AEROMEDICAL_REPORT" -> "AEROMEDICAL_RECORD";
             case "PHOTO" -> "PHOTO";
             case "EXTERNAL_REPORT" -> "EXTERNAL_REPORT";
             default -> "CORRESPONDENCE";

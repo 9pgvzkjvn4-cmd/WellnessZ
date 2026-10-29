@@ -51,10 +51,10 @@ SELECT format('REVOKE cloudsqlsuperuser FROM %I', r)
 
 ALTER ROLE wz_app SET statement_timeout = '30s';
 ALTER ROLE wz_app SET idle_in_transaction_session_timeout = '60s';
-ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics;
+ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics;
 ALTER ROLE wz_bff SET statement_timeout = '10s';
 ALTER ROLE wz_bff SET search_path = bff;
-ALTER ROLE wz_migrator SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics;
+ALTER ROLE wz_migrator SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics;
 
 -- 2) Ownership: the admin (non-superuser on managed services) needs SET on
 --    wz_migrator to hand over ownership (PostgreSQL 16 semantics).
@@ -75,13 +75,13 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 -- 3) Application schemas owned by the migrator; runtime role gets USAGE only
 SELECT format('CREATE SCHEMA IF NOT EXISTS %I AUTHORIZATION wz_migrator', s)
-  FROM unnest(ARRAY['platform', 'masterdata', 'intake', 'casemgmt', 'triage', 'docs', 'ohrecord', 'fitness', 'analytics']) AS s \gexec
+  FROM unnest(ARRAY['platform', 'masterdata', 'intake', 'casemgmt', 'triage', 'docs', 'ohrecord', 'fitness', 'absence', 'surveillance', 'scheduling', 'analytics']) AS s \gexec
 SELECT format('ALTER SCHEMA %I OWNER TO wz_migrator', s)
-  FROM unnest(ARRAY['platform', 'masterdata', 'intake', 'casemgmt', 'triage', 'docs', 'ohrecord', 'fitness', 'analytics']) AS s \gexec
+  FROM unnest(ARRAY['platform', 'masterdata', 'intake', 'casemgmt', 'triage', 'docs', 'ohrecord', 'fitness', 'absence', 'surveillance', 'scheduling', 'analytics']) AS s \gexec
 SELECT format('REVOKE ALL ON SCHEMA %I FROM PUBLIC', s)
-  FROM unnest(ARRAY['platform', 'masterdata', 'intake', 'casemgmt', 'triage', 'docs', 'ohrecord', 'fitness', 'analytics']) AS s \gexec
+  FROM unnest(ARRAY['platform', 'masterdata', 'intake', 'casemgmt', 'triage', 'docs', 'ohrecord', 'fitness', 'absence', 'surveillance', 'scheduling', 'analytics']) AS s \gexec
 SELECT format('GRANT USAGE ON SCHEMA %I TO wz_app', s)
-  FROM unnest(ARRAY['platform', 'masterdata', 'intake', 'casemgmt', 'triage', 'docs', 'ohrecord', 'fitness', 'analytics']) AS s \gexec
+  FROM unnest(ARRAY['platform', 'masterdata', 'intake', 'casemgmt', 'triage', 'docs', 'ohrecord', 'fitness', 'absence', 'surveillance', 'scheduling', 'analytics']) AS s \gexec
 
 ALTER DEFAULT PRIVILEGES FOR ROLE wz_migrator REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 

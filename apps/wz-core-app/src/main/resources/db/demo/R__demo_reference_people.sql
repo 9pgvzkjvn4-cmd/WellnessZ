@@ -7,7 +7,13 @@ insert into masterdata.employee (employee_id, display_name, email, subsidiary_co
     ('E1003', 'Cara Crew',     'crew1@wellnessz.local',     'CAB',  'CABIN',     'CC-CAB-300', 'CABIN_CREW',     'LHR', 'ROSTER','fr', 'B-1003', null,   now()),
     ('E1004', 'Rami Ramp',     'ramp1@wellnessz.local',     'GND',  'GROUND',    'CC-GND-400', 'RAMP_AGENT',     'LHR', 'LATE',  'ar', 'B-1004', null,   now()),
     ('E1005', 'Olivia Office', 'office1@wellnessz.local',   'CORP', 'CORP',      'CC-COR-500', 'OFFICE_ADMIN',   'HQ',  'DAY',   'en', 'B-1005', null,   now()),
-    ('M2001', 'Max Manager',   'manager1@wellnessz.local',  'CAT',  'CATERING',  'CC-CAT-100', 'OFFICE_ADMIN',   'LHR', 'DAY',   'en', 'B-2001', null,   now())
+    ('M2001', 'Max Manager',   'manager1@wellnessz.local',  'CAT',  'CATERING',  'CC-CAT-100', 'OFFICE_ADMIN',   'LHR', 'DAY',   'en', 'B-2001', null,   now()),
+    -- increment 3: surveillance programme population (engineering, security, cargo, cleaning)
+    ('E1006', 'Ellie Engineer', 'engineer1@wellnessz.local', 'ENG',  'ENG',       'CC-ENG-600', 'ENGINEER',          'LHR', 'LATE',  'en', 'B-1006', null,   now()),
+    ('E1007', 'Sam Screener',   'security1@wellnessz.local', 'GND',  'GROUND',    'CC-GND-410', 'SECURITY_SCREENER', 'LHR', 'NIGHT', 'en', 'B-1007', null,   now()),
+    ('E1008', 'Fiona Forklift', 'cargo1@wellnessz.local',    'CGO',  'CARGO',     'CC-CGO-700', 'FORKLIFT_OP',       'LHR', 'NIGHT', 'en', 'B-1008', null,   now()),
+    ('E1009', 'Cole Cleaner',   'cleaner1@wellnessz.local',  'GND',  'GROUND',    'CC-GND-420', 'CLEANER',           'LHR', 'NIGHT', 'en', 'B-1009', null,   now()),
+    ('E1010', 'Cathy Cook',     'cook1@wellnessz.local',     'CAT',  'CATERING',  'CC-CAT-110', 'CATERING_ASSOC',    'LHR', 'EARLY', 'en', 'B-1010', 'M2001', now())
 on conflict (employee_id) do nothing;
 
 insert into masterdata.staff_member (username, display_name, email, roles, site_codes, languages, specialties, caseload_cap) values

@@ -245,6 +245,102 @@ public class DocumentService {
         return view(d, user.hasAnyRole(Roles.OH_TEAM));
     }
 
+    // ------------------------------------------------------------------ module-level API (increment 3)
+
+    /** Document types a business module may store from an upload (E06 sick certificates, E07 candidate / external documents). */
+    public static final Set<String> UPLOAD_TYPES = Set.of("SICK_CERTIFICATE", "PRE_EMPLOYMENT_DOCUMENT", "VACCINATION_RECORD",
+            "EXTERNAL_AEROMEDICAL_REPORT", "EXTERNAL_REPORT");
+
+    /** Stored upload with the text extracted from it (PDF text layer or OCR) and its SHA-256 for duplicate detection. */
+    public record Stored(DocumentView document, String extractedText, String sha256) {
+    }
+
+    /**
+     * Stores an uploaded file on behalf of a business module. <b>The calling module has already authorised the actor</b>
+     * (e.g. the employee uploading their own certificate, a candidate, an integration client); this method only validates
+     * the file (magic bytes, size), extracts text, hashes and indexes it. The employee id may be a candidate id that is not
+     * (yet) in the HRIS master.
+     */
+    @Transactional
+    public Stored storeUpload(String actor, String employeeId, UUID caseId, String documentType, String title, byte[] bytes,
+                              DataClassification classification) {
+        if (!UPLOAD_TYPES.contains(documentType)) {
+            throw ApiException.badRequest("invalid_document_type", "Unsupported upload document type");
+        }
+        if (bytes == null || bytes.length == 0 || bytes.length > MAX_SCAN_BYTES) {
+            throw ApiException.badRequest("file_too_large", "Files must be between 1 byte and 10 MB");
+        }
+        String type = sniff(bytes);
+        if (type == null) {
+            throw ApiException.badRequest("invalid_file_type", "Only PDF, JPEG or PNG files are accepted");
+        }
+        String text = "application/pdf".equals(type) ? renderer.extractText(bytes)
+                : Optional.ofNullable(ocr.getIfAvailable()).flatMap(o -> o.extractText(bytes, type)).orElse("");
+        UUID id = UUID.randomUUID();
+        Document d = new Document(id, nextNumber(), id, 1, documentType, null, title == null || title.isBlank() ? documentType : title,
+                employeeId, caseId, classification, actor, clock.instant());
+        String hash = sha256(bytes);
+        d.setContent(type, bytes, hash, Base64.getEncoder().encodeToString(bytes));
+        d.setExtractedText(text);
+        d.sign(actor, clock.instant(), sha256((hash + "|" + actor).getBytes(StandardCharsets.UTF_8)));
+        documents.saveAndFlush(d);
+        index(d.getId(), text);
+        audit.recordAs(actor, "MODULE", "DOCUMENT_UPLOAD", "DOCUMENT", id.toString(), AuditService.Outcome.SUCCESS,
+                documentType + " textChars=" + text.length());
+        return new Stored(view(d, false), text, hash);
+    }
+
+    /**
+     * Generates and signs a template document in one step for a workflow the calling module has already authorised – e.g.
+     * the released OH advice report (E06) or a vaccination certificate requested by the employee (E07). Merge fields are
+     * validated exactly as in {@link #generate}.
+     */
+    @Transactional
+    public DocumentView generateSigned(String actor, String templateCode, String employeeId, UUID caseId, Map<String, String> fields) {
+        DocumentTemplates.Template t = templates.find(templateCode)
+                .orElseThrow(() -> ApiException.badRequest("unknown_template", "Unknown document template"));
+        DataClassification cls = t.containsClinical() ? DataClassification.CLINICAL : DataClassification.CONFIDENTIAL;
+        Map<String, String> clean = validateFields(t, fields);
+        UUID id = UUID.randomUUID();
+        Document d = new Document(id, nextNumber(), id, 1, t.type(), t.code(), t.title(), employeeId, caseId, cls, actor, clock.instant());
+        render(d, t, clean);
+        Instant now = clock.instant();
+        d.sign(actor, now, sha256((d.getSha256() + "|" + actor + "|" + now).getBytes(StandardCharsets.UTF_8)));
+        documents.save(d);
+        audit.recordAs(actor, "MODULE", "DOCUMENT_GENERATE_SIGNED", "DOCUMENT", id.toString(), AuditService.Outcome.SUCCESS, t.code());
+        return view(d, true);
+    }
+
+    /**
+     * Shares a signed document as a workflow step (employee consented to release, employee requested a certificate). The
+     * non-clinical rule for managers / HR and the disclosure log apply exactly as for {@link #share}; partner shares are
+     * not available here.
+     */
+    @Transactional
+    public ShareView shareAsSystem(String actor, UUID id, DocumentShare.Target target) {
+        if (target == DocumentShare.Target.PARTNER) {
+            throw ApiException.badRequest("invalid_target", "Partner shares need the employee's consent and an OH user");
+        }
+        Document d = documents.findById(id).orElseThrow(() -> ApiException.notFound("Document"));
+        if (d.getStatus() != Document.Status.SIGNED) {
+            throw ApiException.conflict("not_signed", "Sign the document before sharing it");
+        }
+        return doShare(actor, d, target, null, null);
+    }
+
+    /** Raw content for a module endpoint that has already authorised the reader (e.g. a candidate's own upload). */
+    @Transactional(readOnly = true)
+    public Content systemContent(String actor, UUID id) {
+        Document d = documents.findById(id).orElseThrow(() -> ApiException.notFound("Document"));
+        audit.recordAs(actor, "MODULE", "DOCUMENT_DOWNLOAD", "DOCUMENT", id.toString(), AuditService.Outcome.SUCCESS, "MODULE");
+        String ext = switch (d.getContentType()) {
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            default -> ".pdf";
+        };
+        return new Content(d.getDocumentNumber() + ext, d.getContentType(), Base64.getDecoder().decode(d.getContent()));
+    }
+
     // ------------------------------------------------------------------ sharing
 
     @Transactional
@@ -259,6 +355,11 @@ public class DocumentService {
         if ("PHOTO".equals(d.getType())) {
             throw ApiException.forbidden("Clinical photographs are not shared outside Occupational Health");
         }
+        return doShare(user.username(), d, target, partnerOrg, consentId);
+    }
+
+    private ShareView doShare(String actor, Document d, DocumentShare.Target target, String partnerOrg, UUID consentId) {
+        UUID id = d.getId();
         DocumentTemplates.Template t = d.getTemplateCode() == null ? null : templates.find(d.getTemplateCode()).orElse(null);
         boolean clinical = t == null || t.containsClinical();
         Employee e = records.employee(d.getEmployeeId());
@@ -295,11 +396,11 @@ public class DocumentService {
         }
         Instant now = clock.instant();
         DocumentShare s = shares.save(new DocumentShare(d.getId(), target, recipient, target == DocumentShare.Target.PARTNER ? consentId : null,
-                user.username(), now));
+                actor, now));
         if (target != DocumentShare.Target.EMPLOYEE) {
             disclosures.record(e.getEmployeeId(), target.name(), recipientName, "DOCUMENT_SHARE", s.getId().toString(),
                     d.getTitle() + " (" + d.getDocumentNumber() + ")", target == DocumentShare.Target.PARTNER ? "TREATMENT" : "FITNESS_FOR_WORK",
-                    s.getConsentId(), user.username());
+                    s.getConsentId(), actor);
         }
         notifyShare(d, e, target);
         audit.record("DOCUMENT_SHARE", "DOCUMENT", id.toString(), AuditService.Outcome.SUCCESS, target.name());

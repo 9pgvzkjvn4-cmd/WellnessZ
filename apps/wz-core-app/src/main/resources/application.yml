@@ -23,7 +23,7 @@ spring:
     # migrations run with a separate owner role; the runtime role has DML-only grants
     user: ${WZ_DB_MIGRATOR_USERNAME:${WZ_DB_USERNAME:wz_app}}
     password: ${WZ_DB_MIGRATOR_PASSWORD:${WZ_DB_PASSWORD:}}
-    schemas: platform,masterdata,intake,casemgmt,analytics,triage,docs,ohrecord,fitness
+    schemas: platform,masterdata,intake,casemgmt,analytics,triage,docs,ohrecord,fitness,absence,surveillance,scheduling
     locations: ${WZ_FLYWAY_LOCATIONS:classpath:db/migration}
     default-schema: platform
     create-schemas: true
@@ -115,7 +115,7 @@ wellnessz:
     # status-only disclosure rule for enterprise destinations (default deny for anything not listed)
     outbound-allowlist:
       crew-rostering: [messageId, employeeId, fitnessStatus, rosterStatus, restrictionUntil, validFrom, validUntil, operationalLimitations, effectiveFrom]
-      hr-systems: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom, messageId, offerId, accepted, respondedAt]
+      hr-systems: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom, messageId, offerId, accepted, respondedAt, offerRef, candidateId, preEmploymentStatus, ohEngaged, certificateValidity]
       catering-hygiene: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom, foodHandlerStatus, excludedFrom, expectedReturn]
   notification:
     quiet-hours:

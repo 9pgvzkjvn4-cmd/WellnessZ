@@ -11,6 +11,8 @@ class ApiProxyPathTest {
         assertThat(ApiProxyController.isCoreWorkspaceResource("/workspace/team-restrictions")).isTrue();
         assertThat(ApiProxyController.isCoreWorkspaceResource("/workspace/duty-proposals")).isTrue();
         assertThat(ApiProxyController.isCoreWorkspaceResource("/workspace/documents")).isTrue();
+        assertThat(ApiProxyController.isCoreWorkspaceResource("/workspace/advice-requests/123")).isTrue();
+        assertThat(ApiProxyController.isCoreWorkspaceResource("/workspace/surveillance/compliance")).isTrue();
         assertThat(ApiProxyController.isCoreWorkspaceResource("/workspace/cases")).isFalse();
         assertThat(ApiProxyController.isCoreWorkspaceResource("/workspace/documentsX")).isFalse();
     }

@@ -27,6 +27,9 @@
     <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e02-triage</artifactId></dependency>
     <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e03-record</artifactId></dependency>
     <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e05-fitness</artifactId></dependency>
+    <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e06-absence</artifactId></dependency>
+    <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e07-surveillance</artifactId></dependency>
+    <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e14-scheduling</artifactId></dependency>
     <dependency><groupId>org.springdoc</groupId><artifactId>springdoc-openapi-starter-webmvc-ui</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
     <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-registry-prometheus</artifactId></dependency>

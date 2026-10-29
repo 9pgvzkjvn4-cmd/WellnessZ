@@ -21,6 +21,7 @@ import com.wellnessz.casekernel.FitnessFeed;
 import com.wellnessz.casekernel.model.FitnessStatus;
 import com.wellnessz.casekernel.model.OhCase;
 import com.wellnessz.casekernel.support.CaseAccess;
+import com.wellnessz.casekernel.support.FitnessClearanceGuard;
 import com.wellnessz.casekernel.support.CaseTimeline;
 import com.wellnessz.casekernel.support.EmployeeRecordAccess;
 import com.wellnessz.common.error.ApiException;
@@ -70,11 +71,13 @@ public class FitnessDecisionService {
     private final FitnessSupport support;
     private final EventBus bus;
     private final AuditService audit;
+    private final List<FitnessClearanceGuard> clearanceGuards;
 
     public FitnessDecisionService(FitnessDecisionRepository decisions, FitnessStandardRepository standards,
                                   JobDemandProfileRepository jobDemands, DurationGuidelineRepository guidelines, CaseService caseService,
                                   CaseAccess access, EmployeeRecordAccess records, CaseTimeline timeline, RestrictionService restrictions,
-                                  DocumentService documents, FitnessSupport support, EventBus bus, AuditService audit) {
+                                  DocumentService documents, FitnessSupport support, EventBus bus, AuditService audit,
+                                  List<FitnessClearanceGuard> clearanceGuards) {
         this.decisions = decisions;
         this.standards = standards;
         this.jobDemands = jobDemands;
@@ -88,6 +91,7 @@ public class FitnessDecisionService {
         this.support = support;
         this.bus = bus;
         this.audit = audit;
+        this.clearanceGuards = List.copyOf(clearanceGuards);
     }
 
     // ------------------------------------------------------------------ API types
@@ -123,6 +127,13 @@ public class FitnessDecisionService {
         requireDeciderRole(user, standard);
         if (!DecisionRules.OUTCOMES.contains(cmd.outcome())) {
             throw ApiException.badRequest("invalid_outcome", "Unknown fitness outcome");
+        }
+        if ("FIT".equals(cmd.outcome()) || "FIT_WITH_LIMITATIONS".equals(cmd.outcome())) {
+            for (FitnessClearanceGuard g : clearanceGuards) {
+                g.blockingReason(c.getEmployeeId(), cmd.outcome()).ifPresent(reason -> {
+                    throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "clearance_required", reason);
+                });
+            }
         }
         List<String> codes = limitationCodes(standard, cmd.limitationCodes());
         List<RestrictionRef.View> views = support.resolve(cmd.restrictions());

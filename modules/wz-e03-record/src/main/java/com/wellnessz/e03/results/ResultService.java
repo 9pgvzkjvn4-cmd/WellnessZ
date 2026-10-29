@@ -31,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.wellnessz.casekernel.model.OhCase;
 import com.wellnessz.casekernel.model.OhCaseRepository;
 import com.wellnessz.casekernel.support.CaseAccess;
+import com.wellnessz.casekernel.support.DeviceCalibrationCheck;
+import com.wellnessz.casekernel.support.ResultFollowUpListener;
 import com.wellnessz.casekernel.support.CaseTimeline;
 import com.wellnessz.common.error.ApiException;
 import com.wellnessz.common.model.DataClassification;
@@ -87,6 +89,9 @@ public class ResultService {
     private final Set<String> restrictedCodes;
     private final String portalLink;
     private final Duration overdueAfter;
+    private final List<DeviceCalibrationCheck> calibration;
+    private final List<ResultFollowUpListener> followUp;
+    private final boolean requireRegisteredDevices;
 
     public ResultService(ResultRepository results, LabOrderRepository orders, OrderService orderService, RecordGuard guard,
                          CaseAccess caseAccess, OhCaseRepository cases, CaseTimeline timeline, TerminologyCatalog terminology,
@@ -94,7 +99,9 @@ public class ResultService {
                          JsonSupport json, AuditService audit, Clock clock,
                          @Value("${wellnessz.record.restricted-result-codes:5643-2,19659-3}") String restrictedCodes,
                          @Value("${wellnessz.notification.oh-workspace-url:https://oh.wellnessz.local}") String workspaceUrl,
-                         @Value("${wellnessz.record.result-overdue-after:PT72H}") Duration overdueAfter) {
+                         @Value("${wellnessz.record.result-overdue-after:PT72H}") Duration overdueAfter,
+                         List<DeviceCalibrationCheck> calibration, List<ResultFollowUpListener> followUp,
+                         @Value("${wellnessz.record.require-registered-devices:false}") boolean requireRegisteredDevices) {
         this.results = results;
         this.orders = orders;
         this.orderService = orderService;
@@ -114,6 +121,37 @@ public class ResultService {
                 .collect(Collectors.toUnmodifiableSet());
         this.portalLink = workspaceUrl + "/worklist";
         this.overdueAfter = overdueAfter;
+        this.calibration = List.copyOf(calibration);
+        this.followUp = List.copyOf(followUp);
+        this.requireRegisteredDevices = requireRegisteredDevices;
+    }
+
+    /** E14-HLR-04: results must not be captured on an out-of-calibration or out-of-service device. */
+    void checkCalibration(String deviceId, LocalDate on) {
+        for (DeviceCalibrationCheck check : calibration) {
+            DeviceCalibrationCheck.Status st = check.check(deviceId, on);
+            switch (st.verdict()) {
+                case OUT_OF_CALIBRATION -> throw new ApiException(org.springframework.http.HttpStatus.UNPROCESSABLE_CONTENT,
+                        "device_out_of_calibration", "Device " + deviceId + " is out of calibration"
+                        + (st.calibrationDueOn() == null ? "" : " (due " + st.calibrationDueOn() + ")") + " – results cannot be recorded");
+                case OUT_OF_SERVICE -> throw new ApiException(org.springframework.http.HttpStatus.UNPROCESSABLE_CONTENT,
+                        "device_out_of_service", "Device " + deviceId + " is out of service – results cannot be recorded");
+                case UNKNOWN -> {
+                    if (requireRegisteredDevices) {
+                        throw new ApiException(org.springframework.http.HttpStatus.UNPROCESSABLE_CONTENT, "device_not_registered",
+                                "Device " + deviceId + " is not in the equipment register");
+                    }
+                }
+                default -> {
+                }
+            }
+        }
+    }
+
+    private void notifyFollowUp(Result res) {
+        ResultFollowUpListener.RecordedResult rr = new ResultFollowUpListener.RecordedResult(res.getId(), res.getEmployeeId(),
+                res.getCaseId(), res.getCategory(), res.getCodeSystem(), res.getCode(), res.getFlag(), res.isBaseline(), res.getRecordedBy());
+        followUp.forEach(l -> l.resultRecorded(rr));
     }
 
     // ------------------------------------------------------------------ records
@@ -226,6 +264,7 @@ public class ResultService {
                 abnormal++;
             }
             bus.publish(new E03Events.ResultReceived(res.getId().toString(), e.getEmployeeId(), res.getFlag()));
+            notifyFollowUp(res);
         }
         if (order != null) {
             results.flush();
@@ -276,6 +315,9 @@ public class ResultService {
         boolean manual = r.deviceId() == null || r.deviceId().isBlank();
         if (!manual && (r.calibrationId() == null || r.calibrationId().isBlank())) {
             throw ApiException.badRequest("calibration_required", "Device capture requires the device calibration ID");
+        }
+        if (!manual) {
+            checkCalibration(r.deviceId(), LocalDate.now(clock));
         }
         if (r.caseId() != null) {
             OhCase c = user.hasAnyRole(Roles.OH_TEAM)
@@ -335,6 +377,7 @@ public class ResultService {
         res.setRecordedBy(user.username());
         results.save(res);
         bus.publish(new E03Events.ResultReceived(res.getId().toString(), employeeId, res.getFlag()));
+        notifyFollowUp(res);
         if (order != null) {
             results.flush();
             orderService.onResults(order);

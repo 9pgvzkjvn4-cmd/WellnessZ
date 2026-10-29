@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class NotificationTemplates {
 
     static final Set<String> ALLOWED_PLACEHOLDERS = Set.of("firstName", "appointmentDate", "appointmentTime", "caseRef",
-            "portalLink", "dueDate", "unit", "urgency", "nextStep", "contact", "queue", "level", "documentNumber", "employeeName");
+            "portalLink", "dueDate", "unit", "urgency", "nextStep", "contact", "queue", "level", "documentNumber", "employeeName", "site");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{([a-zA-Z]+)}}");
 
     private final Map<String, String> templates = Map.ofEntries(
@@ -43,7 +43,37 @@ public class NotificationTemplates {
             Map.entry("duty.proposal", "Occupational Health has proposed modified duties for {{employeeName}} (case {{caseRef}}). Please accept or decline: {{portalLink}}"),
             Map.entry("job-offer.issued", "Hi {{firstName}}, you have received an alternative-duty offer. Please respond by {{dueDate}}: {{portalLink}}"),
             Map.entry("break-glass.alert", "Break-glass access was used ({{level}}). Review due by {{dueDate}}: {{portalLink}}"),
-            Map.entry("fitness.signoff-required", "A fitness decision on case {{caseRef}} needs your sign-off ({{level}}). {{portalLink}}"));
+            Map.entry("fitness.signoff-required", "A fitness decision on case {{caseRef}} needs your sign-off ({{level}}). {{portalLink}}"),
+            // increment 3 – E06 absence (status only: no reason, no certificate content)
+            Map.entry("absence.oh-engaged", "Occupational Health is now supporting {{employeeName}} ({{unit}}) on case {{caseRef}}. No medical details are shared. Contact: {{contact}}"),
+            Map.entry("absence.milestone-overdue", "A long-term absence milestone on case {{caseRef}} was due on {{dueDate}}. {{portalLink}}"),
+            Map.entry("absence.advice-requested", "A management advice request on case {{caseRef}} ({{unit}}) is waiting, due by {{dueDate}}. {{portalLink}}"),
+            Map.entry("absence.advice-review", "Hi {{firstName}}, an Occupational Health advice report is ready for you to review before it is released. Please sign in: {{portalLink}}"),
+            Map.entry("absence.advice-released", "Occupational Health advice for {{employeeName}} (case {{caseRef}}) is available. {{portalLink}}"),
+            Map.entry("absence.advice-declined", "The advice report on case {{caseRef}} has not been released. Occupational Health will contact you. {{portalLink}}"),
+            Map.entry("absence.certificate-received", "Hi {{firstName}}, your absence certificate {{documentNumber}} has been received. {{portalLink}}"),
+            Map.entry("absence.certificate-escalation", "An absence certificate check for {{employeeName}} ({{unit}}) needs HR follow-up. {{portalLink}}"),
+            // increment 3 – E07 surveillance (never names the programme outcome)
+            Map.entry("surveillance.invitation", "Hi {{firstName}}, you are due a routine Occupational Health appointment by {{dueDate}}. Book or view it here: {{portalLink}}"),
+            Map.entry("surveillance.overdue-manager", "{{employeeName}} ({{unit}}) has not attended two invitations to a required health appointment due {{dueDate}}. Please support attendance: {{portalLink}}"),
+            Map.entry("surveillance.follow-up", "A surveillance follow-up on case {{caseRef}} needs physician review by {{dueDate}}. {{portalLink}}"),
+            Map.entry("crew.medical-expiring", "Hi {{firstName}}, your crew medical certificate expires on {{dueDate}} ({{level}}). Please book your renewal: {{portalLink}}"),
+            Map.entry("crew.medical-expiring-licensing", "The crew medical certificate of {{employeeName}} expires on {{dueDate}} ({{level}}). {{portalLink}}"),
+            Map.entry("crew.dose-review", "A cosmic dose review for {{employeeName}} is required ({{level}}). {{portalLink}}"),
+            Map.entry("pre-employment.invitation", "Hi {{firstName}}, please complete your pre-employment health questionnaire and consent before {{dueDate}}: {{portalLink}}"),
+            Map.entry("pre-employment.status", "The pre-employment clearance status for offer {{documentNumber}} has been updated. {{portalLink}}"),
+            Map.entry("immunisation.due", "Hi {{firstName}}, a workplace vaccination appointment is due by {{dueDate}}. {{portalLink}}"),
+            // increment 3 – E14 scheduling and clinic operations
+            Map.entry("appointment.booked", "Hi {{firstName}}, your Occupational Health appointment is booked for {{appointmentDate}} at {{appointmentTime}} ({{site}}). Reschedule or cancel: {{portalLink}}"),
+            Map.entry("appointment.cancelled", "Hi {{firstName}}, your Occupational Health appointment on {{appointmentDate}} at {{appointmentTime}} has been cancelled. {{portalLink}}"),
+            Map.entry("appointment.waitlist-offer", "Hi {{firstName}}, an earlier Occupational Health appointment is available on {{appointmentDate}} at {{appointmentTime}} ({{site}}). {{portalLink}}"),
+            Map.entry("coldchain.excursion", "Vaccine fridge {{documentNumber}} at {{site}} recorded a temperature excursion ({{level}}). Act now: {{portalLink}}"),
+            Map.entry("equipment.calibration-due", "Equipment {{documentNumber}} at {{site}} is due for calibration on {{dueDate}}. {{portalLink}}"));
+
+    /** Approved template keys (for governance review and tests). */
+    public java.util.Set<String> keys() {
+        return templates.keySet();
+    }
 
     public String render(String templateKey, Map<String, String> params) {
         String template = templates.get(templateKey);

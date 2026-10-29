@@ -40,4 +40,25 @@ class NotificationRulesTest {
         assertThat(quiet.nextAllowed(lateInSydney, sydney, Priority.URGENT)).isEqualTo(lateInSydney);
         assertThat(quiet.nextAllowed(lateInSydney, ZoneId.of("Europe/London"), Priority.NORMAL)).isEqualTo(lateInSydney);
     }
+
+    @Test
+    void everyApprovedTemplatePassesTheContentRules() {
+        Map<String, String> sample = new java.util.HashMap<>();
+        for (String k : NotificationTemplates.ALLOWED_PLACEHOLDERS) {
+            sample.put(k, "x");
+        }
+        sample.put("caseRef", "OH-2026-000001");
+        sample.put("portalLink", "https://oh.example/worklist");
+        sample.put("dueDate", "2026-11-30");
+        sample.put("appointmentDate", "2026-11-30");
+        sample.put("appointmentTime", "09:30");
+        sample.put("employeeName", "Sam Example");
+        sample.put("unit", "Catering");
+        sample.put("site", "HQ Medical Centre");
+        sample.put("documentNumber", "DOC-2026-000001");
+        sample.put("level", "30 days");
+        for (String key : templates.keys()) {
+            assertThat(templates.render(key, sample)).as(key).isNotBlank();
+        }
+    }
 }

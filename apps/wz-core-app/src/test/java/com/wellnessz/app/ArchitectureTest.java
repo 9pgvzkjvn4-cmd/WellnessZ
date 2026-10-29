@@ -19,21 +19,22 @@ class ArchitectureTest {
                     "com.wellnessz.masterdata..", "com.wellnessz.integration..", "com.wellnessz.notification..",
                     "com.wellnessz.analytics..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.casekernel..", "com.wellnessz.ehsintake..",
-                    "com.wellnessz.documents..", "com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..", "com.wellnessz.e05..");
+                    "com.wellnessz.documents..", "com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..", "com.wellnessz.e05..",
+                    "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..");
 
     @ArchTest
     static final ArchRule kernelDoesNotDependOnBusinessModules = noClasses()
             .that().resideInAPackage("com.wellnessz.casekernel..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..",
-                    "com.wellnessz.e05..", "com.wellnessz.documents..")
+                    "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.documents..")
             .because("modules plug into the kernel through SPIs (CaseModule, CaseTransitionGuard, ChartContributor, events), never the reverse");
 
     @ArchTest
     static final ArchRule documentServiceIsAPlatformService = noClasses()
             .that().resideInAPackage("com.wellnessz.documents..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..",
-                    "com.wellnessz.e05..")
-            .because("E03 and E05 both use the document service; it must not know about either");
+                    "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..")
+            .because("the business modules all use the document service; it must not know about any of them");
 
     @ArchTest
     static final ArchRule recordAndFitnessModulesAreIndependent = noClasses()
@@ -50,7 +51,33 @@ class ArchitectureTest {
     @ArchTest
     static final ArchRule earlierModulesDoNotDependOnLaterOnes = noClasses()
             .that().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..")
-            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e03..", "com.wellnessz.e05..");
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e03..", "com.wellnessz.e05..", "com.wellnessz.e06..",
+                    "com.wellnessz.e07..", "com.wellnessz.e14..");
+
+    @ArchTest
+    static final ArchRule increment2ModulesDoNotDependOnIncrement3 = noClasses()
+            .that().resideInAnyPackage("com.wellnessz.e03..", "com.wellnessz.e05..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..")
+            .because("E03 / E05 call increment-3 behaviour only through kernel SPIs (DeviceCalibrationCheck, ResultFollowUpListener, FitnessClearanceGuard)");
+
+    @ArchTest
+    static final ArchRule absenceIsIndependentOfSurveillanceAndScheduling = noClasses()
+            .that().resideInAPackage("com.wellnessz.e06..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e07..", "com.wellnessz.e14..")
+            .because("E06 signals E07 through the AbsenceSignalListener SPI and books through AppointmentBooking");
+
+    @ArchTest
+    static final ArchRule surveillanceIsIndependentOfAbsenceAndScheduling = noClasses()
+            .that().resideInAPackage("com.wellnessz.e07..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e06..", "com.wellnessz.e14..")
+            .because("E07 books invitations and campaign slots through the AppointmentBooking SPI");
+
+    @ArchTest
+    static final ArchRule schedulingIsIndependentOfClinicalModules = noClasses()
+            .that().resideInAPackage("com.wellnessz.e14..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e03..", "com.wellnessz.e05..", "com.wellnessz.e06..",
+                    "com.wellnessz.e07..")
+            .because("scheduling never reads clinical content; it serves the other modules through SPIs");
 
     @ArchTest
     static final ArchRule intakeDoesNotDependOnTriage = noClasses()

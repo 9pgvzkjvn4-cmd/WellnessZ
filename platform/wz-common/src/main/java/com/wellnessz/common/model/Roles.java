@@ -27,6 +27,15 @@ public final class Roles {
     /** Data protection officer: break-glass review, disclosure and retention reports; no clinical read. */
     public static final String DPO = "DPO";
 
+    // increment 3 (E06 / E07 / E14)
+    /** Clinic scheduler: diaries, bookings, campaigns, waitlists; demographics and appointment type only, no clinical read. */
+    public static final String CLINIC_SCHEDULER = "CLINIC_SCHEDULER";
+    /** Biomedical / equipment technician: equipment register, calibration and cold-chain logs; no clinical read. */
+    public static final String BIOMEDICAL = "BIOMEDICAL";
+    /** Crew training & licensing: crew medical certificate validity and expiry (status only). */
+    public static final String CREW_LICENSING = "CREW_LICENSING";
+    /** Pre-employment candidate (not yet an employee): own questionnaire, consent, documents and booking only. */
+    public static final String CANDIDATE = "CANDIDATE";
     /** Roles of the Occupational Health clinical team (clinical disclosure). */
     public static final String[] OH_TEAM = {OH_CLINICIAN, OH_PHYSICIAN, AME, CMO, NURSING_HEAD, CASE_MANAGER, PSYCH_CLINICIAN};
     /** Roles that may record a fitness-for-duty decision. */

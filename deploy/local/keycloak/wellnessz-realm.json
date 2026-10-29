@@ -223,6 +223,30 @@
         "description": "Data protection officer (break-glass review, disclosure and retention reports; no clinical access)",
         "composite": false,
         "clientRole": false
+      },
+      {
+        "name": "CLINIC_SCHEDULER",
+        "description": "Clinic scheduler – diaries, bookings, campaigns (no clinical read)",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "BIOMEDICAL",
+        "description": "Biomedical / equipment technician – equipment register, calibration, cold chain",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "CREW_LICENSING",
+        "description": "Crew training & licensing – crew medical certificate validity (status only)",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "CANDIDATE",
+        "description": "Pre-employment candidate – own questionnaire, consent and booking only",
+        "composite": false,
+        "clientRole": false
       }
     ]
   },
@@ -1038,6 +1062,114 @@
         "default-roles-wellnessz",
         "INTEGRATION"
       ]
+    },
+    {
+      "username": "scheduler1",
+      "enabled": true,
+      "email": "scheduler1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Sana",
+      "lastName": "Scheduler",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "CLINIC_SCHEDULER"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8601"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "biomed1",
+      "enabled": true,
+      "email": "biomed1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Ben",
+      "lastName": "Biomedical",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "BIOMEDICAL"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8602"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "crewlicensing1",
+      "enabled": true,
+      "email": "crewlicensing1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Lena",
+      "lastName": "Licensing",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "CREW_LICENSING"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8603"
+        ],
+        "org_scope": [
+          "/AIRLINE/OPS"
+        ]
+      }
+    },
+    {
+      "username": "candidate1",
+      "enabled": true,
+      "email": "candidate1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Cody",
+      "lastName": "Candidate",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "CANDIDATE"
+      ],
+      "attributes": {
+        "employee_id": [
+          "C9001"
+        ],
+        "org_scope": [
+          "/CANDIDATES"
+        ]
+      }
     }
   ],
   "attributes": {
@@ -1066,7 +1198,11 @@
         "HYGIENE_MANAGER",
         "CLINIC_RECEPTION",
         "FIRST_AIDER",
-        "DPO"
+        "DPO",
+        "CLINIC_SCHEDULER",
+        "BIOMEDICAL",
+        "CREW_LICENSING",
+        "CANDIDATE"
       ]
     },
     {
@@ -1091,7 +1227,11 @@
         "HYGIENE_MANAGER",
         "CLINIC_RECEPTION",
         "FIRST_AIDER",
-        "DPO"
+        "DPO",
+        "CLINIC_SCHEDULER",
+        "BIOMEDICAL",
+        "CREW_LICENSING",
+        "CANDIDATE"
       ]
     },
     {
