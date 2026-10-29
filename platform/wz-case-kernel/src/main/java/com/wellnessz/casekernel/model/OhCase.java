@@ -117,6 +117,12 @@ public class OhCase {
     private FitnessStatus fitnessStatus;
     @Column(name = "restriction_until")
     private LocalDate restrictionUntil;
+    @Column(name = "primary_diagnosis_system", length = 20)
+    private String primaryDiagnosisSystem;
+    @Column(name = "primary_diagnosis_code", length = 50)
+    private String primaryDiagnosisCode;
+    @Column(name = "primary_diagnosis_display", length = 500)
+    private String primaryDiagnosisDisplay;
     @Convert(converter = EncryptedStringConverter.class)
     @Column(name = "clinical_summary", columnDefinition = "text")
     private String clinicalSummary;
@@ -415,5 +421,29 @@ public class OhCase {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    /** Primary coded diagnosis (E03-F03); set when a clinician codes a diagnosis as primary. */
+    public void codePrimaryDiagnosis(String system, String code, String display, Instant now) {
+        this.primaryDiagnosisSystem = system;
+        this.primaryDiagnosisCode = code;
+        this.primaryDiagnosisDisplay = display;
+        this.updatedAt = now;
+    }
+
+    public boolean hasCodedDiagnosis() {
+        return primaryDiagnosisCode != null;
+    }
+
+    public String getPrimaryDiagnosisSystem() {
+        return primaryDiagnosisSystem;
+    }
+
+    public String getPrimaryDiagnosisCode() {
+        return primaryDiagnosisCode;
+    }
+
+    public String getPrimaryDiagnosisDisplay() {
+        return primaryDiagnosisDisplay;
     }
 }

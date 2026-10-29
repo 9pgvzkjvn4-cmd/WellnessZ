@@ -71,11 +71,13 @@ public class CaseService {
     private final List<CaseTransitionGuard> guards;
     private final Clock clock;
     private final ModuleRegistry modules;
+    private final List<FitnessPublicationListener> publicationListeners;
 
     public CaseService(OhCaseRepository cases, OrgUnitRepository orgUnits, EmployeeRepository employees, JobCodeRepository jobCodes,
                        CaseLinkRepository links, CaseAttachmentRepository attachments, CaseAccess access, AuditService audit,
                        EventBus bus, CaseRefGenerator refs, CaseTimeline timeline, List<CaseTransitionGuard> guards, Clock clock,
-                       ModuleRegistry modules) {
+                       ModuleRegistry modules, List<FitnessPublicationListener> publicationListeners) {
+        this.publicationListeners = publicationListeners;
         this.cases = cases;
         this.orgUnits = orgUnits;
         this.employees = employees;
@@ -194,15 +196,43 @@ public class CaseService {
 
     /** Status-only feeds to rostering / HR / catering hygiene (allow-listed by the outbound guard). */
     public void publishFitness(OhCase c) {
+        publishFitness(c, FitnessFeed.NONE);
+    }
+
+    /**
+     * Publishes the status-only fitness feeds. Crew rostering receives a {@link CaseEvents.RosterStatusChanged} with
+     * validity dates and operational limitation codes (E05-F04); HR and hygiene keep the minimal status payload.
+     */
+    public void publishFitness(OhCase c, FitnessFeed feed) {
+        LocalDate today = LocalDate.now(clock);
         CaseEvents.FitnessStatusChanged event = new CaseEvents.FitnessStatusChanged(c.getCaseRef(), c.getEmployeeId(),
-                c.getFitnessStatus().name(), c.getRestrictionUntil(), LocalDate.now(clock));
+                c.getFitnessStatus().name(), c.getRestrictionUntil(), today);
         bus.publish(event, HR_DESTINATION);
         if (c.getSafetyCategory() == null || c.getSafetyCategory().isAeromedical()) {
-            bus.publish(event, ROSTERING_DESTINATION);
+            CaseEvents.RosterStatusChanged roster = new CaseEvents.RosterStatusChanged(java.util.UUID.randomUUID().toString(),
+                    c.getEmployeeId(), c.getFitnessStatus().name(), FitnessFeed.rosterStatus(c.getFitnessStatus()), c.getRestrictionUntil(),
+                    feed.validFrom() == null ? today : feed.validFrom(), feed.validUntil() == null ? c.getRestrictionUntil() : feed.validUntil(),
+                    feed.operationalLimitations().isEmpty() ? null : String.join(",", feed.operationalLimitations()), today);
+            bus.publish(roster, ROSTERING_DESTINATION);
+            publicationListeners.forEach(l -> l.rosterStatusPublished(c, roster));
         }
         if (c.getSafetyCategory() == SafetyCategory.FOOD_HANDLER) {
             bus.publish(event, HYGIENE_DESTINATION);
         }
+    }
+
+    /**
+     * Applies a fitness decision taken by a business module (E05) after it has performed its own authorisation and
+     * sign-off rules: updates the case status, publishes the feeds and records timeline + audit.
+     */
+    @Transactional
+    public CaseViews.StatusOnly applyFitnessDecision(CurrentUser user, UUID id, FitnessStatus fitness, LocalDate until, FitnessFeed feed) {
+        OhCase c = access.clinical(user, id, AccessPolicy.Action.UPDATE, "FITNESS_DECISION_APPLIED");
+        c.recordFitness(fitness, until, clock.instant());
+        publishFitness(c, feed);
+        timeline.record(c.getId(), "FITNESS_RECORDED", "Fitness decision applied: " + fitness);
+        audit.record("FITNESS_RECORDED", "CASE", id.toString(), AuditService.Outcome.SUCCESS, fitness.name());
+        return CaseViews.StatusOnly.of(c);
     }
 
     @Transactional

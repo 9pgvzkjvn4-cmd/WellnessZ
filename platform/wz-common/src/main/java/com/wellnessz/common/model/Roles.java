@@ -23,13 +23,23 @@ public final class Roles {
     public static final String HYGIENE_MANAGER = "HYGIENE_MANAGER";
     public static final String CLINIC_RECEPTION = "CLINIC_RECEPTION";
     public static final String FIRST_AIDER = "FIRST_AIDER";
+    // increment 2 (E03 / E05)
+    /** Data protection officer: break-glass review, disclosure and retention reports; no clinical read. */
+    public static final String DPO = "DPO";
 
     /** Roles of the Occupational Health clinical team (clinical disclosure). */
     public static final String[] OH_TEAM = {OH_CLINICIAN, OH_PHYSICIAN, AME, CMO, NURSING_HEAD, CASE_MANAGER, PSYCH_CLINICIAN};
     /** Roles that may record a fitness-for-duty decision. */
     public static final String[] FITNESS_DECIDERS = {OH_CLINICIAN, OH_PHYSICIAN, AME, CMO, PSYCH_CLINICIAN};
+    /** OH team members who document clinically (excludes the case-management-only role). */
+    public static final String[] CLINICIANS = {OH_CLINICIAN, OH_PHYSICIAN, AME, CMO, NURSING_HEAD, PSYCH_CLINICIAN};
+    /** Physicians (orders, sign-off of licensed-role fitness decisions). */
+    public static final String[] PHYSICIANS = {OH_PHYSICIAN, AME, CMO};
     /** SpEL fragment for {@code @PreAuthorize}. */
     public static final String OH_TEAM_SPEL = "hasAnyRole('OH_CLINICIAN','OH_PHYSICIAN','AME','CMO','NURSING_HEAD','CASE_MANAGER','PSYCH_CLINICIAN')";
+
+    public static final String CLINICIANS_SPEL = "hasAnyRole('OH_CLINICIAN','OH_PHYSICIAN','AME','CMO','NURSING_HEAD','PSYCH_CLINICIAN')";
+    public static final String PHYSICIANS_SPEL = "hasAnyRole('OH_PHYSICIAN','AME','CMO')";
 
     private Roles() {
     }

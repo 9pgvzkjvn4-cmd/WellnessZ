@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class NotificationTemplates {
 
     static final Set<String> ALLOWED_PLACEHOLDERS = Set.of("firstName", "appointmentDate", "appointmentTime", "caseRef",
-            "portalLink", "dueDate", "unit", "urgency", "nextStep", "contact", "queue", "level");
+            "portalLink", "dueDate", "unit", "urgency", "nextStep", "contact", "queue", "level", "documentNumber", "employeeName");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{([a-zA-Z]+)}}");
 
     private final Map<String, String> templates = Map.ofEntries(
@@ -31,7 +31,19 @@ public class NotificationTemplates {
             Map.entry("sla.alert", "SLA {{level}} on OH case {{caseRef}} ({{unit}}), queue {{queue}}. {{portalLink}}"),
             Map.entry("escalation.raised", "OH case {{caseRef}} has been escalated to {{level}}. Please acknowledge: {{portalLink}}"),
             Map.entry("advice.available", "Hi {{firstName}}, Occupational Health has shared advice on case {{caseRef}}. Please sign in: {{portalLink}}"),
-            Map.entry("handover.received", "OH case {{caseRef}} has been handed over to you. Please acknowledge: {{portalLink}}"));
+            Map.entry("handover.received", "OH case {{caseRef}} has been handed over to you. Please acknowledge: {{portalLink}}"),
+            // increment 2 (E03 / E05)
+            Map.entry("document.shared", "Hi {{firstName}}, Occupational Health has shared document {{documentNumber}} with you. Please sign in: {{portalLink}}"),
+            Map.entry("certificate.available", "Hi {{firstName}}, a fitness certificate ({{documentNumber}}) is available. Please sign in to view and acknowledge it: {{portalLink}}"),
+            Map.entry("rtw.plan-ack", "A return-to-work plan for case {{caseRef}} needs your acknowledgement by {{dueDate}}: {{portalLink}}"),
+            Map.entry("rtw.review-due", "A return-to-work review for case {{caseRef}} is due on {{dueDate}}. {{portalLink}}"),
+            Map.entry("restriction.expiring", "A work restriction for {{employeeName}} (case {{caseRef}}) ends on {{dueDate}}. Please review: {{portalLink}}"),
+            Map.entry("result.abnormal", "An abnormal result needs acknowledgement on case {{caseRef}}. {{portalLink}}"),
+            Map.entry("result.overdue", "An abnormal result on case {{caseRef}} has not been acknowledged within 72 hours ({{level}}). {{portalLink}}"),
+            Map.entry("duty.proposal", "Occupational Health has proposed modified duties for {{employeeName}} (case {{caseRef}}). Please accept or decline: {{portalLink}}"),
+            Map.entry("job-offer.issued", "Hi {{firstName}}, you have received an alternative-duty offer. Please respond by {{dueDate}}: {{portalLink}}"),
+            Map.entry("break-glass.alert", "Break-glass access was used ({{level}}). Review due by {{dueDate}}: {{portalLink}}"),
+            Map.entry("fitness.signoff-required", "A fitness decision on case {{caseRef}} needs your sign-off ({{level}}). {{portalLink}}"));
 
     public String render(String templateKey, Map<String, String> params) {
         String template = templates.get(templateKey);

@@ -4,12 +4,14 @@ import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.wellnessz.common.error.ApiException;
 import com.wellnessz.security.audit.AuditService;
+import com.wellnessz.security.disclosure.DisclosureLogService;
 import com.wellnessz.security.identity.CurrentUser;
 
 /** Consent capture, withdrawal and checks. Other modules call {@link #hasActiveConsent} before sharing data. */
@@ -20,13 +22,34 @@ public class ConsentService {
     private final AuditService audit;
     private final Clock clock;
     private final String noticeVersion;
+    private final ObjectProvider<ConsentWithdrawalListener> withdrawalListeners;
+    private final DisclosureLogService disclosures;
 
     public ConsentService(ConsentRepository repository, AuditService audit, Clock clock,
-                          @Value("${wellnessz.consent.notice-version:2026.1}") String noticeVersion) {
+                          @Value("${wellnessz.consent.notice-version:2026.1}") String noticeVersion,
+                          ObjectProvider<ConsentWithdrawalListener> withdrawalListeners, DisclosureLogService disclosures) {
         this.repository = repository;
         this.audit = audit;
         this.clock = clock;
         this.noticeVersion = noticeVersion;
+        this.withdrawalListeners = withdrawalListeners;
+        this.disclosures = disclosures;
+    }
+
+    /** Consent captured by a clinician on the employee's behalf (e.g. verbal consent to AI documentation, E03-HLR-07). */
+    @Transactional
+    public Consent grantOnBehalf(String employeeId, ConsentPurpose purpose, String scope, String capturedBy) {
+        Consent consent = repository.save(new Consent(employeeId, purpose, scope, noticeVersion, capturedBy, clock.instant()));
+        audit.record("CONSENT_GRANT_ON_BEHALF", "CONSENT", consent.getId().toString(), AuditService.Outcome.SUCCESS, purpose.name());
+        return consent;
+    }
+
+    /** True when the given consent belongs to the employee, has the purpose and is still granted. */
+    @Transactional(readOnly = true)
+    public boolean isActive(UUID consentId, String employeeId, ConsentPurpose purpose) {
+        return consentId != null && repository.findById(consentId)
+                .filter(c -> c.getEmployeeId().equals(employeeId) && c.getPurpose() == purpose && c.getStatus() == Consent.Status.GRANTED)
+                .isPresent();
     }
 
     @Transactional
@@ -47,7 +70,10 @@ public class ConsentService {
             throw ApiException.notFound("Consent"); // do not reveal existence
         }
         consent.withdraw(clock.instant());
-        audit.record("CONSENT_WITHDRAW", "CONSENT", id.toString(), AuditService.Outcome.SUCCESS, consent.getPurpose().name());
+        withdrawalListeners.orderedStream().forEach(l -> l.onWithdrawn(consent));
+        int revoked = disclosures.revokeByConsent(consent.getId());
+        audit.record("CONSENT_WITHDRAW", "CONSENT", id.toString(), AuditService.Outcome.SUCCESS,
+                consent.getPurpose().name() + " disclosuresRevoked=" + revoked);
         return consent;
     }
 

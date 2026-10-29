@@ -218,6 +218,9 @@ class Increment1IntegrationTest extends IntegrationTestBase {
     @Test
     void triageEngineRedFlagOverrideTelephoneCallBackAndSafetyClosureGuard() throws Exception {
         String caseId = openInjuryCase("E1004"); // ramp agent = airside driver (safety-critical)
+        // increment 2 closes clinical cases only with a coded diagnosis (E03-F03); code it up front for this test
+        jdbc.update("update casemgmt.oh_case set primary_diagnosis_system = 'ICD_10', primary_diagnosis_code = 'S63.5', "
+                + "primary_diagnosis_display = 'Sprain of wrist' where id = ?::uuid", caseId);
         mvc.perform(get("/api/v1/triage/protocols").with(NURSE)).andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(12)));
         // red flag → EMERGENCY, cannot be lowered
         mvc.perform(post("/api/v1/cases/" + caseId + "/triage").with(NURSE).contentType(MediaType.APPLICATION_JSON)

@@ -13,5 +13,7 @@ public enum ConsentPurpose {
     /** Participate in health-promotion campaigns. */
     HEALTH_CAMPAIGNS,
     /** Use of de-identified data for research / predictive models. */
-    RESEARCH_DEIDENTIFIED
+    RESEARCH_DEIDENTIFIED,
+    /** AI-assisted documentation of a consultation (ambient capture / dictation), E03-HLR-07. */
+    AI_DOCUMENTATION
 }

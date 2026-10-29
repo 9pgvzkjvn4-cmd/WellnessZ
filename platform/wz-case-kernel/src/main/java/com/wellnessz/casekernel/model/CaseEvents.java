@@ -48,4 +48,27 @@ public final class CaseEvents {
             return caseRef;
         }
     }
+
+    /**
+     * Crew roster-status feed (E05-F04): status and dates only plus operational limitation codes (e.g. OML), never
+     * clinical detail. {@code messageId} lets rostering acknowledge each message (15-minute reconciliation).
+     */
+    public record RosterStatusChanged(String messageId, String employeeId, String fitnessStatus, String rosterStatus,
+                                      LocalDate restrictionUntil, LocalDate validFrom, LocalDate validUntil, String operationalLimitations,
+                                      LocalDate effectiveFrom) implements DomainEvent {
+        @Override
+        public String eventType() {
+            return "crew.roster-status.changed.v1";
+        }
+
+        @Override
+        public String aggregateType() {
+            return "EMPLOYEE";
+        }
+
+        @Override
+        public String aggregateId() {
+            return employeeId;
+        }
+    }
 }

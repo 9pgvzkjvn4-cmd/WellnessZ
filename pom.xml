@@ -27,9 +27,12 @@
     <module>platform/wz-notification</module>
     <module>platform/wz-analytics</module>
     <module>platform/wz-case-kernel</module>
+    <module>platform/wz-documents</module>
     <module>platform/wz-ehs-intake</module>
     <module>modules/wz-e01-intake</module>
     <module>modules/wz-e02-triage</module>
+    <module>modules/wz-e03-record</module>
+    <module>modules/wz-e05-fitness</module>
     <module>apps/wz-core-app</module>
     <module>apps/wz-bff</module>
   </modules>
@@ -43,6 +46,7 @@
     <springdoc.version>3.0.2</springdoc.version>
     <logstash-encoder.version>9.0</logstash-encoder.version>
     <archunit.version>1.5.1</archunit.version>
+    <pdfbox.version>3.0.8</pdfbox.version>
     <jacoco.version>0.8.16</jacoco.version>
     <cyclonedx.version>2.9.3</cyclonedx.version>
     <dependency-check.version>13.0.0</dependency-check.version>
@@ -60,9 +64,12 @@
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-notification</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-analytics</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-case-kernel</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-documents</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-ehs-intake</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e01-intake</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e02-triage</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e03-record</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e05-fitness</artifactId><version>${project.version}</version></dependency>
 
       <dependency><groupId>ca.uhn.hapi.fhir</groupId><artifactId>hapi-fhir-structures-r4</artifactId><version>${hapi-fhir.version}</version></dependency>
       <dependency><groupId>ca.uhn.hapi</groupId><artifactId>hapi-base</artifactId><version>${hapi-hl7v2.version}</version></dependency>
@@ -70,6 +77,7 @@
       <dependency><groupId>org.apache.poi</groupId><artifactId>poi-ooxml</artifactId><version>${poi.version}</version></dependency>
       <dependency><groupId>org.springdoc</groupId><artifactId>springdoc-openapi-starter-webmvc-ui</artifactId><version>${springdoc.version}</version></dependency>
       <dependency><groupId>net.logstash.logback</groupId><artifactId>logstash-logback-encoder</artifactId><version>${logstash-encoder.version}</version></dependency>
+      <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>${pdfbox.version}</version></dependency>
       <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><version>${archunit.version}</version></dependency>
     </dependencies>
   </dependencyManagement>

@@ -37,7 +37,7 @@ public final class CaseViews {
                            CaseEnums.Recordability recordability, CaseEnums.WorkRelated workRelated,
                            FitnessStatus fitnessStatus, LocalDate restrictionUntil, String clinicalSummary,
                            String intakeDetails, List<LinkView> links, List<AttachmentMeta> attachments,
-                           Instant createdAt, Instant updatedAt, DisclosureLevel disclosure) {
+                           Instant createdAt, Instant updatedAt, DisclosureLevel disclosure, CodedConcept primaryDiagnosis) {
 
         public static Clinical of(OhCase c, DisclosureLevel level) {
             return of(c, level, List.of(), List.of());
@@ -52,8 +52,14 @@ public final class CaseViews {
                     c.getWaitingState(), c.getIntensity(), c.getComplexityScore(), c.isEarlyIntervention(),
                     c.isDuplicateSuspect(), c.isEscalated(), c.getMergedIntoCaseId(), c.getRecordability(), c.getWorkRelated(),
                     c.getFitnessStatus(), c.getRestrictionUntil(), c.getClinicalSummary(), c.getIntakeDetails(), links,
-                    attachments, c.getCreatedAt(), c.getUpdatedAt(), level);
+                    attachments, c.getCreatedAt(), c.getUpdatedAt(), level,
+                    c.hasCodedDiagnosis() ? new CodedConcept(c.getPrimaryDiagnosisSystem(), c.getPrimaryDiagnosisCode(),
+                            c.getPrimaryDiagnosisDisplay()) : null);
         }
+    }
+
+    /** A coded clinical concept (SNOMED CT / ICD / LOINC). */
+    public record CodedConcept(String system, String code, String display) {
     }
 
     /** Self view for the data subject: own case without internal routing data. */

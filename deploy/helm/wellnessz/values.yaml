@@ -145,7 +145,7 @@ migrations:
     # Location of SQL migrations inside the images (Spring Boot layered extraction)
     core:
       locationInImage: /app/BOOT-INF/classes/db/migration
-      schemas: platform,masterdata,intake,casemgmt,triage,analytics
+      schemas: platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,analytics
       table: flyway_schema_history
       appRole: wz_app
     bff:

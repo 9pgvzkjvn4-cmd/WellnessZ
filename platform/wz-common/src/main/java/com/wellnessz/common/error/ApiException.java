@@ -23,6 +23,11 @@ public class ApiException extends RuntimeException {
         return code;
     }
 
+    /** Extra problem-detail properties (no PHI), e.g. the offending field name. */
+    public java.util.Map<String, Object> properties() {
+        return java.util.Map.of();
+    }
+
     public static ApiException notFound(String what) {
         return new ApiException(HttpStatus.NOT_FOUND, "not_found", what + " not found");
     }
