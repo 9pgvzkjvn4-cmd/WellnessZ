@@ -17,7 +17,13 @@ public final class ClinicalTextDetector {
             + "schizo\\w*|psychiatr\\w*|psychos\\w*|ptsd|adhd|autis\\w*|dementia|epilep\\w*|seizure\\w*|diabet\\w*|"
             + "cancer|tumou?r|hiv|aids|hepatitis|pregnan\\w*|miscarriage|medication|prescri\\w*|antidepressant\\w*|"
             + "alcoholi\\w*|addict\\w*|overdose|suicid\\w*|self[- ]harm|disorder|syndrome|fracture\\w*|concussion|"
-            + "migraine|asthma|arthritis|positive test|tested positive|blood test|mri|x-ray|surgery|operation)\\b");
+            + "migraine|asthma|arthritis|positive test|tested positive|blood test|mri|x-ray|surgery|operation|"
+            // increment 2: common occupational-health diagnoses that must not reach managers / HR in certificates or plans
+            + "prolapse\\w*|herni\\w*|sciatica|tendin\\w*|bursitis|carpal tunnel|dermatitis|eczema|psoriasis|infection\\w*|"
+            + "infectious|gastroenteritis|norovirus|salmonell\\w*|typhoid|tuberculosis|covid\\w*|influenza|hypertensi\\w*|"
+            + "cardiac|heart attack|stroke|angina|arrhythmi\\w*|copd|bronchitis|pneumonia|tinnitus|hearing loss|vertigo|glaucoma|"
+            + "cataract|insomnia|sleep apno?ea|obes\\w*|ana?emi\\w*|chemotherapy|radiotherapy|dialysis|physiotherap\\w*|"
+            + "psycholog\\w*|counsell?ing|antibiotic\\w*|steroid\\w*|opioid\\w*|wound|lesion\\w*)\\b");
 
     private ClinicalTextDetector() {
     }
