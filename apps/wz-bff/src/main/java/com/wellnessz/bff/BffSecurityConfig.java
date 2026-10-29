@@ -53,7 +53,6 @@ public class BffSecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**", "/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                 .anyRequest().denyAll())
-            .csrf(csrf -> csrf.disable()) // read-only GET endpoints, no session
             .sessionManagement(s -> s.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS));
         return http.build();
     }
