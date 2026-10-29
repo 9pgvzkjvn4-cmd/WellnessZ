@@ -1,0 +1,309 @@
+/* E14 scheduling & clinic operations – uses the tokens from src/styles.css. */
+
+.cal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--c-border);
+  white-space: nowrap;
+}
+.cal-green {
+  background: var(--c-green-bg);
+  color: var(--c-green);
+}
+.cal-amber {
+  background: var(--c-amber-bg);
+  color: var(--c-amber);
+}
+.cal-red {
+  background: var(--c-red-bg);
+  color: var(--c-red);
+  border-color: var(--c-red);
+}
+.cal-none {
+  background: var(--c-surface-2);
+}
+
+/* ---------------------------------------------------------------- diary */
+.diary {
+  display: grid;
+  grid-template-columns: 4rem repeat(var(--diary-cols, 1), minmax(11rem, 1fr));
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  overflow-x: auto;
+}
+.diary-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--c-surface-2);
+  border-bottom: 1px solid var(--c-border);
+  padding: 0.4rem 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.diary-axis,
+.diary-col {
+  position: relative;
+  border-left: 1px solid var(--c-border);
+}
+.diary-axis {
+  border-left: 0;
+}
+.diary-hour {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--c-border);
+  font-size: 0.72rem;
+  color: var(--c-muted);
+  padding-left: 0.25rem;
+}
+.diary-session {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--c-info-bg);
+  border-left: 3px solid var(--c-accent);
+  opacity: 0.8;
+}
+.diary-col.drop-active {
+  outline: 2px dashed var(--c-accent);
+  outline-offset: -2px;
+}
+.appt {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0.15rem 0.35rem;
+  border-radius: 6px;
+  border: 1px solid var(--c-primary);
+  background: var(--c-surface);
+  font-size: 0.78rem;
+  line-height: 1.25;
+  overflow: hidden;
+  cursor: grab;
+  text-align: left;
+  min-height: 1.4rem;
+  color: var(--c-text);
+}
+.appt:focus-visible {
+  outline: 3px solid var(--c-focus);
+  z-index: 3;
+}
+.appt-checked-in,
+.appt-in-progress {
+  border-left: 5px solid var(--c-amber);
+}
+.appt-attended {
+  border-left: 5px solid var(--c-green);
+}
+.appt-no-show,
+.appt-cancelled {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+.appt-selected {
+  box-shadow: 0 0 0 3px var(--c-focus);
+}
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(9rem, 1fr));
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+.week-day {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  min-height: 8rem;
+}
+.week-day h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+}
+.week-day ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+.week-day .appt {
+  position: static;
+  width: 100%;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- kiosk & queue board */
+.kiosk {
+  max-width: 40rem;
+  margin: 0 auto;
+  text-align: center;
+}
+.kiosk input[type='text'] {
+  font-size: 1.6rem;
+  padding: 0.6rem 0.8rem;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+.kiosk button[type='submit'] {
+  font-size: 1.25rem;
+  min-height: 3rem;
+  padding: 0.5rem 2rem;
+}
+.kiosk-modes {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  border: 0;
+  padding: 0;
+}
+.kiosk-modes label {
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  background: var(--c-surface);
+}
+.ticket-card {
+  margin: 1.5rem auto;
+  padding: 1.5rem;
+  border: 3px solid var(--c-primary);
+  border-radius: 16px;
+  background: var(--c-surface);
+}
+.ticket-number {
+  font-size: 5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--c-primary);
+  font-variant-numeric: tabular-nums;
+  margin: 0.5rem 0;
+}
+.queue-board {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+.queue-board:fullscreen {
+  padding: 2rem;
+  overflow: auto;
+}
+.queue-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1.5rem;
+}
+.queue-columns h2 {
+  font-size: 1.4rem;
+}
+.queue-tickets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.queue-ticket {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 1.15rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.9rem;
+}
+.queue-ticket strong {
+  font-size: 2.4rem;
+  font-variant-numeric: tabular-nums;
+}
+.queue-ticket-called {
+  border: 3px solid var(--c-amber);
+  background: var(--c-amber-bg);
+}
+.queue-stat {
+  font-size: 1.3rem;
+}
+
+/* ---------------------------------------------------------------- capacity & cold chain */
+.gap-short {
+  color: var(--c-red);
+  font-weight: 600;
+}
+.gap-tight {
+  color: var(--c-amber);
+  font-weight: 600;
+}
+.gap-ok {
+  color: var(--c-green);
+}
+.temp-chart svg {
+  width: 100%;
+  height: 14rem;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+}
+.temp-band {
+  fill: var(--c-green-bg);
+}
+.temp-line {
+  fill: none;
+  stroke: var(--c-accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.temp-point {
+  fill: var(--c-accent);
+}
+.temp-point-excursion {
+  fill: var(--c-red);
+}
+.temp-axis {
+  font-size: 10px;
+  fill: var(--c-muted);
+}
+.row-excursion td,
+.row-excursion th {
+  background: var(--c-red-bg);
+}
+.ids-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  min-height: 8rem;
+}
+.local-tabs {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--c-border);
+  margin: 0.75rem 0;
+}
+.local-tabs button {
+  background: none;
+  color: var(--c-text);
+  border: 1px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+}
+.local-tabs button[aria-pressed='true'] {
+  border-bottom-color: var(--c-primary);
+  font-weight: 700;
+}
+.appt:hover {
+  background: var(--c-info-bg);
+  border-color: var(--c-primary);
+  color: var(--c-text);
+}
+.local-tabs button:hover {
+  background: var(--c-info-bg);
+  border-color: transparent;
+  color: var(--c-text);
+}

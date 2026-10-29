@@ -21,6 +21,8 @@ export interface ProblemDetail {
   detail?: string;
   code?: string;
   correlationId?: string;
+  /** Offending field name of a 422 `clinical_content…` error (ClinicalContentException `properties().field`). */
+  field?: string;
   /** `409 code=cds_alert` (contract E03 §4.5): the alerts that need an override reason. Only known string fields are kept. */
   alerts?: ProblemAlert[];
 }
@@ -88,6 +90,7 @@ export function toProblem(body: unknown, headerCorrelationId?: string | null): P
     detail: str(b.detail),
     code: str(b.code),
     correlationId: str(b.correlationId) ?? str(headerCorrelationId ?? undefined),
+    ...(str(b.field) ? { field: str(b.field) } : {}),
     ...(Array.isArray(b.alerts) ? { alerts: toAlerts(b.alerts) } : {}),
   };
 }

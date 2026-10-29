@@ -105,6 +105,27 @@ export const FEATURES = {
   disclosureLog: ['DPO'],
   retention: ['DPO', 'OH_ADMIN'],
   retentionWrite: ['DPO'],
+  // E14 scheduling & clinic operations (API-Contract-E06-E07-E14 §5). Schedulers / reception / biomedical: names + type only.
+  schedulingDiary: [...CLINICIANS, 'CLINIC_SCHEDULER'],
+  schedulingBook: [...OH, 'CLINIC_SCHEDULER'],
+  schedulingAttendance: [...OH, 'CLINIC_SCHEDULER', 'CLINIC_RECEPTION'],
+  telehealthLaunch: CLINICIANS,
+  campaigns: ['CLINIC_SCHEDULER', 'NURSING_HEAD', 'OH_ADMIN'],
+  campaignManage: ['CLINIC_SCHEDULER', 'NURSING_HEAD'],
+  checkInKiosk: ['CLINIC_RECEPTION'],
+  queueBoard: ['CLINIC_RECEPTION', ...CLINICIANS],
+  queueCallNext: CLINICIANS,
+  equipment: ['BIOMEDICAL', 'OH_ADMIN', ...CLINICIANS],
+  equipmentWrite: ['BIOMEDICAL', 'OH_ADMIN'],
+  calibrationWrite: ['BIOMEDICAL'],
+  calibrationDue: ['BIOMEDICAL', 'OH_ADMIN', 'NURSING_HEAD'],
+  coldChain: ['BIOMEDICAL', ...CLINICIANS],
+  excursionAcknowledge: CLINICIANS,
+  capacity: ['NURSING_HEAD', 'CMO', 'OH_ADMIN'],
+  serviceCatalogue: ['CLINIC_SCHEDULER', 'OH_ADMIN', 'NURSING_HEAD', 'CMO'],
+  appointmentTypesWrite: ['OH_ADMIN', 'NURSING_HEAD'],
+  chargingUsage: ['OH_ADMIN', 'CMO'],
+  siteTemplatesWrite: ['OH_ADMIN', 'NURSING_HEAD', 'CLINIC_SCHEDULER'],
 } satisfies Record<string, readonly string[]>;
 
 export type Feature = keyof typeof FEATURES;
@@ -140,7 +161,7 @@ export interface NavItem {
   path: string;
   label: string;
   feature: Feature;
-  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy';
+  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic';
 }
 
 export const NAV: readonly NavItem[] = [
@@ -180,6 +201,14 @@ export const NAV: readonly NavItem[] = [
   { path: '/dpo/break-glass-report', label: 'Break-glass report', feature: 'breakGlassReport', group: 'Privacy' },
   { path: '/dpo/disclosures', label: 'Disclosure log', feature: 'disclosureLog', group: 'Privacy' },
   { path: '/dpo/retention', label: 'Retention & legal hold', feature: 'retention', group: 'Privacy' },
+  // E14 scheduling & clinic operations
+  { path: '/scheduling/diary', label: 'Clinic diary', feature: 'schedulingDiary', group: 'Clinic' },
+  { path: '/scheduling/campaigns', label: 'Campaigns', feature: 'campaigns', group: 'Clinic' },
+  { path: '/scheduling/reception', label: 'Check-in kiosk', feature: 'checkInKiosk', group: 'Clinic' },
+  { path: '/scheduling/queue', label: 'Queue board', feature: 'queueBoard', group: 'Clinic' },
+  { path: '/scheduling/equipment', label: 'Equipment & cold chain', feature: 'equipment', group: 'Clinic' },
+  { path: '/scheduling/capacity', label: 'Capacity & utilisation', feature: 'capacity', group: 'Clinic' },
+  { path: '/scheduling/catalogue', label: 'Service catalogue', feature: 'serviceCatalogue', group: 'Clinic' },
 ];
 
 export function navFor(roles: readonly string[] | undefined): NavItem[] {
@@ -201,5 +230,6 @@ export function featureForRoute(route: string): Feature | undefined {
   if (/^\/encounters\/[^/]+$/.test(route)) return 'encounters';
   if (/^\/employees\/[^/]+\/timeline$/.test(route)) return 'employeeTimeline';
   if (/^\/intake\/incidents(\/[^/]+)?$/.test(route)) return 'incidentCases';
+  if (/^\/scheduling\/campaigns\/[^/]+$/.test(route)) return 'campaigns';
   return undefined;
 }

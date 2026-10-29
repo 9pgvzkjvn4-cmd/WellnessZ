@@ -406,5 +406,3 @@ export type SchedulingApi = ReturnType<typeof schedulingApi>;
 
 /** Finance export (`text/csv`) – plain browser download through the BFF. */
 export const chargingExportUrl = (month: string): string => bffLink(`/scheduling/charging/export${buildQuery({ month })}`);
-/** Cold-chain monthly report (daily min / max / excursions). */
-export const coldChainReportUrl = (equipmentId: string, month: string): string => bffLink(`/scheduling/cold-chain/report${buildQuery({ equipmentId, month })}`);
