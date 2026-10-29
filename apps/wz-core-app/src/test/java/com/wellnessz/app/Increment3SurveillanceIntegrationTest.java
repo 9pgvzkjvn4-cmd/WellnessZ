@@ -238,7 +238,9 @@ class Increment3SurveillanceIntegrationTest extends IntegrationTestBase {
         spi.appointmentStatusChanged(appointment, emp, "SURVEILLANCE_INVITATION", invitation, AppointmentStatusListener.Status.NO_SHOW);
         JsonNode log = ok(get("/api/v1/surveillance/invitations?enrolmentId=" + enrolment), SCHEDULER, null);
         assertThat(log.size()).isEqualTo(2);
-        assertThat(texts(log, "status")).containsExactly("INVITED", "NO_SHOW");
+        // the re-invitation is booked straight away when the scheduling module (E14) is deployed
+        assertThat(log.get(0).path("status").asString()).isIn("INVITED", "BOOKED");
+        assertThat(log.get(1).path("status").asString()).isEqualTo("NO_SHOW");
         spi.appointmentStatusChanged(UUID.randomUUID(), emp, "SURVEILLANCE_INVITATION", log.get(0).path("id").asString(),
                 AppointmentStatusListener.Status.NO_SHOW);
         assertThat(jdbc.queryForObject("select escalated_at is not null from surveillance.enrolment where id = ?::uuid", Boolean.class, enrolment))
