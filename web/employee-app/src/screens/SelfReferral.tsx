@@ -164,8 +164,9 @@ export function SelfReferral({ client, onSessionExpired, isNative = false }: Scr
       <section dir={dirFor(ack.language)} lang={ack.language}>
         <h1 tabIndex={-1}>{at.ackTitle}</h1>
         <Alert kind="success">
-          <p className="ack-ref">{at.ackBody(ack.caseRef || '–')}</p>
-          {ack.text && <p>{ack.text}</p>}
+          {/* the server acknowledgement already names the case reference; fall back to the local text without it */}
+          <p className="ack-ref">{ack.text && ack.caseRef && ack.text.includes(ack.caseRef) ? ack.text : at.ackBody(ack.caseRef || '–')}</p>
+          {ack.text && !(ack.caseRef && ack.text.includes(ack.caseRef)) && <p>{ack.text}</p>}
           {ack.total > 0 && <p>{at.ackUploads(ack.uploaded, ack.total)}</p>}
         </Alert>
         <p>{at.ackNext}</p>

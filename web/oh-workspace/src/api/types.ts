@@ -262,8 +262,8 @@ export interface RecordabilityResult {
   version: number;
   reasonCode?: string | null;
   rationale?: string | null;
-  decidedBy?: string;
-  decidedAt?: string;
+  assessedBy?: string;
+  assessedAt?: string;
 }
 
 // ---- Duplicates / complexity / escalation ----

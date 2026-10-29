@@ -669,7 +669,7 @@
       "enabled": true,
       "email": "nurse1@wellnessz.local",
       "emailVerified": true,
-      "firstName": "Nora",
+      "firstName": "Nina",
       "lastName": "Nurse",
       "credentials": [
         {
@@ -697,7 +697,7 @@
       "enabled": true,
       "email": "nurse2@wellnessz.local",
       "emailVerified": true,
-      "firstName": "Nadia",
+      "firstName": "Noah",
       "lastName": "Nurse",
       "credentials": [
         {
@@ -753,8 +753,8 @@
       "enabled": true,
       "email": "ame1@wellnessz.local",
       "emailVerified": true,
-      "firstName": "Amal",
-      "lastName": "Examiner",
+      "firstName": "Ava",
+      "lastName": "AME",
       "credentials": [
         {
           "type": "password",
@@ -782,8 +782,8 @@
       "enabled": true,
       "email": "cmo1@wellnessz.local",
       "emailVerified": true,
-      "firstName": "Cyrus",
-      "lastName": "Medical",
+      "firstName": "Carl",
+      "lastName": "CMO",
       "credentials": [
         {
           "type": "password",
@@ -811,8 +811,8 @@
       "enabled": true,
       "email": "nursinghead1@wellnessz.local",
       "emailVerified": true,
-      "firstName": "Hiba",
-      "lastName": "Head",
+      "firstName": "Nora",
+      "lastName": "Nursing-Head",
       "credentials": [
         {
           "type": "password",
@@ -996,7 +996,16 @@
         "PSYCH_CLINICIAN",
         "AUDITOR",
         "PLATFORM_ADMIN",
-        "PARTNER_PROVIDER"
+        "PARTNER_PROVIDER",
+        "OH_PHYSICIAN",
+        "AME",
+        "CMO",
+        "NURSING_HEAD",
+        "HSE_OFFICER",
+        "CREW_SCHEDULING",
+        "HYGIENE_MANAGER",
+        "CLINIC_RECEPTION",
+        "FIRST_AIDER"
       ]
     },
     {
@@ -1011,7 +1020,16 @@
         "PSYCH_CLINICIAN",
         "AUDITOR",
         "PLATFORM_ADMIN",
-        "PARTNER_PROVIDER"
+        "PARTNER_PROVIDER",
+        "OH_PHYSICIAN",
+        "AME",
+        "CMO",
+        "NURSING_HEAD",
+        "HSE_OFFICER",
+        "CREW_SCHEDULING",
+        "HYGIENE_MANAGER",
+        "CLINIC_RECEPTION",
+        "FIRST_AIDER"
       ]
     },
     {

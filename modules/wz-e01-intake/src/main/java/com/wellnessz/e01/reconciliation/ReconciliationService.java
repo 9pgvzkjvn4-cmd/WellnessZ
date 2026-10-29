@@ -199,7 +199,7 @@ public class ReconciliationService {
         return "\"" + s.replace("\"", "\"\"") + "\"";
     }
 
-    public record CountItem(String key, Long count, boolean suppressed) {
+    public record CountItem(String source, Long count, boolean suppressed) {
     }
 
     public record Dashboard(List<CountItem> bySource, List<Map<String, Object>> byUnit, Map<String, Object> slaCompliance,

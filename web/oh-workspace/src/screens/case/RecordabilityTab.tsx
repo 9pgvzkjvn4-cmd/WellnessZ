@@ -152,7 +152,7 @@ export function RecordabilityTab({ client, caseId, detail, session, refresh, onS
             <li key={h.version}>
               v{h.version}: <strong>{humanise(h.recordability)}</strong> (computed {humanise(h.computed)}) · work-related {humanise(h.workRelated)}
               <div className="small muted">
-                {formatDate(h.decidedAt)} {h.decidedBy ? `· ${h.decidedBy}` : ''} {h.reasonCode ? `· ${humanise(h.reasonCode)}` : ''}
+                {formatDate(h.assessedAt)} {h.assessedBy ? `· ${h.assessedBy}` : ''} {h.reasonCode ? `· ${humanise(h.reasonCode)}` : ''}
               </div>
             </li>
           ))}
