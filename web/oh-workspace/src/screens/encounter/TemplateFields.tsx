@@ -74,6 +74,8 @@ function FieldControl({ f, value, onChange, readOnly, describedBy, invalid, clie
   }
 }
 
+export const SOAP_SECTION = 'soap';
+
 /** Renders the encounter template sections and fields (TEXT, TEXTAREA, NUMBER, SELECT, MULTISELECT, BOOLEAN, DATE, CODE). */
 export function TemplateFields({ template, answers, onChange, readOnly, errors, client, onSessionExpired }: {
   template: EncounterTemplate;
@@ -86,7 +88,8 @@ export function TemplateFields({ template, answers, onChange, readOnly, errors, 
 }) {
   return (
     <>
-      {template.sections.map((s) => (
+      {/* the SOAP section is edited in the dedicated SOAP boxes and saved as `soap`, not as template answers */}
+      {template.sections.filter((s) => s.key !== SOAP_SECTION).map((s) => (
         <fieldset key={s.key} className="template-section">
           <legend>{s.title}</legend>
           <div className="form-grid">

@@ -65,7 +65,7 @@ public class ApiProxyController {
         if (path.contains("..") || path.contains("//")) {
             throw ApiException.badRequest("invalid_path", "Invalid path");
         }
-        if (path.startsWith("/workspace/")) {
+        if (path.startsWith("/workspace/") && !isCoreWorkspaceResource(path)) {
             path = path.substring("/workspace".length()); // role-gated alias; the core API enforces ABAC again
         }
         OAuth2AuthorizedClient client = clients.authorize(OAuth2AuthorizeRequest.withClientRegistrationId("wellnessz")
@@ -105,5 +105,13 @@ public class ApiProxyController {
                     });
                     return new ResponseEntity<>(res.getBody().readAllBytes(), out, HttpStatusCode.valueOf(res.getStatusCode().value()));
                 });
+    }
+
+    /** Core endpoints that natively live under {@code /api/v1/workspace/...} (increment 2 manager / HR views). */
+    static final java.util.List<String> CORE_WORKSPACE_RESOURCES = java.util.List.of("/workspace/team-restrictions", "/workspace/duty-proposals",
+            "/workspace/rtw-plans", "/workspace/documents");
+
+    static boolean isCoreWorkspaceResource(String path) {
+        return CORE_WORKSPACE_RESOURCES.stream().anyMatch(r -> path.equals(r) || path.startsWith(r + "/"));
     }
 }

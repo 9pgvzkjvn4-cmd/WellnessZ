@@ -39,7 +39,7 @@ describe('DocumentsPanel', () => {
     const api = mockApi(base());
     renderPanel(api, ['CASE_MANAGER'], 'c1');
     await screen.findByText('DOC-2026-000001');
-    expect(api.calls[0]?.path).toBe('/documents?caseId=c1');
+    expect(api.calls[0]?.path).toBe('/documents?caseId=c1&employeeId=E1004');
     expect(screen.queryByRole('button', { name: 'Sign' })).toBeNull();
   });
 

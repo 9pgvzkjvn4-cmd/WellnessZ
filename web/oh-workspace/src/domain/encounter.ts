@@ -14,12 +14,14 @@ function isEmpty(v: AnswerValue | undefined): boolean {
 }
 
 /** Client-side pre-sign check (the server validates again): mandatory template fields and the diagnosis rule. */
-export function signBlockers(template: EncounterTemplate | undefined, type: EncounterType, answers: Record<string, AnswerValue>, diagnoses: readonly Diagnosis[]): FieldError[] {
+export function signBlockers(template: EncounterTemplate | undefined, type: EncounterType, answers: Record<string, AnswerValue>, diagnoses: readonly Diagnosis[], soap: Record<string, string | undefined> = {}): FieldError[] {
   const errs: FieldError[] = [];
   for (const s of template?.sections ?? []) {
+    const isSoap = s.key === 'soap'; // template SOAP fields are stored in `soap`, not in `answers`
     for (const f of s.fields) {
+      const value = isSoap ? soap[f.key] : answers[f.key];
       // BOOLEAN "required" means "must be answered"; an unticked box counts as answered "no".
-      if (f.required && f.type !== 'BOOLEAN' && isEmpty(answers[f.key])) errs.push({ field: answerFieldId(f.key), message: `${s.title}: “${f.label}” is required.` });
+      if (f.required && f.type !== 'BOOLEAN' && isEmpty(value)) errs.push({ field: isSoap ? `soap-${f.key}` : answerFieldId(f.key), message: `${s.title}: “${f.label}” is required.` });
     }
   }
   const needsDx = (template?.requiresDiagnosis ?? false) || DIAGNOSIS_REQUIRED_TYPES.includes(type);

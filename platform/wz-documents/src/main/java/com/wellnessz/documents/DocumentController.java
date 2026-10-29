@@ -116,9 +116,13 @@ public class DocumentController {
 
     @GetMapping("/documents")
     @PreAuthorize(Roles.OH_TEAM_SPEL)
-    public List<DocumentService.DocumentView> list(@RequestParam @Pattern(regexp = EMP) String employeeId, @RequestParam(required = false) UUID caseId,
+    public List<DocumentService.DocumentView> list(@RequestParam(required = false) @Pattern(regexp = EMP) String employeeId,
+                                                   @RequestParam(required = false) UUID caseId,
                                                    @RequestParam(required = false) @Pattern(regexp = "[A-Z_]{1,40}") String type) {
-        return documents.list(users.require(), employeeId, caseId, type);
+        if (employeeId == null && caseId == null) {
+            throw ApiException.badRequest("missing_filter", "employeeId or caseId is required");
+        }
+        return documents.list(users.require(), employeeId == null ? documents.employeeOfCase(caseId) : employeeId, caseId, type);
     }
 
     @GetMapping("/documents/search")

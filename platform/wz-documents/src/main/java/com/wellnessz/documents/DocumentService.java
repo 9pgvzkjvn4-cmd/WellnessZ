@@ -82,11 +82,13 @@ public class DocumentService {
     private final Clock clock;
     private final String employeePortal;
     private final String managerPortal;
+    private final com.wellnessz.casekernel.model.OhCaseRepository cases;
 
     public DocumentService(DocumentRepository documents, DocumentShareRepository shares, DocumentTemplates templates, PdfRenderer renderer,
                            ObjectProvider<OcrProvider> ocr, EmployeeRecordAccess records, EmployeeRepository employees,
                            ConsentService consents, DisclosureLogService disclosures, NotificationService notifications,
                            FieldEncryptor encryptor, JdbcTemplate jdbc, AuditService audit, JsonMapper json, Clock clock,
+                           com.wellnessz.casekernel.model.OhCaseRepository cases,
                            @Value("${wellnessz.notification.employee-portal-url:https://employee.wellnessz.local}") String employeePortal,
                            @Value("${wellnessz.notification.manager-workspace-url:https://manager.wellnessz.local}") String managerPortal) {
         this.documents = documents;
@@ -106,6 +108,7 @@ public class DocumentService {
         this.clock = clock;
         this.employeePortal = employeePortal;
         this.managerPortal = managerPortal;
+        this.cases = cases;
     }
 
     // ------------------------------------------------------------------ views
@@ -335,6 +338,12 @@ public class DocumentService {
                 .toList();
         audit.record("DOCUMENT_LIST", "EMPLOYEE", employeeId, AuditService.Outcome.SUCCESS, "rows=" + list.size());
         return views(list, true);
+    }
+
+    /** Employee of a case (case-scoped document lists); unknown cases are reported as 404. */
+    @Transactional(readOnly = true)
+    public String employeeOfCase(UUID caseId) {
+        return cases.findById(caseId).map(com.wellnessz.casekernel.model.OhCase::getEmployeeId).orElseThrow(() -> ApiException.notFound("Case"));
     }
 
     @Transactional(readOnly = true)

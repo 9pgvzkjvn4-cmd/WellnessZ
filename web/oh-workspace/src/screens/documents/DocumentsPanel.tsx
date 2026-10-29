@@ -258,7 +258,7 @@ function NewVersionDialog({ doc, template, onClose, onSubmit, busy, error }: { d
 /** Documents for an employee (chart tab) or a case (case tab): list, full-text search, generate, sign, version, share, scan. */
 export function DocumentsPanel({ client, session, onSessionExpired, employeeId, caseId }: ChartTabProps) {
   const api = platformApi(client);
-  const docs = useAsync(() => api.documents(caseId ? { caseId } : { employeeId }), onSessionExpired);
+  const docs = useAsync(() => api.documents(caseId ? { caseId, ...(employeeId ? { employeeId } : {}) } : { employeeId }), onSessionExpired);
   const templates = useAsync(() => api.documentTemplates(), onSessionExpired);
   const action = useAction(onSessionExpired);
   const [q, setQ] = useState('');

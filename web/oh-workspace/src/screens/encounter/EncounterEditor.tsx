@@ -158,7 +158,7 @@ export function EncounterEditor({ client, session, onSessionExpired, encounterId
 
   async function sign() {
     if (!d || !e) return;
-    const errs = signBlockers(template, e.type, d.answers, d.diagnoses);
+    const errs = signBlockers(template, e.type, d.answers, d.diagnoses, d.soap as Record<string, string | undefined>);
     setErrors(errs);
     if (errs.length) return;
     const ok = await action.run(async () => {

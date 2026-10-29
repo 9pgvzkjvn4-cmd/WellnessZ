@@ -158,3 +158,13 @@ describe('body map API mapping', () => {
     expect(fromApiBodyMap(api)).toEqual(ui);
   });
 });
+
+describe('SOAP section of encounter templates', () => {
+  it('checks required SOAP fields against the soap object, not the answers', async () => {
+    const { signBlockers } = await import('./encounter');
+    const tpl = { type: 'INJURY', version: 1, title: 'Injury', bodyMap: true, requiresDiagnosis: false, fitnessStandardPrompt: false, status: 'DRAFT',
+      sections: [{ key: 'soap', title: 'SOAP', fields: [{ key: 'assessment', label: 'Assessment', type: 'TEXTAREA', required: true }] }] } as never;
+    expect(signBlockers(tpl, 'TRAVEL', {}, [], {}).map((e) => e.field)).toEqual(['soap-assessment']);
+    expect(signBlockers(tpl, 'TRAVEL', {}, [], { assessment: 'Wrist strain' })).toEqual([]);
+  });
+});
