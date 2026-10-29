@@ -1,0 +1,12 @@
+package com.wellnessz.e06.model;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface AbsenceFeedRunRepository extends JpaRepository<FeedRun, UUID> {
+
+    List<FeedRun> findAllByOrderByStartedAtDesc(Pageable pageable);
+}
