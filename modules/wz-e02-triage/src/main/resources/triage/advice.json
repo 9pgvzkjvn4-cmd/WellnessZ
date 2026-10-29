@@ -1,0 +1,173 @@
+{
+ "EMERGENCY_GENERIC": {
+  "en": "Emergency services have been or should be called. Follow the instructions of the responders.",
+  "ar": "تم أو يجب الاتصال بخدمات الطوارئ. اتبع تعليمات المسعفين.",
+  "fr": "Les secours ont été ou doivent être appelés. Suivez les instructions des intervenants."
+ },
+ "GENERIC_ROUTINE": {
+  "en": "An Occupational Health nurse will contact you within one working day. Rest and follow the self-care leaflet in the portal.",
+  "ar": "ستتواصل معك ممرضة الصحة المهنية خلال يوم عمل واحد.",
+  "fr": "Une infirmière de santé au travail vous contactera sous un jour ouvré."
+ },
+ "GENERIC_ADVICE": {
+  "en": "No appointment is needed. Follow the self-care advice and contact Occupational Health if symptoms persist or worsen.",
+  "ar": "لا حاجة لموعد. اتبع نصائح الرعاية الذاتية وتواصل مع الصحة المهنية إذا استمرت الأعراض.",
+  "fr": "Aucun rendez-vous n'est nécessaire. Suivez les conseils et contactez la santé au travail si les symptômes persistent."
+ },
+ "MSK_URGENT": {
+  "en": "Musculoskeletal pain / injury: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "MSK_SEMI_URGENT": {
+  "en": "Musculoskeletal pain / injury: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "MSK_ROUTINE": {
+  "en": "Musculoskeletal pain / injury: Occupational Health will contact you within one working day."
+ },
+ "MSK_ADVICE": {
+  "en": "Musculoskeletal pain / injury: Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "LACERATION_BURN_URGENT": {
+  "en": "Laceration or burn: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "LACERATION_BURN_SEMI_URGENT": {
+  "en": "Laceration or burn: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "LACERATION_BURN_ROUTINE": {
+  "en": "Laceration or burn: Occupational Health will contact you within one working day."
+ },
+ "LACERATION_BURN_ADVICE": {
+  "en": "Laceration or burn: Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "EYE_URGENT": {
+  "en": "Eye injury or irritation: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "EYE_SEMI_URGENT": {
+  "en": "Eye injury or irritation: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "EYE_ROUTINE": {
+  "en": "Eye injury or irritation: Occupational Health will contact you within one working day."
+ },
+ "EYE_ADVICE": {
+  "en": "Eye injury or irritation: Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "CHEMICAL_URGENT": {
+  "en": "Chemical exposure (skin / inhalation): Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "CHEMICAL_SEMI_URGENT": {
+  "en": "Chemical exposure (skin / inhalation): Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "CHEMICAL_ROUTINE": {
+  "en": "Chemical exposure (skin / inhalation): Occupational Health will contact you within one working day."
+ },
+ "CHEMICAL_ADVICE": {
+  "en": "Chemical exposure (skin / inhalation): Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "HEAT_URGENT": {
+  "en": "Heat illness: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "HEAT_SEMI_URGENT": {
+  "en": "Heat illness: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "HEAT_ROUTINE": {
+  "en": "Heat illness: Occupational Health will contact you within one working day."
+ },
+ "HEAT_ADVICE": {
+  "en": "Heat illness: Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "RESPIRATORY_URGENT": {
+  "en": "Respiratory symptoms: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "RESPIRATORY_SEMI_URGENT": {
+  "en": "Respiratory symptoms: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "RESPIRATORY_ROUTINE": {
+  "en": "Respiratory symptoms: Occupational Health will contact you within one working day."
+ },
+ "RESPIRATORY_ADVICE": {
+  "en": "Respiratory symptoms: Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "PSYCHOLOGICAL_URGENT": {
+  "en": "Psychological distress: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "PSYCHOLOGICAL_SEMI_URGENT": {
+  "en": "Psychological distress: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "PSYCHOLOGICAL_ROUTINE": {
+  "en": "Psychological distress: Occupational Health will contact you within one working day."
+ },
+ "PSYCHOLOGICAL_ADVICE": {
+  "en": "Psychological distress: Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "INFECTIOUS_GI_URGENT": {
+  "en": "Infectious / gastrointestinal (food-handler aware): Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "INFECTIOUS_GI_SEMI_URGENT": {
+  "en": "Infectious / gastrointestinal (food-handler aware): Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "INFECTIOUS_GI_ROUTINE": {
+  "en": "Infectious / gastrointestinal (food-handler aware): Occupational Health will contact you within one working day."
+ },
+ "INFECTIOUS_GI_ADVICE": {
+  "en": "Infectious / gastrointestinal (food-handler aware): Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "CARDIAC_URGENT": {
+  "en": "Cardiac symptoms: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "CARDIAC_SEMI_URGENT": {
+  "en": "Cardiac symptoms: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "CARDIAC_ROUTINE": {
+  "en": "Cardiac symptoms: Occupational Health will contact you within one working day."
+ },
+ "CARDIAC_ADVICE": {
+  "en": "Cardiac symptoms: Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "CREW_FATIGUE_URGENT": {
+  "en": "Crew fatigue / fitness concern: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "CREW_FATIGUE_SEMI_URGENT": {
+  "en": "Crew fatigue / fitness concern: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "CREW_FATIGUE_ROUTINE": {
+  "en": "Crew fatigue / fitness concern: Occupational Health will contact you within one working day."
+ },
+ "CREW_FATIGUE_ADVICE": {
+  "en": "Crew fatigue / fitness concern: Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "HEAD_INJURY_URGENT": {
+  "en": "Head injury: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "HEAD_INJURY_SEMI_URGENT": {
+  "en": "Head injury: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "HEAD_INJURY_ROUTINE": {
+  "en": "Head injury: Occupational Health will contact you within one working day."
+ },
+ "HEAD_INJURY_ADVICE": {
+  "en": "Head injury: Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "BODY_FLUID_URGENT": {
+  "en": "Body-fluid / needlestick exposure: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "BODY_FLUID_SEMI_URGENT": {
+  "en": "Body-fluid / needlestick exposure: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "BODY_FLUID_ROUTINE": {
+  "en": "Body-fluid / needlestick exposure: Occupational Health will contact you within one working day."
+ },
+ "BODY_FLUID_ADVICE": {
+  "en": "Body-fluid / needlestick exposure: Self-care is appropriate; contact Occupational Health if things get worse."
+ },
+ "FUME_EVENT_URGENT": {
+  "en": "Cabin / flight-deck fume event: Please attend Occupational Health today; you have been booked for a same-day review."
+ },
+ "FUME_EVENT_SEMI_URGENT": {
+  "en": "Cabin / flight-deck fume event: Occupational Health will see you within 4 hours. Avoid safety-critical duties until reviewed."
+ },
+ "FUME_EVENT_ROUTINE": {
+  "en": "Cabin / flight-deck fume event: Occupational Health will contact you within one working day."
+ },
+ "FUME_EVENT_ADVICE": {
+  "en": "Cabin / flight-deck fume event: Self-care is appropriate; contact Occupational Health if things get worse."
+ }
+}

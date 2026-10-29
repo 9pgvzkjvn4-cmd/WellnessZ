@@ -10,7 +10,10 @@ public final class CaseEvents {
     private CaseEvents() {
     }
 
-    public record CaseOpened(String caseId, String caseRef, String category, String source) implements DomainEvent {
+    /** Carries routing attributes only (no clinical content) so E01/E02 subscribers can route, start SLAs and notify. */
+    public record CaseOpened(String caseId, String caseRef, String category, String source, String caseType, String urgency,
+                             String subsidiaryCode, String departmentCode, String locationCode, String language,
+                             String safetyCategory, String employeeId) implements DomainEvent {
         @Override
         public String eventType() {
             return "case.opened.v1";

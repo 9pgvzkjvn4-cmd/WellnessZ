@@ -1,0 +1,68 @@
+{
+ "code": "FUME_EVENT",
+ "version": 1,
+ "title": "Cabin / flight-deck fume event",
+ "presentation": "FUME",
+ "caseType": "EXPOSURE",
+ "start": "q1",
+ "status": "DRAFT",
+ "note": "DRAFT clinical content for CMO / Nursing Head review – not for clinical use until approved",
+ "questions": [
+  {
+   "id": "q1",
+   "text": "Incapacitation, collapse, or severe breathing difficulty?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "EMERGENCY"
+   },
+   "onNo": {
+    "next": "q2"
+   },
+   "redFlag": true
+  },
+  {
+   "id": "q2",
+   "text": "Ongoing neurological symptoms (headache, dizziness, tingling, confusion)?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "URGENT"
+   },
+   "onNo": {
+    "next": "q3"
+   }
+  },
+  {
+   "id": "q3",
+   "text": "Rostered to operate in the next 24 hours?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "SEMI_URGENT"
+   },
+   "onNo": {
+    "outcome": "ROUTINE"
+   }
+  }
+ ],
+ "outcomes": {
+  "EMERGENCY": {
+   "disposition": "Call emergency services / airside medical response now; do not leave the employee alone",
+   "adviceKey": "EMERGENCY_GENERIC"
+  },
+  "URGENT": {
+   "disposition": "Same-day review by OH physician; consider temporary unfitness for safety-critical duties",
+   "adviceKey": "FUME_EVENT_URGENT"
+  },
+  "SEMI_URGENT": {
+   "disposition": "OH nurse assessment within 4 hours; consider modified duties",
+   "adviceKey": "FUME_EVENT_SEMI_URGENT"
+  },
+  "ROUTINE": {
+   "disposition": "OH nurse appointment within 1 working day; self-care advice",
+   "adviceKey": "FUME_EVENT_ROUTINE"
+  },
+  "ADVICE": {
+   "disposition": "Self-care advice and portal follow-up; no appointment required",
+   "adviceKey": "FUME_EVENT_ADVICE"
+  }
+ }
+}

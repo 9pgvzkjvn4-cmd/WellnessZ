@@ -29,8 +29,10 @@ public class MeController {
     public MeResponse me() {
         CurrentUser u = users.require();
         DisclosureLevel level = u.hasRole(Roles.PSYCH_CLINICIAN) ? DisclosureLevel.RESTRICTED_CLINICAL
-                : u.hasAnyRole(Roles.OH_CLINICIAN, Roles.CASE_MANAGER) ? DisclosureLevel.CLINICAL
-                : u.hasAnyRole(Roles.MANAGER, Roles.HR) ? DisclosureLevel.STATUS_ONLY
+                : u.hasAnyRole(Roles.OH_CLINICIAN, Roles.CASE_MANAGER, Roles.OH_PHYSICIAN, Roles.AME, Roles.CMO,
+                        Roles.NURSING_HEAD) ? DisclosureLevel.CLINICAL
+                : u.hasAnyRole(Roles.MANAGER, Roles.HR, Roles.HSE_OFFICER, Roles.CREW_SCHEDULING, Roles.HYGIENE_MANAGER)
+                        ? DisclosureLevel.STATUS_ONLY
                 : u.hasRole(Roles.EMPLOYEE) ? DisclosureLevel.SELF : DisclosureLevel.NONE;
         return new MeResponse(u.subject(), u.username(), u.displayName(), u.employeeId(), u.orgScope(), u.roles(), level);
     }

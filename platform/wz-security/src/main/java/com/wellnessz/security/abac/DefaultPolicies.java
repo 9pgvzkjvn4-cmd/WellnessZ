@@ -46,7 +46,8 @@ public class DefaultPolicies {
             if (user.hasRole(Roles.PSYCH_CLINICIAN)) {
                 return Optional.of(AccessDecision.permit(DisclosureLevel.RESTRICTED_CLINICAL, "Psychological health clinician"));
             }
-            if (user.hasAnyRole(Roles.OH_CLINICIAN, Roles.CASE_MANAGER)
+            if (user.hasAnyRole(Roles.OH_CLINICIAN, Roles.CASE_MANAGER, Roles.OH_PHYSICIAN, Roles.AME, Roles.CMO,
+                    Roles.NURSING_HEAD)
                     && r.classification() != DataClassification.RESTRICTED_CLINICAL) {
                 return Optional.of(AccessDecision.permit(DisclosureLevel.CLINICAL, "OH clinical role"));
             }

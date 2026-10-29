@@ -65,7 +65,7 @@ core:
     WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<tenant-id>/v2.0"
     # Entra ID v2 access tokens carry the API's Application (client) ID as "aud"
     WZ_OIDC_AUDIENCE: "<wellnessz-api-client-id>"
-    WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com"
+    WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com,https://oh.wellnessz.example.com"
     WZ_EHS_MAILBOX_MODE: imap
     WZ_IMAP_HOST: mail.onprem.example.internal
     WZ_IMAP_PORT: "993"
@@ -79,6 +79,8 @@ bff:
 employeePortal:
   enabled: false
 managerWorkspace:
+  enabled: false
+ohWorkspace:
   enabled: false
 
 # Internal-only API ingress reachable from the cloud BFF over
@@ -94,6 +96,7 @@ ingress:
   hosts:
     employeePortal: ""
     managerWorkspace: ""
+    ohWorkspace: ""
   api:
     enabled: true
     host: api.wellnessz.onprem.example.internal

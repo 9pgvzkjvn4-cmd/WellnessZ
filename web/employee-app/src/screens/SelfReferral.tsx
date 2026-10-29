@@ -1,130 +1,209 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useReducer, useRef, useState, type FormEvent } from 'react';
+import type { BodyMapRegion, Language, Me, SelfReferralResponse, Template } from '../api/types';
+import { ApiError, SessionExpiredError } from '../auth/AuthClient';
+import { describeError } from '../components/format';
+import { Alert, Loading } from '../components/ui';
+import { useAsync } from '../components/useAsync';
+import { DEFAULT_LANGUAGES, dirFor, initialLanguage, stringsFor } from '../i18n/strings';
 import {
-  CATEGORY_LABELS,
-  CONTACT_OPTIONS,
-  REFERRAL_CATEGORIES,
-  type MyCase,
-  type PreferredContact,
-  type ReferralCategory,
-  type SelfReferralRequest,
-} from '../api/types';
-import { SessionExpiredError } from '../auth/AuthClient';
-import { describeError, humanise } from '../components/format';
-import { Alert, PageTitle } from '../components/ui';
+  acknowledgementText,
+  buildSelfReferral,
+  initialReferralState,
+  pickDefaultTemplate,
+  referralReducer,
+  validateReferral,
+  type ErrorMap,
+} from '../intake/referralForm';
+import { uploadAttachments } from '../intake/upload';
+import { errorName, log } from '../security/log';
+import { SelfReferralForm } from './SelfReferralForm';
 import type { ScreenProps } from './types';
 
-const MAX_DESCRIPTION = 2000;
+type Ack = { caseRef: string; text?: string; uploaded: number; total: number; language: string };
 
-export function SelfReferral({ client, onSessionExpired }: ScreenProps) {
-  const [category, setCategory] = useState<ReferralCategory | ''>('');
-  const [description, setDescription] = useState('');
-  const [preferredContact, setPreferredContact] = useState<PreferredContact>('EMAIL');
+const browserLanguages = (): readonly string[] => (typeof navigator !== 'undefined' ? navigator.languages ?? [] : []);
+
+/** Department codes that may select a template: `/me.departmentCode` (if provided), then org-scope codes. */
+function departmentHints(me: Me | undefined): (string | undefined)[] {
+  if (!me) return [];
+  const scope = Array.isArray(me.orgScope) ? me.orgScope : me.orgScope ? [me.orgScope] : [];
+  return [me.departmentCode, ...scope];
+}
+
+/**
+ * Self-referral (E01-BL-006/009/010): language switch, department template, dynamic fields, body map, symptoms,
+ * consent, attachments – one scrolling page. Submits `POST /intake/referrals/self`, then uploads attachments to
+ * `POST /cases/{id}/attachments` and drops the files from memory.
+ */
+export function SelfReferral({ client, onSessionExpired, isNative = false }: ScreenProps & { isNative?: boolean }) {
+  const languages = useAsync<Language[]>(async () => {
+    try {
+      const l = await client.api<Language[]>('/languages');
+      return Array.isArray(l) && l.length ? l : DEFAULT_LANGUAGES;
+    } catch (e) {
+      if (e instanceof SessionExpiredError) throw e;
+      return DEFAULT_LANGUAGES;
+    }
+  }, onSessionExpired);
+  const me = useAsync<Me | undefined>(async () => {
+    try {
+      return await client.api<Me>('/me');
+    } catch (e) {
+      if (e instanceof SessionExpiredError) throw e;
+      return undefined; // pre-selection is a convenience only
+    }
+  }, onSessionExpired);
+  const regions = useAsync<BodyMapRegion[]>(async () => {
+    const body = await client.api<{ regions?: BodyMapRegion[] }>('/intake/body-map');
+    return Array.isArray(body?.regions) ? body.regions : [];
+  }, onSessionExpired);
+
+  const [state, dispatch] = useReducer(referralReducer<File>, undefined, () => initialReferralState<File>(''));
+  const [templates, setTemplates] = useState<{ lang: string; list?: Template[]; error?: unknown }>({ lang: '' });
+  const [errors, setErrors] = useState<ErrorMap>({});
+  const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string>();
-  const [created, setCreated] = useState<MyCase>();
+  const [submitError, setSubmitError] = useState<string>();
+  const [ack, setAck] = useState<Ack>();
+  const userPickedTemplate = useRef(false);
+  const focusSummary = useRef(0);
+
+  // Initial language once /languages is known.
+  const offered = languages.data;
+  useEffect(() => {
+    if (offered && !state.language) dispatch({ type: 'language', language: initialLanguage(offered, browserLanguages()) });
+  }, [offered, state.language]);
+
+  // Templates are re-fetched in the selected language (labels are localised by the server).
+  const lang = state.language;
+  useEffect(() => {
+    if (!lang) return;
+    let cancelled = false;
+    client
+      .api<Template[]>(`/intake/templates?audience=EMPLOYEE&lang=${encodeURIComponent(lang)}`)
+      .then(
+        (list) => !cancelled && setTemplates({ lang, list: Array.isArray(list) ? list : [] }),
+        (error: unknown) => {
+          if (cancelled) return;
+          if (error instanceof SessionExpiredError) onSessionExpired();
+          setTemplates({ lang, error });
+        },
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [client, lang, onSessionExpired]);
+
+  const list = templates.list;
+  const suggested = list ? pickDefaultTemplate(list, departmentHints(me.data)) : '';
+  const template = list?.find((x) => x.code === state.templateCode);
+
+  // Pre-select the department template until the user picks one; keep the choice across language switches.
+  useEffect(() => {
+    if (!list) return;
+    const current = state.templateCode;
+    const exists = list.some((x) => x.code === current);
+    const target = userPickedTemplate.current ? (exists ? current : suggested) : suggested || (exists ? current : '');
+    if (target !== current) dispatch({ type: 'template', code: target, template: list.find((x) => x.code === target) });
+  }, [list, suggested, state.templateCode]);
+
+  // Move focus to the error summary after a failed validation.
+  useEffect(() => {
+    if (focusSummary.current > 0) document.getElementById('rf-error-summary')?.focus();
+  }, [errors]);
+
+  const t = stringsFor(state.language);
+  // Re-validate live once the user has tried to submit, so messages disappear as fields are fixed.
+  const shownErrors = submitted ? validateReferral(state, template, t) : errors;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!category) {
-      setError('Please choose a category.');
-      return;
-    }
-    if (description.trim().length < 10) {
-      setError('Please describe your concern in a few words (at least 10 characters).');
+    setSubmitted(true);
+    setSubmitError(undefined);
+    const v = validateReferral(state, template, t);
+    if (Object.keys(v).length > 0 || !template) {
+      focusSummary.current++;
+      setErrors(v);
       return;
     }
     setSubmitting(true);
-    setError(undefined);
+    const files = state.files;
     try {
-      const body: SelfReferralRequest = { category, description: description.trim(), preferredContact };
-      const res = await client.api<MyCase>('/cases/self-referral', { method: 'POST', body });
-      setCreated(res ?? { id: '', status: 'SUBMITTED' });
-      setDescription('');
-      setCategory('');
+      const res = await client.api<SelfReferralResponse>('/intake/referrals/self', {
+        method: 'POST',
+        body: buildSelfReferral(state, template),
+      });
+      let uploaded = 0;
+      if (files.length && res?.caseId) {
+        try {
+          uploaded = (await uploadAttachments(client, res.caseId, files)).uploaded;
+        } finally {
+          dispatch({ type: 'clearFiles' }); // never keep files after upload
+        }
+      }
+      setAck({ caseRef: res?.caseRef ?? '', text: acknowledgementText(res?.acknowledgement), uploaded, total: files.length, language: state.language });
+      dispatch({ type: 'reset', language: state.language });
+      setSubmitted(false);
+      setErrors({});
+      window.scrollTo?.(0, 0);
     } catch (err) {
-      if (err instanceof SessionExpiredError) onSessionExpired();
-      setError(describeError(err));
+      if (err instanceof SessionExpiredError) {
+        dispatch({ type: 'clearFiles' });
+        onSessionExpired();
+      }
+      log.warn('intake.self-referral-failed', { errorName: errorName(err), status: err instanceof ApiError ? err.status : undefined });
+      setSubmitError(describeError(err));
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (created) {
+  if (ack) {
+    const at = stringsFor(ack.language);
     return (
-      <section>
-        <PageTitle>Referral sent</PageTitle>
+      <section dir={dirFor(ack.language)} lang={ack.language}>
+        <h1 tabIndex={-1}>{at.ackTitle}</h1>
         <Alert kind="success">
-          Thank you. Occupational Health has received your request
-          {created.caseRef ? ` (reference ${created.caseRef})` : ''} and will contact you.
+          <p className="ack-ref">{at.ackBody(ack.caseRef || '–')}</p>
+          {ack.text && <p>{ack.text}</p>}
+          {ack.total > 0 && <p>{at.ackUploads(ack.uploaded, ack.total)}</p>}
         </Alert>
-        <p>
-          If you need urgent help, contact your local emergency number or the 24/7 crew support line.
-        </p>
+        <p>{at.ackNext}</p>
         <a className="button" href="#/">
-          Back to home
+          {at.backHome}
         </a>
       </section>
     );
   }
 
+  if (languages.loading || !state.language) return <Loading />;
+  const loadError = templates.error ?? regions.error;
+
   return (
-    <section>
-      <PageTitle>Contact Occupational Health</PageTitle>
-      <p className="lead">
-        Use this form to refer yourself to Occupational Health. Only OH staff can read your description.
-      </p>
-      <form onSubmit={onSubmit} noValidate className="form">
-        <fieldset>
-          <legend>What is it about?</legend>
-          {REFERRAL_CATEGORIES.map((c) => (
-            <label key={c} className="radio">
-              <input
-                type="radio"
-                name="category"
-                value={c}
-                checked={category === c}
-                onChange={() => setCategory(c)}
-                required
-              />
-              {CATEGORY_LABELS[c]}
-            </label>
-          ))}
-        </fieldset>
-
-        <label htmlFor="description">Describe your concern</label>
-        <textarea
-          id="description"
-          value={description}
-          maxLength={MAX_DESCRIPTION}
-          rows={6}
-          required
-          aria-describedby="description-hint"
-          autoComplete="off"
-          spellCheck
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <p id="description-hint" className="muted small">
-          {description.length}/{MAX_DESCRIPTION} characters. Please do not include other people's health information.
-        </p>
-
-        <label htmlFor="preferredContact">How should OH contact you?</label>
-        <select
-          id="preferredContact"
-          value={preferredContact}
-          onChange={(e) => setPreferredContact(e.target.value as PreferredContact)}
-        >
-          {CONTACT_OPTIONS.map((o) => (
-            <option key={o} value={o}>
-              {o === 'IN_APP' ? 'In the app' : humanise(o)}
-            </option>
-          ))}
-        </select>
-
-        {error && <Alert kind="error">{error}</Alert>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Sending…' : 'Send to Occupational Health'}
-        </button>
-      </form>
-    </section>
+    <>
+      {loadError ? <Alert kind="error">{describeError(loadError)}</Alert> : null}
+      {!list && !templates.error && <Loading label={t.loading} />}
+      <SelfReferralForm<File>
+        state={state}
+        dispatch={dispatch}
+        t={t}
+        languages={languages.data ?? DEFAULT_LANGUAGES}
+        templates={list ?? []}
+        template={template}
+        suggestedTemplateCode={suggested || undefined}
+        regions={regions.data ?? []}
+        errors={shownErrors}
+        submitError={submitError}
+        submitting={submitting}
+        isNative={isNative}
+        onLanguage={(code) => dispatch({ type: 'language', language: code })}
+        onTemplate={(code) => {
+          userPickedTemplate.current = true;
+          dispatch({ type: 'template', code, template: list?.find((x) => x.code === code) });
+        }}
+        onFiles={(files) => dispatch({ type: 'addFiles', files })}
+        onSubmit={(e) => void onSubmit(e)}
+      />
+    </>
   );
 }

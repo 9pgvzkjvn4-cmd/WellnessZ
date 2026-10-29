@@ -3,7 +3,7 @@ import type { PluginListenerHandle } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import type { RuntimeConfig } from '../config/runtimeConfig';
 import { errorName, log } from '../security/log';
-import { normaliseRoles, parseResponse, SessionExpiredError, SIGNED_OUT, type AuthClient, type Session } from './AuthClient';
+import { encodeBody, normaliseRoles, parseResponse, SessionExpiredError, SIGNED_OUT, type AuthClient, type Session } from './AuthClient';
 import { verifyBiometric } from './biometric';
 import { createPkcePair, randomUrlSafe } from './pkce';
 import { getSecureStorage, type SecureStorage } from './secureStorage';
@@ -220,13 +220,14 @@ export class NativeOidcAuthClient implements AuthClient {
         if (!(await this.#refresh())) throw new SessionExpiredError();
       }
       const headers: Record<string, string> = { Accept: 'application/json', Authorization: `Bearer ${this.#accessToken}` };
-      if (init.body !== undefined) headers['Content-Type'] = 'application/json';
+      const encoded = encodeBody(init.body);
+      if (encoded.contentType) headers['Content-Type'] = encoded.contentType;
       return fetch(`${this.#cfg.apiBaseUrl}${path}`, {
         method: init.method ?? 'GET',
         headers,
         cache: 'no-store',
         credentials: 'omit',
-        body: init.body === undefined ? undefined : JSON.stringify(init.body),
+        body: encoded.body,
       });
     };
     let res = await send();

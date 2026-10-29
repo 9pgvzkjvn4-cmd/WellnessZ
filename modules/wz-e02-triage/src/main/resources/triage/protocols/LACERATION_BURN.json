@@ -1,0 +1,79 @@
+{
+ "code": "LACERATION_BURN",
+ "version": 1,
+ "title": "Laceration or burn",
+ "presentation": "WOUND",
+ "caseType": "INJURY",
+ "start": "q1",
+ "status": "DRAFT",
+ "note": "DRAFT clinical content for CMO / Nursing Head review – not for clinical use until approved",
+ "questions": [
+  {
+   "id": "q1",
+   "text": "Uncontrolled bleeding despite pressure for 10 minutes?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "EMERGENCY"
+   },
+   "onNo": {
+    "next": "q2"
+   },
+   "redFlag": true
+  },
+  {
+   "id": "q2",
+   "text": "Burn to face, hands, genitals, airway, or larger than the employee's palm?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "URGENT"
+   },
+   "onNo": {
+    "next": "q3"
+   }
+  },
+  {
+   "id": "q3",
+   "text": "Wound gaping, deep, or contaminated (food / dirt / metal)?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "SEMI_URGENT"
+   },
+   "onNo": {
+    "next": "q4"
+   }
+  },
+  {
+   "id": "q4",
+   "text": "Signs of infection (redness spreading, pus, fever)?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "SEMI_URGENT"
+   },
+   "onNo": {
+    "outcome": "ADVICE"
+   }
+  }
+ ],
+ "outcomes": {
+  "EMERGENCY": {
+   "disposition": "Call emergency services / airside medical response now; do not leave the employee alone",
+   "adviceKey": "EMERGENCY_GENERIC"
+  },
+  "URGENT": {
+   "disposition": "Same-day review by OH physician; consider temporary unfitness for safety-critical duties",
+   "adviceKey": "LACERATION_BURN_URGENT"
+  },
+  "SEMI_URGENT": {
+   "disposition": "OH nurse assessment within 4 hours; consider modified duties",
+   "adviceKey": "LACERATION_BURN_SEMI_URGENT"
+  },
+  "ROUTINE": {
+   "disposition": "OH nurse appointment within 1 working day; self-care advice",
+   "adviceKey": "LACERATION_BURN_ROUTINE"
+  },
+  "ADVICE": {
+   "disposition": "Self-care advice and portal follow-up; no appointment required",
+   "adviceKey": "LACERATION_BURN_ADVICE"
+  }
+ }
+}

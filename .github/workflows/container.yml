@@ -71,6 +71,9 @@ jobs:
           - image: manager-workspace
             context: web/manager-workspace
             dockerfile: web/manager-workspace/Dockerfile
+          - image: oh-workspace
+            context: web/oh-workspace
+            dockerfile: web/oh-workspace/Dockerfile
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

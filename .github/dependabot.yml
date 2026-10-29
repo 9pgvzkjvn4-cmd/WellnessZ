@@ -38,6 +38,17 @@ updates:
       npm-minor-patch:
         update-types: [minor, patch]
 
+  - package-ecosystem: npm
+    directory: /web/oh-workspace
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels: [dependencies, web]
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -52,6 +63,7 @@ updates:
       - /deploy/docker
       - /web/employee-app
       - /web/manager-workspace
+      - /web/oh-workspace
     schedule:
       interval: weekly
     labels: [dependencies, docker]

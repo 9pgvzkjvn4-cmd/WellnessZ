@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { normaliseRoles } from './AuthClient';
+import { ApiError, normaliseRoles } from './AuthClient';
 import { BffAuthClient, readXsrfToken } from './bffAuthClient';
 
 const json = (body: unknown, status = 200) =>
@@ -42,5 +42,17 @@ describe('normaliseRoles', () => {
   it('ignores non-strings and dedupes', () => {
     expect(normaliseRoles(['ROLE_hr', 'HR', 5, null, ' manager '])).toEqual(['HR', 'MANAGER']);
     expect(normaliseRoles(undefined)).toEqual([]);
+  });
+});
+
+describe('problem details', () => {
+  it('keeps code and field from an RFC 9457 body', async () => {
+    const res = new Response(JSON.stringify({ title: 'Unprocessable', status: 422, code: 'clinical_content_not_allowed', field: 'description', detail: 'x' }), {
+      status: 422,
+      headers: { 'Content-Type': 'application/problem+json' },
+    });
+    const err = await new BffAuthClient((async () => res) as unknown as typeof fetch, () => {}).api('/x').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).problem).toMatchObject({ code: 'clinical_content_not_allowed', field: 'description', title: 'Unprocessable' });
   });
 });

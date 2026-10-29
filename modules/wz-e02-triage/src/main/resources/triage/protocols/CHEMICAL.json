@@ -1,0 +1,68 @@
+{
+ "code": "CHEMICAL",
+ "version": 1,
+ "title": "Chemical exposure (skin / inhalation)",
+ "presentation": "CHEMICAL",
+ "caseType": "EXPOSURE",
+ "start": "q1",
+ "status": "DRAFT",
+ "note": "DRAFT clinical content for CMO / Nursing Head review – not for clinical use until approved",
+ "questions": [
+  {
+   "id": "q1",
+   "text": "Breathing difficulty, collapse, or altered consciousness?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "EMERGENCY"
+   },
+   "onNo": {
+    "next": "q2"
+   },
+   "redFlag": true
+  },
+  {
+   "id": "q2",
+   "text": "Corrosive or toxic agent per safety data sheet?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "URGENT"
+   },
+   "onNo": {
+    "next": "q3"
+   }
+  },
+  {
+   "id": "q3",
+   "text": "Symptoms persisting after decontamination?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "SEMI_URGENT"
+   },
+   "onNo": {
+    "outcome": "ROUTINE"
+   }
+  }
+ ],
+ "outcomes": {
+  "EMERGENCY": {
+   "disposition": "Call emergency services / airside medical response now; do not leave the employee alone",
+   "adviceKey": "EMERGENCY_GENERIC"
+  },
+  "URGENT": {
+   "disposition": "Same-day review by OH physician; consider temporary unfitness for safety-critical duties",
+   "adviceKey": "CHEMICAL_URGENT"
+  },
+  "SEMI_URGENT": {
+   "disposition": "OH nurse assessment within 4 hours; consider modified duties",
+   "adviceKey": "CHEMICAL_SEMI_URGENT"
+  },
+  "ROUTINE": {
+   "disposition": "OH nurse appointment within 1 working day; self-care advice",
+   "adviceKey": "CHEMICAL_ROUTINE"
+  },
+  "ADVICE": {
+   "disposition": "Self-care advice and portal follow-up; no appointment required",
+   "adviceKey": "CHEMICAL_ADVICE"
+  }
+ }
+}

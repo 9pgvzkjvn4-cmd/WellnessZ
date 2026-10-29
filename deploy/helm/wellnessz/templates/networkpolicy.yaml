@@ -48,7 +48,7 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-{{- range $key := list "employeePortal" "managerWorkspace" }}
+{{- range $key := list "employeePortal" "managerWorkspace" "ohWorkspace" }}
 {{- $comp := index $root.Values $key }}
 {{- if $comp.enabled }}
 ---

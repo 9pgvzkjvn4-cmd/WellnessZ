@@ -1,0 +1,68 @@
+{
+ "code": "EYE",
+ "version": 1,
+ "title": "Eye injury or irritation",
+ "presentation": "EYE",
+ "caseType": "INJURY",
+ "start": "q1",
+ "status": "DRAFT",
+ "note": "DRAFT clinical content for CMO / Nursing Head review – not for clinical use until approved",
+ "questions": [
+  {
+   "id": "q1",
+   "text": "Penetrating injury, chemical splash, or sudden loss of vision?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "EMERGENCY"
+   },
+   "onNo": {
+    "next": "q2"
+   },
+   "redFlag": true
+  },
+  {
+   "id": "q2",
+   "text": "Foreign body that cannot be removed by irrigation?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "URGENT"
+   },
+   "onNo": {
+    "next": "q3"
+   }
+  },
+  {
+   "id": "q3",
+   "text": "Persistent pain or blurred vision after 1 hour of irrigation?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "SEMI_URGENT"
+   },
+   "onNo": {
+    "outcome": "ADVICE"
+   }
+  }
+ ],
+ "outcomes": {
+  "EMERGENCY": {
+   "disposition": "Call emergency services / airside medical response now; do not leave the employee alone",
+   "adviceKey": "EMERGENCY_GENERIC"
+  },
+  "URGENT": {
+   "disposition": "Same-day review by OH physician; consider temporary unfitness for safety-critical duties",
+   "adviceKey": "EYE_URGENT"
+  },
+  "SEMI_URGENT": {
+   "disposition": "OH nurse assessment within 4 hours; consider modified duties",
+   "adviceKey": "EYE_SEMI_URGENT"
+  },
+  "ROUTINE": {
+   "disposition": "OH nurse appointment within 1 working day; self-care advice",
+   "adviceKey": "EYE_ROUTINE"
+  },
+  "ADVICE": {
+   "disposition": "Self-care advice and portal follow-up; no appointment required",
+   "adviceKey": "EYE_ADVICE"
+  }
+ }
+}

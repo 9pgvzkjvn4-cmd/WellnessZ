@@ -34,7 +34,7 @@ public class ApiProxyController {
 
     private static final Set<String> FORWARD_REQUEST_HEADERS = Set.of("content-type", "accept", "idempotency-key");
     private static final Set<String> FORWARD_RESPONSE_HEADERS = Set.of("content-type", "location", "x-correlation-id",
-            "idempotent-replayed");
+            "idempotent-replayed", "content-disposition", "cache-control");
     private static final long MAX_BODY = 11L * 1024 * 1024;
 
     private final OAuth2AuthorizedClientManager clients;

@@ -22,3 +22,11 @@ export function formatDate(iso?: string | null): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '–' : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
+
+/** Calendar date (`YYYY-MM-DD` or ISO timestamp) without time. `YYYY-MM-DD` is shown as-is in local format, no TZ shift. */
+export function formatDay(value?: string | null): string {
+  if (!value) return '–';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
+  return Number.isNaN(d.getTime()) ? '–' : d.toLocaleDateString(undefined, { dateStyle: 'medium' });
+}

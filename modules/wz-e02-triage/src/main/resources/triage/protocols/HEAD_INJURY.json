@@ -1,0 +1,68 @@
+{
+ "code": "HEAD_INJURY",
+ "version": 1,
+ "title": "Head injury",
+ "presentation": "HEAD",
+ "caseType": "INJURY",
+ "start": "q1",
+ "status": "DRAFT",
+ "note": "DRAFT clinical content for CMO / Nursing Head review – not for clinical use until approved",
+ "questions": [
+  {
+   "id": "q1",
+   "text": "Loss of consciousness, seizure, repeated vomiting, or worsening headache?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "EMERGENCY"
+   },
+   "onNo": {
+    "next": "q2"
+   },
+   "redFlag": true
+  },
+  {
+   "id": "q2",
+   "text": "On anticoagulants or aged over 65?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "URGENT"
+   },
+   "onNo": {
+    "next": "q3"
+   }
+  },
+  {
+   "id": "q3",
+   "text": "Any confusion, amnesia, or visual disturbance?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "URGENT"
+   },
+   "onNo": {
+    "outcome": "SEMI_URGENT"
+   }
+  }
+ ],
+ "outcomes": {
+  "EMERGENCY": {
+   "disposition": "Call emergency services / airside medical response now; do not leave the employee alone",
+   "adviceKey": "EMERGENCY_GENERIC"
+  },
+  "URGENT": {
+   "disposition": "Same-day review by OH physician; consider temporary unfitness for safety-critical duties",
+   "adviceKey": "HEAD_INJURY_URGENT"
+  },
+  "SEMI_URGENT": {
+   "disposition": "OH nurse assessment within 4 hours; consider modified duties",
+   "adviceKey": "HEAD_INJURY_SEMI_URGENT"
+  },
+  "ROUTINE": {
+   "disposition": "OH nurse appointment within 1 working day; self-care advice",
+   "adviceKey": "HEAD_INJURY_ROUTINE"
+  },
+  "ADVICE": {
+   "disposition": "Self-care advice and portal follow-up; no appointment required",
+   "adviceKey": "HEAD_INJURY_ADVICE"
+  }
+ }
+}

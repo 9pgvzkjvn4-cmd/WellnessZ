@@ -286,7 +286,7 @@ input[type='radio'] {
   border-radius: 8px;
   padding: 0.75rem 1rem;
   margin: 0.75rem 0;
-  border-left: 4px solid;
+  border-inline-start: 4px solid;
 }
 .alert-error {
   background: var(--c-error-bg);
@@ -378,4 +378,277 @@ input[type='radio'] {
 .badge-permanently-unfit {
   background: var(--c-error-bg);
   color: var(--c-error);
+}
+
+/* ---------- Increment 1: intake forms, body map, case cards ---------- */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.req {
+  color: var(--c-error);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+.form .field label,
+.form .field legend {
+  margin-top: 0;
+}
+.field-error {
+  color: var(--c-error);
+  font-weight: 600;
+  margin: 0;
+}
+[aria-invalid='true']:is(input, select, textarea) {
+  border: 2px solid var(--c-error);
+}
+fieldset[aria-invalid='true'] {
+  border-color: var(--c-error);
+  border-inline-start-width: 4px;
+}
+.error-summary {
+  border: 3px solid var(--c-error);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  background: var(--c-surface);
+}
+.error-summary:focus {
+  outline: 3px solid var(--c-focus);
+}
+.error-summary ul {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+}
+.error-summary a {
+  color: var(--c-error);
+  font-weight: 600;
+}
+.step {
+  border-top: 1px solid var(--c-border);
+  padding-top: 0.25rem;
+}
+.step h2 {
+  margin-top: 1.25rem;
+}
+.progress-hint {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  background: var(--c-bg);
+}
+.progress-hint progress {
+  flex: 0 0 8rem;
+  accent-color: var(--c-accent);
+}
+.lang-switch {
+  max-width: 16rem;
+}
+.chips,
+.inline-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.form label.chip,
+label.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-surface);
+  font-weight: 400;
+  margin: 0;
+  cursor: pointer;
+}
+label.chip:has(input:checked) {
+  border-color: var(--c-primary);
+  background: var(--c-info-bg);
+  font-weight: 600;
+}
+.form label.checkbox,
+label.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-weight: 400;
+  margin: 0.4rem 0;
+}
+input[type='checkbox'] {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.15rem;
+  flex: none;
+}
+.optional-consents summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--c-primary);
+}
+.segmented {
+  display: inline-flex;
+  border: 2px solid var(--c-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+.form .segmented button,
+.segmented button {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--c-primary);
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--c-primary);
+  color: #fff;
+}
+.body-map {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+.body-map-layout {
+  display: grid;
+  grid-template-columns: minmax(9rem, 12rem) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 30rem) {
+  .body-map-layout {
+    grid-template-columns: 1fr;
+  }
+  .body-map-svg {
+    max-width: 11rem;
+    margin: 0 auto;
+  }
+}
+.body-map-svg {
+  width: 100%;
+  height: auto;
+  /* drawing is anatomical, never mirrored by RTL */
+  direction: ltr;
+}
+.body-map-svg .region {
+  fill: var(--c-info-bg);
+  stroke: var(--c-muted);
+  stroke-width: 1;
+  cursor: pointer;
+}
+.body-map-svg .region:hover {
+  fill: var(--c-border);
+}
+.body-map-svg .region.selected {
+  fill: var(--c-accent);
+  stroke: var(--c-primary-strong);
+  stroke-width: 2;
+}
+.region-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.form .region-list button,
+.region-list button {
+  margin: 0;
+  min-height: 40px;
+  padding: 0.3rem 0.7rem;
+  font-weight: 400;
+  background: var(--c-surface);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+}
+.region-list button[aria-pressed='true'] {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: #fff;
+  font-weight: 600;
+}
+.file-button {
+  position: relative;
+  margin: 0;
+}
+.form label.file-button {
+  margin-top: 0;
+  font-weight: 600;
+}
+.file-button:focus-within {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}
+.file-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+.file-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.case-ref {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.case-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0.6rem 0 0;
+  font-size: 0.9rem;
+}
+.case-facts dt {
+  color: var(--c-muted);
+}
+.case-facts dd {
+  margin: 0;
+}
+.badge-unfit-pending,
+.badge-under-review {
+  background: var(--c-error-bg);
+  color: var(--c-error);
+}
+.card-title {
+  font-size: 1.05rem;
+  margin: 0;
+}
+.advice-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.empty-state {
+  background: var(--c-surface);
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+[dir='rtl'] .progress-hint,
+[dir='rtl'] .card-row {
+  text-align: start;
 }

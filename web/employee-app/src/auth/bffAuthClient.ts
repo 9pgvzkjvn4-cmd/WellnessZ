@@ -1,4 +1,4 @@
-import { normaliseRoles, parseResponse, SIGNED_OUT, type AuthClient, type Session } from './AuthClient';
+import { encodeBody, normaliseRoles, parseResponse, SIGNED_OUT, type AuthClient, type Session } from './AuthClient';
 
 export const BFF_LOGIN_PATH = '/oauth2/authorization/wellnessz';
 export const BFF_SESSION_PATH = '/bff/session';
@@ -68,7 +68,8 @@ export class BffAuthClient implements AuthClient {
   async api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
     const method = (init.method ?? 'GET').toUpperCase();
     const headers: Record<string, string> = { Accept: 'application/json' };
-    if (init.body !== undefined) headers['Content-Type'] = 'application/json';
+    const encoded = encodeBody(init.body);
+    if (encoded.contentType) headers['Content-Type'] = encoded.contentType;
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
       const xsrf = readXsrfToken();
       if (xsrf) headers['X-XSRF-TOKEN'] = xsrf;
@@ -78,7 +79,7 @@ export class BffAuthClient implements AuthClient {
       headers,
       credentials: 'same-origin',
       cache: 'no-store',
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      body: encoded.body,
     });
     return parseResponse<T>(res);
   }

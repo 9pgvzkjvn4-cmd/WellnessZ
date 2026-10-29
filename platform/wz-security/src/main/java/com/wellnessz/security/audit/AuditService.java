@@ -60,7 +60,8 @@ public class AuditService {
     public void recordAs(String actor, String roles, String action, String resourceType, String resourceId,
                          Outcome outcome, String reason) {
         entityManager.createNativeQuery("select pg_advisory_xact_lock(:k)").setParameter("k", CHAIN_LOCK_KEY).getSingleResult();
-        AuditEvent event = new AuditEvent(clock.instant(), trim(actor, 200), trim(roles, 500), trim(action, 100),
+        // truncate: PostgreSQL rounds timestamps to microseconds, which could change the hashed millisecond on re-read
+        AuditEvent event = new AuditEvent(clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MILLIS), trim(actor, 200), trim(roles, 500), trim(action, 100),
                 trim(resourceType, 100), trim(resourceId, 200), outcome.name(),
                 reason == null ? null : trim(LogSanitizer.clean(reason), 500),
                 CorrelationIdFilter.current(), clientIp());

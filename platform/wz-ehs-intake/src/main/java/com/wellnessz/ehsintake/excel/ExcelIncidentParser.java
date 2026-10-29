@@ -54,6 +54,13 @@ public class ExcelIncidentParser {
         ALIASES.put("severity", Set.of("severity", "risk rating", "classification"));
         ALIASES.put("injury", Set.of("injury", "injured", "injury sustained", "personal injury"));
         ALIASES.put("description", Set.of("description", "details", "narrative", "summary"));
+        ALIASES.put("incidentClass", Set.of("incident class", "classification code", "outcome class"));
+        ALIASES.put("bodyPart", Set.of("body part", "body part affected", "injured body part"));
+        ALIASES.put("lostTime", Set.of("lost time", "lost time injury", "lti", "days lost"));
+        ALIASES.put("exposureType", Set.of("exposure", "exposure type", "agent"));
+        ALIASES.put("unitCode", Set.of("subsidiary", "unit", "business unit", "company"));
+        ALIASES.put("shift", Set.of("shift"));
+        ALIASES.put("reporterEmail", Set.of("reporter email", "reported by email", "hse officer email"));
     }
 
     private final int maxRows;
@@ -137,10 +144,17 @@ public class ExcelIncidentParser {
         if (employeeId != null && !employeeId.matches("[A-Za-z0-9\\-]{1,64}")) {
             throw new IllegalArgumentException("Invalid employee id");
         }
+        String lostTime = text(row, c, "lostTime", 10);
+        String incidentClass = text(row, c, "incidentClass", 40);
+        String bodyPart = text(row, c, "bodyPart", 60);
+        String reporter = text(row, c, "reporterEmail", 320);
         return new IncidentRecord(sourceSystem, ref, date(row, c), text(row, c, "location", 200), employeeId,
                 text(row, c, "employeeName", 200), text(row, c, "orgUnitCode", 64), text(row, c, "incidentType", 100),
                 severity == null ? null : severity.toUpperCase(Locale.ROOT), bool(text(row, c, "injury", 10)),
-                text(row, c, "description", 4000));
+                text(row, c, "description", 4000), code(incidentClass), code(bodyPart),
+                lostTime == null ? null : (bool(lostTime) || lostTime.matches("[1-9][0-9]*")),
+                code(text(row, c, "exposureType", 60)), code(text(row, c, "unitCode", 20)), code(text(row, c, "shift", 40)),
+                reporter != null && reporter.matches("[^@\\s]{1,64}@[^@\\s]{1,255}") ? reporter : null);
     }
 
     private String text(Row row, Map<String, Integer> c, String field, int max) {
@@ -183,6 +197,15 @@ public class ExcelIncidentParser {
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("Unrecognised incident date");
         }
+    }
+
+    /** Normalises vocabulary values to UPPER_SNAKE_CASE codes. */
+    static String code(String v) {
+        if (v == null) {
+            return null;
+        }
+        String c = v.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", "_").replaceAll("^_|_$", "");
+        return c.isEmpty() ? null : c.substring(0, Math.min(c.length(), 60));
     }
 
     private static boolean bool(String v) {

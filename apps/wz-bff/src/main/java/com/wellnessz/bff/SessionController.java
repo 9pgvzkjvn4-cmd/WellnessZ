@@ -21,6 +21,7 @@ public class SessionController {
         List<String> roles = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority)
                 .filter(a -> a.startsWith("ROLE_")).map(a -> a.substring(5)).sorted().toList();
         String name = user.getFullName() != null ? user.getFullName() : user.getPreferredUsername();
-        return Map.of("authenticated", true, "name", name == null ? user.getSubject() : name, "roles", roles);
+        String username = user.getPreferredUsername() == null ? user.getSubject() : user.getPreferredUsername();
+        return Map.of("authenticated", true, "name", name == null ? user.getSubject() : name, "username", username, "roles", roles);
     }
 }

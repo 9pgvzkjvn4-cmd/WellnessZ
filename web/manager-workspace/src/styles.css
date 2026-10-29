@@ -486,3 +486,110 @@ td.suppressed {
   gap: 0.5rem;
   font-weight: 400;
 }
+
+/* ---------- Increment 1: manager / HR referral forms ---------- */
+.banner-warning {
+  border-left-color: var(--c-focus);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-left: 6px solid var(--c-focus);
+}
+.req {
+  color: var(--c-error);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+.form .field label,
+.form .field legend {
+  margin-top: 0;
+}
+.field p {
+  margin: 0;
+}
+.field-error {
+  color: var(--c-error);
+  font-weight: 600;
+  margin: 0;
+}
+.field-invalid {
+  border-left: 4px solid var(--c-error);
+  padding-left: 0.75rem;
+}
+[aria-invalid='true']:is(input, select, textarea) {
+  border: 2px solid var(--c-error);
+  background: var(--c-error-bg);
+}
+.inline-options {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.form label.radio {
+  min-height: 44px;
+}
+.label {
+  font-weight: 600;
+}
+.selected-employee {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+.lookup-results {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  max-height: 18rem;
+  overflow-y: auto;
+  background: var(--c-surface);
+}
+.lookup-results li + li {
+  border-top: 1px solid var(--c-border);
+}
+.form .lookup-option,
+.lookup-option {
+  display: block;
+  width: 100%;
+  margin: 0;
+  text-align: left;
+  background: transparent;
+  color: var(--c-text);
+  border: none;
+  border-radius: 0;
+  font-weight: 400;
+}
+.lookup-option:hover,
+.lookup-option:focus-visible {
+  background: var(--c-info-bg);
+  color: var(--c-text);
+}
+.question-list {
+  margin: 0.25rem 0;
+  padding-left: 1.5rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.question-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.question-row input {
+  flex: 1;
+}
+.form .question-row button,
+.form .field > button.small-button {
+  margin-top: 0;
+  align-self: flex-start;
+}

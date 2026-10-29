@@ -1,0 +1,74 @@
+{
+ "code": "RESPIRATORY",
+ "version": 1,
+ "title": "Respiratory symptoms",
+ "presentation": "RESPIRATORY",
+ "caseType": "ILLNESS",
+ "start": "q1",
+ "status": "DRAFT",
+ "note": "DRAFT clinical content for CMO / Nursing Head review – not for clinical use until approved",
+ "questions": [
+  {
+   "id": "q1",
+   "text": "Severe shortness of breath, blue lips, or unable to speak in sentences?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "EMERGENCY"
+   },
+   "onNo": {
+    "next": "q2"
+   },
+   "redFlag": true
+  },
+  {
+   "id": "q2",
+   "text": "Symptoms started after exposure at work (fumes, dust, chemicals)?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "URGENT"
+   },
+   "onNo": {
+    "next": "q3"
+   }
+  },
+  {
+   "id": "q3",
+   "text": "Days of symptoms",
+   "type": "NUMBER",
+   "min": 0,
+   "max": 60,
+   "rules": [
+    {
+     "if": ">7",
+     "outcome": "SEMI_URGENT"
+    },
+    {
+     "else": true,
+     "outcome": "ROUTINE"
+    }
+   ]
+  }
+ ],
+ "outcomes": {
+  "EMERGENCY": {
+   "disposition": "Call emergency services / airside medical response now; do not leave the employee alone",
+   "adviceKey": "EMERGENCY_GENERIC"
+  },
+  "URGENT": {
+   "disposition": "Same-day review by OH physician; consider temporary unfitness for safety-critical duties",
+   "adviceKey": "RESPIRATORY_URGENT"
+  },
+  "SEMI_URGENT": {
+   "disposition": "OH nurse assessment within 4 hours; consider modified duties",
+   "adviceKey": "RESPIRATORY_SEMI_URGENT"
+  },
+  "ROUTINE": {
+   "disposition": "OH nurse appointment within 1 working day; self-care advice",
+   "adviceKey": "RESPIRATORY_ROUTINE"
+  },
+  "ADVICE": {
+   "disposition": "Self-care advice and portal follow-up; no appointment required",
+   "adviceKey": "RESPIRATORY_ADVICE"
+  }
+ }
+}

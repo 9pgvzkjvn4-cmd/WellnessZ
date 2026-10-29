@@ -1,8 +1,8 @@
 {{- /*
-Static web apps (employee portal, manager workspace) served by nginx-unprivileged.
+Static web apps (employee portal, manager workspace, OH workspace) served by nginx-unprivileged.
 */ -}}
 {{- $root := . -}}
-{{- range $key := list "employeePortal" "managerWorkspace" }}
+{{- range $key := list "employeePortal" "managerWorkspace" "ohWorkspace" }}
 {{- $comp := index $root.Values $key }}
 {{- if $comp.enabled }}
 {{- $ctx := dict "root" $root "comp" $comp }}

@@ -84,13 +84,15 @@ public class IncidentIntakeService {
         int accepted = 0;
         int duplicates = 0;
         for (IncidentRecord r : records) {
-            if (incidents.existsBySourceSystemAndExternalRef(r.sourceSystem(), r.externalRef())) {
+            if (incidents.existsBySourceSystemAndExternalRefAndEmployeeId(r.sourceSystem(), r.externalRef(), r.employeeId())) {
                 duplicates++;
                 continue;
             }
             EhsIncident incident = incidents.save(new EhsIncident(r, channel, batch.getId(), clock.instant()));
             bus.publish(new IncidentReceived(incident.getId().toString(), r.externalRef(), r.employeeId(), r.employeeName(),
-                    r.orgUnitCode(), r.incidentType(), r.severity(), r.injury()));
+                    r.orgUnitCode(), r.incidentType(), r.severity(), r.injury(), r.incidentClass(), r.bodyPart(), r.lostTime(),
+                    r.exposureType(), r.unitCode(), r.location(), r.shift(),
+                    r.occurredAt() == null ? null : r.occurredAt().toString(), r.reporterEmail()));
             accepted++;
         }
         return new int[]{accepted, duplicates};

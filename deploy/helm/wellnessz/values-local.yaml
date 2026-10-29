@@ -7,6 +7,7 @@
 #   docker build -f deploy/docker/Dockerfile.bff  -t wellnessz/wz-bff:local .
 #   docker build -t wellnessz/employee-app:local web/employee-app
 #   docker build -t wellnessz/manager-workspace:local web/manager-workspace
+#   docker build -t wellnessz/oh-workspace:local web/oh-workspace
 #   kind load docker-image wellnessz/wz-core-app:local wellnessz/wz-bff:local ...   # kind only
 #   kubectl create namespace wellnessz
 #   kubectl -n wellnessz create secret generic wellnessz-core-secrets \
@@ -55,7 +56,7 @@ core:
     WZ_DB_URL: "jdbc:postgresql://host.docker.internal:5432/wellnessz"
     WZ_DB_SSLMODE: prefer
     WZ_OIDC_ISSUERS: "http://host.docker.internal:8180/realms/wellnessz"
-    WZ_CORS_ORIGINS: "http://employee.localtest.me,http://manager.localtest.me"
+    WZ_CORS_ORIGINS: "http://employee.localtest.me,http://manager.localtest.me,http://oh.localtest.me"
     WZ_EHS_MAILBOX_MODE: imap
     WZ_IMAP_HOST: host.docker.internal
     WZ_IMAP_PORT: "3143"
@@ -88,6 +89,11 @@ managerWorkspace:
   autoscaling: { enabled: false }
   pdb: { enabled: false }
 
+ohWorkspace:
+  replicaCount: 1
+  autoscaling: { enabled: false }
+  pdb: { enabled: false }
+
 # *.localtest.me resolves to 127.0.0.1 (public DNS)
 ingress:
   className: nginx
@@ -99,6 +105,7 @@ ingress:
   hosts:
     employeePortal: employee.localtest.me
     managerWorkspace: manager.localtest.me
+    ohWorkspace: oh.localtest.me
   api:
     enabled: true
     host: api.localtest.me

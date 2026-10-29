@@ -1,0 +1,91 @@
+{
+ "code": "CREW_FATIGUE",
+ "version": 1,
+ "title": "Crew fatigue / fitness concern",
+ "presentation": "FATIGUE",
+ "caseType": "FITNESS",
+ "start": "q1",
+ "status": "DRAFT",
+ "note": "DRAFT clinical content for CMO / Nursing Head review – not for clinical use until approved",
+ "questions": [
+  {
+   "id": "q1",
+   "text": "Rostered to operate within the next 12 hours?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "next": "q2"
+   },
+   "onNo": {
+    "next": "q3"
+   }
+  },
+  {
+   "id": "q2",
+   "text": "Self-assessed fatigue (Samn-Perelli 1–7)",
+   "type": "NUMBER",
+   "min": 1,
+   "max": 7,
+   "rules": [
+    {
+     "if": ">=6",
+     "outcome": "URGENT"
+    },
+    {
+     "if": "4..5",
+     "outcome": "SEMI_URGENT"
+    },
+    {
+     "else": true,
+     "outcome": "ROUTINE"
+    }
+   ]
+  },
+  {
+   "id": "q3",
+   "text": "Pattern",
+   "type": "SELECT",
+   "options": [
+    {
+     "value": "SINGLE",
+     "label": "Single episode"
+    },
+    {
+     "value": "RECURRENT",
+     "label": "Recurrent"
+    }
+   ],
+   "rules": [
+    {
+     "if": "==RECURRENT",
+     "outcome": "SEMI_URGENT"
+    },
+    {
+     "else": true,
+     "outcome": "ADVICE"
+    }
+   ]
+  }
+ ],
+ "outcomes": {
+  "EMERGENCY": {
+   "disposition": "Call emergency services / airside medical response now; do not leave the employee alone",
+   "adviceKey": "EMERGENCY_GENERIC"
+  },
+  "URGENT": {
+   "disposition": "Same-day review by OH physician; consider temporary unfitness for safety-critical duties",
+   "adviceKey": "CREW_FATIGUE_URGENT"
+  },
+  "SEMI_URGENT": {
+   "disposition": "OH nurse assessment within 4 hours; consider modified duties",
+   "adviceKey": "CREW_FATIGUE_SEMI_URGENT"
+  },
+  "ROUTINE": {
+   "disposition": "OH nurse appointment within 1 working day; self-care advice",
+   "adviceKey": "CREW_FATIGUE_ROUTINE"
+  },
+  "ADVICE": {
+   "disposition": "Self-care advice and portal follow-up; no appointment required",
+   "adviceKey": "CREW_FATIGUE_ADVICE"
+  }
+ }
+}

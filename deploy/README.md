@@ -13,7 +13,7 @@ Step-by-step guides: [`docs/deployment/Deployment-Architecture.md`](../docs/depl
 | [`local/`](local/) | Docker Compose dev stack: PostgreSQL 16, Keycloak 26 (realm import), Mailpit, GreenMail IMAP, OTel collector, optional core + bff |
 | [`local/keycloak/wellnessz-realm.json`](local/keycloak/wellnessz-realm.json) | Realm `wellnessz`: roles, clients (bff, mobile, api, integration), test users |
 | [`docker/`](docker/) | `Dockerfile.core`, `Dockerfile.bff` (+ per-Dockerfile `.dockerignore`) |
-| [`helm/wellnessz/`](helm/wellnessz/) | Helm chart (core, bff, employee-portal, manager-workspace) + `values-{local,azure,gcp,hybrid}.yaml`, `values.schema.json` |
+| [`helm/wellnessz/`](helm/wellnessz/) | Helm chart (core, bff, employee-portal, manager-workspace, oh-workspace) + `values-{local,azure,gcp,hybrid}.yaml`, `values.schema.json` |
 | [`terraform/azure/`](terraform/azure/) | AKS, PostgreSQL Flexible Server, Key Vault, ACR, App Gateway WAF v2 / Front Door, Log Analytics, identities |
 | [`terraform/gcp/`](terraform/gcp/) | GKE (Autopilot/Standard), Cloud SQL, Secret Manager, Artifact Registry, Cloud Armor, KMS, Binary Authorization |
 | [`hybrid/`](hybrid/) | On-prem core + CloudNativePG, cloud edge values, External Secrets / Vault – see [hybrid/README.md](hybrid/README.md) |

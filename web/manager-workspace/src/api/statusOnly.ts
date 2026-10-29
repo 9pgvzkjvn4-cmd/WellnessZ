@@ -3,11 +3,16 @@
  * The core API already returns a status-only projection for these roles; as
  * defence in depth the UI copies ONLY the whitelisted fields below, so any
  * unexpected clinical field in a response is dropped before rendering.
+ *
+ * Whitelist (contract §3 "Status-only view"): id, caseRef, employeeDisplayName, status, fitnessStatus,
+ * restrictionUntil, updatedAt, disclosure. Referral responses only ever contribute `caseRef` (see api/referrals.ts).
  */
+export const STATUS_ONLY_FIELDS = ['id', 'caseRef', 'employeeDisplayName', 'status', 'fitnessStatus', 'restrictionUntil', 'updatedAt', 'disclosure'] as const;
+
 /** Case status values (backend enum). */
-export const CASE_STATUSES = ['INTAKE', 'TRIAGE', 'ASSESSMENT', 'FITNESS_REVIEW', 'TREATMENT', 'CLAIMS', 'MONITORING', 'CLOSED'] as const;
+export const CASE_STATUSES = ['INTAKE', 'TRIAGE', 'ASSESSMENT', 'FITNESS_REVIEW', 'TREATMENT', 'CLAIMS', 'MONITORING', 'CLOSED', 'MERGED'] as const;
 /** Fitness-for-work values (backend enum). */
-export const FITNESS_STATUSES = ['FIT', 'FIT_WITH_RESTRICTIONS', 'TEMPORARILY_UNFIT', 'PERMANENTLY_UNFIT', 'UNDER_REVIEW', 'NOT_ASSESSED'] as const;
+export const FITNESS_STATUSES = ['FIT', 'FIT_WITH_RESTRICTIONS', 'TEMPORARILY_UNFIT', 'PERMANENTLY_UNFIT', 'UNDER_REVIEW', 'NOT_ASSESSED', 'UNFIT_PENDING'] as const;
 
 export interface TeamCaseRow {
   id: string;

@@ -1,4 +1,6 @@
 spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/demo
   datasource:
     hikari:
       data-source-properties:
@@ -13,3 +15,6 @@ wellnessz:
       poll-interval: PT1H
   notification:
     poll-interval: PT1H
+  triage:
+    sla:
+      poll-interval: PT1H

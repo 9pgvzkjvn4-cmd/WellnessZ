@@ -1,0 +1,79 @@
+{
+ "code": "PSYCHOLOGICAL",
+ "version": 1,
+ "title": "Psychological distress",
+ "presentation": "PSYCHOLOGICAL",
+ "caseType": "MENTAL_HEALTH",
+ "start": "q1",
+ "status": "DRAFT",
+ "note": "DRAFT clinical content for CMO / Nursing Head review – not for clinical use until approved",
+ "questions": [
+  {
+   "id": "q1",
+   "text": "Thoughts of harming self or others, or immediate danger?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "EMERGENCY"
+   },
+   "onNo": {
+    "next": "q2"
+   },
+   "redFlag": true
+  },
+  {
+   "id": "q2",
+   "text": "Unable to function or care for self today?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "URGENT"
+   },
+   "onNo": {
+    "next": "q3"
+   }
+  },
+  {
+   "id": "q3",
+   "text": "Safety-critical duties planned in the next 24 hours?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "URGENT"
+   },
+   "onNo": {
+    "next": "q4"
+   }
+  },
+  {
+   "id": "q4",
+   "text": "Symptoms present for more than 2 weeks?",
+   "type": "BOOLEAN",
+   "onYes": {
+    "outcome": "SEMI_URGENT"
+   },
+   "onNo": {
+    "outcome": "ROUTINE"
+   }
+  }
+ ],
+ "outcomes": {
+  "EMERGENCY": {
+   "disposition": "Call emergency services / airside medical response now; do not leave the employee alone",
+   "adviceKey": "EMERGENCY_GENERIC"
+  },
+  "URGENT": {
+   "disposition": "Same-day review by OH physician; consider temporary unfitness for safety-critical duties",
+   "adviceKey": "PSYCHOLOGICAL_URGENT"
+  },
+  "SEMI_URGENT": {
+   "disposition": "OH nurse assessment within 4 hours; consider modified duties",
+   "adviceKey": "PSYCHOLOGICAL_SEMI_URGENT"
+  },
+  "ROUTINE": {
+   "disposition": "OH nurse appointment within 1 working day; self-care advice",
+   "adviceKey": "PSYCHOLOGICAL_ROUTINE"
+  },
+  "ADVICE": {
+   "disposition": "Self-care advice and portal follow-up; no appointment required",
+   "adviceKey": "PSYCHOLOGICAL_ADVICE"
+  }
+ }
+}

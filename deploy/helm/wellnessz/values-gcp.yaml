@@ -88,7 +88,7 @@ core:
     WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<tenant-id>/v2.0"
     # Entra ID v2 access tokens carry the API's Application (client) ID as "aud"
     WZ_OIDC_AUDIENCE: "<wellnessz-api-client-id>"
-    WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com"
+    WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com,https://oh.wellnessz.example.com"
     WZ_EHS_MAILBOX_MODE: graph
     WZ_GRAPH_TENANT_ID: <tenant-id>
     WZ_GRAPH_CLIENT_ID: <ehs-mailbox-app-client-id>
@@ -121,6 +121,7 @@ ingress:
   hosts:
     employeePortal: employee.wellnessz.example.com
     managerWorkspace: manager.wellnessz.example.com
+    ohWorkspace: oh.wellnessz.example.com
   api:
     enabled: true
     host: api.wellnessz.example.com

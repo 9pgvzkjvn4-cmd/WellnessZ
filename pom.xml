@@ -28,6 +28,8 @@
     <module>platform/wz-analytics</module>
     <module>platform/wz-case-kernel</module>
     <module>platform/wz-ehs-intake</module>
+    <module>modules/wz-e01-intake</module>
+    <module>modules/wz-e02-triage</module>
     <module>apps/wz-core-app</module>
     <module>apps/wz-bff</module>
   </modules>
@@ -59,6 +61,8 @@
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-analytics</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-case-kernel</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-ehs-intake</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e01-intake</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e02-triage</artifactId><version>${project.version}</version></dependency>
 
       <dependency><groupId>ca.uhn.hapi.fhir</groupId><artifactId>hapi-fhir-structures-r4</artifactId><version>${hapi-fhir.version}</version></dependency>
       <dependency><groupId>ca.uhn.hapi</groupId><artifactId>hapi-base</artifactId><version>${hapi-hl7v2.version}</version></dependency>

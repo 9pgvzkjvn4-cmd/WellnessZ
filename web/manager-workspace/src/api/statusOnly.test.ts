@@ -36,3 +36,19 @@ describe('status-only projection', () => {
     expect(d?.history).toEqual([{ status: 'NEW', at: 't' }]);
   });
 });
+
+describe('status-only whitelist (increment 1)', () => {
+  it('matches the contract status-only view', async () => {
+    const { STATUS_ONLY_FIELDS, FITNESS_STATUSES, CASE_STATUSES } = await import('./statusOnly');
+    expect([...STATUS_ONLY_FIELDS].sort()).toEqual(['caseRef', 'disclosure', 'employeeDisplayName', 'fitnessStatus', 'id', 'restrictionUntil', 'status', 'updatedAt']);
+    expect(FITNESS_STATUSES).toContain('UNFIT_PENDING');
+    expect(CASE_STATUSES).toContain('MERGED');
+  });
+
+  it('never keeps CaseDetail fields that a misconfigured backend might return', () => {
+    const rows = toTeamCaseRows([
+      { id: 'c', caseRef: 'CAT-2026-000042', status: 'TRIAGE', employeeDisplayName: 'E', clinicalSummary: 'secret', intakeDetails: { a: 'secret' }, bodyPart: 'HAND', urgency: 'URGENT', attachments: [{ fileName: 'secret.jpg' }] },
+    ]);
+    expect(JSON.stringify(rows)).not.toMatch(/secret|HAND|URGENT/);
+  });
+});

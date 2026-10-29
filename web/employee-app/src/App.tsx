@@ -4,7 +4,9 @@ import type { RuntimeConfig } from './config/runtimeConfig';
 import { Alert, Loading } from './components/ui';
 import { useHashRoute } from './routing/useHashRoute';
 import { Consents } from './screens/Consents';
+import { FitnessDeclaration } from './screens/FitnessDeclaration';
 import { Home } from './screens/Home';
+import { MyAdvice } from './screens/MyAdvice';
 import { Profile } from './screens/Profile';
 import { SelfReferral } from './screens/SelfReferral';
 import { startIdleTimer } from './security/idleTimeout';
@@ -13,6 +15,8 @@ import { errorName, log } from './security/log';
 const NAV = [
   { path: '/', label: 'Home' },
   { path: '/refer', label: 'Contact OH' },
+  { path: '/advice', label: 'My advice' },
+  { path: '/fitness-declaration', label: 'Crew declaration' },
   { path: '/consents', label: 'My consents' },
   { path: '/profile', label: 'Profile' },
 ] as const;
@@ -90,7 +94,13 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
   let screen;
   switch (route) {
     case '/refer':
-      screen = <SelfReferral {...screenProps} />;
+      screen = <SelfReferral {...screenProps} isNative={client.mode === 'native-oidc'} />;
+      break;
+    case '/advice':
+      screen = <MyAdvice {...screenProps} />;
+      break;
+    case '/fitness-declaration':
+      screen = <FitnessDeclaration {...screenProps} />;
       break;
     case '/consents':
       screen = <Consents {...screenProps} />;

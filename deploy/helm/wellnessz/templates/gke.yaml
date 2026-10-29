@@ -2,7 +2,7 @@
        FrontendConfig (HTTPS redirect, SSL policy), ManagedCertificate. */ -}}
 {{- $root := . -}}
 {{- if .Values.gcp.backendConfig.enabled }}
-{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" }}
+{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" "ohWorkspace" }}
 {{- $comp := index $root.Values $key }}
 {{- if $comp.enabled }}
 ---
@@ -67,7 +67,7 @@ metadata:
     {{- include "wellnessz.labels" . | nindent 4 }}
 spec:
   domains:
-    {{- range $key := list "employeePortal" "managerWorkspace" }}
+    {{- range $key := list "employeePortal" "managerWorkspace" "ohWorkspace" }}
     {{- if and (index $root.Values $key).enabled (index $root.Values.ingress.hosts $key) }}
     - {{ index $root.Values.ingress.hosts $key | quote }}
     {{- end }}

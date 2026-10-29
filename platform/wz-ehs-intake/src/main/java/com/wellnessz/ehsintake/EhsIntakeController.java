@@ -22,6 +22,9 @@ import com.wellnessz.ehsintake.model.EhsIncident;
 import com.wellnessz.ehsintake.model.EhsIncidentRepository;
 import com.wellnessz.ehsintake.model.ImportBatch;
 import com.wellnessz.ehsintake.model.IntakeChannel;
+import com.wellnessz.integration.idempotency.IdempotencyService;
+
+import tools.jackson.databind.json.JsonMapper;
 import com.wellnessz.security.identity.CurrentUserProvider;
 
 @RestController
@@ -34,9 +37,16 @@ public class EhsIntakeController {
     private final MailboxIngestionJob mailbox;
     private final EhsIncidentRepository incidents;
     private final CurrentUserProvider users;
+    private final IncidentWebhookService webhook;
+    private final IdempotencyService idempotency;
+    private final JsonMapper json;
 
     public EhsIntakeController(IncidentIntakeService intake, MailboxIngestionJob mailbox, EhsIncidentRepository incidents,
-                               CurrentUserProvider users) {
+                               CurrentUserProvider users, IncidentWebhookService webhook, IdempotencyService idempotency,
+                               JsonMapper json) {
+        this.webhook = webhook;
+        this.idempotency = idempotency;
+        this.json = json;
         this.intake = intake;
         this.mailbox = mailbox;
         this.incidents = incidents;
@@ -63,7 +73,7 @@ public class EhsIntakeController {
     }
 
     @PostMapping(value = "/excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('OH_ADMIN','CASE_MANAGER','INTEGRATION')")
+    @PreAuthorize("hasAnyRole('OH_ADMIN','CASE_MANAGER','NURSING_HEAD','INTEGRATION')")
     @ResponseStatus(HttpStatus.CREATED)
     public ImportBatchView uploadExcel(@RequestPart("file") MultipartFile file) throws IOException {
         if (file.isEmpty()) {
@@ -77,6 +87,18 @@ public class EhsIntakeController {
             throw ApiException.badRequest("unsupported_media", "Only .xlsx workbooks are accepted");
         }
         return ImportBatchView.of(intake.importExcel(file.getBytes(), name, IntakeChannel.EXCEL_UPLOAD, users.actorOrSystem()));
+    }
+
+    /** EHS webhook (E01-BL-002): idempotent via Idempotency-Key, invalid items go to the dead-letter queue. */
+    @PostMapping(value = "/incidents", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('INTEGRATION')")
+    public org.springframework.http.ResponseEntity<String> webhook(
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @org.springframework.web.bind.annotation.RequestBody String body) {
+        String actor = users.actorOrSystem();
+        return idempotency.execute("ehs-webhook", key, body, () -> org.springframework.http.ResponseEntity
+                .status(HttpStatus.ACCEPTED).contentType(MediaType.APPLICATION_JSON)
+                .body(json.writeValueAsString(webhook.receive(body, actor))));
     }
 
     @PostMapping("/mailbox/poll")

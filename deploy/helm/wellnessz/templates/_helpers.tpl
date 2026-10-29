@@ -146,7 +146,7 @@ topologySpreadConstraints:
 
 {{/* All components that can be iterated generically */}}
 {{- define "wellnessz.componentKeys" -}}
-core bff employeePortal managerWorkspace
+core bff employeePortal managerWorkspace ohWorkspace
 {{- end -}}
 
 {{/* Flyway CLI container for one migration set.

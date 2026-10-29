@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "title": "WellnessZ Helm values",
   "type": "object",
-  "required": ["global", "secrets", "migrations", "core", "bff", "employeePortal", "managerWorkspace", "networkPolicy"],
+  "required": ["global", "secrets", "migrations", "core", "bff", "employeePortal", "managerWorkspace", "ohWorkspace", "networkPolicy"],
   "definitions": {
     "secretFile": {
       "type": "object",
@@ -88,6 +88,7 @@
     "bff": { "$ref": "#/definitions/component" },
     "employeePortal": { "$ref": "#/definitions/component" },
     "managerWorkspace": { "$ref": "#/definitions/component" },
+    "ohWorkspace": { "$ref": "#/definitions/component" },
     "networkPolicy": {
       "type": "object",
       "required": ["enabled"],

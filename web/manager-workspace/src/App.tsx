@@ -1,21 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SIGNED_OUT, type AuthClient, type Session } from './auth/AuthClient';
-import { hasWorkspaceAccess } from './auth/roles';
+import { hasWorkspaceAccess, resolveReferralRoute, workspaceNav } from './auth/roles';
 import { Alert, Loading } from './components/ui';
 import { useHashRoute } from './routing/useHashRoute';
 import { AccessRestricted } from './screens/AccessRestricted';
 import { Analytics } from './screens/Analytics';
 import { CaseStatus } from './screens/CaseStatus';
-import { Referral } from './screens/Referral';
+import { HrReferral } from './screens/HrReferral';
+import { ManagerReferral } from './screens/ManagerReferral';
+import { ReferralNotAvailable } from './screens/Referral';
 import { TeamCases } from './screens/TeamCases';
 import { startIdleTimer } from './security/idleTimeout';
 import { errorName, log } from './security/log';
 
-const NAV = [
-  { path: '/', label: 'Team cases' },
-  { path: '/refer', label: 'Refer to OH' },
-  { path: '/analytics', label: 'Analytics' },
-] as const;
+
 
 type Notice = 'idle' | 'expired' | undefined;
 
@@ -79,10 +77,13 @@ export function App({ client }: { client: AuthClient }) {
 
   const props = { client, session, onSessionExpired };
   const caseMatch = /^\/cases\/([^/]+)$/.exec(route);
+  const referral = resolveReferralRoute(route, session.roles);
   let screen;
   if (route === '/') screen = <TeamCases {...props} />;
   else if (caseMatch?.[1]) screen = <CaseStatus {...props} caseId={decodeURIComponent(caseMatch[1])} />;
-  else if (route === '/refer') screen = <Referral />;
+  else if (referral === 'manager') screen = <ManagerReferral {...props} />;
+  else if (referral === 'hr') screen = <HrReferral {...props} />;
+  else if (referral === 'forbidden') screen = <ReferralNotAvailable kind={route === '/refer/hr' ? 'hr' : 'manager'} />;
   else if (route === '/analytics') screen = <Analytics {...props} />;
   else
     screen = (
@@ -109,7 +110,7 @@ export function App({ client }: { client: AuthClient }) {
       </header>
       <nav className="app-nav" aria-label="Main">
         <ul>
-          {NAV.map((n) => (
+          {workspaceNav(session.roles).map((n) => (
             <li key={n.path}>
               <a href={`#${n.path}`} aria-current={current === n.path ? 'page' : undefined}>
                 {n.label}

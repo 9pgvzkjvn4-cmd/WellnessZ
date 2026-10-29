@@ -19,6 +19,9 @@ public class JobCode {
     private boolean safetyCritical;
     @Column(name = "hazard_codes", length = 1000)
     private String hazardCodes;
+    /** Safety-critical / licensed role category (E02-HLR-02), e.g. FLIGHT_CREW, FOOD_HANDLER; null when not safety-critical. */
+    @Column(name = "safety_category", length = 40)
+    private String safetyCategory;
 
     protected JobCode() {
     }
@@ -44,5 +47,13 @@ public class JobCode {
 
     public String getHazardCodes() {
         return hazardCodes;
+    }
+
+    public String getSafetyCategory() {
+        return safetyCategory;
+    }
+
+    public void setSafetyCategory(String safetyCategory) {
+        this.safetyCategory = safetyCategory;
     }
 }

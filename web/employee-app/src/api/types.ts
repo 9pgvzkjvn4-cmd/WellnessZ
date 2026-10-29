@@ -25,10 +25,104 @@ export const CATEGORY_LABELS: Record<ReferralCategory, string> = {
 export const CONTACT_OPTIONS = ['EMAIL', 'PHONE', 'IN_APP'] as const;
 export type PreferredContact = (typeof CONTACT_OPTIONS)[number];
 
+/* ---------- E01 intake (docs/increment-01/API-Contract-E01-E02.md §4.2) ---------- */
+
+/** `GET /languages` */
+export interface Language {
+  code: string;
+  label: string;
+}
+
+export const FIELD_TYPES = ['TEXT', 'TEXTAREA', 'SELECT', 'MULTISELECT', 'BOOLEAN', 'DATE', 'BODY_MAP', 'SYMPTOMS'] as const;
+export type FieldType = (typeof FIELD_TYPES)[number];
+
+export interface Option {
+  value: string;
+  label: string;
+}
+
+export interface TemplateField {
+  key: string;
+  label: string;
+  type: FieldType | string;
+  required?: boolean;
+  options?: Option[];
+  maxLength?: number | null;
+}
+
+/** `GET /intake/templates?audience=EMPLOYEE&lang=` */
+export interface Template {
+  code: string;
+  title: string;
+  audience?: string;
+  departments?: string[];
+  fields: TemplateField[];
+  routingQueue?: string;
+  symptomOptions?: Option[];
+}
+
+/** `GET /intake/body-map` */
+export interface BodyMapRegion {
+  code: string;
+  label: string;
+  side: 'FRONT' | 'BACK' | string;
+}
+
+export type AnswerValue = string | string[] | boolean;
+
+/** `POST /intake/referrals/self` */
 export interface SelfReferralRequest {
+  templateCode: string;
   category: ReferralCategory;
   description: string;
+  bodyParts: string[];
+  symptoms: string[];
+  answers: Record<string, AnswerValue>;
   preferredContact: PreferredContact;
+  language: string;
+  consent: { assessment: true; purposes: ConsentPurpose[] };
+}
+
+export interface SelfReferralResponse {
+  caseId: string;
+  caseRef: string;
+  /** Contract does not pin the type; a string is expected, `{message|text}` objects are tolerated. */
+  acknowledgement?: unknown;
+}
+
+export const DECLARATION_REASONS = ['ILLNESS', 'INJURY', 'MEDICATION', 'FATIGUE', 'PREGNANCY', 'OTHER'] as const;
+export type DeclarationReason = (typeof DECLARATION_REASONS)[number];
+
+export const DECLARATION_REASON_LABELS: Record<DeclarationReason, string> = {
+  ILLNESS: 'Illness',
+  INJURY: 'Injury',
+  MEDICATION: 'Medication that may affect my fitness',
+  FATIGUE: 'Fatigue',
+  PREGNANCY: 'Pregnancy',
+  OTHER: 'Other',
+};
+
+/** `POST /intake/triggers/fitness-declaration` (dates `YYYY-MM-DD`). */
+export interface FitnessDeclarationRequest {
+  reason: DeclarationReason;
+  unfitFrom: string;
+  expectedUntil?: string;
+  details?: string;
+}
+
+/** Response is not pinned by the contract; `caseRef` is shown when present. */
+export interface FitnessDeclarationResponse {
+  caseId?: string;
+  caseRef?: string;
+}
+
+/** `GET /me/advice` (E02 §5.1) */
+export interface Advice {
+  id: string;
+  caseRef?: string;
+  title?: string;
+  text?: string;
+  sentAt?: string;
 }
 
 export const CASE_STATUSES = [
@@ -40,6 +134,7 @@ export const CASE_STATUSES = [
   'CLAIMS',
   'MONITORING',
   'CLOSED',
+  'MERGED',
 ] as const;
 export type CaseStatus = (typeof CASE_STATUSES)[number];
 
@@ -50,10 +145,45 @@ export const FITNESS_STATUSES = [
   'PERMANENTLY_UNFIT',
   'UNDER_REVIEW',
   'NOT_ASSESSED',
+  'UNFIT_PENDING',
 ] as const;
 export type FitnessStatus = (typeof FITNESS_STATUSES)[number];
 
-/** Case object returned by GET /cases (own cases) and POST /cases/self-referral. */
+/** Employee-friendly wording for case status. */
+export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
+  INTAKE: 'Received',
+  TRIAGE: 'Being reviewed by OH',
+  ASSESSMENT: 'Assessment',
+  FITNESS_REVIEW: 'Fitness review',
+  TREATMENT: 'Treatment',
+  CLAIMS: 'Claim in progress',
+  MONITORING: 'Follow-up',
+  CLOSED: 'Closed',
+  MERGED: 'Merged with another case',
+};
+
+/** Employee-friendly wording for fitness-for-work status. */
+export const FITNESS_LABELS: Record<FitnessStatus, string> = {
+  FIT: 'Fit for work',
+  FIT_WITH_RESTRICTIONS: 'Fit with restrictions',
+  TEMPORARILY_UNFIT: 'Temporarily unfit',
+  PERMANENTLY_UNFIT: 'Permanently unfit',
+  UNDER_REVIEW: 'Under review',
+  NOT_ASSESSED: 'Not yet assessed',
+  UNFIT_PENDING: 'Unfit – pending assessment',
+};
+
+/** Case reference format `{UNIT}-{YYYY}-{NNNNNN}` (unit = subsidiary code, fallback `OH`). */
+export const CASE_REF_PATTERN = /^[A-Z0-9]{2,10}-\d{4}-\d{6}$/;
+
+/** Split a case reference into unit / year / sequence, or undefined for legacy references. */
+export function parseCaseRef(ref: string | undefined | null): { unit: string; year: string; seq: string } | undefined {
+  if (!ref || !CASE_REF_PATTERN.test(ref)) return undefined;
+  const [unit, year, seq] = ref.split('-') as [string, string, string];
+  return { unit, year, seq };
+}
+
+/** Case object returned by GET /cases (own cases). Only these fields are rendered. */
 export interface MyCase {
   id: string;
   caseRef?: string;
@@ -110,6 +240,9 @@ export interface Me {
   orgScope?: string | string[];
   roles: string[];
   maxDisclosure?: string;
+  /** Not in the /me contract yet – used for template pre-selection / crew hint when the backend provides them. */
+  departmentCode?: string;
+  jobCode?: string;
 }
 
 /** Spring Data pages or plain arrays are both accepted. */

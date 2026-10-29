@@ -22,8 +22,8 @@ public class ModuleRegistry {
     private static final Map<String, String[]> CATALOGUE = new LinkedHashMap<>();
 
     static {
-        CATALOGUE.put("E01", new String[]{"Intake & incident-to-case rule engine", "core", "KERNEL"});
-        CATALOGUE.put("E02", new String[]{"Triage, routing, work queues & SLAs", "core", "PLANNED"});
+        CATALOGUE.put("E01", new String[]{"Case intake & incident-triggered case initiation", "core", "PLANNED"});
+        CATALOGUE.put("E02", new String[]{"Clinical triage, risk stratification & case assignment", "core", "PLANNED"});
         CATALOGUE.put("E03", new String[]{"OH record & clinical encounters", "core", "PLANNED"});
         CATALOGUE.put("E04", new String[]{"Treatment coordination, referrals & provider network", "core", "PLANNED"});
         CATALOGUE.put("E05", new String[]{"Fitness for duty, restrictions & return to work", "core", "KERNEL"});

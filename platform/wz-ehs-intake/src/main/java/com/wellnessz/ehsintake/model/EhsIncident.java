@@ -45,6 +45,20 @@ public class EhsIncident {
     @Convert(converter = EncryptedStringConverter.class)
     @Column(columnDefinition = "text")
     private String description;
+    @Column(name = "incident_class", length = 40)
+    private String incidentClass;
+    @Column(name = "body_part", length = 60)
+    private String bodyPart;
+    @Column(name = "lost_time")
+    private Boolean lostTime;
+    @Column(name = "exposure_type", length = 60)
+    private String exposureType;
+    @Column(name = "unit_code", length = 20)
+    private String unitCode;
+    @Column(length = 40)
+    private String shift;
+    @Column(name = "reporter_email", length = 320)
+    private String reporterEmail;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private IntakeChannel channel;
@@ -72,6 +86,13 @@ public class EhsIncident {
         this.severity = r.severity();
         this.injury = r.injury();
         this.description = r.description();
+        this.incidentClass = r.incidentClass();
+        this.bodyPart = r.bodyPart();
+        this.lostTime = r.lostTime();
+        this.exposureType = r.exposureType();
+        this.unitCode = r.unitCode();
+        this.shift = r.shift();
+        this.reporterEmail = r.reporterEmail();
         this.channel = channel;
         this.batchId = batchId;
         this.status = Status.RECEIVED;
@@ -124,6 +145,34 @@ public class EhsIncident {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getIncidentClass() {
+        return incidentClass;
+    }
+
+    public String getBodyPart() {
+        return bodyPart;
+    }
+
+    public Boolean getLostTime() {
+        return lostTime;
+    }
+
+    public String getExposureType() {
+        return exposureType;
+    }
+
+    public String getUnitCode() {
+        return unitCode;
+    }
+
+    public String getShift() {
+        return shift;
+    }
+
+    public String getReporterEmail() {
+        return reporterEmail;
     }
 
     public IntakeChannel getChannel() {

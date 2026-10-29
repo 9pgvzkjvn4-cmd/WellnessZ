@@ -217,7 +217,7 @@ services:
       WZ_PSEUDONYM_KEY: ${WZ_PSEUDONYM_KEY:?set WZ_PSEUDONYM_KEY in .env (openssl rand -base64 32)}
       WZ_OIDC_ISSUERS: http://localhost:8180/realms/wellnessz
       WZ_OIDC_AUDIENCE: wellnessz-api
-      WZ_CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      WZ_CORS_ORIGINS: http://localhost:5173,http://localhost:5174,http://localhost:5175
       WZ_ANALYTICS_MIN_GROUP: "5"
       WZ_EHS_MAILBOX_MODE: imap
       WZ_IMAP_HOST: greenmail

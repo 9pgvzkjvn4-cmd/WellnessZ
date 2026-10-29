@@ -8,8 +8,9 @@ One React 19 + TypeScript + Vite codebase delivered three ways:
 | Installable PWA | same build; `manifest.webmanifest` + app-shell service worker | **BFF session** |
 | iOS / Android | Capacitor 8 wrapper (`com.wellnessz.app`) | **OIDC Auth Code + PKCE** via system browser |
 
-Screens (hash routing, no router library): **Home** (welcome + my cases with status), **Contact OH** (self-referral),
-**My consents** (list / grant / withdraw), **Profile** (`GET /me` + app info).
+Screens (hash routing, no router library): **Home** (`#/` – welcome + case cards), **Contact OH** (`#/refer` –
+self-referral), **My advice** (`#/advice`), **Crew declaration** (`#/fitness-declaration`), **My consents**
+(`#/consents`), **Profile** (`#/profile`).
 
 ## Quick start
 
@@ -17,7 +18,7 @@ Screens (hash routing, no router library): **Home** (welcome + my cases with sta
 npm ci
 npm run dev      # http://localhost:5173 – proxies /bff, /oauth2, /login, /logout → http://localhost:8090 (wz-bff)
 npm run lint     # ESLint (typescript-eslint, react-hooks, no-console, no localStorage)
-npm test         # Vitest unit tests
+npm test         # Vitest unit tests (node environment, no DOM library – see "Tests")
 npm run build    # type-check (tsc -b) + production build into dist/
 npm run preview  # serve dist/ on :4173 (no proxy – use the container or the BFF for an end-to-end check)
 ```
@@ -32,14 +33,61 @@ then `wz-core-app` on 8080 and `wz-bff` on 8090) and sign in as `employee1` / `C
 
 ## API usage
 
-All calls go through `AuthClient.api(path)` with paths relative to the core API `/api/v1`:
+All calls go through `AuthClient.api(path)` with paths relative to the core API `/api/v1`. The increment-1 contract
+(E01 intake / E02 triage) is `docs/increment-01/API-Contract-E01-E02.md`.
 
 | Screen | Call |
 |---|---|
-| Home | `GET /cases` (own cases) |
-| Contact OH | `POST /cases/self-referral` `{category, description, preferredContact}` – category ∈ `INJURY, ILLNESS, DECREASE_IN_FITNESS, PSYCHOLOGICAL, SUBSTANCE, EXPOSURE, OTHER`; preferredContact (free string ≤ 20, UI offers `EMAIL, PHONE, IN_APP`) → case object |
+| Home | `GET /cases` (own cases) → projected to `id, caseRef, category, status, fitnessStatus, restrictionUntil, createdAt, updatedAt` (`src/api/cases.ts`); everything else is dropped |
+| Contact OH | `GET /languages`, `GET /intake/templates?audience=EMPLOYEE&lang=`, `GET /intake/body-map`, `GET /me` (department pre-selection) → `POST /intake/referrals/self` → `POST /cases/{caseId}/attachments` (multipart `file`, one request per file) |
+| My advice | `GET /me/advice` → `[{id, caseRef, title, text, sentAt}]`; **404 = empty list** |
+| Crew declaration | `GET /me` (crew hint) → `POST /intake/triggers/fitness-declaration` `{reason, unfitFrom, expectedUntil?, details?}` |
 | My consents | `GET /consents/me`, `POST /consents {purpose}` – purpose ∈ `TREATMENT_SHARING_PARTNER, EAP_REFERRAL, INSURER_SHARING, WEARABLE_DATA, HEALTH_CAMPAIGNS, RESEARCH_DEIDENTIFIED`; `DELETE /consents/{id}`. `GRANTED` consents are listed with *Withdraw*; `WITHDRAWN` ones appear under *Consent history* |
 | Profile | `GET /me` → `{subject, username, displayName, employeeId, orgScope, roles, maxDisclosure}` |
+
+Problem details (RFC 9457) are parsed into `ApiError.problem = {title, detail, code, field, correlationId}`; the UI
+shows `title` or its own text, never `detail` (it may echo user input). A `FormData` body is sent as
+`multipart/form-data` (no JSON content type, the browser sets the boundary) by both the BFF and the native client.
+
+### Self-referral (E01-BL-006/009/010)
+One scrolling page in five numbered sections with a sticky progress hint ("n of m required items completed"); target
+< 3 minutes:
+1. **Language** (`GET /languages`, fallback en/ar/fr built in; initial choice from the browser languages).
+   UI strings for `en`, `ar`, `fr` live in `src/i18n/strings.ts`; template labels come from the server in the selected
+   language (templates are re-fetched on switch, the selected template and answers are kept). **Arabic renders with
+   `dir="rtl"`** (`dirFor()`); the body-map drawing is never mirrored (anatomical left/right). The language is sent as
+   `language` and recorded on the case.
+2. **Template** – pre-selected by department: `/me.departmentCode` if the backend provides it, else the first
+   `orgScope` code matching a template's `departments`, else the only template. Marked "Suggested for your department".
+3. **Category** (`CaseCategory`) and **dynamic fields** in template order: `TEXT`, `TEXTAREA`, `SELECT`, `MULTISELECT`
+   (checkboxes), `BOOLEAN` (yes/no radios, so a required yes/no must be *answered*, "No" is valid), `DATE`; unknown types
+   fall back to a text input. `required` and `maxLength` are validated client-side; answers of fields not in the
+   selected template are never sent.
+4. **Body map** (`src/components/BodyMap.tsx`) – SVG front/back drawing (pointer shortcut, `aria-hidden`) **plus a
+   list of native toggle buttons with `aria-pressed`** for keyboard and screen readers; every region from
+   `GET /intake/body-map` is in the list, including codes the drawing does not know. Codes like `HAND_R` / `KNEE_LEFT`
+   are drawn from `src/components/bodyMapGeometry.ts`. `BODY_MAP` → `bodyParts`, `SYMPTOMS` (from
+   `template.symptomOptions`) → `symptoms`. If the template has no `BODY_MAP` field the map is shown as optional.
+5. **Description** (≤ 4000), **preferred contact**, **explicit consent** checkbox for OH assessment (required) and
+   optional purposes (collapsed) → `consent:{assessment:true, purposes:[…]}`.
+6. **Attachments** – JPEG/PNG/PDF, ≤ 5 MB each, max 5 (`src/intake/attachments.ts`; extension fallback when the WebView
+   reports no MIME type). In the native app a second button opens the camera (`<input type=file accept="image/*"
+   capture="environment">`). Files stay in memory only, are uploaded one by one **after** the case is created, and are
+   dropped afterwards whether the upload succeeded or not (no previews, no object URLs, nothing in the service worker).
+7. Errors: an error summary (focus moves to it; links focus the field without touching the hash route) plus
+   `aria-invalid`/`aria-describedby` on each field. The **acknowledgement** shows the case reference
+   (`{UNIT}-{YYYY}-{NNNNNN}`), the server acknowledgement text and "n of m attachments uploaded".
+
+### Crew declaration (E01-BL-016)
+Shown to everyone (nav "Crew declaration"), explained as "for flight and cabin crew"; non-crew (best-effort detection
+from `/me` `jobCode`/`departmentCode`/`orgScope`) see a pointer to *Contact OH*. Reason, unfit-from (default today),
+expected-until (≥ unfit-from), optional details (≤ 1000). The confirmation explains that **crew scheduling only sees
+"unfit – pending"** and that an AME will make contact.
+
+### Home
+Case cards: case reference (unit + year decoded from `{UNIT}-{YYYY}-{NNNNNN}`, `OH` = Occupational Health), employee-
+friendly case status (incl. `MERGED`), fitness-for-work status (incl. `UNFIT_PENDING` → "Unfit – pending
+assessment"), restriction end date, last update.
 
 ## Auth modes (`src/auth`)
 
@@ -180,6 +228,15 @@ Intune APP – so health information never appears in the app switcher or screen
   COOP/CORP. The dev server has no CSP (Vite HMR needs inline scripts).
 * All API requests use `cache: 'no-store'`; nginx serves `index.html` and `config.json` with `no-store`.
 
+## Tests
+`npm test` runs Vitest in the node environment without a DOM/testing library (no extra dependencies). Stateful screens
+are split into a stateful container and a **hook-free view** (`SelfReferralForm`, `BodyMap`, `TemplateField`,
+`AdviceList`, `CaseCard`): views are rendered with `react-dom/server` for markup/ARIA assertions, and
+`src/test/tree.ts` expands their element tree so tests call the real `onClick`/`onChange` handlers. Coverage includes
+body-map toggling (SVG + keyboard toggle-button list), template-driven rendering and required validation, attachment
+type/size/count rules and multipart upload, RTL switching, advice 404 handling, the case-card projection and the
+fitness declaration.
+
 ## Container
 
 ```bash
@@ -202,6 +259,10 @@ public/                    manifest, sw.js (app shell only), config.json (runtim
 src/auth/                  AuthClient, BFF client, native OIDC+PKCE client, PKCE, SecureStorage, biometric hook
 src/config/                ManagedConfig (MDM) + runtime config loader
 src/security/              idle timeout, PHI-safe logger, privacy screen
-src/screens/               Home, SelfReferral, Consents, Profile
+src/screens/               Home, SelfReferral (+ SelfReferralForm view), FitnessDeclaration, MyAdvice, Consents, Profile
+src/intake/                referral form state/validation, attachment rules + upload, fitness declaration
+src/i18n/                  en/ar/fr strings for the referral form, RTL helper
+src/components/            ui, BodyMap (+ geometry), TemplateField
+src/test/                  test-only helpers (element-tree walker, fixtures)
 nginx.conf, security-headers.conf, Dockerfile
 ```

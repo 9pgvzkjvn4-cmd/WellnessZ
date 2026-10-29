@@ -75,6 +75,7 @@ spec:
         - CREATE SCHEMA IF NOT EXISTS masterdata AUTHORIZATION wz_migrator
         - CREATE SCHEMA IF NOT EXISTS intake AUTHORIZATION wz_migrator
         - CREATE SCHEMA IF NOT EXISTS casemgmt AUTHORIZATION wz_migrator
+        - CREATE SCHEMA IF NOT EXISTS triage AUTHORIZATION wz_migrator
         - CREATE SCHEMA IF NOT EXISTS analytics AUTHORIZATION wz_migrator
       # Grants for wz_app are applied once the managed role exists
       postInitApplicationSQLRefs:
@@ -168,12 +169,12 @@ data:
       GRANT CONNECT, TEMPORARY ON DATABASE wellnessz TO wz_app;
       GRANT CONNECT ON DATABASE wellnessz TO wz_bff;
       GRANT USAGE ON SCHEMA public TO wz_app;
-      FOREACH s IN ARRAY ARRAY['platform','masterdata','intake','casemgmt','analytics'] LOOP
+      FOREACH s IN ARRAY ARRAY['platform','masterdata','intake','casemgmt','triage','analytics'] LOOP
         EXECUTE format('REVOKE ALL ON SCHEMA %I FROM PUBLIC', s);
         EXECUTE format('GRANT USAGE ON SCHEMA %I TO wz_app', s);
       END LOOP;
       ALTER DEFAULT PRIVILEGES FOR ROLE wz_migrator REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
-      ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, analytics;
+      ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, analytics;
       ALTER ROLE wz_app SET statement_timeout = '30s';
       ALTER ROLE wz_bff SET search_path = bff;
     END $$;

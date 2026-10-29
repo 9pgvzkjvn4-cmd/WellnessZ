@@ -18,4 +18,10 @@
     <Class name="com.wellnessz.bff.BffSecurityConfig$SpaOidcLogoutHandler"/>
     <Bug pattern="UNVALIDATED_REDIRECT,XSS_SERVLET"/>
   </Match>
+  <!-- Queue SQL is assembled only from constant fragments selected by a closed switch; every user value (username, roles,
+       filters, paging) is bound as a JDBC "?" parameter. Covered by Increment1IntegrationTest and QueuePerformanceTest. -->
+  <Match>
+    <Class name="com.wellnessz.e02.queue.QueueService"/>
+    <Bug pattern="SQL_INJECTION_SPRING_JDBC,POTENTIAL_XML_INJECTION"/>
+  </Match>
 </FindBugsFilter>

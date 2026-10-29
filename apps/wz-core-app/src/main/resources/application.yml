@@ -23,7 +23,8 @@ spring:
     # migrations run with a separate owner role; the runtime role has DML-only grants
     user: ${WZ_DB_MIGRATOR_USERNAME:${WZ_DB_USERNAME:wz_app}}
     password: ${WZ_DB_MIGRATOR_PASSWORD:${WZ_DB_PASSWORD:}}
-    schemas: platform,masterdata,intake,casemgmt,analytics
+    schemas: platform,masterdata,intake,casemgmt,analytics,triage
+    locations: ${WZ_FLYWAY_LOCATIONS:classpath:db/migration}
     default-schema: platform
     create-schemas: true
     placeholders:
@@ -115,12 +116,18 @@ wellnessz:
     outbound-allowlist:
       crew-rostering: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom]
       hr-systems: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom]
+      catering-hygiene: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom]
   notification:
     quiet-hours:
       start: "21:00"
       end: "07:00"
     email:
       from: ${WZ_NOTIFY_FROM:no-reply@wellnessz.local}
+    oh-workspace-url: ${WZ_OH_WORKSPACE_URL:https://oh.wellnessz.local}
+    oh-contact: ${WZ_OH_CONTACT:Occupational Health service desk}
+  triage:
+    sla:
+      poll-interval: ${WZ_SLA_POLL_INTERVAL:PT60S}
   ehs:
     source-system: ${WZ_EHS_SOURCE_SYSTEM:EHS}
     timezone: ${WZ_EHS_TIMEZONE:UTC}
@@ -151,6 +158,8 @@ spring:
   config:
     activate:
       on-profile: local
+  flyway:
+    locations: classpath:db/migration,classpath:db/demo
   datasource:
     hikari:
       data-source-properties:
@@ -170,7 +179,7 @@ management:
       probability: 1.0
 wellnessz:
   security:
-    cors-origins: http://localhost:5173,http://localhost:5174
+    cors-origins: http://localhost:5173,http://localhost:5174,http://localhost:5175
   ehs:
     mailbox:
       allowed-senders: ${WZ_EHS_ALLOWED_SENDERS:@wellnessz.local}
