@@ -5,11 +5,12 @@
 | **Document** | 01 – Technology Architecture and Technology Selection |
 | **System** | WellnessZ Airline Occupational Health Case Management (OHCM) – base framework |
 | **Audience** | Chief Information Officer, Cyber Governance, Risk & Compliance (GRC) team, architecture board |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Helm chart `0.1.0`; updated for **increment 1** (E01 case intake, E02 clinical triage) **increment 2** (E03 OH record & clinical encounters, E05 fitness for duty, restrictions & return to work) and **increment 3** (E06 absence & sickness management, E07 medical surveillance, statutory medicals & immunisation, E14 scheduling, clinic operations & resource management) |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Helm chart `0.1.0`; updated for **increment 1** (E01 case intake, E02 clinical triage) **increment 2** (E03 OH record & clinical encounters, E05 fitness for duty, restrictions & return to work) **increment 3** (E06 absence & sickness management, E07 medical surveillance, statutory medicals & immunisation, E14 scheduling, clinic operations & resource management) and **increment 4** (E04 injury & illness management, treatment coordination & partner referrals, E08 workers' compensation, insurance & claims coordination, partner portal) |
 | **Status** | Draft for steering-committee review |
 | **Increment 1 documents** | [Solution Design E01/E02](../increment-01/01-Solution-Design-E01-E02.md) · [Requirements Traceability Matrix](../increment-01/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-01/03-Release-Notes-Increment-1.md) · [API Contract](../increment-01/API-Contract-E01-E02.md) |
 | **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
 | **Increment 3 documents** | [Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md) · [Requirements Traceability Matrix](../increment-03/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-03/03-Release-Notes-Increment-3.md) · [API Contract](../increment-03/API-Contract-E06-E07-E14.md) |
+| **Increment 4 documents** | [Solution Design E04/E08](../increment-04/01-Solution-Design-E04-E08.md) · [Requirements Traceability Matrix](../increment-04/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-04/03-Release-Notes-Increment-4.md) · [API Contract](../increment-04/API-Contract-E04-E08.md) |
 | **Companion documents** | 02 – Security and SOC 2 Control Mapping · 03 – Developer Guide |
 
 > **How to read this document.** Every statement about the platform was checked against the source code in the
@@ -33,8 +34,9 @@ are added incrementally on top of this framework through a defined module SPI.
   modules plus, since increment 1, two business modules (`modules/wz-e01-intake`, `modules/wz-e02-triage`); module
   boundaries are enforced by ArchUnit tests. Increment 2 adds a tenth platform module (`platform/wz-documents`) and
   two business modules (`modules/wz-e03-record`, `modules/wz-e05-fitness`); increment 3 adds three business modules
-  (`modules/wz-e06-absence`, `modules/wz-e07-surveillance`, `modules/wz-e14-scheduling`), so the core now consists of
-  ten platform and seven business modules (14 ArchUnit rules).
+  (`modules/wz-e06-absence`, `modules/wz-e07-surveillance`, `modules/wz-e14-scheduling`) and increment 4 two more
+  (`modules/wz-e04-treatment`, `modules/wz-e08-claims`), so the core now consists of ten platform and nine business
+  modules (17 ArchUnit rules).
 - **Identity, access control and audit (E16):** OAuth2 resource server that accepts tokens from several trusted OIDC
   issuers at once (Microsoft Entra ID, Keycloak, Okta and others), vendor-neutral role-claim mapping including Entra ID
   group object-IDs, an attribute-based access-control (ABAC) policy engine with *deny-overrides* and four disclosure
@@ -56,7 +58,9 @@ are added incrementally on top of this framework through a defined module SPI.
   (OIDC Authorization Code + PKCE, MDM managed app configuration); React 19 manager/HR workspace (status-only).
   Browser apps use a **Backend-for-Frontend** (`apps/wz-bff`) so that tokens never reach the browser. Increment 1 adds
   the React **OH clinical workspace** (`web/oh-workspace`) for nurses, physicians, AMEs, the CMO, the Nursing Head,
-  OH administrators, clinic reception and first aiders.
+  OH administrators, clinic reception and first aiders. Increment 4 adds a fourth browser front end, the **partner
+  portal** (`web/partner-portal`, host `partners.<domain>`) for external partner providers and TPA / insurer adjusters,
+  who are admitted only with multi-factor authentication proven in the token.
 - **Deployment assets** for Azure (AKS), Google Cloud (GKE) and a hybrid on-premises option (RKE2/OpenShift with
   CloudNativePG): hardened Helm chart, Terraform, Dockerfiles, local Docker Compose stack.
 
@@ -96,6 +100,25 @@ the roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING` and `CANDIDATE`, th
 notification templates and two proposed retention classes. New schemas: `absence`, `surveillance`, `scheduling`
 (migrations V9–V12).
 
+**What increment 4 added (Section 22):** E04 injury & illness management, treatment coordination & partner referrals
+(treatment plans from eight injury templates with follow-ups and a recovery-variance alert against duration guidelines,
+an employee view in plain language; e-referrals with a required data set, consent check, signed referral letter and a
+FHIR R4 `ServiceRequest`, chased and escalated when reports are overdue; a provider network directory with contracts,
+rate cards, SLAs, network gaps and monthly scorecards; pre-authorisation shared with the payer under consent and
+decided by the TPA adjuster; provider invoices matched against the approval; clinic medication administration with
+allergy and batch checks; outcome measures with a closure guard; telehealth sessions with consent, single-use join
+tokens and secure chat) and E08 workers' compensation, insurance & claims coordination (claim record and lifecycle with
+a case-header badge, statutory and insurer first reports with deadline timers, consent-gated disclosure sets with
+redaction, automatic nurse case manager for lost-time claims and adjuster collaboration through tasks and messages,
+a cost ledger with roll-ups by subsidiary, budget versus actual and a monthly ERP export with reconciliation,
+litigation hold, privilege and medico-legal reports). The **partner portal** is the first front end for external
+users; `PARTNER_PROVIDER` and `TPA_ADJUSTER` are granted by the core API only when the token proves MFA. Platform
+additions: 25 partner organisations (providers, insurers, a TPA, authorities), the `INSURER` share target, four
+document templates, the retention class `CLAIM_RECORD` with case-level legal hold, the consent purpose
+`TELEHEALTH_CONSULTATION`, 13 content-free notification templates, three reference-only outbound destinations
+(`insurer-gateway`, `authority-gateway`, `erp-finance`), four kernel SPIs and the roles `CLAIMS_COORDINATOR`,
+`TPA_ADJUSTER`, `LEGAL_COUNSEL`, `FINANCE` and `PROCUREMENT`. New schemas: `treatment`, `claims` (migrations V13–V15).
+
 **What is deliberately not yet built:** the clinical business modules E03, E04, E06–E12 and E14 (E05 and E13 exist
 only as kernel seeds; E01 and E02 were delivered in increment 1), production broker adapters (Kafka / Azure Service Bus / Google Pub/Sub), enterprise connector
 mappings (HRIS, rostering transport, ERP, insurers), the partner provider portal, the data-warehouse feed and predictive
@@ -109,6 +132,12 @@ partner provider portal is limited to reading documents shared with the partner 
 automatic deletion exists for pre-employment data of candidates who were not hired (anonymised after 12 months);
 OH records are still only flagged. Production connectors to HRIS / time & attendance / crew systems, the IoT fridge
 gateway and a telehealth video platform are extension points (Section 21).
+*Update for increment 4:* E04 and E08 are implemented and the partner portal exists, so the remaining planned
+business modules are E09–E12 (increment 5). Real insurer, authority and ERP connectors (`ClaimsSubmissionGateway`
+default = outbox event plus content-free e-mail), a live FHIR exchange with a partner hospital, a telehealth video
+platform (`TelehealthProvider` default = link provider) and e-prescribing (`EPrescribingGateway` no-op) are extension
+points (Section 22). OH records are still only flagged; claim records follow the same approach, and a litigation hold
+suspends retention for every document of the case.
 
 **Assessment for the CIO.** The framework establishes the controls that are hardest to retrofit – identity federation,
 ABAC with disclosure levels, tamper-evident audit, encryption and key derivation, the outbox/idempotency backbone and the
@@ -128,7 +157,7 @@ policies, and the operating model of the airline's IT organisation, which are re
 
 | # | Assumption |
 |---|---|
-| A1 | The airline uses Microsoft Entra ID as the workforce identity provider; Keycloak or another OIDC provider may be used for partners and for local development. |
+| A1 | The airline uses Microsoft Entra ID as the workforce identity provider; Keycloak or another OIDC provider may be used for partners and for local development. Increment 4: external partner and adjuster users authenticate with MFA enforced at the IdP (Entra ID B2B with Conditional Access, or a Keycloak partner realm with OTP / WebAuthn) and the token carries `amr` / `acr`. |
 | A2 | The primary hosting target is a managed Kubernetes service (AKS or GKE) in an EU region; a hybrid variant keeps PHI on-premises. |
 | A3 | PostgreSQL 16 is acceptable as the system of record (managed: Azure Database for PostgreSQL Flexible Server or Cloud SQL; on-premises: CloudNativePG). |
 | A4 | The EHS incident-management system can deliver incidents as e-mail alerts and/or Excel exports; an API feed may follow. |
@@ -144,7 +173,7 @@ policies, and the operating model of the airline's IT organisation, which are re
 | P3 | **Least privilege at every layer.** | Separate DB roles (migrator owner vs. runtime DML-only with `${app_role}` grants); restricted class E09/E10 visible only to `PSYCH_CLINICIAN`; non-root containers with dropped capabilities. |
 | P4 | **Tamper-evidence and accountability.** | Hash-chained `platform.audit_event`, append-only trigger plus grants, `/api/v1/audit/verify`; correlation id on every request and event. |
 | P5 | **Security by construction rather than by convention.** | Projection types instead of field filtering, allow-listed SQL dimensions, typed configuration, ArchUnit rules, ESLint bans on `console`/`localStorage`. |
-| P6 | **Modular monolith, extractable modules.** | One deployable, ten platform Maven modules plus the business modules under `modules/` (E01, E02 since increment 1; E03, E05 since increment 2; E06, E07, E14 since increment 3), communication across business modules via events and kernel SPIs only; any module can later become a service. |
+| P6 | **Modular monolith, extractable modules.** | One deployable, ten platform Maven modules plus the business modules under `modules/` (E01, E02 since increment 1; E03, E05 since increment 2; E06, E07, E14 since increment 3; E04, E08 since increment 4), communication across business modules via events and kernel SPIs only; any module can later become a service. |
 | P7 | **Reliability through idempotency.** | Transactional outbox, idempotent consumers, `Idempotency-Key`, de-duplication of incidents by `(source_system, external_ref)`, cases by `(source, source_ref)`. |
 | P8 | **Cloud-portable, vendor-neutral.** | Standard OIDC, PostgreSQL, Kubernetes/Helm, OpenTelemetry, pluggable publisher and channel SPIs; Azure, GCP and on-premises values files. |
 | P9 | **Secrets never in source, images or Terraform state.** | `ENC(...)`/`file:` resolution, CSI-mounted files, workload identity, Terraform write-only arguments (`>= 1.11`). |
@@ -174,8 +203,8 @@ component and give an honest delivery status.
 | Group clinics | Clinic devices can send results via HL7 v2 / FHIR R4 inbound; increment 3: E14 runs the clinic diaries, check-in (badge, app or kiosk), queue board and call-next for six seeded clinic sites (`masterdata.clinic_site`: HQ medical centre, airside post, catering room, cargo / engineering clinic, outstation, mobile unit) | Implemented (increment 3) |
 | Candidate (pre-employment) portal (increment 3) | `web/employee-app` with role `CANDIDATE` (identity not in the HRIS master, e.g. `C9001`): only the own pre-employment questionnaire, consent, documents and booking (`/api/v1/me/pre-employment/**`) | Implemented; candidate identity provisioning (IdP) open |
 | IoT fridge gateway (increment 3) | `POST /api/v1/integration/cold-chain/readings` (role `INTEGRATION`, ≤ 5,000 readings per call, device id + temperature + time) → E14 cold-chain log and excursion detection | Endpoint implemented; gateway integration open |
-| Partner provider / TPA portal | Role `PARTNER_PROVIDER` defined; no policy grants it access yet (default deny); FHIR R4 inbound available for partner systems. | Planned |
-| System triggers | E01 `TriggerController`: absence episodes, surveillance results and D&A test triggers (role `INTEGRATION`), crew fitness self-declaration (role `EMPLOYEE`); absence thresholds configurable in E18 (`intake.absence.*`). Increment 3: scheduled triggers – E06 absence trigger rules (`absence-triggers` job), E07 surveillance due list and re-invitation (`surveillance-due`), crew certificate expiry (`crew-certificates`), E14 reminders and no-shows. | Implemented |
+| Partner provider / TPA portal (increment 4) | `web/partner-portal` (host `partners.<domain>`, dev port 5176, same-origin BFF login): `PARTNER_PROVIDER` – referral inbox, accept / decline, appointment, seen, report and invoice upload, telehealth sessions and chat, shared documents; `TPA_ADJUSTER` – claims where the organisation is payer (RTW status and milestones only), shared tasks, secure messages, consented documents, pre-authorisation decisions. Organisation = last segment of `org_scope` (`/PARTNERS/<CODE>`); the core grants both roles only with MFA proof in the token (Section 8.2). Partner hospital systems use `GET /integration/referrals/{id}/fhir` (FHIR R4 `ServiceRequest`) and `POST /integration/referrals/fhir/document-reference`. | Implemented (increment 4); production MFA enrolment and a live FHIR partner open |
+| System triggers | E01 `TriggerController`: absence episodes, surveillance results and D&A test triggers (role `INTEGRATION`), crew fitness self-declaration (role `EMPLOYEE`); absence thresholds configurable in E18 (`intake.absence.*`). Increment 3: scheduled triggers – E06 absence trigger rules (`absence-triggers` job), E07 surveillance due list and re-invitation (`surveillance-due`), crew certificate expiry (`crew-certificates`), E14 reminders and no-shows. Increment 4: recovery variance and follow-up reminders (`treatment-variance`), referral report chasing (`referral-chase`), monthly provider scorecards, statutory / insurer report deadlines (`claims-report-deadlines`, hourly). | Implemented |
 
 ### 4.2 OH case-management core (E01–E14)
 
@@ -188,11 +217,11 @@ at `GET /api/v1/modules`. `KERNEL` means a minimal seed exists in the case kerne
 | E01 | Case intake & incident-triggered case initiation | IMPLEMENTED (increment 1, `modules/wz-e01-intake`) | Configurable intake rule table, EHS webhook + DLQ, self / manager / HR referral templates (en/ar/fr) with body map, walk-in and emergency encounters, system triggers, duplicate detection and merge, recordability classifier with local mapping and closure guard, notification matrix, reconciliation report and dashboard. Case reference `UNIT-YYYY-NNNNNN` per unit and year (`CaseRefGenerator`). |
 | E02 | Clinical triage, risk stratification & case assignment | IMPLEMENTED (increment 1, `modules/wz-e02-triage`) | Versioned triage protocols (JSON, 13 DRAFT protocols awaiting CMO approval) with red-flag hard stop, SLA timers (amber / breach / pause), assignment engine and work queues, escalations and case conferences, complexity score, safety checklists, crew and food-handler status-only APIs, triage QA sampling, telephone triage mode. |
 | E03 | OH record & clinical encounters | IMPLEMENTED (increment 2, `modules/wz-e03-record`) | Chart (problems, allergies, medications, immunisations, job history / ODH, record timeline), 8 versioned encounter templates (JSON, DRAFT until CMO approval) with body map, SOAP, coded diagnosis, e-signature, addenda, entered-in-error and photographs; terminology catalogue; lab orders (HL7 v2 ORM^O01 pull queue) and results (LIS JSON, HL7 v2 ORU^R01, device capture with flagging rules), result worklist with 72 h escalation; CDS (allergy / drug-class, rules, override log); case summary; FHIR R4 and ODH export; AI documentation SPI (no provider). Base-framework seed: encrypted `clinical_summary`, FHIR inbound store. |
-| E04 | Treatment coordination, referrals & provider network | PLANNED | Consent purpose `TREATMENT_SHARING_PARTNER`; partner connector catalogued. |
+| E04 | Injury & illness management, treatment coordination & partner referrals | IMPLEMENTED (increment 4, `modules/wz-e04-treatment`) | Treatment plans from 8 injury templates (goals, interventions, follow-ups booked through `AppointmentBooking`), recovery-variance alerts against E02 duration guidelines, employee plan view and printable `TREATMENT_PLAN`; e-referrals for 14 services with required data set, `TREATMENT_SHARING_PARTNER` consent, signed `REFERRAL_LETTER` and FHIR R4 `ServiceRequest`, partner-portal workflow (accept, appointment, seen, report, invoice), chase and escalation; provider directory with contracts, rate cards, SLAs, network gaps, monthly scorecards and CSV review pack; pre-authorisation (`PREAUTH_REQUEST` shared `INSURER`, SLA 48 h, adjuster / coordinator / insurer-system decision) and invoice matching with costs posted through `CaseCostRecorder`; clinic formulary, stock batches and administration with allergy and batch checks mirrored to the E03 medication list; `EPrescribingGateway` (no-op); outcome measures (NPRS, ODI, QuickDASH, PSFS, LEFS) with `outcome_required` close guard; telehealth sessions (`TelehealthProvider` SPI, consent `TELEHEALTH_CONSULTATION`, single-use hashed tokens, encrypted chat, draft E03 encounter on completion); KPIs; implements `ExternalReferralGateway`. |
 | E05 | Fitness for duty, restrictions & return to work | IMPLEMENTED (increment 2, `modules/wz-e05-fitness`) | Fitness decisions against versioned standards (12 seeded, incl. Part-MED Class 1/2 and cabin crew) with AME / CMO sign-off and certificates; restriction catalogue, job-demand matching, modified-duty proposals; RTW plans with acknowledgements and reviews; HR job offers; crew assessment with limitation codes, roster feed with acknowledgement and reconciliation, CMO crew dashboard; food-handler exclusion / clearance; ill-health retirement and redeployment with appeals; daily expiry / review job. Base-framework seed: `FitnessStatus`, `restrictionUntil`, `POST /cases/{id}/fitness`, status-only `fitness.status.changed.v1`. |
 | E06 | Absence & sickness management | IMPLEMENTED (increment 3, `modules/wz-e06-absence`) | Absence feed (push `POST /integration/absence/episodes`, daily pull through the `AbsenceFeedConnector` SPI – no-op by default) with reconciliation of unknown employees; versioned trigger rules (8 seeded, e.g. 10+ days, frequency, Monday / Friday and post-holiday patterns) with subsidiary overrides and an early-intervention queue; sick certificates (employee photo upload, OH validation, HR sees validity only); long-term absence pathway (milestones at weeks 2, 4, 8, 12, 26, case conferences); management advice requests and OH advice reports (`OH_ADVICE_REPORT`) released after employee review; absence analytics with small-group suppression; `AbsenceSignalListener` to E07. |
 | E07 | Surveillance, statutory medicals & immunisation | IMPLEMENTED (increment 3, `modules/wz-e07-surveillance`) | 13 hazard-driven programmes (content pending CMO validation) with eligibility from job code, hazards and age; due lists, invitations with re-invitation and manager escalation; exposure registers (industrial-hygiene measurements, cosmic dose, pregnancy declarations); result follow-up rules on E03 results (`ResultFollowUpListener`); return-after-serious-illness requirement enforced through `FitnessClearanceGuard`; pre-employment with candidate portal, HR status-only outcome and 12-month purge; crew medical certificates with expiry alerts and a crew-licensing status view; immunisation registry (GS1 barcode lots, titres, reminders, `VACCINATION_CERTIFICATE`); compliance and audit packs (anonymised by default). Base-framework seed: hazard catalogue, job-code hazard profiles, FHIR `Immunization` inbound. |
-| E08 | Claims & insurance coordination | PLANNED | `CaseStatus.CLAIMS`; consent purpose `INSURER_SHARING`; FHIR `Claim` accepted inbound. |
+| E08 | Workers' compensation, insurance & claims coordination | IMPLEMENTED (increment 4, `modules/wz-e08-claims`) | Claim record per case and type (workers' compensation, employer's liability, group medical, third party) with lifecycle NOTIFIED → OPEN → UNDER_REVIEW → SETTLED → CLOSED / LITIGATED, reserves, subrogation and a case-header badge (`ClaimContextProvider`); first reports of injury for three seeded forms (`GB_OSH_F2508`, `AE_LABOUR_INJURY`, `INSURER_FNOL` – pending Legal / HSE sign-off) with deadline timers, `ClaimsSubmissionGateway` SPI and acknowledgements; consent-gated disclosure sets with allowed document types, privilege exclusion and redacted copies; automatic nurse case manager for lost-time claims (48 h KPI) and adjuster collaboration (tasks, messages, RTW status); cost ledger (`CaseCostRecorder` implementation), roll-ups with small-group suppression, budgets, monthly ERP export with checksum and reconciliation; litigation hold (`legalHoldForCase`), privilege, medico-legal / expert / IME requests (IME through `ExternalReferralGateway`); HR status view, DPO disclosure report. Never reads the E03 record (ArchUnit). |
 | E09 | Psychological health & crew peer support – restricted class | PLANNED | Category `PSYCHOLOGICAL` → `RESTRICTED_CLINICAL`; restricted-class deny policy; role `PSYCH_CLINICIAN`; excluded from analytics view. |
 | E10 | Substance-testing programme – restricted class | PLANNED | Category `SUBSTANCE` → `RESTRICTED_CLINICAL` with the same controls as E09. |
 | E11 | Travel health, exposures & communicable disease | PLANNED | Category `EXPOSURE`; EHS exposure rule. |
@@ -207,23 +236,24 @@ at `GET /api/v1/modules`. `KERNEL` means a minimal seed exists in the case kerne
 > modules must call it on every entry point (see the Developer Guide). Increment 3 seeds `modules.e06.enabled=true` in
 > V10. Note: the business modules of increments 2 and 3 (E03, E05, E06, E07, E14) register through `CaseModule` and
 > report the flag at `GET /api/v1/modules`, but their services do not yet call `requireEnabled` – switching one of
-> them off is therefore not enforced today (open item O17).
+> them off is therefore not enforced today (open item O17). The same applies to E04 and E08 (V14 / V15 seed
+> `modules.e04.enabled` and `modules.e08.enabled`).
 
 ### 4.3 Platform services
 
 | Logical service | Technical realisation | Status |
 |---|---|---|
-| **E15 Integration & API gateway** – HL7 FHIR R4 | `FhirController`: `POST /api/v1/integration/fhir/{type}` (JSON only, 11 allow-listed resource types, strict parser), `GET .../metadata` CapabilityStatement; HAPI FHIR structures R4 8.12.1. Raw resources stored encrypted in `platform.inbound_message`; `integration.inbound.received.v1` emitted. | Implemented (inbound store); increment 2: HL7 v2 ORU^R01 results mapped into `ohrecord.result` (`OruResultListener`), FHIR R4 `Bundle` export of the OH record (`GET /employees/{id}/fhir`); FHIR inbound mapping for E07 planned |
+| **E15 Integration & API gateway** – HL7 FHIR R4 | `FhirController`: `POST /api/v1/integration/fhir/{type}` (JSON only, 11 allow-listed resource types, strict parser), `GET .../metadata` CapabilityStatement; HAPI FHIR structures R4 8.12.1. Raw resources stored encrypted in `platform.inbound_message`; `integration.inbound.received.v1` emitted. | Implemented (inbound store); increment 2: HL7 v2 ORU^R01 results mapped into `ohrecord.result` (`OruResultListener`), FHIR R4 `Bundle` export of the OH record (`GET /employees/{id}/fhir`); increment 4: FHIR R4 partner exchange for e-referrals (`ServiceRequest` out, `DocumentReference` in – E04 `FhirMapper`, Section 14.27); FHIR inbound mapping for E07 planned |
 | E15 – HL7 v2 | `Hl7v2Controller`: ER7 over HTTPS, HAPI HL7 v2 2.6.0 (`hapi-structures-v25`), ACK `AA`/`AR`. MLLP is terminated by an integration engine/gateway. | Implemented |
 | E15 – ODH / SNOMED / ICD / LOINC | `CodeSystem` enum with canonical URIs; `TerminologyService` over `platform.code_concept` (7 illustrative seed concepts). Licensed releases or terminology server: planned. Increment 2: `TerminologyCatalog` (E03) adds word- and code-prefix search, favourites, recently used codes, local mappings, bulk import and a release register (`platform.terminology_release`); ODH work information exported as FHIR (`GET /employees/{id}/odh`) – Section 14.19 | Extension point (starter content implemented) |
 | E15 – OAuth2 | All integration endpoints require role `INTEGRATION`, `PLATFORM_ADMIN` or `OH_ADMIN` via client-credentials tokens from a trusted issuer. | Implemented |
 | E15 – Event bus with idempotency & replay | `EventBus` → `platform.outbox_event` → `OutboxRelay` → `EventPublisher` SPI; `IdempotentConsumer`; `IdempotencyService` (`Idempotency-Key`); `GET /integration/events`, `POST /integration/events/{id}/replay`. | Implemented (in-process); broker adapters extension point |
 | E15 – API gateway | Kubernetes ingress plus WAF (Azure Front Door/App Gateway WAF_v2, GCP Cloud Armor) in Terraform; no dedicated API-management product. | Implemented (infra); APIM optional |
-| **E16 Identity, ABAC, consent, immutable audit** | `wz-security`: multi-issuer resource server, `WellnessZJwtConverter`, `PolicyEngine` + `DefaultPolicies`, `ConsentService`, `AuditService` (hash chain), `SecurityEventAuditor`. | Implemented |
-| **E17 Analytics, KPIs, regulatory reporting, predictive models** | `wz-analytics`: `analytics.v_case_facts`, `KpiService` (one KPI: cases by status), `SmallCellSuppression`, `Pseudonymizer`. Increment 3: module-level aggregates with the same minimum group size (`wellnessz.analytics.min-group-size`) – E06 absence analytics per unit (`UnitAggregator`: absence rate, frequency, average duration, Bradford mean, KPIs) and E07 surveillance compliance (`ComplianceMaths`); groups below the minimum are published as `suppressed: true` without counts. | KPI + suppression implemented; regulatory reports, warehouse feed and models planned |
-| **E18 Master data & no-code configuration** | `wz-masterdata`: org units (materialised path), job codes, hazards, `ConfigService` key/value configuration (JSON values allowed, versioned, audited). Increment 3: clinic sites (`masterdata.clinic_site`, `GET /api/v1/masterdata/clinic-sites`), nine further hazards and five job codes for the surveillance programmes, business keys `absence.*`, `surveillance.*`, `scheduling.*`, `notifications.*` (Section 21.4). | Implemented (data model + API); HRIS sync and configuration UI planned |
-| **Notification gateways** with content rules & quiet hours | `wz-notification`: approved templates with allow-listed placeholders, `ContentRules` (clinical-term and ICD-code detector), `QuietHours` (recipient time zone, URGENT bypass), SMTP channel; SMS/push channel SPI with logging stand-ins. Increment 3: 23 further content-free templates (absence, advice, certificates, surveillance invitations, crew medical expiry, immunisation due, appointments, waitlist offers, calibration and cold-chain alerts); `NotificationRulesTest` renders every template through the content rules. | Implemented (e-mail); SMS/push adapters extension point; event-driven triggering planned |
-| **Document service** (increment 2) | `wz-documents`: template catalogue (`DocumentTemplates`), PDF rendering with Apache PDFBox 3.0.8 (`PdfRenderer`), SHA-256 integrity hash and e-signature, versioning, sharing with consent and disclosure log, scanned-document ingestion (PDF text layer, `OcrProvider` SPI), blind-index full-text search, retention schedule and legal hold (`RetentionService`). Schema `docs`. Increment 3: templates `OH_ADVICE_REPORT`, `VACCINATION_CERTIFICATE`, `PRE_EMPLOYMENT_OUTCOME`; module-level API `storeUpload`, `generateSigned`, `shareAsSystem`, `systemContent` for documents created by modules and jobs rather than by a user in the OH workspace. | Implemented; qualified e-signature and cloud OCR adapters are extension points |
+| **E16 Identity, ABAC, consent, immutable audit** | `wz-security`: multi-issuer resource server, `WellnessZJwtConverter`, `PolicyEngine` + `DefaultPolicies`, `ConsentService`, `AuditService` (hash chain), `SecurityEventAuditor`. Increment 4: MFA gate for external roles in `WellnessZJwtConverter` (`wellnessz.security.mfa-required-roles`, Section 8.2), consent purpose `TELEHEALTH_CONSULTATION`. | Implemented |
+| **E17 Analytics, KPIs, regulatory reporting, predictive models** | `wz-analytics`: `analytics.v_case_facts`, `KpiService` (one KPI: cases by status), `SmallCellSuppression`, `Pseudonymizer`. Increment 3: module-level aggregates with the same minimum group size (`wellnessz.analytics.min-group-size`) – E06 absence analytics per unit (`UnitAggregator`: absence rate, frequency, average duration, Bradford mean, KPIs) and E07 surveillance compliance (`ComplianceMaths`); groups below the minimum are published as `suppressed: true` without counts. Increment 4: E04 treatment cost and KPI views and E08 cost roll-ups by subsidiary / department / cost centre (`CostMath`) suppress units with fewer cases than the minimum group size; finance never sees names. | KPI + suppression implemented; regulatory reports, warehouse feed and models planned |
+| **E18 Master data & no-code configuration** | `wz-masterdata`: org units (materialised path), job codes, hazards, `ConfigService` key/value configuration (JSON values allowed, versioned, audited). Increment 3: clinic sites (`masterdata.clinic_site`, `GET /api/v1/masterdata/clinic-sites`), nine further hazards and five job codes for the surveillance programmes, business keys `absence.*`, `surveillance.*`, `scheduling.*`, `notifications.*` (Section 21.4). Increment 4: partner organisations (`masterdata.partner_organisation`, `GET\|POST /api/v1/masterdata/partner-organisations`, 25 seeded), business keys `treatment.*`, `claims.*` (Section 22.4). | Implemented (data model + API); HRIS sync and configuration UI planned |
+| **Notification gateways** with content rules & quiet hours | `wz-notification`: approved templates with allow-listed placeholders, `ContentRules` (clinical-term and ICD-code detector), `QuietHours` (recipient time zone, URGENT bypass), SMTP channel; SMS/push channel SPI with logging stand-ins. Increment 3: 23 further content-free templates (absence, advice, certificates, surveillance invitations, crew medical expiry, immunisation due, appointments, waitlist offers, calibration and cold-chain alerts); `NotificationRulesTest` renders every template through the content rules. Increment 4: 13 content-free templates (`referral.*`, `treatment.*`, `preauth.status`, `telehealth.invite`, `claim.*`, `legal.request`), placeholder `reference`, partner-portal links (`wellnessz.notification.partner-portal-url`). | Implemented (e-mail); SMS/push adapters extension point; event-driven triggering planned |
+| **Document service** (increment 2) | `wz-documents`: template catalogue (`DocumentTemplates`), PDF rendering with Apache PDFBox 3.0.8 (`PdfRenderer`), SHA-256 integrity hash and e-signature, versioning, sharing with consent and disclosure log, scanned-document ingestion (PDF text layer, `OcrProvider` SPI), blind-index full-text search, retention schedule and legal hold (`RetentionService`). Schema `docs`. Increment 3: templates `OH_ADVICE_REPORT`, `VACCINATION_CERTIFICATE`, `PRE_EMPLOYMENT_OUTCOME`; module-level API `storeUpload`, `generateSigned`, `shareAsSystem`, `systemContent` for documents created by modules and jobs rather than by a user in the OH workspace. Increment 4: share target `INSURER` (active `INSURER_SHARING` consent, disclosure purpose `CLAIM`), `shareAsSystem(actor, id, target, org, consentId)`, `legalHoldForCase`, upload types `PROVIDER_REPORT`, `PROVIDER_INVOICE`, `INSURER_ACKNOWLEDGEMENT`, `REDACTED_COPY`, templates `TREATMENT_PLAN`, `PREAUTH_REQUEST`, `FIRST_REPORT_OF_INJURY`, `MEDICO_LEGAL_REPORT`, retention class `CLAIM_RECORD`. | Implemented; qualified e-signature and cloud OCR adapters are extension points |
 
 ### 4.4 Enterprise and external systems
 
@@ -238,13 +268,14 @@ boundary content.
 | Recruiting / applicant tracking | in / out | offer reference, candidate id; pre-employment status | Increment 3 (E07): `POST /integration/pre-employment` opens the assessment; HR receives `preEmploymentStatus` only (allow-list `hr-systems`) |
 | Crew training & licensing | out | crew medical certificate validity and expiry | Increment 3 (E07): status-only view for `CREW_LICENSING` and `crew.certificate.status.v1`; roster status through the existing kernel feed |
 | IoT fridge monitoring | in | device id, temperature, timestamp | Increment 3 (E14): `POST /integration/cold-chain/readings`; gateway product not selected (decision D16) |
-| Telehealth video platform | out (link) | join URL per appointment | Increment 3 (E14): link only (`scheduling.telehealth-base-url` + random room id); the video service and E04 integration are open (decision D15) |
+| Telehealth video platform | out (link) | join URL per appointment / session | Increment 3 (E14): link only (`scheduling.telehealth-base-url` + random room id). Increment 4 (E04): telehealth sessions through the provider-agnostic `TelehealthProvider` SPI – default link provider (`treatment.telehealth.base-url`) with single-use participant tokens that the video platform redeems at `POST /integration/telehealth/tokens/redeem`; platform not yet procured (decision D15, Section 14.26) |
 | Crew rostering | out | `fitnessStatus`, `restrictionUntil`, `effectiveFrom` (+ `caseRef`, `employeeId` keys); increment 2: `crew.roster-status.changed.v1` with `messageId`, `rosterStatus` (FIT / LIMITED / UNFIT / PENDING), `validFrom`, `validUntil`, `operationalLimitations` | Event produced and guarded; transport adapter is an extension point (logging publisher today). Increment 2 adds a pull feed for the rostering gateway (`GET /integration/roster-feed`, `POST /integration/roster-feed/{messageId}/ack`, reconciliation report; people use `/crew/roster-feed`) |
 | HR systems / catering hygiene | out | fitness & restriction status only | Allow-lists `hr-systems` and (increment 1) `catering-hygiene`; `CaseService.publishFitness` sends every fitness change to `hr-systems`, aeromedical / unclassified cases to `crew-rostering` and food-handler cases to `catering-hygiene`; increment 3 adds `ohEngaged` (absence), `certificateValidity`, `offerRef`, `candidateId`, `preEmploymentStatus` to the `hr-systems` list; transport adapters are an extension point |
 | Laboratories & clinic devices | both | orders / results | Inbound HL7 v2 / FHIR implemented; increment 2: the lab gateway **pulls** new orders (`GET /integration/lis/orders`, HL7 v2 ORM^O01 per order) and acknowledges them, posts results as JSON (`POST /integration/lis/results`) or HL7 v2 ORU^R01 (`POST /integration/hl7v2`); devices or their middleware post to `POST /employees/{id}/results/device` (audiometry, spirometry, vision, ECG with calibration id); increment 3: a device that is out of calibration or out of service in the E14 equipment register is refused (`422 device_out_of_calibration` / `device_out_of_service`) |
-| Partner hospitals, specialists, physio, EAP | both | referrals / reports, consent required | Inbound FHIR implemented; consent gate and outbound planned (E04). Increment 2: signed documents (for example referral letters) can be shared with a partner organisation only with an active `TREATMENT_SHARING_PARTNER` consent; `PARTNER_PROVIDER` users read them at `GET /partner/documents` (organisation from the `org_scope` claim); withdrawal revokes the share immediately |
-| Insurers / TPAs | both | notifications, pre-authorisation, documents, consent required | Planned (E08) |
-| ERP / finance | out | case cost centre, amount, currency | Planned |
+| Partner hospitals, specialists, physio, EAP | both | referrals / reports, consent required | Increment 4 (E04): e-referrals through the partner portal (letter and attachments shared under `TREATMENT_SHARING_PARTNER`, report and invoice upload) or FHIR R4 (`GET /integration/referrals/{id}/fhir` → `ServiceRequest`, `POST /integration/referrals/fhir/document-reference` → report received); tested with a simulated partner, no live partner hospital yet (E04-BL-006). Increment 2: signed documents (for example referral letters) can be shared with a partner organisation only with an active `TREATMENT_SHARING_PARTNER` consent; `PARTNER_PROVIDER` users read them at `GET /partner/documents` (organisation from the `org_scope` claim); withdrawal revokes the share immediately |
+| Insurers / TPAs | both | first report of injury, pre-authorisation, documents, acknowledgements, consent required | Increment 4 (E04 / E08): reference-only event `claim.report.submitted.v1` to `insurer-gateway` (allow-list `messageId, claimRef, reportRef, formCode, payerCode, employeeId, incidentDate, submittedAt, deadlineAt`) plus content-free e-mail pointing to the partner portal; documents only through consent-checked `INSURER` shares; adjusters decide pre-authorisations in the portal or insurer systems call `POST /integration/preauthorisations/{ref}/decision` and `POST /integration/claims/reports/{ref}/acknowledgement`. Real insurer FNOL / pre-auth APIs are a `ClaimsSubmissionGateway` extension point |
+| Reporting authorities (OSH / labour inspectorates) | out | statutory injury notice reference, form code, jurisdiction, deadline | Increment 4 (E08): `claim.report.submitted.v1` to `authority-gateway` (allow-list `messageId, reportRef, formCode, jurisdiction, employerRef, incidentDate, submittedAt, deadlineAt`); legal obligation – no consent, disclosure log with legal basis; authority API connectors are an extension point; form mapping pending Legal / HSE sign-off (E08-BL-003) |
+| ERP / finance | out | cost centre, subsidiary, category, amount, currency (no names) | Increment 4 (E08): monthly export (CSV with SHA-256 checksum) and `claim.cost.export.v1` to `erp-finance` (allow-list `messageId, batchId, month, costCentre, subsidiaryCode, category, amount, currency, entryCount, checksum`); reconciliation against the ERP total (`RECONCILED` / `MISMATCH`); ERP transport adapter is an extension point |
 | SMS / EHS dashboards | out | anonymised OH metrics | KPI API with suppression implemented; push feed planned |
 | Health-campaign app & wearables | both | campaigns, participation, consent required | Planned (E12) |
 
@@ -261,11 +292,12 @@ boundary content.
 | `employee-app` | React 19.3.1, TypeScript 6.0.3, Vite 8.3.5, Capacitor 8.6.0; image `nginxinc/nginx-unprivileged:1.30.6-alpine3.24` | Employee/crew portal, PWA shell, native app source | Static files on `:8080`; `/bff/**` routed to BFF by ingress |
 | `manager-workspace` | React 19.3.1, same toolchain, same nginx image | Status-only workspace for managers, HR, OH | Static files on `:8080` |
 | `oh-workspace` (increment 1) | React 19.3.1, same toolchain, same nginx image | OH clinical workspace (E01 intake, E02 triage, queues, SLA; increment 2 chart, encounters, fitness; increment 3 absence, surveillance, scheduling, reception kiosk, queue board, equipment and cold chain) | Static files on `:8080`; host `oh.<domain>`; `/bff/**` routed to BFF by ingress |
+| `partner-portal` (increment 4) | React 19.3.1, same toolchain, same nginx image | External partner providers and TPA adjusters (referrals, reports, invoices, telehealth, claims, pre-authorisations, shared documents); MFA sign-in page | Static files on `:8080`; host `partners.<domain>` (the only host intended for users outside the airline); `/bff/**` routed to BFF by ingress |
 | `wz-bff` | Spring Boot 4.1.2, Spring Security OAuth2 client, Spring Session JDBC; `eclipse-temurin:21.0.12_8-jre-noble` | OIDC login, session, CSRF, token relay | `:8090`, management `:8091` |
-| `wz-core-app` | Spring Boot 4.1.2 modular monolith, Java 21 (virtual threads enabled) | All APIs, business logic, jobs (outbox relay, mailbox poll, notification dispatch, idempotency purge, SLA timer poller; increment 2: retention flagging, fitness daily job, result escalation; increment 3: absence feed / triggers / LTA, surveillance due list, crew certificates, pre-employment purge, appointment reminders and no-shows, equipment calibration) | `:8080` API, `:8081` management (health, Prometheus) |
+| `wz-core-app` | Spring Boot 4.1.2 modular monolith, Java 21 (virtual threads enabled) | All APIs, business logic, jobs (outbox relay, mailbox poll, notification dispatch, idempotency purge, SLA timer poller; increment 2: retention flagging, fitness daily job, result escalation; increment 3: absence feed / triggers / LTA, surveillance due list, crew certificates, pre-employment purge, appointment reminders and no-shows, equipment calibration; increment 4: treatment variance, referral chase, provider scorecards, claims report deadlines) | `:8080` API, `:8081` management (health, Prometheus) |
 | Flyway migrations | Flyway via Spring Boot starter or `flyway/flyway:11.20.3-alpine` Job | Schema migration with owner role | Job / start-up |
 | PostgreSQL 16 | Managed service or CloudNativePG (`postgresql:16.15`) | System of record | Private endpoint, TLS |
-| Identity provider | Entra ID / Keycloak 26.8.1 (local) / Okta etc. | Authentication, MFA, tokens | External |
+| Identity provider | Entra ID / Keycloak 26.8.1 (local) / Okta etc. | Authentication, MFA (mandatory for partner and adjuster users since increment 4), tokens | External |
 
 ### 5.2 Component view (wz-core-app)
 
@@ -282,7 +314,7 @@ boundary content.
 | `wz-integration` (E15) | `com.wellnessz.integration` | security, secrets | `EventBus`, `OutboxRelay`, `EventPublisher`, `OutboundPayloadGuard`, `IdempotentConsumer`, `IdempotencyService`, `FhirController`, `Hl7v2Controller`, `TerminologyService`, `ConnectorRegistry` |
 | `wz-notification` | `com.wellnessz.notification` | common | `NotificationService`, `NotificationTemplates`, `ContentRules`, `QuietHours`, `NotificationChannel` |
 | `wz-analytics` (E17) | `com.wellnessz.analytics` | security | `KpiService`, `SmallCellSuppression`, `Pseudonymizer`, `AnalyticsController` |
-| `wz-case-kernel` | `com.wellnessz.casekernel` | masterdata, integration, security, secrets | `OhCase`, `CaseService`, `CaseViews`, `CaseModule`, `ModuleRegistry`; increment 1: `OpenCaseCommand`, `CaseRefGenerator`, `CaseTimeline`, `CaseWorkService` (tasks, links, attachments), `CaseAccess`, **`CaseTransitionGuard` SPI** |
+| `wz-case-kernel` | `com.wellnessz.casekernel` | masterdata, integration, security, secrets | `OhCase`, `CaseService`, `CaseViews`, `CaseModule`, `ModuleRegistry`; increment 1: `OpenCaseCommand`, `CaseRefGenerator`, `CaseTimeline`, `CaseWorkService` (tasks, links, attachments), `CaseAccess`, **`CaseTransitionGuard` SPI**; increment 3: seven SPIs (Section 21.1); increment 4: **`CaseCostRecorder`, `ExternalReferralGateway`, `ReferralStatusListener`, `ClaimContextProvider`** |
 | `wz-ehs-intake` | `com.wellnessz.ehsintake` | integration, security, secrets | `ExcelIncidentParser`, `MailboxIngestionJob`, `ImapMailboxReader`, `GraphMailboxReader`, `IncidentIntakeService`; increment 1: `IncidentWebhookService`, `DeadLetterController` |
 | `wz-e01-intake` (increment 1) | `com.wellnessz.e01` | case-kernel, ehs-intake, notification | `E01Module`, `IncidentIntakeListener`, `RuleEngine`, `IntakeRule`, `ReferralService`, `TemplateCatalog`, `EncounterService`, `TriggerService`, `DuplicateService`, `RecordabilityService` (a `CaseTransitionGuard`), `ReconciliationService`, `IntakeNotificationDispatcher`, **`RecipientResolver` SPI** |
 | `wz-e02-triage` (increment 1) | `com.wellnessz.e02` | e01-intake (only for the `RecipientResolver` SPI and notification types) | `E02Module`, `ProtocolCatalog`, `ProtocolEvaluator`, `TriageService`, `SlaService`, `AssignmentEngine`, `AssignmentService`, `QueueService`, `EscalationService`, `ComplexityService`, `SafetyService` (a `CaseTransitionGuard`), `TriageAuditService`, `OhRecipientResolver` |
@@ -292,26 +324,35 @@ boundary content.
 | `wz-e06-absence` (increment 3) | `com.wellnessz.e06` | e05-fitness, documents | `E06Module`, `AbsenceFeedService` + `AbsenceFeedConnector` SPI, `RuleEngine` / `AbsenceTriggerEngine`, `AbsenceQueueService`, `CertificateService`, `LtaService` (calls `AbsenceSignalListener`, books through `AppointmentBooking`), `AdviceService`, `AbsenceAnalyticsService` / `UnitAggregator`, `AbsenceCapacityDemand`, `AbsenceJobs` |
 | `wz-e07-surveillance` (increment 3) | `com.wellnessz.e07` | e03-record, e05-fitness, documents | `E07Module`, `ProgrammeService` / `EnrolmentEngine`, `DueService`, `ExposureService`, `FollowUpService` (a `ResultFollowUpListener`), `RaiService` (`AbsenceSignalListener` + `FitnessClearanceGuard`), `PreEmploymentService`, `CrewCertificateService`, `ImmunisationService` (`Gs1Lot`), `ComplianceService`, `AuditPackService`, `SurveillanceSpi`, `SurveillanceChartContributor`, `SurveillanceJobs` |
 | `wz-e14-scheduling` (increment 3) | `com.wellnessz.e14` | e02-triage, documents | `E14Module`, `CatalogueService`, `SlotEngine` / `BookingRules`, `AppointmentService`, `AppointmentBookingAdapter` (`AppointmentBooking`), `StatusNotifier`, `ClinicQueueService`, `CampaignService` / `CampaignPlanner`, `EquipmentService` / `EquipmentRules`, `EquipmentCalibrationCheck` (`DeviceCalibrationCheck`), `CapacityService`, `SchedulingJobs` |
+| `wz-e04-treatment` (increment 4) | `com.wellnessz.e04` | e03-record, e05-fitness, documents | `E04Module`, `PlanService` / `PlanMaths`, `EReferralService` / `ReferralCore` / `DataSetValidator` / `ChaseRules` / `FhirMapper` (implements `ExternalReferralGateway`), `PartnerReferralService`, `ProviderDirectoryService` / `ScorecardMaths`, `PreauthService` / `InvoiceMatcher` (calls `CaseCostRecorder`, `ClaimContextProvider`), `MedicationAdminService` / `MedicationChecks`, `EPrescribingGateway` (SPI, no-op default), `OutcomeService`, `OutcomeClosureGuard` (`CaseTransitionGuard`), `TelehealthService` / `TokenWindow` + `TelehealthProvider` SPI, `TreatmentChartContributor`, `TreatmentAppointmentListener`, `TreatmentJobs` |
+| `wz-e08-claims` (increment 4) | `com.wellnessz.e08` | e05-fitness (RTW status), documents | `E08Module`, `ClaimService` / `ClaimWorkflow` (implements `ClaimContextProvider`), `NurseAssignmentService`, `ReportService` / `ReportDeadlines` + `ClaimsSubmissionGateway` SPI (`DefaultClaimsSubmissionGateway`), `DisclosureSetService` / `DisclosureRules` / `Redaction`, `CollaborationService`, `CostService` / `CostMath` / `ErpExport` (implements `CaseCostRecorder`), `LegalService` (implements `ReferralStatusListener` for `CLAIM_IME`), `ClaimsJobs`, `ClaimsDemoSeeder` (local / test only) |
 
-ArchUnit rules (`apps/wz-core-app/src/test/java/com/wellnessz/app/ArchitectureTest.java`, 14 rules since increment 3):
+ArchUnit rules (`apps/wz-core-app/src/test/java/com/wellnessz/app/ArchitectureTest.java`, 17 rules since increment 4):
 
 1. Platform packages must not depend on `casekernel`, `ehsintake`, `documents` or any business module (`e01`–`e14`).
 2. `casekernel` must not depend on any business module or on `documents` – modules plug into the kernel through SPIs
-   (`CaseModule`, `CaseTransitionGuard`, `ChartContributor`, the increment-3 SPIs) and events, never the reverse.
+   (`CaseModule`, `CaseTransitionGuard`, `ChartContributor`, the increment-3 and increment-4 SPIs) and events, never
+   the reverse.
 3. `documents` must not depend on any business module (increment 2).
 4. `e03` must not depend on `e05` (increment 2).
 5. `e05` must not depend on `e03` (increment 2).
-6. `e01` / `e02` must not depend on any later module (increments 2 and 3).
+6. `e01` / `e02` must not depend on any later module (increments 2–4, including `e04` and `e08`).
 7. `e03` / `e05` must not depend on `e06`, `e07` or `e14` – they call increment-3 behaviour only through
    `DeviceCalibrationCheck`, `ResultFollowUpListener` and `FitnessClearanceGuard` (increment 3).
-8. `e06` must not depend on `e07` or `e14` (increment 3).
-9. `e07` must not depend on `e06` or `e14` (increment 3).
-10. `e14` must not depend on `e03`, `e05`, `e06` or `e07` – scheduling never reads clinical content (increment 3).
-11. `e01` must not depend on `e02` – E02 depends on E01 through the `RecipientResolver` SPI; the reverse would create
+8. `e03`, `e05`, `e06`, `e07`, `e14` must not depend on `e04` or `e08` – increment-4 modules plug in through
+   `ExternalReferralGateway`, `CaseCostRecorder` and `ClaimContextProvider` (increment 4).
+9. `e04` must not depend on `e08`, `e06`, `e07` or `e14` – it posts costs through `CaseCostRecorder` and reads the
+   claim context through `ClaimContextProvider` (increment 4).
+10. `e08` must not depend on `e04`, `e03`, `e06`, `e07` or `e14` – **claims never read the clinical record**; IMEs go
+    through `ExternalReferralGateway` (increment 4).
+11. `e06` must not depend on `e07` or `e14` (increment 3).
+12. `e07` must not depend on `e06` or `e14` (increment 3).
+13. `e14` must not depend on `e03`, `e05`, `e06` or `e07` – scheduling never reads clinical content (increment 3).
+14. `e01` must not depend on `e02` – E02 depends on E01 through the `RecipientResolver` SPI; the reverse would create
     a cycle (increment 1).
-12. `ehsintake` must not depend on `casekernel` – the two communicate only via `ehs.incident.received.v1`.
-13. `common` must not depend on Spring Security.
-14. No code outside `com.wellnessz.secrets` (the CLI) may use `System.out`/`System.err`.
+15. `ehsintake` must not depend on `casekernel` – the two communicate only via `ehs.incident.received.v1`.
+16. `common` must not depend on Spring Security.
+17. No code outside `com.wellnessz.secrets` (the CLI) may use `System.out`/`System.err`.
 
 ### 5.3 Deployment view
 
@@ -329,7 +370,7 @@ All schemas live in one PostgreSQL 16 database; the BFF uses its own schema and 
 | Schema | Tables / views (migration) | Content | Classification (highest) |
 |---|---|---|---|
 | `platform` | `audit_event`, `consent`, `outbox_event`, `processed_message`, `idempotency_record`, `inbound_message`, `code_concept`, `notification` (V1) | Cross-cutting platform state | CLINICAL (inbound and outbox payloads field-encrypted) |
-| `masterdata` | `org_unit`, `job_code`, `hazard`, `config_entry` (V2); `employee` (HRIS master), `staff_member` (OH staff roster) (V3); fitness standards, restriction catalogue, job-demand profiles (V6); `clinic_site` (V9) | Organisation, job/hazard catalogue, configuration, employee and OH staff master data, clinic sites | CONFIDENTIAL (`employee`), otherwise INTERNAL |
+| `masterdata` | `org_unit`, `job_code`, `hazard`, `config_entry` (V2); `employee` (HRIS master), `staff_member` (OH staff roster) (V3); fitness standards, restriction catalogue, job-demand profiles (V6); `clinic_site` (V9); `partner_organisation` (V13) | Organisation, job/hazard catalogue, configuration, employee and OH staff master data, clinic sites, partner organisations (providers, insurers, TPA, authorities) | CONFIDENTIAL (`employee`), otherwise INTERNAL |
 | `intake` | `import_batch`, `ehs_incident` (V2); `incident_dlq`, `intake_rule`, `incident_evaluation`, `encounter`, `absence_episode`, `trigger_event`, `recordability_assessment`, `recordability_mapping`, `notification_rule` (V4) | EHS incidents, import provenance, E01 rules, encounters, triggers, recordability | CLINICAL (`description`, DLQ payload, encounter clinical fields, recordability rationale encrypted) |
 | `casemgmt` | `oh_case`, sequence `case_ref_seq` (V2); `case_sequence`, `case_link`, `case_event`, `case_task`, `case_attachment` (V3) | Case aggregate, timeline, tasks, links, attachments | CLINICAL / RESTRICTED_CLINICAL (`clinical_summary` and attachment content encrypted) |
 | `triage` (increment 1) | `work_queue`, `sla_policy`, `sla_timer`, `assignment_rule`, `case_assignment`, `triage_protocol`, `triage_assessment`, `escalation`, `case_conference`, `case_risk_flags`, `complexity_assessment`, `duration_guideline`, `case_checklist`, `handover`, `saved_view`, `triage_audit_sample`, `case_advice` (V5) | E02 triage, queues, SLA, assignment, escalation | CLINICAL (triage answers and notes, escalation notes, conference minutes, handover notes, checklist answers encrypted) |
@@ -339,6 +380,8 @@ All schemas live in one PostgreSQL 16 database; the BFF uses its own schema and 
 | `absence` (increment 3) | `feed_run`, `episode`, `feed_mismatch`, `trigger_rule`, `trigger_rule_version`, `queue_item`, `contact`, `certificate`, `certificate_call`, `lta_pathway`, `lta_milestone`, `case_conference`, `advice_request`, `advice_report`, sequence `advice_ref_seq` (V10) | E06 absence episodes and feed reconciliation, trigger rules and queue, certificates, LTA pathway, advice requests and reports | CLINICAL (contact, milestone and conference notes, certificate extraction and validation notes, advice context and decline reason encrypted); episodes with dates, type and reason category are CONFIDENTIAL and never shown to managers with the reason |
 | `surveillance` (increment 3) | `programme`, `employee_profile`, `enrolment`, `completion`, `invitation`, `pre_employment`, `crew_certificate`, `immunisation_requirement`, `vaccine_administration`, `titre`, `immunisation_reminder`, `exposure_group`, `ih_measurement`, `cosmic_dose`, `pregnancy_declaration`, `evaluation_rule`, `follow_up`, `return_after_illness`, `compliance_snapshot`, `audit_pack` (V11) | E07 programmes and enrolments, invitations, pre-employment, crew certificates, immunisations, exposure registers, follow-ups, return after illness, compliance and audit packs | CLINICAL (pre-employment questionnaire and conditions, crew certificate answers, follow-up and return-after-illness notes, exemption reasons encrypted); `employee_profile` holds date of birth and licence types (CONFIDENTIAL) for age-based frequencies |
 | `scheduling` (increment 3) | `appointment_type`, `resource`, `diary_template`, `campaign`, `appointment`, `campaign_slot`, `waitlist_entry`, `equipment`, `calibration`, `temperature_reading`, `excursion` (V12) | E14 service catalogue, resources and diaries, appointments, campaigns, waitlist, equipment register, calibration certificates (`bytea` + SHA-256), cold-chain readings and excursions | CONFIDENTIAL (who has which appointment type when; no clinical content by design); equipment and cold-chain data INTERNAL |
+| `treatment` (increment 4) | `ref_sequence`, `plan_template`, `treatment_plan`, `follow_up`, `variance_alert`, `service_catalogue`, `referral`, `referral_history`, `provider_profile`, `provider_contract`, `provider_scorecard`, `preauth`, `invoice`, `formulary_item`, `stock_batch`, `administration`, `outcome`, `telehealth_session`, `telehealth_token`, `telehealth_message` (V14) | E04 treatment plans and follow-ups, variance alerts, e-referrals and history, provider profiles / contracts / scorecards, pre-authorisations, invoices, clinic formulary, stock and administrations, outcomes, telehealth sessions, tokens and chat | CLINICAL (plan goals and interventions, referral reason, question, data set, report summary and FHIR payload, pre-auth justification, administration dose and allergy override, outcome and follow-up notes, chat text encrypted); telehealth participant tokens stored as hashes only; provider contracts and rates INTERNAL |
+| `claims` (increment 4) | `ref_counter`, `claim`, `claim_history`, `report_form`, `first_report`, `disclosure_set`, `disclosure_set_document`, `claim_task`, `claim_message`, `message_read`, `cost_entry`, `budget`, `cost_export`, `legal_request`, `legal_report` (V15) | E08 claims and lifecycle history, report forms and first reports, disclosure sets, adjuster tasks and messages, cost ledger, budgets, ERP exports, legal requests and medico-legal report versions | CONFIDENTIAL (claim status, payer, amounts); CLINICAL for encrypted free text (claim notes, first-report fields, messages, legal questions); medico-legal reports live in `docs` and are restricted to the legal access set |
 | `analytics` | view `v_case_facts` (V2) | De-identified case facts | INTERNAL (aggregate) |
 | `bff` | `spring_session`, `spring_session_attributes` (`db/bff/V1`) | Browser sessions including OAuth2 tokens | CONFIDENTIAL (attributes encrypted) |
 
@@ -367,6 +410,17 @@ field keys differ per environment. The schema list in all five places named abov
 `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics`.
 The runtime role has no `DELETE` on clinical tables in the new schemas (corrections are state changes); exceptions are
 technical rows (`surveillance.immunisation_reminder`, `surveillance.compliance_snapshot`, `scheduling.diary_template`).
+
+Increment 4 adds migrations V13 (platform: `masterdata.partner_organisation` with 25 seeded organisations – 20
+providers including hub, outstation and layover-city partners and a travel-assistance partner, the payers `GULFTPA`
+(TPA), `AVIA_INSURE` and `GROUPMED` (insurers) and the authorities `AUTH_OSH` and `AUTH_LABOUR_AE` – and the retention
+class `CLAIM_RECORD`), V14 (schema `treatment`, service catalogue, plan templates, provider profiles, contracts and the
+clinic formulary) and V15 (schema `claims`, report forms). Each module migration starts with
+`create schema if not exists`. Demo data for the `local` and `test` profiles only: `R__demo_e04_treatment.sql`,
+`R__demo_e08_claims.sql` and `ClaimsDemoSeeder` (a `local` / `test` bean that fills the encrypted demo fields of E08,
+which SQL cannot do). The schema list in all five places named above now reads
+`platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, treatment,
+claims, analytics`.
 
 Flyway migrations (`apps/wz-core-app/src/main/resources/db/migration`) run as an owner role (`WZ_DB_MIGRATOR_USERNAME`,
 `wz_migrator` in Terraform/CNPG). Each migration grants the runtime role (`${app_role}`, the value of
@@ -427,6 +481,8 @@ To set expectations precisely: the following columns rely on storage encryption 
 | `scheduling.appointment` (increment 3) | Employee, appointment type, site, time, status, check-in ticket | Visible to OH, schedulers and reception (no clinical read); queue board shows tickets, not names |
 | `surveillance.employee_profile` (increment 3) | Date of birth, licence types | OH roles only; used for age-based examination frequencies (e.g. Class 1 every 6 months from age 40) |
 | `scheduling.calibration.document_content` (increment 3) | Calibration certificate (vendor PDF) | Not personal data; integrity by stored SHA-256 |
+| `treatment.referral` status columns, `treatment.preauth` / `invoice` amounts (increment 4) | Service, provider, urgency, dates, status; estimate, approved and invoiced amounts | OH roles and claims coordinators only; partners see their own organisation's referrals (404 otherwise); adjusters see their payer's pre-authorisations without justification |
+| `claims.claim`, `claims.cost_entry`, `claims.cost_export` (increment 4) | Claim type, status, payer, reserves, cost ledger, ERP export rows | Money only for CLAIMS_COORDINATOR, FINANCE, CMO; finance views aggregate by unit with suppression; export rows carry cost centre and category, no names |
 
 ### 6.5 De-identified analytics view
 
@@ -466,6 +522,13 @@ records whose 12-month retention has passed – name replaced, e-mail, questionn
 government reference cleared – and audits each purge (`PRE_EMPLOYMENT_PURGE`). Everything else in the new schemas
 follows the document approach (flagging, legal hold, no automatic deletion).
 
+**Increment 4 update.** One proposed retention class was added (pending DPO approval): `CLAIM_RECORD` 10 years from
+the document date (claim, pre-authorisation, first-report and medico-legal records – limitation period for injury
+claims plus margin). A **litigation hold** set by `LEGAL_COUNSEL` on a claim calls `DocumentService.legalHoldForCase`,
+which puts every document of the case on legal hold, so the retention job no longer lists them; releasing the hold
+releases them again. Medico-legal reports stay in the legal access set (legal counsel and physicians). No new
+automatic purge.
+
 ## 7. Integration architecture
 
 ![Data flow EHS intake to status-only feed](../images/04-dataflow-ehs-intake.png)
@@ -477,7 +540,7 @@ follows the document approach (flagging, legal hold, no automatic deletion).
 | Concern | Implementation |
 |---|---|
 | Publishing | `EventBus.publish(event[, destination])` requires an active transaction (`Propagation.MANDATORY`) and inserts into `platform.outbox_event` in the **same transaction** as the business change – no dual-write problem. |
-| Envelope | `IntegrationEnvelope(messageId, eventType, aggregateType, aggregateId, payload, headers{correlationId}, occurredAt)`; event types are versioned (`ehs.incident.received.v1`, `case.opened.v1`, `fitness.status.changed.v1`, `integration.inbound.received.v1`; increment 1: `case.assigned.v1`, `case.triaged.v1`, `case.escalated.v1`, `sla.at-risk.v1`, `sla.breached.v1`; increments 2 and 3: Sections 20.1 and 21.1). |
+| Envelope | `IntegrationEnvelope(messageId, eventType, aggregateType, aggregateId, payload, headers{correlationId}, occurredAt)`; event types are versioned (`ehs.incident.received.v1`, `case.opened.v1`, `fitness.status.changed.v1`, `integration.inbound.received.v1`; increment 1: `case.assigned.v1`, `case.triaged.v1`, `case.escalated.v1`, `sla.at-risk.v1`, `sla.breached.v1`; increments 2–4: Sections 20.1, 21.1 and 22.1). |
 | Relay | `OutboxRelay` every `PT2S` on every replica; claims due rows with `FOR UPDATE SKIP LOCKED` (batch 50) so replicas never deliver the same row concurrently. |
 | Delivery semantics | At-least-once. Failures increment `attempts`, back-off `2^attempts` seconds capped at one hour; after `max-attempts` (10) the row becomes `DEAD`. |
 | Destinations | `internal` → `InProcessEventPublisher` (Spring application event); any other destination → an `EventPublisher` adapter. Today `LoggingExternalPublisher` (metadata only) stands in. Kafka / Azure Service Bus / Google Pub/Sub adapters are **extension points**. |
@@ -498,6 +561,9 @@ follows the document approach (flagging, legal hold, no automatic deletion).
 | `POST /api/v1/integration/absence/episodes`, `/integration/absence/certificates` (increment 3) | E06 absence feed push (≤ 5,000 rows per batch, `sourceSystem` `HRIS` / `TNA` / `CREW` / `MANUAL`, allow-listed absence types and reason categories) and certificate metadata from source systems; unmatched employees go to the reconciliation list (`absence.feed_mismatch`). Role `INTEGRATION`. |
 | `POST /api/v1/integration/ih-measurements`, `/integration/cosmic-dose`, `/integration/pre-employment` (increment 3) | E07 industrial-hygiene measurements per exposure group (action / limit values evaluated), annual cosmic dose per crew member (AME review above `surveillance.cosmic-dose-alert-msv`), new pre-employment assessments from recruiting. Role `INTEGRATION`. |
 | `POST /api/v1/integration/cold-chain/readings` (increment 3) | E14 IoT fridge readings (≤ 5,000 per call, device id pattern, −90…60 °C, timestamp); unknown devices are reported back, out-of-range readings open or extend an excursion. Role `INTEGRATION`. |
+| `GET /api/v1/integration/referrals/{id}/fhir`, `POST /integration/referrals/fhir/document-reference` (increment 4) | E04 FHIR R4 partner exchange: the partner hospital system reads the referral as a `ServiceRequest` and returns its report as a `DocumentReference` (`context.related` = ServiceRequest id, base64 attachment) → stored as `PROVIDER_REPORT`, referral `REPORT_RECEIVED`. Role `INTEGRATION`. |
+| `POST /api/v1/integration/preauthorisations/{ref}/decision`, `/integration/claims/reports/{ref}/acknowledgement` (increment 4) | Insurer / TPA systems decide a pre-authorisation (same body as the adjuster in the portal) and acknowledge or reject a submitted first report. Role `INTEGRATION`. |
+| `POST /api/v1/integration/telehealth/tokens/redeem` (increment 4) | The video platform redeems a single-use participant token (hash compared, window 15 minutes before start to the end) and learns the session reference and role – no clinical content. Role `INTEGRATION`. |
 
 All inbound messages are stored encrypted in `platform.inbound_message` with the authenticated client as `received_by`
 and audited (`INBOUND_<format>`). FHIR profile validation (e.g. ODH profiles), patient matching and mapping to clinical
@@ -510,7 +576,7 @@ external destination a list of permitted top-level JSON fields is configured; an
 transaction (`disclosure_violation`), and a destination without a list is refused (`destination_not_allowed`).
 
 ```yaml
-wellnessz.integration.outbound-allowlist:          # as shipped after increment 3
+wellnessz.integration.outbound-allowlist:          # as shipped after increment 4
   crew-rostering:   [messageId, employeeId, fitnessStatus, rosterStatus, restrictionUntil, validFrom, validUntil,
                      operationalLimitations, effectiveFrom]                                  # roster feed: increment 2
   hr-systems:       [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom,
@@ -518,6 +584,10 @@ wellnessz.integration.outbound-allowlist:          # as shipped after increment 
                      offerRef, candidateId, preEmploymentStatus, ohEngaged, certificateValidity]  # increment 3
   catering-hygiene: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom,
                      foodHandlerStatus, excludedFrom, expectedReturn]                       # increments 1–2
+  # increment 4 (E08): references only – documents travel through consent-checked shares
+  insurer-gateway:   [messageId, claimRef, reportRef, formCode, payerCode, employeeId, incidentDate, submittedAt, deadlineAt]
+  authority-gateway: [messageId, reportRef, formCode, jurisdiction, employerRef, incidentDate, submittedAt, deadlineAt]
+  erp-finance:       [messageId, batchId, month, costCentre, subsidiaryCode, category, amount, currency, entryCount, checksum]
 ```
 
 The integration test `fitnessOutcomeIsPublishedToRosteringAsStatusOnly` verifies that a fitness decision produces a
@@ -564,8 +634,8 @@ OIDC discovery and validates signature (algorithms constrained by the JWKS), `ex
 
 | IdP | Typical use | Notes |
 |---|---|---|
-| Microsoft Entra ID | Workforce (employees, crew, managers, OH staff) | App roles in `roles`; security groups in `groups` mapped by object id; v2.0 issuer `https://login.microsoftonline.com/<tenant>/v2.0`. Conditional Access and MFA are configured in Entra ID. |
-| Keycloak | Local development (realm import in `deploy/local/keycloak`), optionally partners | Realm roles in `realm_access.roles`. |
+| Microsoft Entra ID | Workforce (employees, crew, managers, OH staff); increment 4: partner and adjuster users as B2B guests | App roles in `roles`; security groups in `groups` mapped by object id; v2.0 issuer `https://login.microsoftonline.com/<tenant>/v2.0`. Conditional Access and MFA are configured in Entra ID; for guests a Conditional Access policy with an authentication strength is mandatory (Section 14.30). |
+| Keycloak | Local development (realm import in `deploy/local/keycloak`), optionally a partner realm | Realm roles in `realm_access.roles`; MFA through the OTP (`CONFIGURE_TOTP`) or WebAuthn required action and a step-up flow that sets `acr` (Section 14.30). |
 | Okta, Ping, Google, others | Alternatives | Any claim path configurable. |
 
 ### 8.2 Role claim mapping
@@ -583,9 +653,25 @@ Canonical roles (`wz-common Roles`): `EMPLOYEE`, `MANAGER`, `HR`, `OH_CLINICIAN`
 `FIRST_AIDER`; increment 2 adds `DPO`; increment 3 adds `CLINIC_SCHEDULER` (diaries, bookings, campaigns, waitlists –
 demographics and appointment type only), `BIOMEDICAL` (equipment register, calibration, cold-chain logs),
 `CREW_LICENSING` (crew medical certificate validity, status only) and `CANDIDATE` (pre-employment candidate who is not
-yet in the HRIS master – own questionnaire, consent, documents and booking only), 25 roles in total. `Roles.OH_TEAM` groups the clinical roles (`OH_CLINICIAN`, `OH_PHYSICIAN`, `AME`, `CMO`, `NURSING_HEAD`,
+yet in the HRIS master – own questionnaire, consent, documents and booking only); increment 4 adds
+`CLAIMS_COORDINATOR` (claims, e-reporting, costs, disclosure sets, pre-authorisation follow-up – no clinical record),
+`TPA_ADJUSTER` (external adjuster of the payer organisation, partner portal only), `LEGAL_COUNSEL` (litigation hold,
+privilege, medico-legal requests), `FINANCE` (cost roll-ups, budgets, ERP export – money by unit, never names) and
+`PROCUREMENT` (provider directory, contracts, rates, SLAs), and gives the existing `PARTNER_PROVIDER` its first
+access – 30 roles in total. `Roles.OH_TEAM` groups the clinical roles (`OH_CLINICIAN`, `OH_PHYSICIAN`, `AME`, `CMO`, `NURSING_HEAD`,
 `CASE_MANAGER`, `PSYCH_CLINICIAN`); `Roles.FITNESS_DECIDERS` lists who may record a fitness decision. The role
-responsibilities and segregation of duties are described in document 02, Sections 11, 12.1 and 13.1.
+responsibilities and segregation of duties are described in document 02, Sections 11, 12.1, 13.1 and 14.1.
+
+**MFA gate for external roles (increment 4).** `WellnessZJwtConverter` drops every role listed in
+`wellnessz.security.mfa-required-roles` (env `WZ_MFA_REQUIRED_ROLES`, default `PARTNER_PROVIDER,TPA_ADJUSTER`) unless
+the token proves multi-factor authentication: an `amr` value in `wellnessz.security.mfa-amr-values` (default `mfa`,
+`otp`, `totp`, `hwk`, `swk`, `sms`, `webauthn`, `fido` – RFC 8176 plus common IdP values) or an `acr` value in
+`wellnessz.security.mfa-acr-values` (default `2`, `3`, `mfa`, `c1`). A partner who signed in with a password only
+therefore holds no partner role, `GET /api/v1/me` reports no partner role and the portal shows its *multi-factor
+sign-in required* page; every partner endpoint answers `403`. The gate is on by default and switched off only in the
+`local` profile (the demo realm has no OTP enrolment; set `WZ_MFA_REQUIRED_ROLES=PARTNER_PROVIDER,TPA_ADJUSTER` to
+rehearse it). The IdP enforces MFA; the gate makes the API independent of a misconfigured IdP policy. Unit test:
+`MfaRoleGateTest`. How each IdP produces the claim is described in Section 14.30.
 
 > The BFF maps roles from the ID and access token for **UI gating** (session roles and the `/bff/api/workspace/**`
 > gate), applying the same group mapping as the core API through `wellnessz.bff.group-role-mapping` (Entra group object
@@ -619,6 +705,15 @@ disclosure**. `GET /api/v1/me` reports `STATUS_ONLY` for `CREW_LICENSING` and `C
 `E14Roles`, E07 `Spel`), and the responses for these roles are projection types without clinical fields (appointment
 type instead of reason, certificate validity instead of findings).
 
+Increment 4 again adds no disclosure level. `GET /api/v1/me` reports `STATUS_ONLY` for `CLAIMS_COORDINATOR`,
+`TPA_ADJUSTER`, `LEGAL_COUNSEL`, `FINANCE`, `PROCUREMENT` and `PARTNER_PROVIDER`. External users are isolated by
+**organisation**: the organisation code is the last segment of `org_scope` (`/PARTNERS/CITYHOSP` → `CITYHOSP`); a partner
+sees only referrals, telehealth sessions and shares addressed to that organisation, an adjuster only claims and
+pre-authorisations where the organisation is the payer – anything else answers `404`. Claims coordinators, finance,
+legal and procurement have no clinical read (endpoint-level `@PreAuthorize`, projection types, ArchUnit rule 10:
+E08 cannot even reference the E03 record); clinical free text entered in claims, tasks, messages and first reports is
+screened by `ClinicalContentException.screen` (`422 clinical_content_not_allowed`).
+
 Coarse-grained RBAC complements ABAC: URL rules (`/api/v1/integration/**` → INTEGRATION/PLATFORM_ADMIN/OH_ADMIN;
 `/api/v1/audit/**` → AUDITOR/PLATFORM_ADMIN) and `@PreAuthorize` on controllers.
 
@@ -639,6 +734,12 @@ yet. Consent is only one lawful basis; the DPO should confirm where GDPR Art. 9(
 decisions that are recorded in the module rather than in `platform.consent`: the release decision on an OH advice
 report (the employee consents to or declines its release to the requester) and the candidate's pre-employment
 consent (questionnaire processing and the purposes listed in the portal). Both are audited.
+*Increment 4* makes consent the gate for every external flow: e-referrals and the partner shares of letters and
+attachments require an active `TREATMENT_SHARING_PARTNER` consent; pre-authorisation requests, insurer first reports
+and disclosure sets require an active `INSURER_SHARING` consent (the new share target `INSURER`, disclosure purpose
+`CLAIM`); joining a telehealth session requires `TELEHEALTH_CONSULTATION` (new purpose) – each answers
+`422 consent_required` otherwise. Statutory reports to an authority are a legal obligation: no consent, but a
+disclosure-log entry with the legal basis. The UIs offer consent pickers (no free-text consent ids).
 
 ## 9. Security architecture
 
@@ -692,7 +793,8 @@ core API enforces ABAC again.
 | Others | – | – | `X-Content-Type-Options: nosniff`, `Permissions-Policy`, COOP, CORP |
 
 CORS on the core API is closed by default and is only opened (`WZ_CORS_ORIGINS`) for native app WebView origins;
-credentials are not allowed.
+credentials are not allowed. (The `local` profile and the Docker Compose stack list the four dev servers
+`http://localhost:5173`–`5176`; the partner portal on 5176 was added in increment 4.)
 
 ### 9.4 Mobile security and MDM
 
@@ -770,7 +872,7 @@ Binary Authorization (enforced), shielded nodes, Cloud Armor WAF.
 
 | Layer | Today | Planned |
 |---|---|---|
-| Source | `analytics.v_case_facts` (de-identified, restricted class excluded); increment 3: E06 absence aggregates per unit and E07 compliance per programme / unit computed in the modules with the same minimum group size | Per-module fact views (claims, health promotion) and a warehouse feed with the same rules |
+| Source | `analytics.v_case_facts` (de-identified, restricted class excluded); increment 3: E06 absence aggregates per unit and E07 compliance per programme / unit computed in the modules with the same minimum group size; increment 4: E04 treatment KPIs, costs per unit and provider scorecards, E08 cost roll-ups by subsidiary / department / cost centre, budget versus actual and the ERP export | Per-module fact views (health promotion) and a warehouse feed with the same rules |
 | Query API | `GET /api/v1/analytics/kpis/cases-by-status?groupBy=orgUnit\|category\|source\|month` – dimensions are allow-listed and mapped to SQL expressions (no user input in SQL) | Further KPIs, regulatory reports (e.g. occupational-disease notifications, statutory surveillance coverage) |
 | Disclosure control | `SmallCellSuppression`: primary suppression of cells with `0 < n < k`; complementary suppression when exactly one cell is suppressed (next-smallest cell also hidden); `k` from `WZ_ANALYTICS_MIN_GROUP` (default 5), values below 3 rejected at start-up | Row/column-wise complementary suppression for multi-dimensional tables; differencing protection across successive queries |
 | Pseudonymisation | `Pseudonymizer`: HMAC-SHA256 with `WZ_PSEUDONYM_KEY` (≥ 256-bit), key held only by the platform | Used for warehouse extracts and model training sets (not yet called) |
@@ -783,6 +885,12 @@ counts; reason categories appear only in the OH variant. `ComplianceMaths` (E07)
 with fewer enrolled people. Audit packs are anonymised by default (pseudonymous subject ids, no names, small groups as
 `<k`); only the CMO and the Nursing Head may generate identifiable packs. With the small demo population most groups
 are therefore suppressed – this is intended.
+
+Increment 4: E08 `CostMath` suppresses roll-up units with fewer cases than the minimum group size (`suppressed:
+true`, no amounts, no names); budget versus actual is reported per unit without suppression because it contains no
+person-level dimension. Roll-ups, budget versus actual and the ERP export count `INVOICE` and `PAYMENT` entries only
+(`ESTIMATE` and `RESERVE` are exposure on the claim) and convert amounts to `claims.base-currency` (GBP) with
+`claims.fx-rates`; E04 cost and KPI views sum base-currency amounts only (`treatment.base-currency`).
 
 Two clarifications for GRC: (1) the seeded configuration key `analytics.min-group-size` in `masterdata.config_entry`
 is informational – `KpiService` reads the application property; (2) the KPI endpoint is open to MANAGER and HR at
@@ -804,7 +912,7 @@ organisation-wide level; suppression is the control, not org scope.
 | Aspect | Design |
 |---|---|
 | Stateless compute | Core API and BFF are stateless (BFF sessions in PostgreSQL); 2 replicas minimum, HPA 2–6 on CPU 70 % / memory 80 %, PDB `minAvailable: 1`, topology spread across zones. |
-| Concurrency in jobs | Outbox relay, notification dispatch and (increment 1) the SLA timer poller use `SKIP LOCKED`; audit chain uses an advisory lock (a throughput ceiling for audit writes – acceptable for expected volumes, to be load-tested); mailbox job tolerant of concurrent runs. Daily and quarter-hourly jobs of increments 2 and 3 run once per run key across replicas through `JobRunGuard` (`platform.scheduled_job_run`). |
+| Concurrency in jobs | Outbox relay, notification dispatch and (increment 1) the SLA timer poller use `SKIP LOCKED`; audit chain uses an advisory lock (a throughput ceiling for audit writes – acceptable for expected volumes, to be load-tested); mailbox job tolerant of concurrent runs. Daily, hourly and quarter-hourly jobs of increments 2–4 run once per run key across replicas through `JobRunGuard` (`platform.scheduled_job_run`). |
 | Virtual threads | Enabled (`spring.threads.virtual.enabled`), reducing thread-pool tuning for I/O-bound workloads. |
 | Database HA | Azure Flexible Server zone-redundant HA (standby zone 2), Cloud SQL `REGIONAL`, CNPG 3 instances with at least one synchronous standby (`dataDurability: required`). |
 | Backups | Azure: 35-day retention, geo-redundant backup (default on), CMK; GCP: 30 retained backups, 7 days of transaction logs (PITR); CNPG: continuous WAL archiving + scheduled base backups to object storage. |
@@ -836,6 +944,7 @@ fitness-for-duty decisions during an outage.
 | OCR (increment 2, optional) | Tesseract OCR – Apache License 2.0, installed separately on the host / image (not bundled). Cloud alternatives (Azure AI Document Intelligence, Google Document AI) are pay-per-page services under the cloud agreement; a DPA and data-residency review apply. |
 | Terminology starter content (increment 2) | V7 seeds a small starter subset of ICD-10, LOINC and SNOMED CT concepts for development, demos and tests, recorded in `platform.terminology_release` with its licence note. Production loads the licensed national editions through `POST /api/v1/terminology/concepts/import`; the SNOMED CT sample requires the affiliate licence wherever the software is used (open item O13). |
 | GS1 barcodes (increment 3) | Vaccine packs are scanned as GS1 DataMatrix / GS1-128 element strings (GTIN, lot, expiry) and parsed server-side by `Gs1Lot`; the GS1 General Specifications are freely available and reading barcodes needs no GS1 membership. No barcode library is bundled (a keyboard-wedge scanner types the element string). |
+| FHIR R4 partner exchange, telehealth, e-prescribing (increment 4) | No new library: the FHIR `ServiceRequest` / `DocumentReference` mapping is plain JSON in `FhirMapper` (HAPI FHIR structures already present); no video SDK is bundled. Licences of the telehealth video platform, insurer / authority connectors and a national e-prescription service are procurement items (decisions D15, D18, D19). |
 | Commercial options | Eclipse Temurin is free; commercial Java support (e.g. from Microsoft, Red Hat, Azul) optional. Terminology servers (Ontoserver – commercial; Snowstorm – Apache 2.0) to be chosen. |
 
 ## 14. Technology selection rationale
@@ -880,6 +989,7 @@ partners.
 |---|---|---|---|
 | Workforce SSO, MFA, Conditional Access, device compliance (Intune) | native | via external IdP brokering | native (own policy engine) |
 | Partner / external identities | Entra External ID (B2B/B2C) | realms per audience | Okta CIC / Ping |
+| MFA proof in the access token (increment 4) | `amr` (for example `mfa`) after Conditional Access; authentication context `c1` via `acrs` (Section 14.30) | `acr` level of authentication (`2` after OTP / WebAuthn step-up) and optional AMR mapper | `amr` / `acr` configurable |
 | Operating effort | SaaS | must be operated, patched, made HA | SaaS |
 | Cost | often included in M365 E3/E5 | none (support optional) | per user |
 | Framework support | app roles + group GUID mapping | realm/client roles | configurable claim paths |
