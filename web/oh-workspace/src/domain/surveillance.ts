@@ -133,7 +133,7 @@ export function crewExpiryBand(validUntil: string | null | undefined, today: str
 // ---------------------------------------------------------------- CSV / JSON import
 /** RFC 4180-ish CSV: quoted fields, escaped quotes, CRLF / LF, comma or semicolon (detected from the header). */
 export function parseCsv(text: string): string[][] {
-  const src = text.replace(/^﻿/, '');
+  const src = text.replace(/^\uFEFF/, '');
   const firstLine = src.split(/\r?\n/, 1)[0] ?? '';
   const sep = (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ';' : ',';
   const rows: string[][] = [];
@@ -381,4 +381,18 @@ export function toggleAll(sel: ReadonlySet<string>, visible: readonly string[]):
     else n.add(id);
   }
   return n;
+}
+
+// ---------------------------------------------------------------- fast entry
+export type IdMode = 'AUTO' | 'EMPLOYEE' | 'BADGE';
+
+/**
+ * Employee ID vs badge for immunisation entry. AUTO treats `E1004`-style ids (one letter + 4–8 digits) as employee ids and
+ * anything else (e.g. a scanned badge number) as a badge id.
+ */
+export function employeeOrBadge(raw: string, mode: IdMode = 'AUTO'): { employeeId: string } | { badgeId: string } | undefined {
+  const v = raw.trim();
+  if (!v || v.length > 40 || !/^[A-Za-z0-9-]+$/.test(v)) return undefined;
+  if (mode === 'EMPLOYEE' || (mode === 'AUTO' && /^[A-Za-z]\d{4,8}$/.test(v))) return { employeeId: v.toUpperCase() };
+  return { badgeId: v };
 }

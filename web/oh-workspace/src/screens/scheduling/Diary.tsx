@@ -226,7 +226,7 @@ function DayGrid({
     const p = decodeAppointmentDrag(e.dataTransfer.getData(APPOINTMENT_DRAG_MIME));
     const a = p && diary.appointments.find((x) => x.id === p.id);
     if (!p || !a) return;
-    const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
+    const y = Number.isFinite(e.clientY) ? e.clientY - e.currentTarget.getBoundingClientRect().top : 0;
     const m = snapMinutes(lo + y / PX_PER_MIN - p.grabOffset, 5, lo, hi);
     const startsAt = zonedToUtcIso(diary.date, m, timeZone);
     if (startsAt === new Date(a.startsAt).toISOString() && (col.key || null) === (a.clinicianUsername ?? null)) return;

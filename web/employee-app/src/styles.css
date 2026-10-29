@@ -840,3 +840,84 @@ button.danger:hover {
 [dir='rtl'] .details {
   text-align: start;
 }
+
+/* ---------------------------------------------------------------- increment 3: appointments, absence, advice, surveillance, pre-employment */
+.table-wrap {
+  overflow-x: auto;
+}
+.table-wrap table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.table-wrap th,
+.table-wrap td {
+  text-align: start;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--c-border);
+  vertical-align: top;
+}
+.slot-picker {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem 1rem;
+  margin-top: 0.75rem;
+}
+.slot-day + .slot-day {
+  margin-top: 0.5rem;
+}
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.step-card {
+  border-inline-start: 4px solid var(--c-border);
+}
+.step-card.step-done {
+  border-inline-start-color: var(--c-success);
+}
+.step-card.step-todo {
+  border-inline-start-color: var(--c-accent);
+}
+.badge-appt-booked,
+.badge-appt-checked-in,
+.badge-advice-awaiting-employee,
+.badge-surv-due,
+.badge-imm-due,
+.badge-imm-titre-needed,
+.badge-crew-expiring,
+.badge-step-todo,
+.badge-cert-received,
+.badge-cert-pending {
+  background: var(--c-info-bg);
+  border-color: var(--c-primary);
+}
+.badge-appt-attended,
+.badge-advice-released,
+.badge-surv-current,
+.badge-surv-scheduled,
+.badge-imm-complete,
+.badge-crew-valid,
+.badge-step-done,
+.badge-cert-valid {
+  background: var(--c-success-bg);
+  color: var(--c-success);
+}
+.badge-appt-no-show,
+.badge-surv-overdue,
+.badge-imm-overdue,
+.badge-crew-expired,
+.badge-crew-suspended,
+.badge-cert-invalid {
+  background: var(--c-error-bg);
+  color: var(--c-error);
+}
+.badge-appt-cancelled,
+.badge-advice-withheld,
+.badge-advice-withdrawn,
+.badge-surv-exempt,
+.badge-cert-none {
+  opacity: 0.8;
+}

@@ -45,6 +45,22 @@ import { EncounterEditor } from './encounter/EncounterEditor';
 import { UnsignedNotes } from './encounter/UnsignedNotes';
 import { ActiveRestrictions, CrewDashboard, RosterReconciliation, RtwOverdue, SignoffQueue } from './fitness/WorkScreens';
 import { ResultsWorklist } from './results/ResultsWorklist';
+import { AbsenceChartTab } from './absence/AbsenceChartTab';
+import { AbsenceAdvice } from './absence/Advice';
+import { AbsenceAnalytics, AbsenceFeed } from './absence/Analytics';
+import { AbsenceCertificates } from './absence/Certificates';
+import { LtaDetail, LtaList } from './absence/Lta';
+import { AbsenceQueue } from './absence/Queue';
+import { AbsenceRules } from './absence/Rules';
+import { ComplianceScreen } from './surveillance/Compliance';
+import { CrewCertificates } from './surveillance/Crew';
+import { SurveillanceDue } from './surveillance/Due';
+import { ExposureScreen } from './surveillance/Exposure';
+import { ReturnAfterIllness, SurveillanceFollowUps } from './surveillance/FollowUps';
+import { ImmunisationScreen } from './surveillance/Immunisation';
+import { PreEmploymentScreen } from './surveillance/PreEmployment';
+import { ProgrammeBuilder, ProgrammeList } from './surveillance/Programmes';
+import { SurveillanceChartTab } from './surveillance/SurveillanceChartTab';
 
 /** Initial render (SSR, no effects) of every screen – catches render-time errors without a browser. */
 const client: AuthClient = {
@@ -127,6 +143,29 @@ const screens: [string, ReactElement][] = [
   ['BreakGlassReport', <BreakGlassReport {...base} />],
   ['DisclosureLog', <DisclosureLog {...base} />],
   ['RetentionScreen', <RetentionScreen {...base} />],
+  // increment 3 – E06 absence / E07 surveillance
+  ['AbsenceQueue', <AbsenceQueue {...base} />],
+  ['LtaList', <LtaList {...base} />],
+  ['LtaDetail', <LtaDetail {...base} caseId="c1" />],
+  ['AbsenceCertificates', <AbsenceCertificates {...base} />],
+  ['AbsenceAdvice', <AbsenceAdvice {...base} />],
+  ['AbsenceRules', <AbsenceRules {...base} />],
+  ['AbsenceAnalytics', <AbsenceAnalytics {...base} />],
+  ['AbsenceFeed', <AbsenceFeed {...base} />],
+  ['AbsenceChartTab', <AbsenceChartTab {...base} employeeId="E1004" canWrite refreshSummary={() => {}} />],
+  ['ProgrammeList', <ProgrammeList {...base} />],
+  ['ProgrammeBuilder new', <ProgrammeBuilder {...base} code="new" />],
+  ['ProgrammeBuilder', <ProgrammeBuilder {...base} code="HEARING_CONSERVATION" />],
+  ['SurveillanceDue', <SurveillanceDue {...base} />],
+  ['SurveillanceFollowUps', <SurveillanceFollowUps {...base} />],
+  ['ReturnAfterIllness', <ReturnAfterIllness {...base} />],
+  ['PreEmploymentScreen', <PreEmploymentScreen {...base} />],
+  ['CrewCertificates', <CrewCertificates {...base} />],
+  ['ImmunisationScreen', <ImmunisationScreen {...base} />],
+  ['ExposureScreen', <ExposureScreen {...base} />],
+  ['ComplianceScreen', <ComplianceScreen {...base} />],
+  ['SurveillanceChartTab', <SurveillanceChartTab {...base} employeeId="E1004" canWrite refreshSummary={() => {}} />],
+  ...(['absence', 'surveillance'].map((t) => [`Chart ${t}`, <ChartScreen {...base} employeeId="E1004" tab={t} />]) as [string, ReactElement][]),
 ];
 
 describe('screen render smoke test', () => {

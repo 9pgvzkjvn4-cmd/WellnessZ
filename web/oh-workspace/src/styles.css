@@ -1522,3 +1522,40 @@ details.legacy > summary {
   cursor: pointer;
   font-weight: 600;
 }
+
+/* ---- Increment 3: E06 absence / E07 surveillance ---- */
+tr.row-selected {
+  background: var(--c-surface-2);
+  box-shadow: inset 4px 0 0 var(--c-accent);
+}
+tr.row-suppressed th,
+tr.row-suppressed td {
+  color: var(--c-muted);
+}
+.kpi-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.kpi-tile.kpi-missed {
+  border-color: var(--c-red);
+}
+.kpi-label {
+  font-weight: 600;
+}
+.trend-line {
+  stroke: var(--c-accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.trend-line-1 {
+  stroke: var(--c-amber);
+}
+.target-line {
+  stroke: var(--c-muted);
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+.line-trend svg {
+  height: 6rem;
+}

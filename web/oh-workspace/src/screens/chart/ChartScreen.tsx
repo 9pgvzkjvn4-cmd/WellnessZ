@@ -4,9 +4,11 @@ import { can } from '../../auth/roles';
 import { formatDay, humanise } from '../../components/format';
 import { Empty, ErrorAlert, Loading, PageTitle, StatusBadge, TabNav, type TabDef } from '../../components/ui';
 import { useAsync } from '../../components/useAsync';
+import { AbsenceChartTab } from '../absence/AbsenceChartTab';
 import { DocumentsPanel } from '../documents/DocumentsPanel';
 import { EncounterList } from '../encounter/EncounterList';
 import { ResultsTab } from '../results/ResultsTab';
+import { SurveillanceChartTab } from '../surveillance/SurveillanceChartTab';
 import type { ScreenProps } from '../types';
 import { BreakGlass } from './BreakGlass';
 import type { ChartTabProps } from './chartTabProps';
@@ -23,6 +25,8 @@ const CHART_TABS: TabDef[] = [
   { id: 'documents', label: 'Documents' },
   { id: 'encounters', label: 'Encounters' },
   { id: 'timeline', label: 'Timeline' },
+  { id: 'absence', label: 'Absence' },
+  { id: 'surveillance', label: 'Surveillance' },
 ];
 
 const SEVERITY_SYMBOL: Record<string, string> = { HIGH: '!!', CRITICAL: '!!', MEDIUM: '!', WARNING: '!', LOW: 'i', INFO: 'i' };
@@ -151,6 +155,8 @@ function ChartTabBody({ tab, props }: { tab: string; props: ChartTabProps }) {
     case 'documents': return <DocumentsPanel {...props} />;
     case 'encounters': return <EncounterList {...props} />;
     case 'timeline': return <RecordTimelineTab {...props} />;
+    case 'absence': return <AbsenceChartTab {...props} />;
+    case 'surveillance': return <SurveillanceChartTab {...props} />;
     default: return <ProblemsTab {...props} />;
   }
 }

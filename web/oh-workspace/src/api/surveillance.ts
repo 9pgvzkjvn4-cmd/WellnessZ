@@ -371,7 +371,8 @@ export function surveillanceApi(c: AuthClient) {
     retire: (code: string) => c.api<Programme>(`${prog(code)}/retire`, { method: 'POST' }),
 
     // F02 due list
-    due: (f: { programme?: string; subsidiary?: string; department?: string; status?: string; dueBefore?: string }) =>
+    /** `employeeId` is not in the contract's filter list (used by the chart tab; callers also filter client-side). */
+    due: (f: { programme?: string; subsidiary?: string; department?: string; status?: string; dueBefore?: string; employeeId?: string }) =>
       c.api<Enrolment[]>(`/surveillance/due${buildQuery(f)}`),
     recalculate: () => c.api<{ enrolled: number; updated: number; removed: number }>('/surveillance/due/recalculate', { method: 'POST' }),
     invite: (body: { enrolmentIds: string[]; book: boolean; siteCode?: string; campaignId?: string }) =>

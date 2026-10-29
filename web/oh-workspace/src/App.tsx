@@ -49,6 +49,34 @@ const RtwOverdue = lazy(() => Work().then((m) => ({ default: m.RtwOverdue })));
 const CrewDashboard = lazy(() => Work().then((m) => ({ default: m.CrewDashboard })));
 const RosterReconciliation = lazy(() => Work().then((m) => ({ default: m.RosterReconciliation })));
 const ResultsWorklist = lazy(() => import('./screens/results/ResultsWorklist').then((m) => ({ default: m.ResultsWorklist })));
+// Increment-3 E14 scheduling & clinic operations (one chunk per screen file).
+const Diary = lazy(() => import('./screens/scheduling/Diary').then((m) => ({ default: m.Diary })));
+const Campaigns = lazy(() => import('./screens/scheduling/Campaigns').then((m) => ({ default: m.Campaigns })));
+const CampaignDetail = lazy(() => import('./screens/scheduling/Campaigns').then((m) => ({ default: m.CampaignDetail })));
+const ReceptionKiosk = lazy(() => import('./screens/scheduling/ClinicFlow').then((m) => ({ default: m.ReceptionKiosk })));
+const QueueBoardScreen = lazy(() => import('./screens/scheduling/ClinicFlow').then((m) => ({ default: m.QueueBoardScreen })));
+const EquipmentScreen = lazy(() => import('./screens/scheduling/Equipment').then((m) => ({ default: m.EquipmentScreen })));
+const Capacity = lazy(() => import('./screens/scheduling/Capacity').then((m) => ({ default: m.Capacity })));
+const Catalogue = lazy(() => import('./screens/scheduling/Catalogue').then((m) => ({ default: m.Catalogue })));
+// Increment 3 – E06 absence & E07 surveillance
+const AbsenceQueue = lazy(() => import('./screens/absence/Queue').then((m) => ({ default: m.AbsenceQueue })));
+const LtaList = lazy(() => import('./screens/absence/Lta').then((m) => ({ default: m.LtaList })));
+const LtaDetail = lazy(() => import('./screens/absence/Lta').then((m) => ({ default: m.LtaDetail })));
+const AbsenceCertificates = lazy(() => import('./screens/absence/Certificates').then((m) => ({ default: m.AbsenceCertificates })));
+const AbsenceAdvice = lazy(() => import('./screens/absence/Advice').then((m) => ({ default: m.AbsenceAdvice })));
+const AbsenceRules = lazy(() => import('./screens/absence/Rules').then((m) => ({ default: m.AbsenceRules })));
+const AbsenceAnalytics = lazy(() => import('./screens/absence/Analytics').then((m) => ({ default: m.AbsenceAnalytics })));
+const AbsenceFeed = lazy(() => import('./screens/absence/Analytics').then((m) => ({ default: m.AbsenceFeed })));
+const ProgrammeList = lazy(() => import('./screens/surveillance/Programmes').then((m) => ({ default: m.ProgrammeList })));
+const ProgrammeBuilder = lazy(() => import('./screens/surveillance/Programmes').then((m) => ({ default: m.ProgrammeBuilder })));
+const SurveillanceDue = lazy(() => import('./screens/surveillance/Due').then((m) => ({ default: m.SurveillanceDue })));
+const SurveillanceFollowUps = lazy(() => import('./screens/surveillance/FollowUps').then((m) => ({ default: m.SurveillanceFollowUps })));
+const ReturnAfterIllness = lazy(() => import('./screens/surveillance/FollowUps').then((m) => ({ default: m.ReturnAfterIllness })));
+const PreEmploymentScreen = lazy(() => import('./screens/surveillance/PreEmployment').then((m) => ({ default: m.PreEmploymentScreen })));
+const CrewCertificates = lazy(() => import('./screens/surveillance/Crew').then((m) => ({ default: m.CrewCertificates })));
+const ImmunisationScreen = lazy(() => import('./screens/surveillance/Immunisation').then((m) => ({ default: m.ImmunisationScreen })));
+const ExposureScreen = lazy(() => import('./screens/surveillance/Exposure').then((m) => ({ default: m.ExposureScreen })));
+const ComplianceScreen = lazy(() => import('./screens/surveillance/Compliance').then((m) => ({ default: m.ComplianceScreen })));
 
 type Notice = 'idle' | 'expired' | undefined;
 
@@ -61,6 +89,12 @@ function renderRoute(route: string, props: ScreenProps): ReactNode {
   if (encMatch?.[1] && encMatch[1] !== 'unsigned') return <EncounterEditor key={encMatch[1]} {...props} encounterId={decodeURIComponent(encMatch[1])} />;
   const empMatch = /^\/employees\/([^/]+)\/timeline$/.exec(route);
   if (empMatch?.[1]) return <EmployeeTimelineScreen {...props} employeeId={decodeURIComponent(empMatch[1])} />;
+  const campaignMatch = /^\/scheduling\/campaigns\/([^/]+)$/.exec(route);
+  if (campaignMatch?.[1]) return <CampaignDetail key={campaignMatch[1]} {...props} campaignId={decodeURIComponent(campaignMatch[1])} />;
+  const ltaMatch = /^\/absence\/lta\/([^/]+)$/.exec(route);
+  if (ltaMatch?.[1]) return <LtaDetail key={ltaMatch[1]} {...props} caseId={decodeURIComponent(ltaMatch[1])} />;
+  const progMatch = /^\/surveillance\/programmes\/([^/]+)$/.exec(route);
+  if (progMatch?.[1]) return <ProgrammeBuilder key={progMatch[1]} {...props} code={decodeURIComponent(progMatch[1])} />;
   const incMatch = /^\/intake\/incidents(?:\/([^/]+))?$/.exec(route);
   if (incMatch) return <IncidentCases {...props} incidentId={incMatch[1] ? decodeURIComponent(incMatch[1]) : undefined} />;
   switch (route) {
@@ -99,6 +133,29 @@ function renderRoute(route: string, props: ScreenProps): ReactNode {
     case '/dpo/break-glass-report': return <BreakGlassReport {...props} />;
     case '/dpo/disclosures': return <DisclosureLog {...props} />;
     case '/dpo/retention': return <RetentionScreen {...props} />;
+    case '/absence/queue': return <AbsenceQueue {...props} />;
+    case '/absence/lta': return <LtaList {...props} />;
+    case '/absence/certificates': return <AbsenceCertificates {...props} />;
+    case '/absence/advice': return <AbsenceAdvice {...props} />;
+    case '/absence/rules': return <AbsenceRules {...props} />;
+    case '/absence/analytics': return <AbsenceAnalytics {...props} />;
+    case '/absence/feed': return <AbsenceFeed {...props} />;
+    case '/surveillance/programmes': return <ProgrammeList {...props} />;
+    case '/surveillance/due': return <SurveillanceDue {...props} />;
+    case '/surveillance/follow-ups': return <SurveillanceFollowUps {...props} />;
+    case '/surveillance/rai': return <ReturnAfterIllness {...props} />;
+    case '/surveillance/pre-employment': return <PreEmploymentScreen {...props} />;
+    case '/surveillance/crew': return <CrewCertificates {...props} />;
+    case '/surveillance/immunisation': return <ImmunisationScreen {...props} />;
+    case '/surveillance/exposure': return <ExposureScreen {...props} />;
+    case '/surveillance/compliance': return <ComplianceScreen {...props} />;
+    case '/scheduling/diary': return <Diary {...props} />;
+    case '/scheduling/campaigns': return <Campaigns {...props} />;
+    case '/scheduling/reception': return <ReceptionKiosk {...props} />;
+    case '/scheduling/queue': return <QueueBoardScreen {...props} />;
+    case '/scheduling/equipment': return <EquipmentScreen {...props} />;
+    case '/scheduling/capacity': return <Capacity {...props} />;
+    case '/scheduling/catalogue': return <Catalogue {...props} />;
     default:
       return (
         <section>
@@ -187,7 +244,7 @@ export function App({ client }: { client: AuthClient }) {
     ? '/queues'
     : /^\/employees\/./.test(route) || (route.startsWith('/encounters/') && route !== '/encounters/unsigned')
       ? '/employees'
-      : route.replace(/^(\/intake\/incidents)\/.*$/, '$1');
+      : route.replace(/^(\/intake\/incidents)\/.*$/, '$1').replace(/^(\/scheduling\/campaigns)\/.*$/, '$1').replace(/^(\/absence\/lta|\/surveillance\/programmes)\/.*$/, '$1');
 
   return (
     <div className="shell">

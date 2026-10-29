@@ -105,6 +105,52 @@ export const FEATURES = {
   disclosureLog: ['DPO'],
   retention: ['DPO', 'OH_ADMIN'],
   retentionWrite: ['DPO'],
+  // E06 absence & sickness (API-Contract-E06-E07-E14 §3). Reception scans / validates certificates (no content shown).
+  absenceQueue: OH,
+  absenceLta: OH,
+  absenceCertificates: [...OH, 'CLINIC_RECEPTION'],
+  certificateVerify: OH,
+  absenceAdvice: OH,
+  adviceReportWrite: CLINICIANS,
+  absenceRules: [...OH, 'OH_ADMIN'],
+  absenceRulesWrite: ['OH_ADMIN'],
+  absenceAnalytics: ['CMO', 'NURSING_HEAD', 'OH_ADMIN'],
+  absenceAnalyticsExport: ['CMO', 'NURSING_HEAD'],
+  absenceFeed: ['OH_ADMIN', 'NURSING_HEAD'],
+  absenceFeedRun: ['OH_ADMIN'],
+  absenceMismatches: ['OH_ADMIN'],
+  // E07 medical surveillance (§4). HSE_OFFICER: exposure + compliance; AUDITOR: compliance / audit packs; CREW_LICENSING: crew status.
+  surveillanceProgrammes: [...OH, 'OH_ADMIN'],
+  programmeWrite: ['OH_ADMIN', 'CMO', 'NURSING_HEAD'],
+  programmeActivate: ['CMO', 'OH_PHYSICIAN'],
+  programmeRetire: ['CMO'],
+  dueRecalculate: ['OH_ADMIN'],
+  surveillanceDue: [...OH, 'CLINIC_SCHEDULER'],
+  enrolmentComplete: CLINICIANS,
+  enrolmentExempt: PHYSICIANS,
+  surveillanceFollowUps: OH,
+  followUpReview: PHYSICIANS,
+  preEmployment: OH,
+  preEmploymentOutcome: CLINICIANS,
+  crewCertificates: ['AME', 'CMO', 'CREW_LICENSING'],
+  crewExam: ['AME'],
+  crewImport: ['AME'],
+  crewAuthorityReport: ['AME', 'CMO'],
+  immunisation: [...OH, 'OH_ADMIN'],
+  immunisationDue: OH,
+  immunisationAdminister: CLINICIANS,
+  immunisationRequirementWrite: ['OH_ADMIN', 'NURSING_HEAD'],
+  exposure: [...OH, 'HSE_OFFICER', 'OH_ADMIN'],
+  segWrite: ['HSE_OFFICER', 'OH_ADMIN'],
+  ihImport: ['HSE_OFFICER'],
+  cosmicDose: ['AME', 'CMO'],
+  cosmicDoseImport: ['AME'],
+  surveillanceCompliance: [...OH, 'HSE_OFFICER', 'AUDITOR', 'OH_ADMIN'],
+  complianceOverdue: OH,
+  auditPacks: ['CMO', 'NURSING_HEAD', 'AUDITOR', 'HSE_OFFICER'],
+  rai: OH,
+  raiComplete: CLINICIANS,
+  raiWaive: PHYSICIANS,
   // E14 scheduling & clinic operations (API-Contract-E06-E07-E14 §5). Schedulers / reception / biomedical: names + type only.
   schedulingDiary: [...CLINICIANS, 'CLINIC_SCHEDULER'],
   schedulingBook: [...OH, 'CLINIC_SCHEDULER'],
@@ -161,7 +207,7 @@ export interface NavItem {
   path: string;
   label: string;
   feature: Feature;
-  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic';
+  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic' | 'Absence' | 'Surveillance';
 }
 
 export const NAV: readonly NavItem[] = [
@@ -186,6 +232,24 @@ export const NAV: readonly NavItem[] = [
   { path: '/rtw/overdue', label: 'RTW overdue reviews', feature: 'rtwOverdue', group: 'Fitness' },
   { path: '/crew/dashboard', label: 'Crew dashboard', feature: 'crewDashboard', group: 'Fitness' },
   { path: '/crew/roster-feed', label: 'Roster feed', feature: 'rosterReconciliation', group: 'Fitness' },
+  // E06 absence & sickness
+  { path: '/absence/queue', label: 'Early intervention', feature: 'absenceQueue', group: 'Absence' },
+  { path: '/absence/lta', label: 'Long-term absence', feature: 'absenceLta', group: 'Absence' },
+  { path: '/absence/certificates', label: 'Medical certificates', feature: 'absenceCertificates', group: 'Absence' },
+  { path: '/absence/advice', label: 'Advice requests', feature: 'absenceAdvice', group: 'Absence' },
+  { path: '/absence/analytics', label: 'Absence analytics', feature: 'absenceAnalytics', group: 'Absence' },
+  { path: '/absence/rules', label: 'Trigger rules', feature: 'absenceRules', group: 'Absence' },
+  { path: '/absence/feed', label: 'Absence feed', feature: 'absenceFeed', group: 'Absence' },
+  // E07 medical surveillance
+  { path: '/surveillance/due', label: 'Due list', feature: 'surveillanceDue', group: 'Surveillance' },
+  { path: '/surveillance/follow-ups', label: 'Follow-ups', feature: 'surveillanceFollowUps', group: 'Surveillance' },
+  { path: '/surveillance/rai', label: 'Return after illness', feature: 'rai', group: 'Surveillance' },
+  { path: '/surveillance/pre-employment', label: 'Pre-employment', feature: 'preEmployment', group: 'Surveillance' },
+  { path: '/surveillance/crew', label: 'Crew medicals', feature: 'crewCertificates', group: 'Surveillance' },
+  { path: '/surveillance/immunisation', label: 'Immunisation', feature: 'immunisation', group: 'Surveillance' },
+  { path: '/surveillance/exposure', label: 'Exposure registers', feature: 'exposure', group: 'Surveillance' },
+  { path: '/surveillance/compliance', label: 'Compliance & audit', feature: 'surveillanceCompliance', group: 'Surveillance' },
+  { path: '/surveillance/programmes', label: 'Programmes', feature: 'surveillanceProgrammes', group: 'Surveillance' },
   { path: '/admin/protocols', label: 'Triage protocols', feature: 'protocols', group: 'Configuration' },
   { path: '/admin/assignment-rules', label: 'Assignment rules', feature: 'admin', group: 'Configuration' },
   { path: '/admin/sla', label: 'SLA policies', feature: 'admin', group: 'Configuration' },
@@ -231,5 +295,7 @@ export function featureForRoute(route: string): Feature | undefined {
   if (/^\/employees\/[^/]+\/timeline$/.test(route)) return 'employeeTimeline';
   if (/^\/intake\/incidents(\/[^/]+)?$/.test(route)) return 'incidentCases';
   if (/^\/scheduling\/campaigns\/[^/]+$/.test(route)) return 'campaigns';
+  if (/^\/absence\/lta\/[^/]+$/.test(route)) return 'absenceLta';
+  if (/^\/surveillance\/programmes\/[^/]+$/.test(route)) return 'surveillanceProgrammes';
   return undefined;
 }

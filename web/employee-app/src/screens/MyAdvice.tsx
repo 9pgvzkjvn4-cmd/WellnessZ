@@ -3,6 +3,9 @@ import type { Advice } from '../api/types';
 import { describeError, formatDate } from '../components/format';
 import { Alert, Loading, PageTitle } from '../components/ui';
 import { useAsync } from '../components/useAsync';
+import { ohStrings } from '../i18n/occupational';
+import { dirFor } from '../i18n/strings';
+import { AdviceReports } from './AdviceReports';
 import type { ScreenProps } from './types';
 
 export function AdviceList({ items }: { items: readonly Advice[] }) {
@@ -40,13 +43,18 @@ export function AdviceList({ items }: { items: readonly Advice[] }) {
   );
 }
 
-/** "My advice" (E02 §5.1): advice texts sent by OH via `POST /cases/{id}/advice`, read from `GET /me/advice`. */
-export function MyAdvice({ client, onSessionExpired }: ScreenProps) {
+/**
+ * "My advice": OH advice reports for my manager / HR awaiting my review (E06-F05, increment 3) and the advice texts sent
+ * by OH via `POST /cases/{id}/advice`, read from `GET /me/advice` (E02 §5.1).
+ */
+export function MyAdvice({ client, onSessionExpired, lang = 'en' }: ScreenProps & { lang?: string }) {
   const advice = useAsync(() => fetchMyAdvice(client), onSessionExpired);
   return (
     <section>
       <PageTitle>My advice</PageTitle>
       <p className="lead">Advice and self-care information from Occupational Health about your cases.</p>
+      <AdviceReports client={client} onSessionExpired={onSessionExpired} lang={lang} />
+      <h2 lang={lang} dir={dirFor(lang)}>{ohStrings(lang).advOtherTitle}</h2>
       {advice.loading && <Loading />}
       {!!advice.error && <Alert kind="error">{describeError(advice.error)}</Alert>}
       {advice.data && <AdviceList items={advice.data} />}
