@@ -22,7 +22,9 @@ immunisation**; replace names as appropriate. Everything referenced exists in th
 | `platform/wz-*` | Shared kernel and platform services (E15–E18, notifications), EHS intake, case kernel |
 | `apps/wz-core-app` | Runnable core API; **all Flyway migrations** (`src/main/resources/db/migration`); ArchUnit and integration tests |
 | `apps/wz-bff` | Backend-for-Frontend for browser apps |
-| `web/employee-app`, `web/manager-workspace` | React front-ends |
+| `modules/wz-e01-intake`, `modules/wz-e02-triage` | Business modules of increment 1 – the worked example in Section 14 |
+| `web/employee-app`, `web/manager-workspace`, `web/oh-workspace` | React front-ends (the OH clinical workspace was added in increment 1) |
+| `tools/e2e` | Playwright end-to-end scripts: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, Section 14.7) |
 | `deploy/local` | Docker Compose: PostgreSQL, Keycloak (realm import), Mailpit, GreenMail, OpenTelemetry collector |
 | `config/` | SpotBugs exclusions and dependency-check suppressions (justification required) |
 
@@ -43,13 +45,15 @@ cd deploy/local && ./up.sh
 export WZ_MASTER_KEY=$(openssl rand -base64 32)        # never reuse outside your machine
 mvn -pl apps/wz-core-app -am spring-boot:run -Dspring-boot.run.profiles=local
 
-# 3. BFF (8090) and a web app (5173 / 5174)
+# 3. BFF (8090) and a web app (5173 employee / 5174 manager / 5175 OH workspace)
 mvn -pl apps/wz-bff -am spring-boot:run -Dspring-boot.run.profiles=local
 cd web/employee-app && npm ci && npm run dev
 ```
 
 Test users in the local Keycloak realm `wellnessz` (password `ChangeMe!123`, temporary): `employee1`, `manager1`,
-`hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`.
+`hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; since increment 1 also `nurse1`, `nurse2`, `physician1`, `ame1`,
+`cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`. The `local` profile loads
+synthetic HRIS employees and the OH staff roster from `db/demo` (never enabled in shared environments).
 
 ### 1.3 The rules you must not break
 
@@ -66,7 +70,8 @@ Test users in the local Keycloak realm `wellnessz` (password `ChangeMe!123`, tem
 
 ### 2.1 Location and naming
 
-Create business modules under a new top-level folder `modules/` (recommended, keeps `platform/` for shared services):
+Create business modules under the top-level folder `modules/` (keeps `platform/` for shared services). Increment 1
+created it with `modules/wz-e01-intake` and `modules/wz-e02-triage`; Section 14 walks through them.
 
 ```
 modules/wz-e07-surveillance/
@@ -102,7 +107,7 @@ The package must be below `com.wellnessz` so that component scanning and JPA ent
   <name>WellnessZ OHCM :: E07 Surveillance, statutory medicals &amp; immunisation</name>
 
   <dependencies>
-    <!-- platform services only; never another business module -->
+    <!-- platform services only; another business module only for an SPI, guarded by an ArchUnit rule (Section 14.1) -->
     <dependency><groupId>com.wellnessz</groupId><artifactId>wz-case-kernel</artifactId></dependency>
     <dependency><groupId>com.wellnessz</groupId><artifactId>wz-security</artifactId></dependency>
     <dependency><groupId>com.wellnessz</groupId><artifactId>wz-integration</artifactId></dependency>
@@ -171,8 +176,8 @@ class SurveillanceService {
 
 Call it at the start of each use case (controller-facing service method) and scheduled job. In **event listeners**
 do not throw – a disabled module would otherwise send the event to retry and eventually to `DEAD`. Follow the
-pattern of `IncidentListener`, which checks `modules.isEnabled("E01")`, logs and leaves the source record in place so
-it can be processed after re-enablement. The reference guard in the kernel is `CaseService.selfReferral` (E13); the
+pattern of the E01 `IncidentIntakeListener`, which checks `modules.isEnabled("E01")`, logs and leaves the source record
+in place so it can be processed after re-enablement. The reference guard in the kernel is `CaseService.selfReferral` (E13); the
 integration test `disabledModuleIsRefused` shows how to test it. Seed the default in your first
 migration if the module should start disabled in production:
 
@@ -189,8 +194,9 @@ on conflict (config_key) do nothing;
 | Rule | Detail |
 |---|---|
 | Location | `apps/wz-core-app/src/main/resources/db/migration`. Keep migrations in the app, not in the module jar: the Helm migration Job reads `/app/BOOT-INF/classes/db/migration` from the image, which does not include module jars. |
-| Naming | `V<n>__<module>_<purpose>.sql`, e.g. `V3__e07_surveillance.sql`. Numbers are global and sequential; reserve the number in the PR title to avoid collisions. Never edit an applied migration – add a new one. |
-| Schema | One schema per module (`surveillance`). Add it to `spring.flyway.schemas` in `apps/wz-core-app/src/main/resources/application.yml` **and** to `migrations.job.schemas` in `deploy/helm/wellnessz/values.yaml`. |
+| Naming | `V<n>__<module>_<purpose>.sql`, e.g. `V6__e07_surveillance.sql` (V3–V5 are used by increment 1). Numbers are global and sequential; reserve the number in the PR title to avoid collisions. Never edit an applied migration – add a new one. |
+| Schema | One schema per module (`surveillance`). Add it to `spring.flyway.schemas` in `apps/wz-core-app/src/main/resources/application.yml`, to `migrations.job.core.schemas` in `deploy/helm/wellnessz/values.yaml` **and** to the bootstrap scripts that create schemas and set `search_path`: `deploy/local/postgres/01-init-wellnessz.sh`, `deploy/sql/bootstrap-managed-postgres.sql`, `deploy/hybrid/cnpg/03-cluster.yaml` (init SQL and grants loop). Increment 1 did this for `triage`. |
+| Demo data | Synthetic people for local work go in `apps/wz-core-app/src/main/resources/db/demo` as repeatable `R__*.sql` migrations; only the `local` and `test` profiles add `classpath:db/demo` to `spring.flyway.locations`. Other environments use `WZ_FLYWAY_LOCATIONS` (default `classpath:db/migration`). |
 | Roles | Migrations run as the owner role (`WZ_DB_MIGRATOR_USERNAME`); the application connects as `${app_role}` (`WZ_DB_USERNAME`). Hibernate validates only (`ddl-auto: validate`). |
 | Grants | End every migration with explicit, minimal grants to `${app_role}`. Omit `DELETE` where records are evidence; use `SELECT, INSERT` for append-only tables. |
 | Types | `uuid` primary keys (generated in Java), `timestamptz` for instants, `date` for calendar dates, `varchar(n)` with explicit limits, `text` for encrypted columns (ciphertext is longer than plaintext). |
@@ -200,7 +206,7 @@ on conflict (config_key) do nothing;
 ### 4.2 Example migration
 
 ```sql
--- V3 – E07 surveillance programmes and results (classification: CLINICAL)
+-- V6 – E07 surveillance programmes and results (classification: CLINICAL)
 create schema if not exists surveillance;
 
 create table surveillance.programme_enrolment (
@@ -325,8 +331,17 @@ Rules:
 * Coarse role checks (`@PreAuthorize`) are allowed in addition, never instead of ABAC for OH data.
 * Write a unit test per policy with `new PolicyEngine(List.of(...))` covering permit, deny and default deny
   (see `platform/wz-security/src/test/java/com/wellnessz/security/abac/PolicyEngineTest.java`).
-* New roles: add the constant to `com.wellnessz.common.model.Roles`, the IdP app role / group mapping, and the
-  workspace/BFF role lists if the role uses the workspace.
+* New roles (increment 1 added nine – use it as the checklist):
+  1. the constant in `com.wellnessz.common.model.Roles` (and `OH_TEAM` / `FITNESS_DECIDERS` / `OH_TEAM_SPEL` if it is a
+     clinical role) and, if it gets clinical disclosure, `DefaultPolicies.clinicianPolicy`;
+  2. `deploy/local/keycloak/wellnessz-realm.json`: the realm role **and** the client scope mappings of
+     `wellnessz-bff` and `wellnessz-mobile` – both clients have `fullScopeAllowed=false`, so a role missing from the
+     scope mapping is silently dropped from tokens (found by the increment-1 E2E run); plus a test user;
+  3. Entra ID: an app role on the `wellnessz-api` app registration and a group assigned to it (setup guide 06,
+     Section 5.2), or `group-role-mapping` entries for group object ids;
+  4. UI gating in the web apps (`src/auth/roles.ts`) and, if the role uses `/bff/api/workspace/**`, the BFF
+     `WORKSPACE_ROLES`;
+  5. the role table in document 02, Section 11.1, and the access-review scope.
 * Restricted-class modules (E09, E10) must keep `DefaultPolicies.restrictedClassPolicy` effective and must not grant
   `RESTRICTED_CLINICAL` to any role other than `PSYCH_CLINICIAN` (or a new, equally restricted role approved by OH
   governance).
@@ -407,7 +422,8 @@ class RecallListener {
   and lets the relay retry with back-off; after 10 attempts the event becomes `DEAD` and is visible at
   `GET /api/v1/integration/events?status=DEAD`, replayable via `POST /api/v1/integration/events/{id}/replay`.
 * Deserialise into **your own** DTO (tolerant of unknown fields), not into the producer's class – modules stay
-  decoupled. `IncidentListener` in the case kernel is the reference implementation.
+  decoupled. The E01 `IncidentIntakeListener` (`modules/wz-e01-intake/.../rules/IncidentIntakeListener.java`) is the
+  reference implementation.
 
 ### 6.5 Inbound APIs from external systems
 
@@ -541,9 +557,10 @@ with `--max-warnings 0`. Suppressions in `config/` require justification, owner 
 In CI every pull request runs `.github/workflows/ci.yml` (Java build and tests with SBOM, web lint/test/build with
 `npm audit` and SBOM, gitleaks, OWASP dependency-check, dependency review, Helm/Terraform/Trivy config checks) and
 `codeql.yml` (Java and TypeScript). Images are built, Trivy-gated, signed and attested by `container.yml`; releases are
-deployed by `cd.yml` through `deploy-env.yml`. SpotBugs is not yet a CI job – run the `security` profile before
-requesting review of changes to security-relevant code. The baseline is 42 Java tests and 0 SpotBugs findings; keep it
-that way.
+deployed by `cd.yml` through `deploy-env.yml`. The `java` CI job also runs SpotBugs + FindSecBugs and fails on any
+finding. The increment-1 baseline is **65 Java tests**, **0 SpotBugs findings** (5 justified exclusions) and web tests
+oh-workspace 151 / employee-app 81 / manager-workspace 55; keep it that way. Before a release, also run the
+end-to-end script of your increment (Section 14.7).
 
 ## 10. Web and mobile feature additions
 
@@ -571,7 +588,21 @@ that way.
   `minGroupSize`; never render a suppressed number.
 * Role gating in `src/auth/roles.ts` is UX only – the BFF and the core API enforce access.
 
-### 10.3 BFF
+### 10.3 OH workspace (`web/oh-workspace`)
+
+Same stack and conventions as the manager workspace (BFF only, hash routing, no browser storage, CSP, idle logout).
+Screens live in `src/screens/` (case tabs in `src/screens/case/`, configuration in `src/screens/admin/`); role gating is
+in `src/auth/roles.ts` (unit-tested). Two rules specific to clinical work:
+
+* **The client never decides clinical outcomes.** The protocol runner (`src/domain/protocolRunner.ts`) only navigates
+  and previews; the server's result is authoritative.
+* **Never show state by colour alone** (SLA badges carry a symbol and text) and render suppressed aggregates as `<k`.
+
+Dev server: `npm run dev` on port 5175 (proxy target `WZ_BFF_TARGET`, default `http://localhost:8090`), for example
+`WZ_BFF_TARGET=http://localhost:8090 npx vite --port 5175`. See `web/oh-workspace/README.md` for the screen and test
+inventory.
+
+### 10.4 BFF
 
 No change is normally needed – `/bff/api/**` proxies all `/api/v1/**` paths. If a module needs a role-gated alias,
 follow `/bff/api/workspace/**`. Do not forward additional headers without a security review.
@@ -620,5 +651,170 @@ cloud secret store via Terraform/External Secrets.
 | 8 | CI green (`ci.yml`, `codeql.yml`); `mvn -Psecurity verify` clean or exceptions recorded with owner and expiry; no new Trivy/dependency-check findings. |
 | 9 | Threat model (doc 02, Section 7) extended for new flows; DPIA screening done; retention period for new data defined. |
 | 10 | Operational readiness: metrics/alerts for new jobs, runbook entries (dead letters, replay), configuration documented, MDM keys documented if any. |
-| 11 | Documentation updated: module status in doc 01, control mapping in doc 02 if controls change. |
+| 11 | Documentation updated: module status in doc 01, control mapping in doc 02 if controls change; an end-to-end script and screenshots for the increment (`tools/e2e/`, `docs/images/screens/increment-NN/`). |
 | 12 | Peer review by a second developer and, for changes to security components, by the security champion. |
+
+## 14. Worked example: how E01 and E02 plug in (increment 1)
+
+Increment 1 delivered the first two real business modules. Use them as the reference when you build the next one;
+everything below exists in the repository. Design background: [Solution Design E01/E02](../increment-01/01-Solution-Design-E01-E02.md);
+endpoints: [API Contract](../increment-01/API-Contract-E01-E02.md).
+
+### 14.1 Module wiring
+
+| Step | E01 (`modules/wz-e01-intake`) | E02 (`modules/wz-e02-triage`) |
+|---|---|---|
+| Maven dependencies | `wz-case-kernel`, `wz-ehs-intake`, `wz-notification` | `wz-e01-intake` only (transitively the platform) |
+| Root `pom.xml` | `<module>` + `<dependencyManagement>` entry | same |
+| Registration | `com.wellnessz.e01.E01Module implements CaseModule` (code `E01`, capabilities E01-F01…F08) | `com.wellnessz.e02.E02Module` (code `E02`, E02-F01…F07) |
+| Schema | existing `intake` (V4) plus kernel tables in `casemgmt` / `masterdata` (V3) | new schema `triage` (V5) |
+| Enablement | `IncidentIntakeListener` checks `modules.isEnabled("E01")` and leaves the incident in intake | `modules.e02.enabled` seeded `true` by V4 |
+| ArchUnit | `intakeDoesNotDependOnTriage`; both in `platformDoesNotDependOnBusinessModules` and `kernelDoesNotDependOnBusinessModules` | – |
+
+E02 → E01 is the **only** dependency between business modules, and it exists for one SPI (`RecipientResolver`) and
+the notification-rule types. It is allowed because the reverse direction is forbidden by an ArchUnit rule, so no
+cycle can form. Any other cross-module need goes through events or a kernel SPI.
+
+### 14.2 Kernel SPI: `CaseTransitionGuard`
+
+The kernel must enforce module rules on status changes without knowing the modules. It injects
+`List<CaseTransitionGuard>` and calls each guard before a transition:
+
+```java
+// platform/wz-case-kernel/.../support/CaseTransitionGuard.java
+public interface CaseTransitionGuard {
+    /** Throw {@code ApiException} (422) with a user-facing reason when the transition must not happen. */
+    void check(OhCase c, CaseStatus next);
+}
+```
+
+E01 implements it in `RecordabilityService` (an injury or illness case cannot leave `INTAKE` before recordability is
+classified → `422 recordability_required`); E02 implements it in `SafetyService` (a safety-critical case cannot be
+closed without a fitness decision and the checklist of its safety category → `422 fitness_required` /
+`checklist_required`). Rules for your own guard:
+
+* Keep it cheap and side-effect free; it runs inside the caller's transaction.
+* Return quickly for transitions you do not care about (`if (next != CaseStatus.CLOSED) return;`).
+* Use a stable problem `code`; the OH workspace maps it to the tab that fixes the problem.
+* Callers that change status implicitly (for example `TriageService` moving `INTAKE` → `TRIAGE`) catch the
+  `ApiException` and record a `STATUS_HELD` timeline entry instead of failing the user's action.
+
+### 14.3 Module SPI: `RecipientResolver`
+
+E01 owns the notification matrix (`intake.notification_rule`: event × source × case type → recipient, channel,
+template) but not queues or staff. It defines the SPI and injects all implementations:
+
+```java
+// modules/wz-e01-intake/.../notify/RecipientResolver.java
+public interface RecipientResolver {
+    record Address(String recipientId, String email) { }
+    List<Address> resolve(NotificationRule.Recipient recipient, OhCase c);
+}
+```
+
+E02 contributes `OhRecipientResolver` (queue distribution list, case owner, Nursing Head). Stakeholder recipients
+(HSE reporter, line manager, crew scheduling, hygiene manager) are resolved by E01 from the incident, the HRIS master
+and E18 keys such as `notifications.crew-scheduling.email`. Pattern: **the module that owns the decision defines the
+SPI; the module that owns the data implements it.**
+
+### 14.4 Events between kernel, E01 and E02
+
+| Event | Producer | Consumers |
+|---|---|---|
+| `ehs.incident.received.v1` | `wz-ehs-intake` (mailbox, Excel, webhook) | E01 `IncidentIntakeListener` (rule table) |
+| `case.opened.v1` | kernel `CaseService` | E01 `DuplicateService` (duplicate candidates), E02 `AssignmentService` (queue, owner, `TRIAGE` timer), E01 `IntakeNotificationDispatcher` |
+| `case.assigned.v1`, `case.escalated.v1`, `sla.at-risk.v1`, `sla.breached.v1` | E02 (`E02Events`) | E01 `IntakeNotificationDispatcher` |
+| `case.triaged.v1` | E02 `TriageService` | none yet (available for E03/E05) |
+| `fitness.status.changed.v1` | kernel `publishFitness` | outbound `hr-systems`, `crew-rostering`, `catering-hygiene` (allow-listed) |
+
+All consumers use `IdempotentConsumer.handleOnce(...)` with a stable consumer name, deserialise into their own DTO
+(for example `IncidentFacts` in E01) and check module enablement without throwing.
+
+### 14.5 Adding a triage protocol
+
+Protocols are versioned JSON documents (doc 01, Section 14.14). To add a new presentation:
+
+1. Create `modules/wz-e02-triage/src/main/resources/triage/protocols/<CODE>.json` (`CODE` matches `[A-Z_]{1,40}`):
+
+   ```json
+   {
+     "code": "DENTAL", "version": 1, "title": "Dental pain / injury", "presentation": "DENTAL",
+     "caseType": "INJURY", "start": "q1", "status": "DRAFT",
+     "note": "DRAFT clinical content for CMO / Nursing Head review – not for clinical use until approved",
+     "questions": [
+       { "id": "q1", "text": "Facial swelling spreading to the eye or neck, or difficulty swallowing?", "type": "BOOLEAN",
+         "redFlag": true, "onYes": { "outcome": "EMERGENCY" }, "onNo": { "next": "q2" } },
+       { "id": "q2", "text": "Pain score (0–10)", "type": "NUMBER", "min": 0, "max": 10,
+         "rules": [ { "if": ">=7", "outcome": "SEMI_URGENT" }, { "else": true, "outcome": "ROUTINE" } ] }
+     ],
+     "outcomes": {
+       "EMERGENCY":   { "disposition": "Call emergency services now", "adviceKey": "EMERGENCY_GENERIC" },
+       "SEMI_URGENT": { "disposition": "OH nurse assessment within 4 hours", "adviceKey": "GENERIC_ROUTINE" },
+       "ROUTINE":     { "disposition": "OH nurse appointment within 1 working day", "adviceKey": "GENERIC_ROUTINE" }
+     }
+   }
+   ```
+
+   Question types: `BOOLEAN` (`onYes` / `onNo`), `NUMBER` (`min`, `max`, `rules`), `SELECT` (`options` + `rules`
+   with `==VALUE`). Rule grammar: `>=n <=n >n <n ==n =n !=n`, bare `n`, ranges `a..b` / `a-b`, `==true/false`,
+   `else: true`. `caseType` must be a `CaseType` value; outcome keys are `Urgency` values. Every red-flag question must
+   lead to `EMERGENCY`.
+2. Add any new advice keys to `triage/advice.json` with `en`, `ar` and `fr` texts (English is the fallback).
+3. Add unit tests next to `ProtocolEvaluatorTest`: red flag → `EMERGENCY`, each rule threshold, and an incomplete
+   path (`IncompleteException`). The OH workspace runner (`web/oh-workspace/src/domain/protocolRunner.ts`) uses the
+   same grammar; extend `protocolRunner.test.ts` if you add grammar.
+4. Start the application. `ProtocolCatalog` seeds the file as `DRAFT` **only if the code does not exist yet**.
+5. The CMO reviews it in *OH workspace → Admin → Protocols* and approves (`POST /api/v1/triage/protocols/{code}/approve`).
+
+To publish a **new version of an existing protocol**, do not edit the seeded file in place (existing codes are never
+re-seeded). Add a Flyway migration that inserts the new row into `triage.triage_protocol` with `version = n + 1`,
+`status = 'DRAFT'` and the JSON in `definition`; after CMO approval the previously approved version becomes `RETIRED`.
+Past assessments keep pointing at the version they used.
+
+### 14.6 Adding or changing an intake rule
+
+* **Business change (no release):** OH_ADMIN or the Nursing Head edits *OH workspace → Admin → Intake rules*
+  (`POST` / `PUT /api/v1/intake/rules`). Test first with *Dry run* (`POST /api/v1/intake/rules/test` with a sample
+  incident): it returns the rule that would fire or `NO_MATCH`. Lower `priority` numbers win; null conditions are
+  wildcards; `AUTO_CREATE` needs a case type. Changes are audited.
+* **Shipped default:** add a Flyway migration that inserts into `intake.intake_rule` (see the seed in
+  `V4__e01_intake.sql`); never update rows an operator may already have changed.
+* **New condition type** (for example "aircraft type"): this is a code change – add the column (migration), the field
+  to `IntakeRule` and `IntakeRule.matches`, `IntakeRuleController.RuleRequest` / `RuleView`, `IncidentFacts` and the
+  producing event (`IncidentReceived` in `wz-ehs-intake`, flat field), the webhook validation in
+  `IncidentWebhookService`, the OH workspace rule editor, and tests in `RuleEngineTest`.
+
+Assignment rules (`triage.assignment_rule`, *Admin → Assignment rules*, `POST /api/v1/assignment/rules/test`) and SLA
+policies (`triage.sla_policy`, *Admin → SLA*) follow the same pattern.
+
+### 14.7 Running the increment-1 end-to-end test
+
+`tools/e2e/e2e-increment1.js` drives the increment through real Keycloak logins and the BFF and prints 18
+`PASS`/`FAIL` lines (exit code 1 on any failure). It needs the local stack (`./deploy/local/up.sh`), core and BFF
+(Section 1.2) and all three dev servers:
+
+```bash
+cd web/employee-app && npm run dev        # 5173
+cd web/manager-workspace && npm run dev   # 5174
+cd web/oh-workspace && npm run dev        # 5175
+```
+
+```bash
+npm install --no-save playwright@1 && npx playwright install chromium
+```
+
+```bash
+node tools/e2e/e2e-increment1.js
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `WZ_E2E_EMPLOYEE_URL` / `WZ_E2E_WORKSPACE_URL` / `WZ_E2E_OH_URL` | `http://localhost:5173` / `5174` / `5175` | Web app origins |
+| `WZ_E2E_IDP_URL` | `http://localhost:8180` | Keycloak base URL (also used for the integration token) |
+| `WZ_E2E_CORE_URL` | `http://localhost:8080` | Core API, called directly for the EHS webhook |
+| `WZ_E2E_INTEGRATION_SECRET` | `change-me-local-only` | Local secret of client `wellnessz-integration` |
+| `WZ_E2E_NEW_PASSWORD` | `Wz-Local-Demo-2026!` | Password set at the first (temporary-password) login; later runs log in with it |
+| `WZ_E2E_OUT` | `tools/e2e/shots` | Screenshot directory (the published set is in `docs/images/screens/increment-01/`) |
+
+The script relies on the demo people loaded by the `local` profile (`E1001`–`E1005`, `M2001`, the OH staff roster)
+and on the realm users `employee1`, `manager1`, `nursinghead1`, `nurse1`, `admin1`, `reception1` and `crewsched1`.

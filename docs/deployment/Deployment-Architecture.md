@@ -18,6 +18,10 @@ state proposed service levels, cost shape and the validation status of each setu
 > for every platform. Terraform passes `validate` for Azure and GCP. **Nothing has yet been applied to a real Azure
 > subscription, GCP project or on-premises cluster**; the first environment build is therefore also the
 > acceptance test of the infrastructure code.
+>
+> **Increment 1** (E01 intake, E02 triage) adds the OH workspace web app, the `triage` schema, nine roles and the
+> EHS webhook. It was verified on the local setup (Java and web tests, `tools/e2e/e2e-increment1.js` 18/18); Helm
+> values for every platform include the new component. Section 17 lists the changes per environment.
 
 ## 1. Reference deployment topology
 
@@ -32,9 +36,10 @@ around the cluster change.
 |---|---|---|
 | **Employee portal / mobile PWA** | `web/employee-app` – static SPA in `nginx-unprivileged` (port 8080, uid 101) | Same origin as the BFF; mobile builds (Capacitor) call the core API directly with PKCE tokens |
 | **Manager & HR workspace** | `web/manager-workspace` – static SPA (port 8080) | Status-only views |
+| **OH workspace** (increment 1) | `web/oh-workspace` – static SPA (port 8080), Helm component `ohWorkspace`, host `oh.<domain>` | Clinical console for the OH team, reception and first aiders; same origin as the BFF |
 | **BFF** | `apps/wz-bff` – Spring Boot, port 8090, management 8081 (k8s) / 8091 (local) | OIDC confidential client, encrypted JDBC sessions (schema `bff`), CSRF, token relay; tokens never reach the browser |
 | **Core API** | `apps/wz-core-app` – Spring Boot, port 8080, management 8081 | Multi-issuer JWT resource server, ABAC, audit, integrations, EHS intake, Flyway migrations |
-| **Database** | PostgreSQL 16 | Schemas `platform, masterdata, intake, casemgmt, analytics` + `bff`; roles `wz_migrator` (owner), `wz_app`, `wz_bff` |
+| **Database** | PostgreSQL 16 | Schemas `platform, masterdata, intake, casemgmt, triage, analytics` + `bff` (`triage` since increment 1); roles `wz_migrator` (owner), `wz_app`, `wz_bff` |
 | **Identity provider** | Microsoft Entra ID (production), Keycloak 26 (local / alternative), any OIDC IdP | Roles from `realm_access.roles`, `roles` (Entra app roles) or `groups`; `employee_id` and `org_scope` claims drive ABAC |
 | **Secrets** | Azure Key Vault, GCP Secret Manager or HashiCorp Vault via Secrets Store CSI | Mounted as files; consumed through `file:` references, `WZ_MASTER_KEY_FILE` and `ENC(...)` values |
 | **Edge** | App Gateway WAF v2 / Front Door (Azure), Cloud Armor + global LB (GCP), internal ingress (on-prem) | TLS 1.2+, OWASP rule sets, rate limiting on login paths |
@@ -90,7 +95,8 @@ around the cluster change.
   * an OpenTelemetry collector.
 
   Core and BFF run either from the IDE (Spring profile `local`) or as hardened containers with `./up.sh --apps`.
-  Both web apps run as Vite dev servers that proxy `/bff`, `/oauth2`, `/login` and `/logout` to the BFF.
+  The three web apps run as Vite dev servers on ports 5173 (employee), 5174 (manager) and 5175 (OH workspace) that
+  proxy `/bff`, `/oauth2`, `/login` and `/logout` to the BFF.
 * **Network.** All ports bind to `127.0.0.1`; nothing is reachable from the LAN. In the `apps` profile, a small
   `apps-net` container owns the network namespace of core and BFF and forwards loopback port 8180 to Keycloak. As a
   result, the issuer URL `http://localhost:8180/realms/wellnessz` is identical in the browser and inside the
@@ -102,9 +108,12 @@ around the cluster change.
   | `wellnessz-bff` | Confidential, PKCE S256 |
   | `wellnessz-mobile` | Public, PKCE S256 |
   | `wellnessz-api` | Audience |
-  | `wellnessz-integration` | Client credentials, role `INTEGRATION` |
+  | `wellnessz-integration` | Client credentials, role `INTEGRATION` (also used for the EHS webhook) |
 
-  Seven test users have temporary passwords. The realm also enforces brute-force protection, a password policy,
+  Eighteen test users have temporary passwords (the seven of the base framework plus `nurse1`, `nurse2`,
+  `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`). The
+  realm defines the nine increment-1 roles, and the scope mappings of `wellnessz-bff` and `wellnessz-mobile` include
+  them, because both clients have `fullScopeAllowed=false`. The realm also enforces brute-force protection, a password policy,
   5-minute access tokens, a 15-minute SSO idle timeout and least-privilege scope mappings. The ABAC attributes
   `employee_id` and `org_scope` are editable by administrators only.
 * **Secrets.** `./up.sh` generates `deploy/local/.env` (mode 600, git-ignored) containing random values. These
@@ -133,10 +142,10 @@ around the cluster change.
 
 ### 4.2 Request path
 
-1. The user resolves `employee.<domain>`. Traffic reaches Front Door (optional), then the App Gateway WAF over
-   TLS 1.2+.
+1. The user resolves `employee.<domain>` (or `manager.<domain>`, `oh.<domain>`). Traffic reaches Front Door
+   (optional), then the App Gateway WAF over TLS 1.2+.
 2. The AGIC-managed listener routes requests by path:
-   * `/` goes to `employee-portal`;
+   * `/` goes to `employee-portal` (or `manager-workspace`, `oh-workspace`);
    * `/bff`, `/oauth2`, `/login` and `/logout` go to `wz-bff` on the same origin.
 3. The BFF authenticates the user against Entra ID with the authorization-code flow and PKCE. It stores the
    encrypted session in schema `bff` and relays the access token to `wz-core-app`.
@@ -169,7 +178,8 @@ around the cluster change.
 **Rationale.** Some airlines must keep occupational-health records in their own data centre, for data
 residency, works-council agreements or regulator expectations. The hybrid option therefore splits the system:
 
-* the PHI-free, elastic web tier (both SPAs and the BFF) runs in a cloud cluster behind a managed WAF;
+* the PHI-free, elastic web tier (the three SPAs – employee portal, manager workspace and, since increment 1, OH
+  workspace – and the BFF) runs in a cloud cluster behind a managed WAF;
 * the core API and PostgreSQL run on-premises, on RKE2 or OpenShift.
 
 Both clusters are managed as one fleet through **Azure Arc** or **GKE Enterprise**.
@@ -188,9 +198,9 @@ Both clusters are managed as one fleet through **Azure Arc** or **GKE Enterprise
 | Zone | Contents | Allowed inbound | Allowed outbound |
 |---|---|---|---|
 | Internet edge | Front Door / App Gateway / global LB + WAF | 443 (80 redirect only) from the internet | Ingress backends only |
-| Web tier | `employee-portal`, `manager-workspace` | 8080 from the ingress controller / LB ranges | none |
+| Web tier | `employee-portal`, `manager-workspace`, `oh-workspace` | 8080 from the ingress controller / LB ranges | none |
 | BFF tier | `wz-bff` | 8090 from the ingress; 8081 from monitoring | Core 8080, database 5432 (`bff` schema), IdP 443 |
-| Core tier | `wz-core-app`, Flyway job | 8080 from the BFF and API ingress; 8081 from monitoring | Database 5432, IdP 443 (JWKS), Microsoft Graph / IMAPS / SMTP submission, OTLP |
+| Core tier | `wz-core-app`, Flyway job | 8080 from the BFF and API ingress (mobile, M2M, EHS webhook); 8081 from monitoring | Database 5432, IdP 443 (JWKS), Microsoft Graph / IMAPS / SMTP submission, OTLP |
 | Data tier | PostgreSQL, Key Vault / Secret Manager / Vault (private endpoints) | 5432 from the AKS subnet or PSA range; 443 from CSI drivers | none |
 | Management | Kubernetes API (private), bastion / self-hosted runners | Entra ID-authenticated admins; CI deployer identity | – |
 
@@ -208,7 +218,7 @@ Cloud NSGs and firewall rules enforce the subnet level.
   |---|---|---|
   | `wellnessz-bff` | Confidential web client | Browser login through the BFF |
   | `wellnessz-mobile` | Public client, PKCE | Mobile app login |
-  | `wellnessz-api` | Resource | Exposes the app roles (EMPLOYEE, MANAGER, HR, OH_CLINICIAN, …) |
+  | `wellnessz-api` | Resource | Exposes the app roles (EMPLOYEE, MANAGER, HR, OH_CLINICIAN, …; increment 1 adds OH_PHYSICIAN, AME, CMO, NURSING_HEAD, HSE_OFFICER, CREW_SCHEDULING, HYGIENE_MANAGER, CLINIC_RECEPTION, FIRST_AIDER) |
 
   Users receive roles through groups. Conditional Access enforces MFA and compliant devices; the mobile app
   additionally requires an app protection policy.
@@ -277,9 +287,11 @@ environment and runs the smoke tests from the setup guides.
 
 ## 11. Ingress, WAF and API exposure
 
-* **Web hosts** (`employee.*`, `manager.*`). Each host serves its SPA and the BFF paths on the same origin. The
+* **Web hosts** (`employee.*`, `manager.*`, `oh.*`). Each host serves its SPA and the BFF paths on the same origin;
+  each needs its own BFF redirect URI `https://<host>/login/oauth2/code/wellnessz`. The
   `WZSESSION` cookie is HttpOnly and Secure; CSRF protection uses the `XSRF-TOKEN` cookie and header pair.
-* **API host** (`api.*`). Publishes only `/api/v1` for the mobile app and M2M integrations. The management port is
+* **API host** (`api.*`). Publishes only `/api/v1` for the mobile app and M2M integrations, including the EHS
+  webhook `POST /api/v1/intake/ehs/incidents` (increment 1). The management port is
   never exposed through the ingress.
 * **WAF rule sets:**
   * Microsoft DRS 2.1 + Bot Manager (Azure);
@@ -365,3 +377,31 @@ Non-production environments should switch off HA, Front Door and geo-redundancy 
 | 4 | ingress-nginx retired (March 2026) | Not used in the cloud setups; on-prem uses the OpenShift router or an alternative controller |
 | 5 | Private AKS API server requires a self-hosted runner or `az aks command invoke` | Provision runners inside the VNet before prod |
 | 6 | RPO/RTO targets are proposals | GRC and business sign-off; validate in the first DR test |
+| 7 | Increment 1: OH staff roster has no import path; demo data must never reach shared environments | Roster import before go-live; `WZ_FLYWAY_LOCATIONS` reviewed in each environment's values |
+
+## 17. Increment 1 deployment changes (E01, E02, OH workspace)
+
+Increment 1 adds one web component, one database schema, nine roles and one inbound integration. Nothing changes in
+the topology: the OH workspace is a third static SPA next to the other two, sharing the BFF on its own origin.
+
+| Change | What to deploy / configure | Artefact |
+|---|---|---|
+| **OH workspace** | Helm component `ohWorkspace` (enabled by default; image `oh-workspace`, nginx-unprivileged on 8080, `/healthz`, HPA 2–4, PDB) on host `oh.<domain>` (`ingress.hosts.ohWorkspace`); same-origin routing of `/bff`, `/oauth2`, `/login`, `/logout` to the BFF; web NetworkPolicy, Service, ServiceAccount, GKE BackendConfig and ManagedCertificate are generated like for the other web apps | `deploy/helm/wellnessz/values*.yaml`, `templates/*` |
+| DNS and TLS | A / CNAME record and certificate for `oh.<domain>` (Azure: App Gateway certificate; GCP: `ManagedCertificate` domain added automatically; hybrid: cloud edge) | setup guides 06–08 |
+| BFF redirect URI | `https://oh.<domain>/login/oauth2/code/wellnessz` on the BFF client (the BFF builds it from `{baseUrl}`); local: `http://localhost:5175/login/oauth2/code/wellnessz` | Entra app registration / Keycloak client `wellnessz-bff` |
+| CORS | `WZ_CORS_ORIGINS` adds `https://oh.<domain>` (already in `values-azure.yaml`, `values-gcp.yaml`, `values-hybrid.yaml`; local `http://localhost:5175`) | Helm values, `docker-compose.yml` |
+| Schema `triage` | Created by Flyway V5 (owner `wz_migrator`, `USAGE` granted to `wz_app`); new environments get it from the bootstrap scripts; `migrations.job.core.schemas` lists it | `deploy/sql/bootstrap-managed-postgres.sql`, `deploy/hybrid/cnpg/03-cluster.yaml`, `deploy/local/postgres/01-init-wellnessz.sh` |
+| Roles | `OH_PHYSICIAN`, `AME`, `CMO`, `NURSING_HEAD`, `HSE_OFFICER`, `CREW_SCHEDULING`, `HYGIENE_MANAGER`, `CLINIC_RECEPTION`, `FIRST_AIDER`: Entra app roles on `wellnessz-api` assigned to groups; Keycloak realm roles **and** client scope mappings of `wellnessz-bff` and `wellnessz-mobile` (`fullScopeAllowed=false`) | setup guide 06 §5.2, local realm |
+| EHS webhook | Machine client with the `INTEGRATION` application role calls `POST https://api.<domain>/api/v1/intake/ehs/incidents` with an `Idempotency-Key`; hybrid: the on-prem internal API host | setup guides 06 §5.6, 08 |
+| HRIS and OH staff master | HRIS employees pushed to `POST /api/v1/masterdata/employees`; OH staff roster (`masterdata.staff_member`) loaded by the DBA until an import exists. Demo data (`db/demo`) is loaded only by the `local` profile | doc 01, O9 |
+| Configuration | `WZ_OH_WORKSPACE_URL` (link in OH notifications, set to `https://oh.<domain>`), `WZ_OH_CONTACT`, `WZ_SLA_POLL_INTERVAL` (default `PT60S`), optionally `WZ_FLYWAY_LOCATIONS` (never add `classpath:db/demo` outside local) | core `env` / `extraEnv` |
+| Outbound allow-list | `catering-hygiene` destination (status fields only) for food-handler cases | `application.yml` |
+| Pipeline | `oh-workspace` in the CI web matrix, the `container.yml` image matrix, the `cosign verify` loop of `deploy-env.yml` and Dependabot | CI/CD Guide |
+
+**Verification per environment** (details in each setup guide):
+
+| Setup | Verification |
+|---|---|
+| Local | `tools/e2e/e2e-increment1.js` – 18 checks, all `PASS` |
+| Azure / GCP | `curl -sI https://oh.<domain>/` → `200` with HSTS; OH login as a Nursing Head test account; webhook smoke call returns `202`; `GET /api/v1/modules` shows E01 and E02 `IMPLEMENTED`; the E2E script with `WZ_E2E_*` pointing at the environment (dev/test only) |
+| Hybrid | As above from the cloud edge; additionally confirm that `triage` exists only in the on-prem database and that the cloud session database still holds only `bff` |

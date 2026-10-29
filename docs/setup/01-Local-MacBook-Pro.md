@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | 05 – Setup guide: Local MacBook Pro (Apple Silicon) |
 | **Audience** | Developers, testers, solution architects preparing demos |
-| **Result** | Full stack on a laptop: PostgreSQL, Keycloak, mail servers, OTel collector, core API, BFF, both web apps; ready for incremental module development |
+| **Result** | Full stack on a laptop: PostgreSQL, Keycloak, mail servers, OTel collector, core API, BFF, the three web apps (employee portal, manager workspace, OH workspace); ready for incremental module development |
 | **Time** | About 45 minutes on a clean machine (most of it downloads) |
 | **Related** | 04 – Deployment Architecture · 03 – Developer Guide · 09 – CI/CD Guide |
 
@@ -25,6 +25,9 @@
 >
 > The macOS-specific parts (Homebrew, Docker Desktop/Colima, IntelliJ) follow the vendors' documented procedures
 > but were not run on a Mac in the sandbox.
+>
+> **Increment 1** (E01 intake, E02 triage) was verified on this setup: 65 Java tests, web tests (oh-workspace 151,
+> employee-app 81, manager-workspace 55) and `tools/e2e/e2e-increment1.js` with 18/18 checks passing (section 7.1).
 
 ## 1. Prerequisites
 
@@ -191,13 +194,40 @@ Expected: `"aud": "wellnessz-api"` and `"roles": ["INTEGRATION"]`.
 |---|---|---|
 | PostgreSQL 16.15 | `localhost:5432`, databases `wellnessz`, `keycloak` | Roles `wz_migrator` (DDL), `wz_app` (core runtime), `wz_bff` (sessions); passwords in `.env` |
 | Keycloak 26.8.1 | <http://localhost:8180/admin> | `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD` from `.env` |
-| Realm users | `employee1`, `manager1`, `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1` | Temporary password `ChangeMe!123`; change it at first login |
+| Realm users | `employee1`, `manager1`, `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; increment 1: `nurse1`, `nurse2`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1` | Temporary password `ChangeMe!123`; change it at first login |
 | Mailpit | UI <http://localhost:8025>, SMTP `localhost:1025` | none |
 | GreenMail | IMAP `localhost:3143`, SMTP `localhost:3025` | `ehs-feed@wellnessz.local` / `WZ_IMAP_PASSWORD` |
 | OTel collector | OTLP `localhost:4317` (gRPC) / `4318` (HTTP) | – |
 
 Realm users carry the ABAC attributes `employee_id` (for example `E1001`) and `org_scope` (for example
-`/AIRLINE/OPS/CABIN`). They are emitted as claims to the BFF and mobile clients; only administrators can edit them.
+`/AIRLINE/CATERING`). They are emitted as claims to the BFF and mobile clients; only administrators can edit them.
+
+**Increment-1 roles.** The realm defines `OH_PHYSICIAN`, `AME`, `CMO`, `NURSING_HEAD`, `HSE_OFFICER`,
+`CREW_SCHEDULING`, `HYGIENE_MANAGER`, `CLINIC_RECEPTION` and `FIRST_AIDER`. The clients `wellnessz-bff` and
+`wellnessz-mobile` have `fullScopeAllowed=false`, so their **role scope mappings** list every role a token may carry;
+a role that is not in the scope mapping is silently missing from the token. If you add a role, add it to both scope
+mappings.
+
+| User | Roles | Use it for |
+|---|---|---|
+| `nurse1`, `nurse2` | OH_CLINICIAN, CASE_MANAGER | Work queues, triage, escalation |
+| `physician1` | OH_PHYSICIAN, OH_CLINICIAN | Physician escalations, food-safety queue |
+| `ame1` | AME, OH_PHYSICIAN, OH_CLINICIAN | Aeromedical queue |
+| `cmo1` | CMO, OH_PHYSICIAN, OH_CLINICIAN | Protocol approval, CMO escalations, case conferences |
+| `nursinghead1` | NURSING_HEAD, OH_CLINICIAN, CASE_MANAGER | Team queue, reassignment, caseload, configuration, triage QA |
+| `hse1` | HSE_OFFICER | Reconciliation and exceptions |
+| `crewsched1` / `hygiene1` | CREW_SCHEDULING / HYGIENE_MANAGER | Status-only APIs |
+| `reception1` / `firstaider1` | CLINIC_RECEPTION / FIRST_AIDER | Walk-in and emergency registration |
+| `admin1` | PLATFORM_ADMIN, OH_ADMIN | Configuration screens, dead-letter queue |
+
+The Keycloak container imports the realm only when it does not exist yet (`--import-realm`). A stack created before
+increment 1 keeps the old realm without the new roles and users: run `./deploy/local/down.sh --purge` and
+`./deploy/local/up.sh` to re-import it (this deletes local data).
+
+**Demo data.** With the `local` profile, Flyway also runs `apps/wz-core-app/src/main/resources/db/demo`
+(`R__demo_reference_people.sql`): HRIS employees `E1001`–`E1005` and `M2001`, the OH staff roster (`nurse1`,
+`nurse2`, `clinician1`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `psych1`) and the crew-scheduling and hygiene
+notification addresses. Other profiles never load it.
 
 ## 4. Build and test
 
@@ -254,7 +284,7 @@ export NVD_API_KEY=<your-key> && ./mvnw -Psecurity -DskipTests verify
 
 ### 4.4 Web apps
 
-Run this block in each of `web/employee-app` and `web/manager-workspace`:
+Run this block in each of `web/employee-app`, `web/manager-workspace` and `web/oh-workspace`:
 
 ```bash
 cd web/employee-app && npm ci && npm run lint && npm test && npm run build && cd ../..
@@ -263,6 +293,12 @@ cd web/employee-app && npm ci && npm run lint && npm test && npm run build && cd
 ```bash
 cd web/manager-workspace && npm ci && npm run lint && npm test && npm run build && cd ../..
 ```
+
+```bash
+cd web/oh-workspace && npm ci && npm run lint && npm test && npm run build && cd ../..
+```
+
+Expected test counts at the increment-1 baseline: employee-app 81, manager-workspace 55, oh-workspace 151.
 
 ## 5. Run core and BFF
 
@@ -373,16 +409,25 @@ In separate terminals, start the employee portal:
 cd web/employee-app && npm run dev
 ```
 
-and the manager workspace:
+the manager workspace:
 
 ```bash
 cd web/manager-workspace && npm run dev
 ```
 
+and the OH workspace (increment 1):
+
+```bash
+cd web/oh-workspace && WZ_BFF_TARGET=http://localhost:8090 npx vite --port 5175
+```
+
+`npm run dev` in `web/oh-workspace` is equivalent (port 5175 is set in `vite.config.ts`).
+
 * Employee portal: <http://localhost:5173>
 * Manager & HR workspace: <http://localhost:5174>
+* OH workspace: <http://localhost:5175>
 
-Both dev servers proxy `/bff`, `/oauth2`, `/login` and `/logout` to the BFF on `http://localhost:8090`. If the BFF
+All three dev servers proxy `/bff`, `/oauth2`, `/login` and `/logout` to the BFF on `http://localhost:8090`. If the BFF
 runs elsewhere (another port, a remote dev environment), set `WZ_BFF_TARGET`:
 
 ```bash
@@ -396,6 +441,11 @@ WZ_BFF_TARGET=http://localhost:18090 npm run dev
 3. Submit a self-referral.
 4. In a private window, open <http://localhost:5174> as `manager1`. You should see the case **status only**, with
    no clinical text.
+5. In another private window, open <http://localhost:5175> as `nursinghead1`. The **Work queues** screen lists the
+   new case with its urgency, owner and SLA state. Signing in as `reception1` shows only the reception screen.
+
+The BFF redirect URIs for the three ports (`http://localhost:517[3-5]/login/oauth2/code/wellnessz`) and the CORS
+origins (`WZ_CORS_ORIGINS`, local profile `wellnessz.security.cors-origins`) already include port 5175.
 
 ## 7. End-to-end smoke test (Playwright)
 
@@ -439,6 +489,25 @@ WZ_E2E_EMPLOYEE_URL=https://employee.dev.example.com WZ_E2E_WORKSPACE_URL=https:
 
 The test logs in with the local realm passwords. Against Entra ID, use dedicated test accounts and adapt the
 login step.
+
+### 7.1 Increment-1 end-to-end test (E01, E02)
+
+`tools/e2e/e2e-increment1.js` covers the increment with 18 checks: EHS webhook → auto-created and routed case,
+employee self-referral through the UI, manager referral rejected for clinical wording and refused outside the org
+scope, status-only manager view, queue counts, reassignment by the Nursing Head, red-flag hard stop, triage,
+escalation, SLA clock in the case header, first-aid incident parked as a suggestion, dead-letter queue, reception
+and crew-scheduling restrictions. It needs the stack, core (local profile, for the demo people), BFF and all three
+dev servers.
+
+```bash
+node tools/e2e/e2e-increment1.js
+```
+
+Expected: 18 lines starting with `PASS`; exit code 0. Screenshots go to `tools/e2e/shots/` (`WZ_E2E_OUT`); the
+published set is in `docs/images/screens/increment-01/`. Unlike `e2e.js`, the script handles both the first login
+(temporary password → `WZ_E2E_NEW_PASSWORD`, default `Wz-Local-Demo-2026!`) and later runs with the changed password,
+so it can be repeated without purging the realm. Other variables: `WZ_E2E_OH_URL`, `WZ_E2E_IDP_URL`,
+`WZ_E2E_CORE_URL`, `WZ_E2E_INTEGRATION_SECRET` (see the Developer Guide, section 14.7).
 
 ## 8. EHS intake tests
 
@@ -495,6 +564,20 @@ curl -s -H "Authorization: Bearer $TOKEN" -F file=@ehs-sample.xlsx http://localh
 Expected: `"rowsTotal": 2, "rowsAccepted": 2, "rowsRejected": 0`. A second upload of the same file reports
 duplicates instead of creating new incidents.
 
+### 8.3 EHS webhook (increment 1)
+
+The EHS system can push incidents as JSON. The endpoint needs a client-credentials token with role `INTEGRATION`
+(`$TOKEN` from section 5.3) and an `Idempotency-Key` header (8–200 characters):
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/intake/ehs/incidents -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -H "Idempotency-Key: local-$(date +%s)" -d '{"incidents":[{"externalRef":"INC-9101","occurredAt":"2026-10-28T09:15:00Z","incidentClass":"INJURY_MEDICAL_TREATMENT","severity":"MEDIUM","employeeId":"E1004","unitCode":"GND","bodyPart":"HAND","location":"LHR stand 512","description":"Hand caught in belt loader"},{"externalRef":""}]}' | jq
+```
+
+Expected: HTTP `202` with `"accepted": 1, "deadLettered": 1`. The first incident matches the seeded rule *Injury –
+medical treatment* (`AUTO_CREATE`, `SEMI_URGENT`) and appears as a `GND-…` case in the OH workspace queues; the second
+is in the dead-letter queue (`GET /api/v1/intake/dlq`, OH workspace *Intake → DLQ* as `admin1`). Repeating the call
+with the same key and body returns the stored response with `Idempotent-Replayed: true`.
+
 ## 9. Secrets in configuration: `ENC(...)`
 
 Values that must live in configuration files, such as a connector password, are stored encrypted:
@@ -548,7 +631,10 @@ development.
 | Keycloak unhealthy, log shows `password authentication failed for user "keycloak"` | Old database volume with different passwords | `./deploy/local/down.sh --purge` (deletes local data), then `up.sh` |
 | `Found non-empty schema(s) … but no schema history table` | Tables created manually in an app schema | Purge the volume or drop the stray tables as `wz_migrator` |
 | Port already in use (5432, 8080, 8180, 5173 …) | Another local PostgreSQL / app / dev server | `lsof -nP -iTCP:<port> -sTCP:LISTEN` and stop it |
-| BFF login loops or redirect URI error | Opened via `127.0.0.1` instead of `localhost`, or wrong port | Use `http://localhost:5173`; the realm allows `localhost:5173`, `5174` and `8090` |
+| BFF login loops or redirect URI error | Opened via `127.0.0.1` instead of `localhost`, or wrong port | Use `http://localhost:5173`; the realm allows `localhost:5173`, `5174`, `5175` and `8090` |
+| OH workspace shows *Access restricted* for `nurse1` (or `GET /bff/session` lacks the new roles) | Realm imported before increment 1, or a role missing from the `wellnessz-bff` scope mapping | `./deploy/local/down.sh --purge` and `up.sh` to re-import; when editing the realm, add new roles to the scope mappings of `wellnessz-bff` and `wellnessz-mobile` |
+| Referrals answer `404` for every employee, reception lookups fail with `unknown_employee`, or no case owner is assigned | Core not started with the `local` profile, so the demo employees and OH staff roster were not loaded | Start the core with `SPRING_PROFILES_ACTIVE=local` (section 5.1) |
+| Webhook returns `400 idempotency_key_required` | Missing or too short `Idempotency-Key` | Send a key of 8–200 characters `[A-Za-z0-9._:-]` |
 | Core returns 401 for a valid token | Token issuer differs (for example `127.0.0.1` vs `localhost`) or audience missing | Request tokens from `http://localhost:8180`; check `aud` contains `wellnessz-api` |
 | Core cannot start: `WZ_MASTER_KEY or WZ_MASTER_KEY_FILE is required` | Environment not loaded in this shell | Repeat the `source .env` and `export` steps of section 5.1 |
 | Testcontainers cannot find Docker (Colima) | Socket path differs | Set `DOCKER_HOST` and `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` (section 4.2) |
