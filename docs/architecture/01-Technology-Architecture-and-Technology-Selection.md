@@ -5,8 +5,9 @@
 | **Document** | 01 – Technology Architecture and Technology Selection |
 | **System** | WellnessZ Airline Occupational Health Case Management (OHCM) – base framework |
 | **Audience** | Chief Information Officer, Cyber Governance, Risk & Compliance (GRC) team, architecture board |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Helm chart `0.1.0` |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Helm chart `0.1.0`; updated for **increment 1** (E01 case intake, E02 clinical triage) |
 | **Status** | Draft for steering-committee review |
+| **Increment 1 documents** | [Solution Design E01/E02](../increment-01/01-Solution-Design-E01-E02.md) · [Requirements Traceability Matrix](../increment-01/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-01/03-Release-Notes-Increment-1.md) · [API Contract](../increment-01/API-Contract-E01-E02.md) |
 | **Companion documents** | 02 – Security and SOC 2 Control Mapping · 03 – Developer Guide |
 
 > **How to read this document.** Every statement about the platform was checked against the source code in the
@@ -26,8 +27,9 @@ are added incrementally on top of this framework through a defined module SPI.
 
 **What exists today (implemented):**
 
-- A **modular monolith** core API (`apps/wz-core-app`) on Java 21 and Spring Boot 4.1.2, composed of nine Maven modules
-  whose boundaries are enforced by ArchUnit tests.
+- A **modular monolith** core API (`apps/wz-core-app`) on Java 21 and Spring Boot 4.1.2, composed of nine platform Maven
+  modules plus, since increment 1, two business modules (`modules/wz-e01-intake`, `modules/wz-e02-triage`); module
+  boundaries are enforced by ArchUnit tests.
 - **Identity, access control and audit (E16):** OAuth2 resource server that accepts tokens from several trusted OIDC
   issuers at once (Microsoft Entra ID, Keycloak, Okta and others), vendor-neutral role-claim mapping including Entra ID
   group object-IDs, an attribute-based access-control (ABAC) policy engine with *deny-overrides* and four disclosure
@@ -47,12 +49,20 @@ are added incrementally on top of this framework through a defined module SPI.
   size default 5, floor 3) and complementary suppression; HMAC pseudonymisation utility.
 - **Front-ends:** React 19 employee/crew portal delivered as web, installable PWA and Capacitor 8 iOS/Android app
   (OIDC Authorization Code + PKCE, MDM managed app configuration); React 19 manager/HR workspace (status-only).
-  Browser apps use a **Backend-for-Frontend** (`apps/wz-bff`) so that tokens never reach the browser.
+  Browser apps use a **Backend-for-Frontend** (`apps/wz-bff`) so that tokens never reach the browser. Increment 1 adds
+  the React **OH clinical workspace** (`web/oh-workspace`) for nurses, physicians, AMEs, the CMO, the Nursing Head,
+  OH administrators, clinic reception and first aiders.
 - **Deployment assets** for Azure (AKS), Google Cloud (GKE) and a hybrid on-premises option (RKE2/OpenShift with
   CloudNativePG): hardened Helm chart, Terraform, Dockerfiles, local Docker Compose stack.
 
-**What is deliberately not yet built:** the clinical business modules E02–E04, E06–E12 and E14 (E01, E05 and E13 exist
-only as kernel seeds), production broker adapters (Kafka / Azure Service Bus / Google Pub/Sub), enterprise connector
+**What increment 1 added (Section 19):** E01 case intake (EHS webhook with dead-letter queue, configurable intake rule
+table, referral templates, walk-in/emergency registration, system triggers, duplicate detection, recordability
+classifier, notification matrix) and E02 clinical triage (server-side triage protocols with red-flag hard stop, SLA
+timers, assignment engine, work queues, escalations, complexity score, status-only APIs for crew scheduling and
+catering hygiene), the `triage` schema, nine new roles and the OH workspace.
+
+**What is deliberately not yet built:** the clinical business modules E03, E04, E06–E12 and E14 (E05 and E13 exist
+only as kernel seeds; E01 and E02 were delivered in increment 1), production broker adapters (Kafka / Azure Service Bus / Google Pub/Sub), enterprise connector
 mappings (HRIS, rostering transport, ERP, insurers), the partner provider portal, the data-warehouse feed and predictive
 models, retention/deletion jobs for OH records (only outbox, idempotency and session purges exist), the master-key
 re-encryption job, break-glass access and maker-checker approval of configuration changes. Section 18 lists
@@ -92,7 +102,7 @@ policies, and the operating model of the airline's IT organisation, which are re
 | P3 | **Least privilege at every layer.** | Separate DB roles (migrator owner vs. runtime DML-only with `${app_role}` grants); restricted class E09/E10 visible only to `PSYCH_CLINICIAN`; non-root containers with dropped capabilities. |
 | P4 | **Tamper-evidence and accountability.** | Hash-chained `platform.audit_event`, append-only trigger plus grants, `/api/v1/audit/verify`; correlation id on every request and event. |
 | P5 | **Security by construction rather than by convention.** | Projection types instead of field filtering, allow-listed SQL dimensions, typed configuration, ArchUnit rules, ESLint bans on `console`/`localStorage`. |
-| P6 | **Modular monolith, extractable modules.** | One deployable, nine Maven modules, communication across business modules via events only; any module can later become a service. |
+| P6 | **Modular monolith, extractable modules.** | One deployable, nine platform Maven modules plus the business modules under `modules/` (E01, E02 since increment 1), communication across business modules via events and kernel SPIs only; any module can later become a service. |
 | P7 | **Reliability through idempotency.** | Transactional outbox, idempotent consumers, `Idempotency-Key`, de-duplication of incidents by `(source_system, external_ref)`, cases by `(source, source_ref)`. |
 | P8 | **Cloud-portable, vendor-neutral.** | Standard OIDC, PostgreSQL, Kubernetes/Helm, OpenTelemetry, pluggable publisher and channel SPIs; Azure, GCP and on-premises values files. |
 | P9 | **Secrets never in source, images or Terraform state.** | `ENC(...)`/`file:` resolution, CSI-mounted files, workload identity, Terraform write-only arguments (`>= 1.11`). |
@@ -114,12 +124,14 @@ component and give an honest delivery status.
 |---|---|---|
 | EHS incident-management system (primary feed) – mailbox | `wz-ehs-intake`: `MailboxIngestionJob` with `ImapMailboxReader` (IMAPS, server-identity check) or `GraphMailboxReader` (Microsoft Graph, client-credentials, `Mail.ReadWrite` scoped to one mailbox); `MailBodyParser` for `Key: Value` alert bodies; `.xlsx` attachments routed to the Excel parser. Mode selected by `WZ_EHS_MAILBOX_MODE` (`none`/`imap`/`graph`). | Implemented |
 | EHS incident-management system – Excel import | `POST /api/v1/intake/ehs/excel` → `ExcelIncidentParser` (Apache POI 5.5.1, hardened) → `IncidentIntakeService`. | Implemented |
-| EHS → case | `ehs.incident.received.v1` event → `IncidentListener` → `IncidentToCaseRule` beans (`DefaultIncidentRules`). | Implemented (code-based rule seed of E01) |
+| EHS incident-management system – webhook (increment 1) | `POST /api/v1/intake/ehs/incidents` (role `INTEGRATION`, client-credentials token, mandatory `Idempotency-Key`, ≤ 500 incidents per call) → `IncidentWebhookService` (per-item schema validation; invalid items to the dead-letter queue `intake.incident_dlq`, operator view `/api/v1/intake/dlq`). | Implemented |
+| EHS → case | `ehs.incident.received.v1` event → E01 `IncidentIntakeListener` → `RuleEngine` over the admin-editable table `intake.intake_rule` (AUTO_CREATE / SUGGEST / IGNORE, first match by priority); every incident's fate recorded in `intake.incident_evaluation` for reconciliation. Replaces the code-based `IncidentToCaseRule` seed of the base framework. | Implemented (increment 1) |
 | Employee / crew mobile app & portal | `web/employee-app` (React 19.3.1, Capacitor 8.6.0): my cases, self-referral, consents, profile; web/PWA via BFF; iOS/Android with OIDC + PKCE and MDM AppConfig. | Implemented (E13 seed); native projects generated on demand (`npx cap add`) |
-| Manager & HR workspace (status-only) | `web/manager-workspace`: team case status, case status detail, KPI tile with suppression; management-referral form is a disabled placeholder. | Implemented (referral planned with E01) |
+| Manager & HR workspace (status-only) | `web/manager-workspace`: team case status, case status detail, KPI tile with suppression; manager and HR referral forms (increment 1) with server-side clinical-text guard. | Implemented |
+| OH clinical workspace (increment 1) | `web/oh-workspace`: work queues, case view (triage, recordability, assignment, escalation, complexity, checklists, duplicates, tasks, timeline), intake operations, configuration screens, reception / first-aid registration. | Implemented |
 | Group clinics | Clinic devices can send results via HL7 v2 / FHIR R4 inbound; clinic scheduling and operations are module E14. | Endpoints implemented; E14 planned |
 | Partner provider / TPA portal | Role `PARTNER_PROVIDER` defined; no policy grants it access yet (default deny); FHIR R4 inbound available for partner systems. | Planned |
-| System triggers | `CaseSource.SYSTEM_TRIGGER` and `CaseService.openFromTrigger(...)` (idempotent) exist; scheduled triggers (e.g. surveillance recall) arrive with E06/E07. | Extension point |
+| System triggers | E01 `TriggerController`: absence episodes, surveillance results and D&A test triggers (role `INTEGRATION`), crew fitness self-declaration (role `EMPLOYEE`); absence thresholds configurable in E18 (`intake.absence.*`). Scheduled triggers such as surveillance recall arrive with E06/E07. | Implemented (inbound triggers); scheduled triggers planned |
 
 ### 4.2 OH case-management core (E01–E14)
 
@@ -129,8 +141,8 @@ at `GET /api/v1/modules`. `KERNEL` means a minimal seed exists in the case kerne
 
 | Code | Module | Registry status | What exists in the base framework |
 |---|---|---|---|
-| E01 | Intake & incident-to-case rule engine | KERNEL | `IncidentToCaseRule` SPI, `DefaultIncidentRules` (exposure → EXPOSURE; injury → INJURY; severity ≥ MEDIUM → OTHER), idempotent case opening, case reference sequence `OH-<year>-<6 digits>`. Configurable (no-code) rule engine: planned. |
-| E02 | Triage, routing, work queues & SLAs | PLANNED | Case state machine (`CaseStatus`) with allowed transitions; `POST /cases/{id}/transition`. |
+| E01 | Case intake & incident-triggered case initiation | IMPLEMENTED (increment 1, `modules/wz-e01-intake`) | Configurable intake rule table, EHS webhook + DLQ, self / manager / HR referral templates (en/ar/fr) with body map, walk-in and emergency encounters, system triggers, duplicate detection and merge, recordability classifier with local mapping and closure guard, notification matrix, reconciliation report and dashboard. Case reference `UNIT-YYYY-NNNNNN` per unit and year (`CaseRefGenerator`). |
+| E02 | Clinical triage, risk stratification & case assignment | IMPLEMENTED (increment 1, `modules/wz-e02-triage`) | Versioned triage protocols (JSON, 13 DRAFT protocols awaiting CMO approval) with red-flag hard stop, SLA timers (amber / breach / pause), assignment engine and work queues, escalations and case conferences, complexity score, safety checklists, crew and food-handler status-only APIs, triage QA sampling, telephone triage mode. |
 | E03 | OH record & clinical encounters | PLANNED | Encrypted `clinical_summary` on the case aggregate; FHIR inbound store. |
 | E04 | Treatment coordination, referrals & provider network | PLANNED | Consent purpose `TREATMENT_SHARING_PARTNER`; partner connector catalogued. |
 | E05 | Fitness for duty, restrictions & return to work | KERNEL | `FitnessStatus`, `restrictionUntil`, `POST /cases/{id}/fitness` (OH clinicians), status-only `fitness.status.changed.v1` to `crew-rostering`. |
@@ -146,8 +158,8 @@ at `GET /api/v1/modules`. `KERNEL` means a minimal seed exists in the case kerne
 
 > Module enablement: the flag `modules.eXX.enabled` (E18 configuration) is enforced by
 > `ModuleRegistry.requireEnabled(code)`, which answers **503** with problem code `module_disabled`. Today
-> `CaseService.selfReferral` requires E13, and `IncidentListener` skips case creation when E01 is disabled (the incident
-> stays in intake and can be processed later). The integration test `disabledModuleIsRefused` covers the guard. New
+> `CaseService.selfReferral` requires E13, and the E01 `IncidentIntakeListener` skips case creation when E01 is disabled
+> (the incident stays in intake and can be processed later). The integration test `disabledModuleIsRefused` covers the guard. New
 > modules must call it on every entry point (see the Developer Guide).
 
 ### 4.3 Platform services
@@ -172,10 +184,10 @@ boundary content.
 
 | System | Direction | Data contract | Status in the base framework |
 |---|---|---|---|
-| HRIS / HCM | in | employees, org hierarchy, job codes, lifecycle events | Generic idempotent `POST /integration/inbound/hris` and master-data upsert APIs exist; mapping job planned |
+| HRIS / HCM | in | employees, org hierarchy, job codes, lifecycle events | Generic idempotent `POST /integration/inbound/hris` and master-data upsert APIs exist; since increment 1 the HRIS employee master `masterdata.employee` is loaded through `POST /api/v1/masterdata/employees` (batch upsert ≤ 5,000, INTEGRATION / OH_ADMIN / PLATFORM_ADMIN, audited `HRIS_SYNC`); scheduled mapping job planned |
 | Time & attendance / crew sickness | in | absence episodes | Planned (E06) |
 | Crew rostering | out | `fitnessStatus`, `restrictionUntil`, `effectiveFrom` (+ `caseRef`, `employeeId` keys) | Event produced and guarded; transport adapter is an extension point (logging publisher today) |
-| HR systems / catering hygiene | out | fitness & restriction status only | Allow-list configured (`hr-systems`); producer planned |
+| HR systems / catering hygiene | out | fitness & restriction status only | Allow-lists `hr-systems` and (increment 1) `catering-hygiene`; `CaseService.publishFitness` sends every fitness change to `hr-systems`, aeromedical / unclassified cases to `crew-rostering` and food-handler cases to `catering-hygiene`; transport adapters are an extension point |
 | Laboratories & clinic devices | both | orders / results | Inbound HL7 v2 / FHIR implemented; outbound orders planned |
 | Partner hospitals, specialists, physio, EAP | both | referrals / reports, consent required | Inbound FHIR implemented; consent gate and outbound planned (E04) |
 | Insurers / TPAs | both | notifications, pre-authorisation, documents, consent required | Planned (E08) |
@@ -195,8 +207,9 @@ boundary content.
 |---|---|---|---|
 | `employee-app` | React 19.3.1, TypeScript 6.0.3, Vite 8.3.5, Capacitor 8.6.0; image `nginxinc/nginx-unprivileged:1.30.6-alpine3.24` | Employee/crew portal, PWA shell, native app source | Static files on `:8080`; `/bff/**` routed to BFF by ingress |
 | `manager-workspace` | React 19.3.1, same toolchain, same nginx image | Status-only workspace for managers, HR, OH | Static files on `:8080` |
+| `oh-workspace` (increment 1) | React 19.3.1, same toolchain, same nginx image | OH clinical workspace (E01 intake, E02 triage, queues, SLA) | Static files on `:8080`; host `oh.<domain>`; `/bff/**` routed to BFF by ingress |
 | `wz-bff` | Spring Boot 4.1.2, Spring Security OAuth2 client, Spring Session JDBC; `eclipse-temurin:21.0.12_8-jre-noble` | OIDC login, session, CSRF, token relay | `:8090`, management `:8091` |
-| `wz-core-app` | Spring Boot 4.1.2 modular monolith, Java 21 (virtual threads enabled) | All APIs, business logic, jobs (outbox relay, mailbox poll, notification dispatch, idempotency purge) | `:8080` API, `:8081` management (health, Prometheus) |
+| `wz-core-app` | Spring Boot 4.1.2 modular monolith, Java 21 (virtual threads enabled) | All APIs, business logic, jobs (outbox relay, mailbox poll, notification dispatch, idempotency purge, SLA timer poller) | `:8080` API, `:8081` management (health, Prometheus) |
 | Flyway migrations | Flyway via Spring Boot starter or `flyway/flyway:11.20.3-alpine` Job | Schema migration with owner role | Job / start-up |
 | PostgreSQL 16 | Managed service or CloudNativePG (`postgresql:16.15`) | System of record | Private endpoint, TLS |
 | Identity provider | Entra ID / Keycloak 26.8.1 (local) / Okta etc. | Authentication, MFA, tokens | External |
@@ -212,19 +225,25 @@ boundary content.
 | `wz-common` | `com.wellnessz.common` | – (no Spring Security, ArchUnit-enforced) | `ApiException`, `GlobalExceptionHandler` (RFC 9457), `DomainEvent`, `IntegrationEnvelope`, `DataClassification`, `DisclosureLevel`, `Roles`, `RoleClaims`, `CorrelationIdFilter`, `LogSanitizer`, UTC `Clock` |
 | `wz-secrets` | `com.wellnessz.secrets` | common | `SecretsEnvironmentPostProcessor`, `SecretValueResolver`, `MasterKey`, `Hkdf`, `AesGcmCipher`, `FieldEncryptor`, `EncryptedStringConverter`, `EncryptCli` |
 | `wz-security` (E16) | `com.wellnessz.security` | common | `ResourceServerSecurityConfig`, `WellnessZJwtConverter`, `CurrentUserProvider`, `PolicyEngine`, `AccessPolicy`, `DefaultPolicies`, `ConsentService`, `AuditService`, `SecurityEventAuditor` |
-| `wz-masterdata` (E18) | `com.wellnessz.masterdata` | security | `OrgUnit`, `JobCode`, `Hazard`, `ConfigService`, `MasterDataController` |
+| `wz-masterdata` (E18) | `com.wellnessz.masterdata` | security | `OrgUnit`, `JobCode`, `Hazard`, `ConfigService`, `MasterDataController`; increment 1: `Employee` (HRIS master), `StaffMember` (OH staff roster, caseload caps, out-of-office cover), `EmployeeController` |
 | `wz-integration` (E15) | `com.wellnessz.integration` | security, secrets | `EventBus`, `OutboxRelay`, `EventPublisher`, `OutboundPayloadGuard`, `IdempotentConsumer`, `IdempotencyService`, `FhirController`, `Hl7v2Controller`, `TerminologyService`, `ConnectorRegistry` |
 | `wz-notification` | `com.wellnessz.notification` | common | `NotificationService`, `NotificationTemplates`, `ContentRules`, `QuietHours`, `NotificationChannel` |
 | `wz-analytics` (E17) | `com.wellnessz.analytics` | security | `KpiService`, `SmallCellSuppression`, `Pseudonymizer`, `AnalyticsController` |
-| `wz-case-kernel` | `com.wellnessz.casekernel` | masterdata, integration, security, secrets | `OhCase`, `CaseService`, `CaseViews`, `IncidentListener`, `IncidentToCaseRule`, `CaseModule`, `ModuleRegistry` |
-| `wz-ehs-intake` | `com.wellnessz.ehsintake` | integration, security, secrets | `ExcelIncidentParser`, `MailboxIngestionJob`, `ImapMailboxReader`, `GraphMailboxReader`, `IncidentIntakeService` |
+| `wz-case-kernel` | `com.wellnessz.casekernel` | masterdata, integration, security, secrets | `OhCase`, `CaseService`, `CaseViews`, `CaseModule`, `ModuleRegistry`; increment 1: `OpenCaseCommand`, `CaseRefGenerator`, `CaseTimeline`, `CaseWorkService` (tasks, links, attachments), `CaseAccess`, **`CaseTransitionGuard` SPI** |
+| `wz-ehs-intake` | `com.wellnessz.ehsintake` | integration, security, secrets | `ExcelIncidentParser`, `MailboxIngestionJob`, `ImapMailboxReader`, `GraphMailboxReader`, `IncidentIntakeService`; increment 1: `IncidentWebhookService`, `DeadLetterController` |
+| `wz-e01-intake` (increment 1) | `com.wellnessz.e01` | case-kernel, ehs-intake, notification | `E01Module`, `IncidentIntakeListener`, `RuleEngine`, `IntakeRule`, `ReferralService`, `TemplateCatalog`, `EncounterService`, `TriggerService`, `DuplicateService`, `RecordabilityService` (a `CaseTransitionGuard`), `ReconciliationService`, `IntakeNotificationDispatcher`, **`RecipientResolver` SPI** |
+| `wz-e02-triage` (increment 1) | `com.wellnessz.e02` | e01-intake (only for the `RecipientResolver` SPI and notification types) | `E02Module`, `ProtocolCatalog`, `ProtocolEvaluator`, `TriageService`, `SlaService`, `AssignmentEngine`, `AssignmentService`, `QueueService`, `EscalationService`, `ComplexityService`, `SafetyService` (a `CaseTransitionGuard`), `TriageAuditService`, `OhRecipientResolver` |
 
 ArchUnit rules (`apps/wz-core-app/src/test/java/com/wellnessz/app/ArchitectureTest.java`):
 
-1. Platform packages must not depend on `casekernel` or `ehsintake`.
-2. `ehsintake` must not depend on `casekernel` – the two communicate only via `ehs.incident.received.v1`.
-3. `common` must not depend on Spring Security.
-4. No code outside `com.wellnessz.secrets` (the CLI) may use `System.out`/`System.err`.
+1. Platform packages must not depend on `casekernel`, `ehsintake`, `e01` or `e02`.
+2. `casekernel` must not depend on `e01` or `e02` – modules plug into the kernel through SPIs (`CaseModule`,
+   `CaseTransitionGuard`) and events, never the reverse (increment 1).
+3. `e01` must not depend on `e02` – E02 depends on E01 through the `RecipientResolver` SPI; the reverse would create
+   a cycle (increment 1).
+4. `ehsintake` must not depend on `casekernel` – the two communicate only via `ehs.incident.received.v1`.
+5. `common` must not depend on Spring Security.
+6. No code outside `com.wellnessz.secrets` (the CLI) may use `System.out`/`System.err`.
 
 ### 5.3 Deployment view
 
@@ -242,11 +261,19 @@ All schemas live in one PostgreSQL 16 database; the BFF uses its own schema and 
 | Schema | Tables / views (migration) | Content | Classification (highest) |
 |---|---|---|---|
 | `platform` | `audit_event`, `consent`, `outbox_event`, `processed_message`, `idempotency_record`, `inbound_message`, `code_concept`, `notification` (V1) | Cross-cutting platform state | CLINICAL (inbound and outbox payloads field-encrypted) |
-| `masterdata` | `org_unit`, `job_code`, `hazard`, `config_entry` (V2) | Organisation, job/hazard catalogue, configuration | INTERNAL |
-| `intake` | `import_batch`, `ehs_incident` (V2) | EHS incidents and import provenance | CONFIDENTIAL; `description` CLINICAL (encrypted) |
-| `casemgmt` | `oh_case`, sequence `case_ref_seq` (V2) | Case aggregate | CLINICAL / RESTRICTED_CLINICAL (`clinical_summary` encrypted) |
+| `masterdata` | `org_unit`, `job_code`, `hazard`, `config_entry` (V2); `employee` (HRIS master), `staff_member` (OH staff roster) (V3) | Organisation, job/hazard catalogue, configuration, employee and OH staff master data | CONFIDENTIAL (`employee`), otherwise INTERNAL |
+| `intake` | `import_batch`, `ehs_incident` (V2); `incident_dlq`, `intake_rule`, `incident_evaluation`, `encounter`, `absence_episode`, `trigger_event`, `recordability_assessment`, `recordability_mapping`, `notification_rule` (V4) | EHS incidents, import provenance, E01 rules, encounters, triggers, recordability | CLINICAL (`description`, DLQ payload, encounter clinical fields, recordability rationale encrypted) |
+| `casemgmt` | `oh_case`, sequence `case_ref_seq` (V2); `case_sequence`, `case_link`, `case_event`, `case_task`, `case_attachment` (V3) | Case aggregate, timeline, tasks, links, attachments | CLINICAL / RESTRICTED_CLINICAL (`clinical_summary` and attachment content encrypted) |
+| `triage` (increment 1) | `work_queue`, `sla_policy`, `sla_timer`, `assignment_rule`, `case_assignment`, `triage_protocol`, `triage_assessment`, `escalation`, `case_conference`, `case_risk_flags`, `complexity_assessment`, `duration_guideline`, `case_checklist`, `handover`, `saved_view`, `triage_audit_sample`, `case_advice` (V5) | E02 triage, queues, SLA, assignment, escalation | CLINICAL (triage answers and notes, escalation notes, conference minutes, handover notes, checklist answers encrypted) |
 | `analytics` | view `v_case_facts` (V2) | De-identified case facts | INTERNAL (aggregate) |
 | `bff` | `spring_session`, `spring_session_attributes` (`db/bff/V1`) | Browser sessions including OAuth2 tokens | CONFIDENTIAL (attributes encrypted) |
+
+Increment 1 adds migrations V3 (kernel and master data), V4 (E01) and V5 (E02, schema `triage`). Synthetic demo people
+(`db/demo/R__demo_reference_people.sql`, a repeatable migration) are loaded **only** by the `local` and `test` profiles,
+which add `classpath:db/demo` to `spring.flyway.locations`; every other environment uses `WZ_FLYWAY_LOCATIONS`
+(default `classpath:db/migration`) and the Helm migration Job reads `db/migration` only. The schema list is maintained
+in `spring.flyway.schemas`, the Helm value `migrations.job.core.schemas`, `deploy/local/postgres/01-init-wellnessz.sh`,
+`deploy/sql/bootstrap-managed-postgres.sql` and `deploy/hybrid/cnpg/03-cluster.yaml`.
 
 Flyway migrations (`apps/wz-core-app/src/main/resources/db/migration`) run as an owner role (`WZ_DB_MIGRATOR_USERNAME`,
 `wz_migrator` in Terraform/CNPG). Each migration grants the runtime role (`${app_role}`, the value of
@@ -333,7 +360,7 @@ Audit records must be retained at least as long as the records they describe.
 | Concern | Implementation |
 |---|---|
 | Publishing | `EventBus.publish(event[, destination])` requires an active transaction (`Propagation.MANDATORY`) and inserts into `platform.outbox_event` in the **same transaction** as the business change – no dual-write problem. |
-| Envelope | `IntegrationEnvelope(messageId, eventType, aggregateType, aggregateId, payload, headers{correlationId}, occurredAt)`; event types are versioned (`ehs.incident.received.v1`, `case.opened.v1`, `fitness.status.changed.v1`, `integration.inbound.received.v1`). |
+| Envelope | `IntegrationEnvelope(messageId, eventType, aggregateType, aggregateId, payload, headers{correlationId}, occurredAt)`; event types are versioned (`ehs.incident.received.v1`, `case.opened.v1`, `fitness.status.changed.v1`, `integration.inbound.received.v1`; increment 1: `case.assigned.v1`, `case.triaged.v1`, `case.escalated.v1`, `sla.at-risk.v1`, `sla.breached.v1`). |
 | Relay | `OutboxRelay` every `PT2S` on every replica; claims due rows with `FOR UPDATE SKIP LOCKED` (batch 50) so replicas never deliver the same row concurrently. |
 | Delivery semantics | At-least-once. Failures increment `attempts`, back-off `2^attempts` seconds capped at one hour; after `max-attempts` (10) the row becomes `DEAD`. |
 | Destinations | `internal` → `InProcessEventPublisher` (Spring application event); any other destination → an `EventPublisher` adapter. Today `LoggingExternalPublisher` (metadata only) stands in. Kafka / Azure Service Bus / Google Pub/Sub adapters are **extension points**. |
@@ -348,6 +375,8 @@ Audit records must be retained at least as long as the records they describe.
 | `POST /api/v1/integration/inbound/{source}` | JSON only; **requires** `Idempotency-Key` (8–200 chars, `[A-Za-z0-9._:-]`). First request executes; retry with same key and payload returns the stored response with `Idempotent-Replayed: true`; same key with different payload → `422`. Advisory lock prevents concurrent first-execution. Records purged after 7 days. |
 | `POST /api/v1/integration/fhir/{resourceType}` | `application/fhir+json` only (no XML parser – no XXE surface); allow-list: Patient, Observation, DiagnosticReport, ServiceRequest, Condition, Encounter, Immunization, DocumentReference, Bundle, Appointment, Claim; strict parser; URL type must match body type; responds with `OperationOutcome` and `Location: urn:uuid:<id>`. |
 | `GET /api/v1/integration/fhir/metadata` | FHIR 4.0.1 CapabilityStatement listing the supported `create` interactions. |
+| `POST /api/v1/intake/ehs/incidents` (increment 1) | EHS webhook. Role `INTEGRATION`; **requires** `Idempotency-Key` (same `IdempotencyService` as above, scope `ehs-webhook`); body is one incident or `{"incidents":[…]}` (≤ 500). Each item is validated against an allow-listed schema (identifier regexes, known `incidentClass` and `severity` values, ISO-8601 instants, length caps); invalid items are stored encrypted in `intake.incident_dlq`, a WARN alert is logged and `EHS_WEBHOOK_DLQ` is audited; valid items follow the common de-duplicating ingestion path. Answers `202` with `{accepted, duplicates, deadLettered, batchId}`. Operators list, replay or discard dead letters at `/api/v1/intake/dlq` (OH_ADMIN, PLATFORM_ADMIN; audited). |
+| `POST /api/v1/intake/absence-episodes`, `/intake/triggers/surveillance-result`, `/intake/triggers/da-test` (increment 1) | System triggers for E01 (role `INTEGRATION`). |
 | `POST /api/v1/integration/hl7v2` | ER7 over HTTPS; HAPI default validation; `MSA\|AA` on success, `AR` + HTTP 400 when unparseable. |
 
 All inbound messages are stored encrypted in `platform.inbound_message` with the authenticated client as `received_by`
@@ -362,8 +391,9 @@ transaction (`disclosure_violation`), and a destination without a list is refuse
 
 ```yaml
 wellnessz.integration.outbound-allowlist:
-  crew-rostering: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom]
-  hr-systems:     [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom]
+  crew-rostering:   [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom]
+  hr-systems:       [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom]
+  catering-hygiene: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom]   # increment 1
 ```
 
 The integration test `fitnessOutcomeIsPublishedToRosteringAsStatusOnly` verifies that a fitness decision produces a
@@ -424,7 +454,11 @@ claims (`employee_id`, `org_scope`), which the IdP must populate (e.g. Entra ID 
 policy fed from HRIS).
 
 Canonical roles (`wz-common Roles`): `EMPLOYEE`, `MANAGER`, `HR`, `OH_CLINICIAN`, `OH_ADMIN`, `CASE_MANAGER`,
-`PSYCH_CLINICIAN`, `AUDITOR`, `PLATFORM_ADMIN`, `INTEGRATION`, `PARTNER_PROVIDER`.
+`PSYCH_CLINICIAN`, `AUDITOR`, `PLATFORM_ADMIN`, `INTEGRATION`, `PARTNER_PROVIDER`; increment 1 adds `OH_PHYSICIAN`,
+`AME`, `CMO`, `NURSING_HEAD`, `HSE_OFFICER`, `CREW_SCHEDULING`, `HYGIENE_MANAGER`, `CLINIC_RECEPTION` and
+`FIRST_AIDER`. `Roles.OH_TEAM` groups the clinical roles (`OH_CLINICIAN`, `OH_PHYSICIAN`, `AME`, `CMO`, `NURSING_HEAD`,
+`CASE_MANAGER`, `PSYCH_CLINICIAN`); `Roles.FITNESS_DECIDERS` lists who may record a fitness decision. The role
+responsibilities and segregation of duties are described in document 02, Section 11.
 
 > The BFF maps roles from the ID and access token for **UI gating** (session roles and the `/bff/api/workspace/**`
 > gate), applying the same group mapping as the core API through `wellnessz.bff.group-role-mapping` (Entra group object
@@ -442,7 +476,7 @@ their own policies as Spring beans.
 | `NONE` | no access | default |
 | `STATUS_ONLY` | case status, fitness status, dates – no clinical content | `statusOnlyPolicy`: MANAGER/HR, READ, resource org path within the user's `org_scope` (otherwise explicit deny) |
 | `SELF` | data subject's own record | `selfAccessPolicy`: employee id matches, READ |
-| `CLINICAL` | standard OH clinical access | `clinicianPolicy`: OH_CLINICIAN / CASE_MANAGER, not restricted class |
+| `CLINICAL` | standard OH clinical access | `clinicianPolicy`: OH_CLINICIAN / CASE_MANAGER and, since increment 1, OH_PHYSICIAN / AME / CMO / NURSING_HEAD; not restricted class |
 | `RESTRICTED_CLINICAL` | includes psychological health / substance testing | `clinicianPolicy`: PSYCH_CLINICIAN |
 | (deny) | restricted class for anyone else | `restrictedClassPolicy` (deny policy): RESTRICTED_CLINICAL unless PSYCH_CLINICIAN, data subject, or MANAGER/HR (who still only get status) |
 
@@ -626,7 +660,7 @@ organisation-wide level; suppression is the control, not org scope.
 | Aspect | Design |
 |---|---|
 | Stateless compute | Core API and BFF are stateless (BFF sessions in PostgreSQL); 2 replicas minimum, HPA 2–6 on CPU 70 % / memory 80 %, PDB `minAvailable: 1`, topology spread across zones. |
-| Concurrency in jobs | Outbox relay and notification dispatch use `SKIP LOCKED`; audit chain uses an advisory lock (a throughput ceiling for audit writes – acceptable for expected volumes, to be load-tested); mailbox job tolerant of concurrent runs. |
+| Concurrency in jobs | Outbox relay, notification dispatch and (increment 1) the SLA timer poller use `SKIP LOCKED`; audit chain uses an advisory lock (a throughput ceiling for audit writes – acceptable for expected volumes, to be load-tested); mailbox job tolerant of concurrent runs. |
 | Virtual threads | Enabled (`spring.threads.virtual.enabled`), reducing thread-pool tuning for I/O-bound workloads. |
 | Database HA | Azure Flexible Server zone-redundant HA (standby zone 2), Cloud SQL `REGIONAL`, CNPG 3 instances with at least one synchronous standby (`dataDurability: required`). |
 | Backups | Azure: 35-day retention, geo-redundant backup (default on), CMK; GCP: 30 retained backups, 7 days of transaction logs (PITR); CNPG: continuous WAL archiving + scheduled base backups to object storage. |
@@ -823,6 +857,86 @@ Helm chart `0.1.0` requires Kubernetes `>= 1.30`.
 | Terraform / azurerm / google | `>= 1.11` / `~> 4.81` / `~> 8.9` | `deploy/terraform/*/versions.tf` |
 | Helm chart / Kubernetes | 0.1.0 / `>= 1.30` | `deploy/helm/wellnessz/Chart.yaml` |
 
+### 14.12 SLA timer scheduling (increment 1)
+
+**Choice:** database-backed timers plus an in-application poller. Each case milestone (today `TRIAGE` and
+`ESCALATION_RESPONSE`) has a row in `triage.sla_timer` with `started_at`, `amber_at`, `due_at` and a status
+(`RUNNING`, `PAUSED`, `MET`, `BREACHED`, `CANCELLED`). Targets and the amber percentage come from `triage.sla_policy`
+(per urgency, optionally per case type; seeded: EMERGENCY 15 min, URGENT 60 min, SEMI_URGENT 240 min, ROUTINE 480 min,
+ADVICE 960 min, amber at 75 %). `SlaService.monitor()` runs on every replica every `wellnessz.triage.sla.poll-interval`
+(`WZ_SLA_POLL_INTERVAL`, default `PT60S`) and claims due rows with
+`select … from triage.sla_timer where status = 'RUNNING' and (amber due or due_at <= now) order by due_at limit 500 for update skip locked`
+(partial index `ix_sla_timer_due`). In the **same transaction** it marks the breach, flags the case as escalated,
+writes the timeline entry and publishes `sla.at-risk.v1` / `sla.breached.v1` to the outbox. Waiting for the employee
+or an external party pauses the timer (remaining seconds stored) and resumes it later.
+
+| Criterion | DB timers + `SKIP LOCKED` (selected) | Quartz with JDBC job store | Scan job + ShedLock | External scheduler or workflow engine (Kubernetes CronJob, cloud scheduler, Temporal, Camunda timers) | Broker delayed messages (e.g. Service Bus scheduled messages) |
+|---|---|---|---|---|---|
+| Atomic with the case change (no dual write) | yes – same transaction as case, timeline and outbox | yes (same DB) but separate tables and API | yes | no – needs callbacks into the API and idempotency | no – needs the outbox anyway |
+| Additional infrastructure / operating effort | none | library + 11 tables | library + lock table | separate service or cluster, credentials, HA | broker, and only on some clouds |
+| Safe on several replicas | yes – rows are claimed, never double-processed | yes (clustered mode) | one active node only | yes | yes |
+| Pause / resume, re-targeting by policy change | simple row update | reschedule triggers | simple | engine-specific | cancel and re-send messages |
+| Hybrid / on-premises portability | PostgreSQL only | yes | yes | depends on product | Azure / GCP specific |
+| Reporting (MET / BREACHED per milestone) | plain SQL on the timer table | needs extra history | plain SQL | export from engine | not retained |
+| **Verdict** | **Selected** – same reliability pattern as the outbox relay; no new moving parts | Over-sized for one timer type | Single active node wastes replicas | Reconsider if multi-step clinical workflows with long-running timers arrive (E04, E05) | Not selected |
+
+Trade-offs accepted: alert latency is bounded by the poll interval (≤ 60 s against targets of 15–960 min); the SLA
+state shown in queues and the case header is computed on read from the timestamps, so it is exact. Durations are
+elapsed minutes – "one working day" is configured as 480 minutes until a business calendar exists in E18 (open item
+O10). The integration test `QueuePerformanceTest` seeds 5,000 open cases with running timers and requires three queue
+calls to complete in under 2 seconds.
+
+### 14.13 Intake and assignment rule engine (increment 1)
+
+**Choice:** an **in-house declarative rule table** in PostgreSQL rather than a rules engine such as Drools. E01 intake
+rules (`intake.intake_rule`) and E02 assignment rules (`triage.assignment_rule`) are rows with nullable conditions
+(null = wildcard: incident class, minimum severity, lost time, injury, exposure type, unit, body part; for assignment:
+subsidiary, site, language, case type, safety category) and an action (`AUTO_CREATE` / `SUGGEST` / `IGNORE` with case
+type and urgency; queue and owner strategy). The **first active rule by priority wins**. OH administrators and the
+Nursing Head edit them in the OH workspace, a dry-run endpoint (`POST /intake/rules/test`, `POST /assignment/rules/test`)
+shows which rule would fire, and every change is audited (`INTAKE_RULE_CREATE`, `INTAKE_RULE_UPDATE`,
+`ASSIGNMENT_RULE_SAVE`).
+
+| Criterion | Declarative rule rows (selected) | Drools / KIE (DRL or decision tables) | DMN engine (e.g. Camunda / Kogito DMN) | Rules hard-coded in Java (base framework seed) |
+|---|---|---|---|---|
+| Who changes rules | OH admin / Nursing Head in the UI, audited | developers (DRL) or analysts (spreadsheets) with a deployment | analysts with a modelling tool | developers, release required |
+| Expressiveness needed by E01/E02 | sufficient – conjunctions of equality / threshold conditions, first match | far beyond the need (forward chaining, CEP) | sufficient (hit policy FIRST) | unlimited |
+| Explainability for reconciliation and audit | rule id stored on each `incident_evaluation` and assignment | requires rule-firing listeners | decision trace available | log statements only |
+| Testability | unit test of `RuleEngine.firstMatch`, dry-run API | KIE test harness | DMN test tooling | unit tests |
+| Dependency and security surface | none (plain JPA) | large (MVEL / executable model, compiler at runtime, frequent CVE handling) | medium–large | none |
+| Change control / SOC 2 | data change audited in the hash-chained trail; maker-checker planned (RR6 in doc 02) | artefact release through CI/CD | model release | code review |
+| **Verdict** | **Selected** | Reconsider if rules need chaining across facts or temporal reasoning | Candidate if business analysts want standard decision models | Superseded |
+
+### 14.14 Triage protocol content as versioned JSON (increment 1)
+
+**Choice:** triage protocols are **data, not code**: one JSON document per protocol version stored in
+`triage.triage_protocol` (`code`, `version`, `status` `DRAFT` → `APPROVED` → `RETIRED`, `approved_by`, `approved_at`,
+unique `(code, version)`). A document holds the start question, questions (`BOOLEAN`, `NUMBER`, `SELECT`) with
+`onYes` / `onNo` / `next` branches, threshold `rules` (`>=8`, `4..7`, `else`), `redFlag` markers and outcomes. The
+13 draft protocols (body fluid, cardiac, chemical, crew fatigue, eye, fume event, head injury, heat, infectious GI,
+laceration/burn, MSK, psychological, respiratory) ship in `modules/wz-e02-triage/src/main/resources/triage/protocols/`
+and are seeded as `DRAFT` at start-up only when the code does not exist yet – existing versions are never
+overwritten. Only the CMO can approve a version (`POST /triage/protocols/{code}/approve`, audited
+`PROTOCOL_APPROVE`); approving retires the previous approved version. `TriageService` uses the latest approved
+version and falls back to the latest draft (for test environments; the UI shows the status). Each assessment stores
+the protocol code and version it was evaluated against.
+
+Urgency is **always computed on the server** (`ProtocolEvaluator`): the client sends answers only, a red-flag "yes" is
+a hard stop at `EMERGENCY` that cannot be overridden downwards (`422 red_flag_hard_stop`), and any other override
+needs a reason. The OH workspace runs the same JSON for navigation and a preview only.
+
+| Criterion | Versioned JSON in the DB (selected) | Protocols coded in Java | Commercial triage content / decision-support service | FHIR `Questionnaire` + `PlanDefinition` |
+|---|---|---|---|---|
+| Clinical governance (draft → CMO approval → retire, audit) | built in | code review only, not clinical sign-off | vendor-governed | needs a FHIR server and tooling |
+| Change without a software release | yes (new version) | no | yes | yes |
+| Same definition drives server evaluation and UI | yes | no | vendor UI | yes, with a renderer |
+| Reproducibility of past decisions | version stored per assessment | git history only | vendor-dependent | yes |
+| Licensing / cost | none | none | per-use licence | none (tooling effort) |
+| **Verdict** | **Selected** | Not selected | Option if the airline licenses validated content | Candidate for E03 interoperability; the JSON grammar can be mapped later |
+
+The protocol content in the repository is **draft clinical content** that must be reviewed and approved by the CMO
+and the Nursing Head before clinical use (open item O11).
+
 ## 15. Verification evidence
 
 The following results were produced against the baseline described on the cover and can be reproduced from the
@@ -834,6 +948,24 @@ repository.
 | SAST – SpotBugs + FindSecBugs (effort Max, threshold Medium) | **0 findings**; 4 justified exclusions in `config/spotbugs-exclude.xml` (entity/record representation exposure, constructor fail-fast, CSRF disabled on the stateless bearer API, validated SPA logout redirect) | `mvn -Psecurity verify` |
 | Web unit tests (Vitest) | employee-app **30**, manager-workspace **35**, all passing | `npm test` in each app (CI job *Web*) |
 | End-to-end (Playwright, real Keycloak 26.8.1) | Login through the BFF; session cookie `WZSESSION` is `HttpOnly`; no tokens in `localStorage`; employee self-referral → manager sees a status-only row without clinical text | `tools/e2e/e2e.js` with the local stack; screenshots in `docs/images/screens/` |
+
+**Increment 1 (E01, E02).** Results of the increment-1 verification run (details in the
+[Release Notes](../increment-01/03-Release-Notes-Increment-1.md)):
+
+| Check | Result | How to reproduce |
+|---|---|---|
+| Java tests | **65 tests, all passing**, including `Increment1IntegrationTest`, `QueuePerformanceTest` (5,000 open cases, < 2 s), `RuleEngineTest`, `RecordabilityClassifierTest`, `ProtocolEvaluatorTest`, `ClinicalTextDetectorTest` and the 6 ArchUnit rules | `./mvnw verify` |
+| SAST – SpotBugs + FindSecBugs | **0 findings**; 5 justified exclusions (the fifth covers the queue SQL in `QueueService`, assembled from constant fragments with every user value bound as a parameter) | `./mvnw -Psecurity -DskipTests -Ddependency-check.skip=true verify` |
+| Web unit tests (Vitest) | oh-workspace **151**, employee-app **81**, manager-workspace **55**, all passing | `npm test` in each app |
+| End-to-end (Playwright, real Keycloak) | **18 / 18 checks** of `tools/e2e/e2e-increment1.js`: EHS webhook → auto-created and routed case, self-referral through the UI, manager referral clinical-text guard and org scope, status-only manager view, queue counts, reassignment by the Nursing Head, red-flag hard stop, triage, escalation, SLA clock, first-aid suggestion, DLQ, reception and crew-scheduling restrictions | `node tools/e2e/e2e-increment1.js`; screenshots in `docs/images/screens/increment-01/` |
+
+![OH workspace team queue](../images/screens/increment-01/inc1-oh-01-queues-team.png)
+
+*Figure 10 – OH workspace, team work queue with SLA state, urgency and owner (increment-1 E2E run).*
+
+![OH workspace triage](../images/screens/increment-01/inc1-oh-05-case-triage-result.png)
+
+*Figure 11 – OH workspace, server-computed triage result for an EHS-triggered case (increment-1 E2E run).*
 
 Integration tests covering security properties include: status-only projection for managers and 404 outside org scope,
 restricted class hidden from general clinicians, clinical text and outbox payloads encrypted at rest, status-only
@@ -877,6 +1009,9 @@ restriction date – with no clinical text (E2E run).*
 | O6 | Decide on in-cluster mTLS (service mesh) vs NetworkPolicies only. |
 | O7 | Add a read-only reporting DB role for warehouse extraction. |
 | O8 | Define DAST in the pipeline (ZAP baseline) and add SpotBugs as a CI job. |
+| O9 | Increment 1: the OH staff roster (`masterdata.staff_member` – usernames, roles, sites, languages, caseload caps) has no API or HRIS feed yet; it is loaded by SQL (demo rows only in the `local` profile). Define the source of truth (IdP group membership or HRIS) and an import before go-live. |
+| O10 | Increment 1: SLA targets are elapsed minutes; a business / site calendar (working days, public holidays per station) is needed in E18. |
+| O11 | Increment 1: the 13 triage protocols, advice texts (en/ar/fr) and recordability mapping are draft content; CMO / Nursing Head approval and a clinical safety case are required before clinical use. |
 
 ## 17. Decisions requested from the steering committee
 
@@ -899,11 +1034,68 @@ restriction date – with no clinical text (E2E run).*
 | Increment | Scope | Key platform work |
 |---|---|---|
 | **0 – Base framework** (this repository) | Platform services, EHS intake, case kernel, BFF, employee app, workspace, deployment assets, CI/CD workflows | outbox encryption & purge, module flag enforcement, flat-payload guard, BFF group mapping (done) |
-| **1 – Production readiness** | SpotBugs CI job + DAST, envelope encryption + re-encryption job, versioned blind-index key, audit anchoring, secure-storage & MAM plugins, broker adapter (D3), rostering transport, HRIS sync, DR runbook | pen test, SOC 2 readiness assessment |
-| **2 – Core pathway** | E01 configurable rule engine and management referral, E02 triage/queues/SLAs, E03 OH record & encounters (FHIR mapping), E05 full fitness/RTW, retention jobs | terminology server, notification triggers from events |
+| **1 – E01 intake & E02 triage** (delivered, Section 19) | E01 case intake and incident-triggered case initiation; E02 clinical triage, risk stratification, triage queue, SLA and case assignment; OH workspace | `triage` schema, nine new roles, SKIP LOCKED SLA poller, EHS webhook with DLQ, case kernel SPIs (`CaseTransitionGuard`), HRIS employee master |
+| **1b – Production readiness** (rescheduled; runs alongside the next increments) | SpotBugs CI job + DAST, envelope encryption + re-encryption job, versioned blind-index key, audit anchoring, secure-storage & MAM plugins, broker adapter (D3), rostering transport, HRIS sync, DR runbook | pen test, SOC 2 readiness assessment |
+| **2 – Core pathway** | E03 OH record & encounters (FHIR mapping), E05 full fitness/RTW, retention jobs (E01 and E02 were pulled forward into increment 1) | terminology server, notification triggers from events |
 | **3 – Prevention & absence** | E06 absence (T&A feed), E07 surveillance/medicals/immunisation (hazard-driven recall), E11 travel health | scheduled system triggers, regulatory reports |
 | **4 – Restricted class & external parties** | E09 psychological health & peer support, E10 substance testing, E04 referrals & partner portal (consent gate), E08 claims & insurers | partner IdP, consent enforcement, break-glass |
 | **5 – Engagement & insight** | E12 health promotion & wearables, E14 scheduling & group clinics, E13 extended self-service, warehouse/BI feed, governed predictive models | pseudonymised extracts, model governance |
+
+## 19. Increment 1 – E01 intake and E02 triage on the framework
+
+Increment 1 is the first use of the module SPI by real business modules. The detailed design, requirement
+traceability and release notes are in [`docs/increment-01/`](../increment-01/); the endpoint contract is
+[`API-Contract-E01-E02.md`](../increment-01/API-Contract-E01-E02.md). This section records the architectural facts.
+
+### 19.1 Module map
+
+| Layer | Component | Increment-1 content |
+|---|---|---|
+| Business modules (`modules/`) | `wz-e01-intake` → depends on `wz-case-kernel`, `wz-ehs-intake`, `wz-notification` | Intake rules, referrals, encounters, triggers, duplicates, recordability, notification matrix, reconciliation |
+| | `wz-e02-triage` → depends on `wz-e01-intake` | Protocols, triage, SLA, assignment, queues, escalation, complexity, safety checklists, QA sampling |
+| Case kernel | `wz-case-kernel` | `OpenCaseCommand`, case numbering, timeline (`casemgmt.case_event`), tasks, links, attachments, `CaseTransitionGuard` SPI, new statuses / urgency / safety category |
+| Platform | `wz-common`, `wz-security`, `wz-masterdata`, `wz-ehs-intake`, `wz-notification` | Nine roles, `ClinicalTextDetector`, ABAC for new OH roles, HRIS employee and OH staff master, EHS webhook + DLQ, notification templates |
+| Front-ends | `web/oh-workspace` (new), `web/employee-app`, `web/manager-workspace` | OH clinical workspace (dev port 5175); self-referral templates with body map, fitness declaration and advice in the employee app; manager and HR referral forms |
+| Delivery | Helm component `ohWorkspace`, image `oh-workspace`, host `oh.<domain>`; CI web matrix, `container.yml`, `deploy-env.yml`, Dependabot | See document 04 and the CI/CD Guide |
+
+How the modules plug in (no kernel → module dependency, enforced by ArchUnit):
+
+| Extension point | Provided by | Implemented by |
+|---|---|---|
+| `CaseModule` (registration, `GET /api/v1/modules` → `IMPLEMENTED`) | kernel | `E01Module`, `E02Module` |
+| `CaseTransitionGuard` (veto a status change with `422`) | kernel; called by `CaseService` and `TriageService` | `RecordabilityService` (`422 recordability_required`: an injury / illness case cannot leave `INTAKE` before recordability is classified), `SafetyService` (`422 fitness_required` / `checklist_required`: a safety-critical case cannot close without a fitness decision and the checklist of its safety category) |
+| `RecipientResolver` (who receives an intake notification) | E01 | E02 `OhRecipientResolver` (queue distribution lists, case owner, Nursing Head) |
+| Events on the outbox | kernel, E01, E02 | E01 consumes `ehs.incident.received.v1` and `case.opened.v1` (duplicates); E02 consumes `case.opened.v1` (assignment and SLA start); E01 dispatches notifications on `case.opened/assigned/escalated` and `sla.at-risk/breached` |
+
+### 19.2 Main runtime flows
+
+1. **EHS incident → case.** Webhook / mailbox / Excel → `intake.ehs_incident` → `ehs.incident.received.v1` →
+   E01 rule table → `AUTO_CREATE` opens a case (`CaseService`, `case.opened.v1`), `SUGGEST` parks the incident for
+   nurse review (`/intake/suggestions`), `IGNORE` / `NO_MATCH` are recorded for reconciliation. Unidentified employees
+   always become suggestions.
+2. **Case opened → queue and SLA.** E02 `AssignmentService` reacts to `case.opened.v1`: restricted class →
+   `MENTAL_HEALTH`; safety-critical roles → `AME_AEROMEDICAL`, `FOOD_SAFETY` or `PHYSICIAN` with urgency raised to at
+   least `SEMI_URGENT`; otherwise the first matching assignment rule. The owner is chosen by least load / round robin
+   within caseload caps and out-of-office cover; the `TRIAGE` SLA timer starts.
+3. **Triage.** The nurse runs the protocol in the OH workspace; the server evaluates the answers, sets urgency and
+   case type, stops the `TRIAGE` timer and publishes `case.triaged.v1`. Advice can be released to the employee
+   (`GET /me/advice`).
+4. **Escalation.** To physician, CMO, external specialist or emergency services; addressee roles are checked
+   server-side; an `ESCALATION_RESPONSE` timer runs.
+5. **Status-only outputs.** Fitness changes go to the outbound allow-listed destinations; crew scheduling and the
+   catering hygiene manager read status rows through `GET /status/crew` and `GET /status/food-handlers`.
+
+### 19.3 Configuration keys added
+
+| Key | Environment variable | Default | Purpose |
+|---|---|---|---|
+| `spring.flyway.locations` | `WZ_FLYWAY_LOCATIONS` | `classpath:db/migration` (`local`/`test` profiles add `classpath:db/demo`) | Keeps demo data out of shared environments |
+| `wellnessz.triage.sla.poll-interval` | `WZ_SLA_POLL_INTERVAL` | `PT60S` | SLA poller interval (Section 14.12) |
+| `wellnessz.notification.oh-workspace-url` | `WZ_OH_WORKSPACE_URL` | `https://oh.wellnessz.local` | Link placed in OH-team notification e-mails |
+| `wellnessz.notification.oh-contact` | `WZ_OH_CONTACT` | `Occupational Health service desk` | Contact line in stakeholder notifications |
+| `wellnessz.integration.outbound-allowlist.catering-hygiene` | – | status fields only | Outbound destination for food-handler cases |
+| `wellnessz.security.cors-origins` (local profile) | `WZ_CORS_ORIGINS` | adds `http://localhost:5175` | OH workspace dev server |
+| E18 keys `modules.e02.enabled`, `intake.absence.*`, `triage.complexity.intensive-threshold` | – | seeded by V4 | Business configuration |
 
 ## Appendix A – API surface of the base framework
 
@@ -931,6 +1123,24 @@ restriction date – with no clinical text (E2E run).*
 | `GET /api/v1/analytics/kpis/cases-by-status` | MANAGER, HR, OH_CLINICIAN, OH_ADMIN, CASE_MANAGER, PLATFORM_ADMIN | wz-analytics |
 | `POST /api/v1/notifications/test` | PLATFORM_ADMIN | wz-notification |
 | BFF: `/oauth2/authorization/wellnessz`, `/login/oauth2/code/wellnessz`, `POST /logout`, `GET /bff/session`, `/bff/api/**` | session | wz-bff |
+
+Increment 1 adds endpoints under `/api/v1/intake/**`, `/api/v1/triage/**`, `/api/v1/queues/**`,
+`/api/v1/cases/{id}/…`, `/api/v1/escalations/**`, `/api/v1/assignment/**`, `/api/v1/sla/**`, `/api/v1/staff/**`,
+`/api/v1/status/**`, `/api/v1/employees/{id}/timeline`, `/api/v1/me/advice` and `/api/v1/masterdata/employees`. The
+authoritative list with roles is the [API Contract E01/E02](../increment-01/API-Contract-E01-E02.md); selected entries:
+
+| Method & path | Roles | Module |
+|---|---|---|
+| `POST /api/v1/intake/ehs/incidents` (Idempotency-Key) | INTEGRATION | wz-ehs-intake |
+| `GET /api/v1/intake/dlq`, `POST /intake/dlq/{id}/replay\|discard` | OH_ADMIN, PLATFORM_ADMIN | wz-ehs-intake |
+| `POST /api/v1/intake/referrals/self\|manager\|hr` | EMPLOYEE / MANAGER / HR (clinical-text guard on manager and HR) | wz-e01-intake |
+| `GET\|POST\|PUT /api/v1/intake/rules`, `POST /intake/rules/test` | read: OH roles, OH_ADMIN, HSE_OFFICER; write: OH_ADMIN, NURSING_HEAD | wz-e01-intake |
+| `POST /api/v1/intake/encounters`, `POST /intake/encounters/{id}/convert` | CLINIC_RECEPTION, FIRST_AIDER, OH roles / convert: OH clinical roles | wz-e01-intake |
+| `GET /api/v1/queues/{queue}`, `GET /queues/counts` | OH roles | wz-e02-triage |
+| `POST /api/v1/cases/{id}/triage` | OH triage roles | wz-e02-triage |
+| `POST /api/v1/triage/protocols/{code}/approve` | CMO | wz-e02-triage |
+| `GET /api/v1/status/crew`, `GET /status/food-handlers` | CREW_SCHEDULING / HYGIENE_MANAGER (status fields only) | wz-e02-triage |
+| `POST /api/v1/masterdata/employees` | INTEGRATION, OH_ADMIN, PLATFORM_ADMIN | wz-masterdata |
 
 ## Appendix B – Glossary
 

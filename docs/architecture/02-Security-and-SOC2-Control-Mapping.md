@@ -5,7 +5,7 @@
 | **Document** | 02 – Security and SOC 2 Control Mapping |
 | **System** | WellnessZ Airline Occupational Health Case Management (OHCM) – base framework |
 | **Audience** | Cyber GRC team, CISO, internal audit, Data Protection Officer, CIO |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT` |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`; updated for **increment 1** (E01, E02 – Section 11) |
 | **Companion documents** | 01 – Technology Architecture and Technology Selection · 03 – Developer Guide |
 
 > **Important – what SOC 2 is and is not.** A SOC 2 Type 2 report is an attestation by an independent CPA firm about
@@ -104,7 +104,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 |---|---|---|---|---|
 | CC6.1 Logical access security, infrastructure and architecture | OIDC resource server with trusted-issuer allow-list and audience check; RBAC URL rules; `@PreAuthorize`; ABAC `PolicyEngine` with deny-overrides and default deny; status-only projection type; restricted class policy; field-level AES-256-GCM; DB roles least privilege (`${app_role}` DML-only); secrets via CSI + workload identity | code (`ResourceServerSecurityConfig`, `DefaultPolicies`, migrations), integration tests, Helm values | F | Implemented |
 | CC6.2 Registration and authorisation of users | No local accounts; users provisioned in IdP; role claims mapped (`RoleClaims`, Entra group GUID mapping) | IdP provisioning logs, access requests | O/C | Org (IdP) |
-| CC6.3 Role-based access, least privilege, segregation of duties | 11 canonical roles; disclosure levels; clinicians vs managers; AUDITOR read-only to audit; INTEGRATION limited to `/integration/**` | role matrix (doc 01 App. A), **quarterly access review** | F/O | Implemented / Org |
+| CC6.3 Role-based access, least privilege, segregation of duties | 20 canonical roles (9 added in increment 1, Section 11.1); disclosure levels; clinicians vs managers; AUDITOR read-only to audit; INTEGRATION limited to `/integration/**` | role matrix (doc 01 App. A), **quarterly access review** | F/O | Implemented / Org |
 | CC6.4 Physical access | – | cloud provider SOC 2 | C | Carve-out |
 | CC6.5 Disposal of data and assets | Consent withdrawal preserves evidence; delivered outbox events purged after 30 days (configurable), idempotency records after 7 days; **no retention/deletion jobs for OH records yet** | purge configuration, DB counts | F/O | Partial |
 | CC6.6 Protection against threats from outside the boundary | WAF (Front Door / App Gateway WAF_v2 / Cloud Armor) in Terraform; TLS 1.2+; CSP, HSTS, X-Frame-Options; CORS closed; EHS sender allow-list; hardened Excel parser; FHIR JSON-only (no XXE) | Terraform, response headers (scan), tests | F/C | Implemented |
@@ -199,6 +199,9 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Cloud audit logs | Azure Activity / diagnostic logs (Key Vault, PostgreSQL with pgaudit), GCP Admin + Data Access audit logs | CC7.2 |
 | Backups and restore tests | Backup policy screenshots/exports, restore test reports | A1.2, A1.3 |
 | Consent records | `platform.consent` extract (via DPO-approved query) | P2.1 |
+| Increment 1: rule and protocol governance | Audit actions `INTAKE_RULE_*`, `ASSIGNMENT_RULE_SAVE`, `SLA_POLICY_UPDATE`, `NOTIFICATION_MATRIX_UPDATE`, `PROTOCOL_APPROVE`; `triage.triage_protocol` (status, approver, time) | CC8.1, PI1.3 |
+| Increment 1: intake completeness | `GET /api/v1/intake/reconciliation[/export]`, `GET /intake/dlq`, audit `EHS_WEBHOOK_DLQ`, `EHS_DLQ_REPLAY`, `EHS_DLQ_DISCARD` | PI1.2, PI1.4 |
+| Increment 1: status-only consumption | Audit `CREW_STATUS_READ`, `HYGIENE_STATUS_READ`; E2E log of `tools/e2e/e2e-increment1.js` (18 checks) | CC6.7, P3.1 |
 
 ## 6. Cross-reference to other frameworks
 
@@ -373,3 +376,170 @@ identity flow, mobile flow); they are the same views as in document 01.
 | Review of outbound allow-lists and consent purposes | Each new destination / annual | DPO + architecture | CC6.7, P6.1 |
 | Review of suppression/exclusion files (SCA/SAST exceptions) | Each release | Security champion | CC7.1 |
 | Mobile: MDM enrolment, app protection policies, Conditional Access | Continuous | Endpoint team | CC6.1, CC6.7 |
+
+## 11. Increment 1 – E01 intake and E02 triage
+
+Increment 1 adds the first two business modules (`modules/wz-e01-intake`, `modules/wz-e02-triage`), the OH clinical
+workspace (`web/oh-workspace`), nine roles and the `triage` schema. The design is in
+[`docs/increment-01/01-Solution-Design-E01-E02.md`](../increment-01/01-Solution-Design-E01-E02.md), requirement
+coverage in [`02-Requirements-Traceability-Matrix.md`](../increment-01/02-Requirements-Traceability-Matrix.md). This
+section records the security controls they introduce and how they map to the criteria above. Statements were
+checked against the code at the increment-1 baseline.
+
+### 11.1 New roles and segregation of duties
+
+The canonical role list grows from 11 to 20 (`com.wellnessz.common.model.Roles`). Clinical disclosure (`CLINICAL`) is
+granted by `DefaultPolicies.clinicianPolicy` to `OH_CLINICIAN`, `CASE_MANAGER`, `OH_PHYSICIAN`, `AME`, `CMO` and
+`NURSING_HEAD`; `RESTRICTED_CLINICAL` remains exclusive to `PSYCH_CLINICIAN`. All other new roles receive **no**
+clinical disclosure: they reach only dedicated endpoints that return status, configuration or registration data.
+
+| Role | Function | Data reach | Notable permissions | Cannot (enforced server-side) |
+|---|---|---|---|---|
+| `OH_PHYSICIAN` | OH physician | CLINICAL | Decide physician escalations; `FOOD_SAFETY` and `PHYSICIAN` queues; fitness decisions | Approve protocols |
+| `AME` | Aeromedical examiner | CLINICAL | `AME_AEROMEDICAL` queue (crew, ATC); decide physician escalations | Approve protocols |
+| `CMO` | Chief Medical Officer | CLINICAL | **Only role that approves triage protocols** (`PROTOCOL_APPROVE`); decides CMO escalations; schedules case conferences; complexity calibration | – |
+| `NURSING_HEAD` | Head of OH nursing | CLINICAL | Reassign and bulk-reassign, caseload and out-of-office cover, SLA-breach recipient, triage QA sampling, edit intake rules, assignment rules and SLA policies | Audit a triage they performed themselves (`409 self_review`) |
+| `OH_ADMIN` (extended) | OH service administrator | none (configuration only) | Notification matrix and recordability mapping (only writer), intake / assignment rules, SLA policies, DLQ replay / discard, intake dashboard | Read case clinical content (no ABAC permit) |
+| `HSE_OFFICER` | Health & safety officer | status / aggregate | Reconciliation report and CSV export, weekly exceptions, incident → cases (status), recordability report | Open queues or case clinical content |
+| `CREW_SCHEDULING` | Crew scheduling desk | status-only | `GET /api/v1/status/crew` (≤ 500 employee ids per call, audited `CREW_STATUS_READ`) | Anything else |
+| `HYGIENE_MANAGER` | Catering hygiene manager | status-only | `GET /api/v1/status/food-handlers?department=` (audited `HYGIENE_STATUS_READ`) | Anything else |
+| `CLINIC_RECEPTION` | Clinic front desk | registration data | Badge / name lookup, walk-in and emergency registration (five fields), encounter list (chief complaint and action taken are returned only to OH clinical roles) | Clinical queues (`403`, E2E-tested), convert an encounter into a case |
+| `FIRST_AIDER` | Workplace first aider | registration data | Register encounters; enrich only **own** encounters | Enrich others' encounters (`403`), queues, cases |
+
+Segregation-of-duties controls in the code:
+
+* **Protocol governance.** Draft protocols are seeded by the system; only the CMO can approve a version
+  (`TriageService.approve` re-checks the role in addition to `@PreAuthorize`). Nurses use but cannot change protocols.
+* **Triage QA.** `TriageAuditService` refuses a review by the clinician who performed the sampled triage
+  (`self_review`).
+* **Escalation decisions** are restricted to the addressed level (physician level: OH_PHYSICIAN / AME / CMO; CMO
+  level: CMO), otherwise `403`.
+* **Configuration vs. clinical work.** OH_ADMIN configures but has no clinical read access; reception and first aiders
+  register but cannot convert encounters into cases (OH clinical roles only).
+* **Status-only consumers.** Crew scheduling and hygiene managers receive `StatusRow(employeeId, displayName,
+  fitnessStatus, restrictionUntil, updatedAt)` – a record type without clinical fields, the same pattern as
+  `CaseViews.StatusOnly` (the E2E test asserts that no diagnosis, description or triage text appears).
+* **Rule changes** (intake rules, assignment rules, SLA policies, notification matrix) are audited
+  (`INTAKE_RULE_CREATE/UPDATE`, `ASSIGNMENT_RULE_SAVE`, `SLA_POLICY_UPDATE`, `NOTIFICATION_MATRIX_UPDATE`); maker-checker
+  remains open (RR6).
+
+Role-to-group assignment, access reviews and joiner/mover/leaver for the new roles are organisation-operated
+(Section 10). Identity configuration: Keycloak realm roles and scope mappings for `wellnessz-bff` and
+`wellnessz-mobile` (both clients have `fullScopeAllowed=false`, so a role missing from the scope mapping silently
+disappears from tokens – this defect was found and fixed during the increment-1 E2E run); Entra ID app roles on the
+`wellnessz-api` app registration assigned to groups (setup guide 06, Section 5).
+
+### 11.2 Clinical-text guard
+
+`com.wellnessz.common.text.ClinicalTextDetector` is a deliberately conservative heuristic (clinical vocabulary such as
+diagnosis, depression, fracture, medication, positive test, plus ICD-10-style codes such as `F32.1`). It is applied to:
+
+* the free-text fields of **manager and HR referrals** (`ReferralService.guard`) – a match answers
+  `422 clinical_content_not_allowed` naming the field, never echoing the text; fields are capped at 1,000 characters;
+  the manager's org scope is checked first (out of scope → `404`, audited `REFERRAL_SCOPE` DENIED);
+* **notification content** (`ContentRules`, now delegating to the shared detector plus result keywords).
+
+It is a guard-rail, not a classifier: it errs on rejection and cannot catch paraphrases. The control objective
+(managers and HR do not put health data into the system) is supported by UI guidance in the forms and by the
+status-only rule on the read side. Unit tests: `ClinicalTextDetectorTest`; E2E check *manager referral with clinical
+wording is rejected*.
+
+### 11.3 EHS webhook: authentication, idempotency, dead-letter queue
+
+| Aspect | Control |
+|---|---|
+| Authentication | Bearer token from a trusted issuer (client-credentials), role `INTEGRATION` (`@PreAuthorize`); Keycloak client `wellnessz-integration` locally, an Entra app registration with the `INTEGRATION` application role in production |
+| Replay / retries | `Idempotency-Key` **mandatory** (8–200 chars); same key + same body returns the stored response, same key + different body → `422`; scope `ehs-webhook` |
+| Input validation | Per-item allow-list schema: identifier regexes, closed sets for `incidentClass` and `severity`, ISO-8601 instants, length caps (description ≤ 4,000), ≤ 500 items per call; unknown fields ignored |
+| Invalid items | Stored **encrypted** in `intake.incident_dlq` with a reason; WARN log `ALERT ehs-webhook dead-lettered=<n>` for SIEM alerting; audit `EHS_WEBHOOK_DLQ` (FAILURE) |
+| DLQ operations | `GET /api/v1/intake/dlq` (metadata only, no payload), replay (re-validated) and discard; OH_ADMIN / PLATFORM_ADMIN; audited `EHS_DLQ_REPLAY`, `EHS_DLQ_DISCARD` |
+| Duplicates | Unique `(source_system, external_ref)` as for mailbox and Excel intake |
+| Exposure | Published only on the API host (`api.<domain>`), behind the WAF; hybrid: internal API ingress on-prem |
+
+### 11.4 Attachments and other input / output controls
+
+* **Attachments** (`CaseWorkService`): file type decided by **magic bytes** (JPEG `FF D8 FF`, PNG `89 50 4E 47`,
+  PDF `%PDF`), never by the client header or extension; 1 byte – 5 MB; at most 5 per case; file name sanitised;
+  SHA-256 recorded; content stored with `EncryptedStringConverter`; upload and download audited
+  (`CASE_ATTACHMENT_UPLOAD`, `CASE_ATTACHMENT_READ`); downloads go through the BFF (`content-disposition` and
+  `cache-control` are the only added forwarded response headers).
+* **CSV export** of the reconciliation report neutralises spreadsheet formula injection (cells starting with `=`, `+`,
+  `-`, `@` are prefixed) and is limited to OH roles and HSE officers.
+* **Intake dashboard** applies small-cell suppression with the analytics minimum group size (`k`, default 5); the OH
+  workspace additionally renders positive counts below `k` as `<k`.
+* **Triage integrity.** Urgency is computed on the server from the protocol version; red-flag answers are a hard stop
+  (`422 red_flag_hard_stop` on a downgrade attempt, E2E-tested); overrides need a reason and are stored with computed
+  and final urgency; the protocol version is stored with every assessment.
+* **Encryption at rest** of the new clinical free text: encounter complaint / action / notes, recordability answers
+  and rationale, triage answers / override reason / call log, escalation notes and decisions, conference agenda /
+  minutes / decisions, handover summaries, checklist answers, QA comments, DLQ payloads.
+* **OH workspace (browser).** BFF only (no tokens in the browser), strict CSP, no `localStorage` / `sessionStorage`
+  (ESLint-enforced), 15-minute idle logout; the walk-in offline retry queue is in memory only and its unit test
+  asserts that no browser storage is touched.
+* **SAST exclusion.** `config/spotbugs-exclude.xml` now has **5** justified entries; the new one covers
+  `QueueService`, whose SQL is assembled only from constant fragments selected by a closed switch, with every user
+  value bound as a JDBC parameter (covered by `Increment1IntegrationTest` and `QueuePerformanceTest`).
+
+### 11.5 Threat model additions (STRIDE)
+
+| ID | Flow |
+|---|---|
+| F13 | EHS system → API host → `POST /intake/ehs/incidents` → rule table → case |
+| F14 | Manager / HR → BFF → referral endpoints (clinical-text guard, org scope) |
+| F15 | OH team → OH workspace → BFF → queues, triage, escalation, configuration |
+| F16 | Clinic reception / first aider → OH workspace → encounter registration |
+| F17 | Crew scheduling / hygiene manager → status-only endpoints |
+| F18 | SLA poller and notification dispatcher → e-mail to OH team and stakeholders |
+
+| Flow | Threat (STRIDE) | Scenario | Controls | Residual |
+|---|---|---|---|---|
+| F13 | **S**poofing | Attacker posts forged incidents | Client-credentials token + `INTEGRATION` role, trusted-issuer allow-list, WAF | L |
+| F13 | **T**ampering / **D**oS | Malformed or oversized payloads, retry storms | Schema validation per item, ≤ 500 items, DLQ instead of failure, mandatory `Idempotency-Key`, de-duplication | L |
+| F13 | **E**levation | Crafted rule-matching data auto-creates many cases | Rules evaluated on validated fields only; unidentified employees become suggestions; reconciliation shows every incident's fate | L |
+| F14 | **I**nformation disclosure | Manager writes a diagnosis into a referral | Clinical-text guard (`422`), field caps, status-only read side | M – heuristic cannot catch every paraphrase |
+| F14 | **E**levation | Manager refers an employee outside their org scope | Org-scope check against the HRIS master (`404`, audited) | L |
+| F15 | **I**nformation disclosure | Clinician of the wrong team reads restricted cases | ABAC restricted-class deny, `MENTAL_HEALTH` queue requires `PSYCH_CLINICIAN` | L |
+| F15 | **T**ampering | Client manipulates triage urgency or bypasses red flags | Server-side evaluation, hard stop, override reason, versioned protocol per assessment | L |
+| F15 | **T**ampering | Unapproved protocol used clinically | CMO-only approval; draft fallback visible in the UI | M – drafts are usable while no approved version exists (O11 in doc 01) |
+| F15 | **R**epudiation | Disputed reassignment or rule change | Assignment history with reason, audited rule/SLA/matrix changes | L |
+| F15 | **I**nformation disclosure | Queue SQL injection | Constant SQL fragments, bound parameters, SAST exclusion reviewed, integration tests | L |
+| F16 | **I**nformation disclosure | Reception or first aider browses clinical data | No ABAC permit; `403` on queues (E2E-tested); encounter views omit chief complaint and action taken for non-clinical roles; enrichment limited to the registering user | L – the encounter list shows names, times and locations of recent encounters to all registrars |
+| F16 | **I**nformation disclosure | PHI left on a shared reception PC | No browser storage, in-memory retry queue, idle logout, `no-store` | L |
+| F17 | **I**nformation disclosure | Status consumer infers diagnoses | Status record type without clinical fields, ≤ 500 ids per call, read audited | L – fitness status itself is disclosed by design |
+| F18 | **I**nformation disclosure | Clinical content in e-mail | Approved templates, `ContentRules` with the clinical-text detector, link to the OH workspace instead of content | L |
+| F18 | **D**oS | Poller contention on several replicas | `FOR UPDATE SKIP LOCKED`, batch 500, partial index | L |
+
+### 11.6 Control mapping additions
+
+| Criterion | Increment-1 control | Evidence source | Resp. | Status |
+|---|---|---|---|---|
+| CC6.1 | ABAC extended to OH_PHYSICIAN, AME, CMO, NURSING_HEAD; `@PreAuthorize` on every E01/E02 endpoint; webhook bound to `INTEGRATION` | `DefaultPolicies`, controllers, `Increment1IntegrationTest`, E2E | F | Implemented |
+| CC6.2 | Nine roles defined in IdP (Keycloak realm / Entra app roles) and assigned through groups; client scope mappings include the new roles | realm export, Entra app-role assignments | O/F | Implemented (assignment: Org) |
+| CC6.3 | Segregation of duties per Section 11.1 (CMO-only approval, no self-review, OH_ADMIN without clinical access, reception without clinical access) | code, tests, access reviews | F/O | Implemented |
+| CC6.6 | Webhook schema validation, DLQ, idempotency; attachment magic-byte check; CSV formula-injection neutralisation | code, `IncidentWebhookService`, `CaseWorkService` | F | Implemented |
+| CC6.7 | Status-only APIs for crew scheduling and hygiene; `catering-hygiene` outbound allow-list; clinical-text guard on referrals and notifications | `SafetyService.StatusRow`, `application.yml`, `ContentRules` | F | Implemented |
+| CC7.2 | DLQ alert log line and audit; SLA breach events and notifications; audited configuration changes | logs, `platform.audit_event` | F/O | Implemented (SIEM rule: Org) |
+| CC8.1 | Protocol versions with CMO approval and audit; Flyway V3–V5 under the same migration discipline; demo data excluded from shared environments by profile | `triage.triage_protocol`, `flyway_schema_history` | F/O | Implemented |
+| PI1.2 | Webhook per-item validation with DLQ; referral template validation | tests, DLQ | F | Implemented |
+| PI1.3 | Server-side triage evaluation with red-flag hard stop; transition guards (recordability, safety); SLA state machine | `ProtocolEvaluatorTest`, `Increment1IntegrationTest` | F | Implemented |
+| PI1.4 | Reconciliation report: every incident's fate (auto-created, suggested, ignored, no match) | `/intake/reconciliation` | F/O | Implemented |
+| C1.1 | New clinical free-text fields encrypted; `triage` schema classified CLINICAL | entities, migrations | F | Implemented |
+| P3.1 | Manager / HR referrals limited to non-clinical fields; status-only consumers | tests, E2E | F | Implemented |
+
+### 11.7 Organisation-operated controls and residual risks added
+
+| Control | Frequency | Owner (proposed) | TSC |
+|---|---|---|---|
+| Clinical approval of triage protocols, advice texts and the recordability mapping; review on every new version | Before go-live, then per version | CMO + Nursing Head | CC8.1, PI1.3 |
+| Access review including `CMO`, `NURSING_HEAD`, `OH_ADMIN`, `CREW_SCHEDULING`, `HYGIENE_MANAGER` | Quarterly | OH service owner + IAM | CC6.2, CC6.3 |
+| SIEM rule on `ALERT ehs-webhook dead-lettered` and on `sla.breached.v1` volume | Continuous | SOC | CC7.2 |
+| Review of DLQ items (replay or discard) | Daily on business days | OH administrator | PI1.2 |
+| Review of intake / assignment rule and SLA policy changes | Monthly | Nursing Head | CC8.1 |
+| Integration client credential rotation for the EHS webhook | 90–180 days | IAM / integration team | CC6.1 |
+
+| ID | Residual risk | Compensating control (now) | Target remediation |
+|---|---|---|---|
+| RR13 | Clinical-text guard is heuristic | Status-only read side, UI guidance, audited referrals | Periodic review of rejected / accepted samples; vocabulary maintained by OH governance |
+| RR14 | Draft protocols usable when no approved version exists | UI shows the status; CMO approval workflow | Go-live gate: all protocols in use approved; option to block drafts in prod by configuration |
+| RR15 | OH staff roster loaded by SQL (no API, no HRIS feed) | Small population; changes by DBA under change control | Roster import from IdP groups or HRIS (doc 01, O9) |
+| RR16 | No maker-checker on rule / SLA / matrix changes | Audited, limited to NURSING_HEAD / OH_ADMIN | Approval workflow (RR6) |
