@@ -11,7 +11,7 @@ describe('workspace access', () => {
     expect(hasWorkspaceAccess([r])).toBe(true);
   });
 
-  it.each([[[]], [['EMPLOYEE']], [['MANAGER']], [['HR']], [['AUDITOR']], [['CREW_SCHEDULING']], [['HYGIENE_MANAGER']], [['OH_CLINICIANX']]])('denies %j', (roles) => {
+  it.each([[[]], [['EMPLOYEE']], [['MANAGER']], [['HR']], [['AUDITOR']], [['HYGIENE_MANAGER']], [['OH_CLINICIANX']]])('denies %j', (roles) => {
     expect(hasWorkspaceAccess(roles)).toBe(false);
   });
 
@@ -112,7 +112,13 @@ describe('increment 2 gating (API-Contract-E03-E05 §1)', () => {
     for (const f of ['chartWrite', 'breakGlass', 'encounters', 'documents', 'documentScan', 'deviceResults'] as const) expect(can(['DPO'], f)).toBe(false);
   });
 
-  it.each([['HR'], ['MANAGER'], ['CREW_SCHEDULING'], ['HYGIENE_MANAGER'], ['CLAIMS_HANDLER'], ['EMPLOYEE'], ['PARTNER_PROVIDER'], ['INTEGRATION']])('%s never reaches this workspace', (r) => {
+  it('CREW_SCHEDULING sees only the status-only roster feed', () => {
+    expect(paths(['CREW_SCHEDULING'])).toEqual(['/crew/roster-feed']);
+    expect(homeRoute(['CREW_SCHEDULING'])).toBe('/crew/roster-feed');
+    for (const route of CLINICAL_ROUTES) expect(can(['CREW_SCHEDULING'], featureForRoute(route)!)).toBe(false);
+  });
+
+  it.each([['HR'], ['MANAGER'], ['HYGIENE_MANAGER'], ['CLAIMS_HANDLER'], ['EMPLOYEE'], ['PARTNER_PROVIDER'], ['INTEGRATION']])('%s never reaches this workspace', (r) => {
     expect(hasWorkspaceAccess([r])).toBe(false);
     for (const route of CLINICAL_ROUTES) expect(can([r], featureForRoute(route)!)).toBe(false);
   });

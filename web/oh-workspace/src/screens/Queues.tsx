@@ -247,7 +247,7 @@ export function Queues({ client, session, onSessionExpired }: ScreenProps) {
                         <div><StatusBadge status={c.status} /></div>
                       </th>
                       <td>
-                        {c.employeeName}
+                        <a href={`#/employees/${encodeURIComponent(c.employeeId)}/chart`} title="Open OH chart">{c.employeeName}</a>
                         <div className="small muted">{[c.subsidiaryCode, c.departmentCode, c.locationCode].filter(Boolean).join(' · ')}</div>
                       </td>
                       <td>{humanise(c.caseType)}</td>

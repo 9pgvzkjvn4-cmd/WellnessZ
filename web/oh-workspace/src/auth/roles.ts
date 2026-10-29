@@ -1,8 +1,8 @@
 /**
  * UI role gating for the OH workspace. Convenience only – wz-core-app enforces every rule server-side.
  * Role names follow API-Contract-E01-E02 §1 and API-Contract-E03-E05 §1 (normalised: upper-case, no ROLE_ prefix).
- * Confidentiality: MANAGER, HR, CREW_SCHEDULING, HYGIENE_MANAGER and claims roles never get a screen here; DPO gets the
- * privacy area only (no clinical read).
+ * Confidentiality: MANAGER, HR, HYGIENE_MANAGER and claims roles never get a screen here; DPO gets the privacy area only
+ * (no clinical read); CREW_SCHEDULING gets the status-only roster-feed screen only.
  */
 
 /** "OH roles" as defined in the contract. */
@@ -86,7 +86,8 @@ export const FEATURES = {
   rtwOverdue: OH,
   crewAssess: ['AME', 'CMO'],
   crewDashboard: ['CMO'],
-  rosterReconciliation: ['CMO', 'OH_ADMIN'],
+  /** Status-only roster feed (contract §5.4 `/crew/roster-feed…`); CREW_SCHEDULING gets this screen and nothing else. */
+  rosterReconciliation: ['CMO', 'OH_ADMIN', 'CREW_SCHEDULING'],
   foodHandlerClear: PHYSICIANS_AND_NURSES,
   ihrAssess: PHYSICIANS,
   ihrCmo: ['CMO'],
