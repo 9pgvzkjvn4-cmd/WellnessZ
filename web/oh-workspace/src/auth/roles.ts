@@ -1,8 +1,11 @@
 /**
  * UI role gating for the OH workspace. Convenience only – wz-core-app enforces every rule server-side.
  * Role names follow API-Contract-E01-E02 §1 and API-Contract-E03-E05 §1 (normalised: upper-case, no ROLE_ prefix).
- * Confidentiality: MANAGER, HR, HYGIENE_MANAGER and claims roles never get a screen here; DPO gets the privacy area only
+ * Confidentiality: MANAGER, HR, HYGIENE_MANAGER never get a screen here; DPO gets the privacy area only
  * (no clinical read); CREW_SCHEDULING gets the status-only roster-feed screen only.
+ * Increment 4 (API-Contract-E04-E08 §1, rule 3): CLAIMS_COORDINATOR, FINANCE, LEGAL_COUNSEL and PROCUREMENT get claims /
+ * finance / legal / provider-network screens only – never a case, chart, referral, telehealth or medication screen.
+ * PARTNER_PROVIDER and TPA_ADJUSTER use the partner portal.
  */
 
 /** "OH roles" as defined in the contract. */
@@ -23,6 +26,8 @@ const CLINICIANS = [...CLINICIAN_ROLES];
 const PHYSICIANS = [...PHYSICIAN_ROLES];
 /** Physicians + OH_CLINICIAN (orders, result worklist, fitness decisions on non-licensed standards, food-handler clearance). */
 const PHYSICIANS_AND_NURSES = [...PHYSICIANS, 'OH_CLINICIAN'];
+/** Increment-4 non-clinical roles (never read the OH clinical record). */
+export const NON_CLINICAL_CLAIMS_ROLES = ['CLAIMS_COORDINATOR', 'FINANCE', 'LEGAL_COUNSEL', 'PROCUREMENT'] as const;
 
 /** Every UI capability and the roles that unlock it. */
 export const FEATURES = {
@@ -172,6 +177,54 @@ export const FEATURES = {
   appointmentTypesWrite: ['OH_ADMIN', 'NURSING_HEAD'],
   chargingUsage: ['OH_ADMIN', 'CMO'],
   siteTemplatesWrite: ['OH_ADMIN', 'NURSING_HEAD', 'CLINIC_SCHEDULER'],
+  // E04 treatment coordination & partner referrals (API-Contract-E04-E08 §3). Case tabs use caseView (OH roles).
+  treatmentWrite: CLINICIANS,
+  medicationAdminister: CLINICIANS,
+  referrals: OH,
+  referralWrite: CLINICIANS,
+  varianceAlerts: OH,
+  treatmentKpis: ['CMO', 'NURSING_HEAD'],
+  providers: [...OH, 'PROCUREMENT', 'CLAIMS_COORDINATOR'],
+  providerEdit: ['PROCUREMENT'],
+  providerContracts: ['PROCUREMENT'],
+  providerScorecards: ['CMO', 'NURSING_HEAD', 'PROCUREMENT'],
+  scorecardRecompute: ['PROCUREMENT', 'CMO'],
+  networkGaps: ['PROCUREMENT', 'CMO', 'OH_ADMIN'],
+  medications: OH,
+  formularyWrite: ['NURSING_HEAD'],
+  stockReceive: ['NURSING_HEAD', 'OH_CLINICIAN'],
+  medicationUsage: ['NURSING_HEAD', 'CMO'],
+  telehealth: OH,
+  telehealthWrite: CLINICIANS,
+  outcomeWrite: CLINICIANS,
+  preauthCreate: [...CLINICIANS, 'CLAIMS_COORDINATOR'],
+  preauthDecide: ['CLAIMS_COORDINATOR'],
+  preauthList: ['CLAIMS_COORDINATOR'],
+  invoiceWrite: ['CLAIMS_COORDINATOR', 'FINANCE'],
+  treatmentCosts: ['FINANCE', 'CMO', 'CLAIMS_COORDINATOR'],
+  // E08 claims coordination (§4)
+  claims: ['CLAIMS_COORDINATOR'],
+  claimDetail: ['CLAIMS_COORDINATOR', 'NURSING_HEAD', 'CMO', 'LEGAL_COUNSEL'],
+  claimCreate: ['CLAIMS_COORDINATOR', 'CASE_MANAGER'],
+  claimWrite: ['CLAIMS_COORDINATOR'],
+  claimReports: ['CLAIMS_COORDINATOR'],
+  claimCollaboration: ['CLAIMS_COORDINATOR', 'CASE_MANAGER'],
+  claimMoney: ['CLAIMS_COORDINATOR', 'FINANCE', 'CMO'],
+  claimCostLedger: ['CLAIMS_COORDINATOR'],
+  disclosureSetWrite: ['CLAIMS_COORDINATOR', ...OH],
+  disclosureRedact: OH,
+  disclosureRevoke: ['CLAIMS_COORDINATOR', 'DPO'],
+  claimCosts: ['FINANCE', 'CMO'],
+  budgetWrite: ['FINANCE'],
+  erpExports: ['FINANCE'],
+  claimReconciliation: ['FINANCE', 'CLAIMS_COORDINATOR'],
+  nurseAssignment: ['NURSING_HEAD', 'CLAIMS_COORDINATOR'],
+  legal: ['LEGAL_COUNSEL'],
+  legalWrite: ['LEGAL_COUNSEL'],
+  legalRequestCreate: ['LEGAL_COUNSEL', 'CLAIMS_COORDINATOR'],
+  legalReportWrite: PHYSICIANS,
+  legalRequestsPhysician: PHYSICIANS,
+  claimDisclosureReport: ['DPO'],
 } satisfies Record<string, readonly string[]>;
 
 export type Feature = keyof typeof FEATURES;
@@ -207,7 +260,7 @@ export interface NavItem {
   path: string;
   label: string;
   feature: Feature;
-  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic' | 'Absence' | 'Surveillance';
+  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic' | 'Absence' | 'Surveillance' | 'Claims' | 'Treatment';
 }
 
 export const NAV: readonly NavItem[] = [
@@ -273,6 +326,24 @@ export const NAV: readonly NavItem[] = [
   { path: '/scheduling/equipment', label: 'Equipment & cold chain', feature: 'equipment', group: 'Clinic' },
   { path: '/scheduling/capacity', label: 'Capacity & utilisation', feature: 'capacity', group: 'Clinic' },
   { path: '/scheduling/catalogue', label: 'Service catalogue', feature: 'serviceCatalogue', group: 'Clinic' },
+  // Increment 4 – E08 claims (listed before treatment so claims staff land on their worklist)
+  { path: '/claims', label: 'Claims', feature: 'claims', group: 'Claims' },
+  { path: '/claims/reports', label: 'Report deadlines', feature: 'claimReports', group: 'Claims' },
+  { path: '/claims/preauthorisations', label: 'Pre-authorisations', feature: 'preauthList', group: 'Claims' },
+  { path: '/claims/costs', label: 'Claim & treatment costs', feature: 'claimCosts', group: 'Claims' },
+  { path: '/claims/nurse-assignment', label: 'Nurse assignment', feature: 'nurseAssignment', group: 'Claims' },
+  { path: '/legal', label: 'Legal & litigation', feature: 'legal', group: 'Claims' },
+  { path: '/legal/requests', label: 'Medico-legal requests', feature: 'legalRequestsPhysician', group: 'Claims' },
+  { path: '/claims/disclosures', label: 'Claim disclosures', feature: 'claimDisclosureReport', group: 'Privacy' },
+  // Increment 4 – E04 treatment coordination
+  { path: '/referrals', label: 'Referrals', feature: 'referrals', group: 'Treatment' },
+  { path: '/treatment/variance', label: 'Recovery variance', feature: 'varianceAlerts', group: 'Treatment' },
+  { path: '/telehealth', label: 'Telehealth', feature: 'telehealth', group: 'Treatment' },
+  { path: '/treatment/medications', label: 'Clinic medications', feature: 'medications', group: 'Treatment' },
+  { path: '/providers', label: 'Provider network', feature: 'providers', group: 'Treatment' },
+  { path: '/providers/scorecards', label: 'Provider scorecards', feature: 'providerScorecards', group: 'Treatment' },
+  { path: '/providers/gaps', label: 'Network gaps', feature: 'networkGaps', group: 'Treatment' },
+  { path: '/treatment/kpis', label: 'Treatment KPIs', feature: 'treatmentKpis', group: 'Treatment' },
 ];
 
 export function navFor(roles: readonly string[] | undefined): NavItem[] {
@@ -297,5 +368,8 @@ export function featureForRoute(route: string): Feature | undefined {
   if (/^\/scheduling\/campaigns\/[^/]+$/.test(route)) return 'campaigns';
   if (/^\/absence\/lta\/[^/]+$/.test(route)) return 'absenceLta';
   if (/^\/surveillance\/programmes\/[^/]+$/.test(route)) return 'surveillanceProgrammes';
+  if (/^\/referrals\/[^/]+$/.test(route)) return 'referrals';
+  if (/^\/providers\/[^/]+$/.test(route)) return 'providers';
+  if (/^\/claims\/[^/]+(\/[a-z-]+)?$/.test(route)) return 'claimDetail';
   return undefined;
 }
