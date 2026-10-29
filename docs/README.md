@@ -48,8 +48,11 @@ Supporting material:
   encounter templates and the restriction catalogue; DPO break-glass reviews, disclosure log and retention; manager
   team restrictions, duty proposals, RTW plans and documents; HR job offers; employee documents, RTW plan, job offer
   and privacy)
-* Executive concept video (`WellnessZ-Executive-Briefing.mp4`, 6 min, 1080p, English subtitles) – shipped in
-  the documents bundle rather than in Git
+* Executive videos for C-level stakeholders and the sponsor (1080p, English subtitles), shipped in the documents
+  bundle (`05-Video/`) rather than in Git:
+  * `WellnessZ-Executive-Briefing.mp4` – base framework concept (6 min)
+  * `WellnessZ-Increment1-Executive-Briefing.mp4` – increment 1: intake rules, triage queues & SLAs (6 min)
+  * `WellnessZ-Increment2-Executive-Briefing.mp4` – increment 2: health record, fitness for duty & return to work (6 min)
 
 ## Verification summary (base framework)
 
