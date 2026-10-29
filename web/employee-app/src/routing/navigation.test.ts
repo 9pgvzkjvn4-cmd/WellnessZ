@@ -28,6 +28,13 @@ describe('candidate navigation (role CANDIDATE, E07-F03)', () => {
     expect(resolveRoute('/pre-employment', ['EMPLOYEE', 'CANDIDATE'])).toBe('/pre-employment');
   });
 
+  it('employees get the increment-4 treatment and telehealth sections; candidates do not', () => {
+    expect(paths(['EMPLOYEE'])).toEqual(expect.arrayContaining(['/treatment', '/telehealth']));
+    expect(navFor(['EMPLOYEE']).filter((n) => n.source === 'care').map((n) => n.key)).toEqual(['treatment', 'telehealth']);
+    expect(resolveRoute('/treatment', ['CANDIDATE'])).toBe('/pre-employment');
+    expect(resolveRoute('/telehealth', ['EMPLOYEE'])).toBe('/telehealth');
+  });
+
   it('nav labels come from the right string table', () => {
     expect(navFor(['EMPLOYEE']).filter((n) => n.source === 'oh').map((n) => n.key)).toEqual(['appointments', 'absence', 'surveillance']);
     expect(navFor(['CANDIDATE'])[0]).toEqual({ path: '/pre-employment', key: 'preEmployment', source: 'oh' });

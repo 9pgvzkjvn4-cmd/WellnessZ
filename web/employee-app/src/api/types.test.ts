@@ -9,6 +9,7 @@ import {
   FITNESS_LABELS,
   FITNESS_STATUSES,
   REFERRAL_CATEGORIES,
+  SELF_GRANTABLE_PURPOSES,
 } from './types';
 
 describe('API contract enums', () => {
@@ -22,8 +23,16 @@ describe('API contract enums', () => {
   it('matches the backend consent purposes', () => {
     expect([...CONSENT_PURPOSES]).toEqual([
       'TREATMENT_SHARING_PARTNER', 'EAP_REFERRAL', 'INSURER_SHARING', 'WEARABLE_DATA', 'HEALTH_CAMPAIGNS', 'RESEARCH_DEIDENTIFIED',
+      'AI_DOCUMENTATION', 'TELEHEALTH_CONSULTATION',
     ]);
     CONSENT_PURPOSES.forEach((p) => expect(CONSENT_PURPOSE_LABELS[p]).toBeTruthy());
+    expect(CONSENT_PURPOSE_LABELS.TELEHEALTH_CONSULTATION).toMatch(/telehealth/i);
+  });
+
+  it('offers per-encounter / per-session purposes for listing only, not for a blanket grant', () => {
+    expect(SELF_GRANTABLE_PURPOSES).not.toContain('AI_DOCUMENTATION');
+    expect(SELF_GRANTABLE_PURPOSES).not.toContain('TELEHEALTH_CONSULTATION');
+    SELF_GRANTABLE_PURPOSES.forEach((p) => expect(CONSENT_PURPOSES).toContain(p));
   });
 
   it('matches the increment-1 case and fitness enums', () => {

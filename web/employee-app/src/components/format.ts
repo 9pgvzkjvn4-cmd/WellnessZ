@@ -30,3 +30,12 @@ export function formatDay(value?: string | null, locale?: string): string {
   const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
   return Number.isNaN(d.getTime()) ? '–' : d.toLocaleDateString(locale, { dateStyle: 'medium' });
 }
+
+/** Date and time in the device's current time zone, with the zone name (crew on layover). */
+export function formatDateTimeZone(iso?: string | null, locale?: string): string {
+  if (!iso) return '–';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? '–'
+    : d.toLocaleString(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+}

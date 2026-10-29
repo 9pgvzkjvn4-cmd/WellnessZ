@@ -921,3 +921,57 @@ button.danger:hover {
 .badge-cert-none {
   opacity: 0.8;
 }
+
+/* ---------- increment 4: treatment plan & telehealth (phone on layover: large touch targets) ---------- */
+.large-touch {
+  min-height: 52px;
+  font-size: 1.05rem;
+}
+@media (max-width: 600px) {
+  .telehealth .large-touch,
+  .portal .plan .actions button {
+    width: 100%;
+  }
+}
+.consent-box,
+.layover-note {
+  background: var(--c-info-bg);
+  color: var(--c-text);
+}
+.consent-box ul {
+  margin: 0.25rem 0 0.5rem;
+  padding-inline-start: 1.25rem;
+}
+.chat-panel {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--c-border);
+  padding-top: 0.5rem;
+}
+.chat-log {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+  padding: 0.45rem 0.7rem;
+  border-radius: 12px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  align-self: flex-start;
+}
+.chat-msg.mine {
+  align-self: flex-end;
+  background: var(--c-info-bg);
+}
+.chat-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

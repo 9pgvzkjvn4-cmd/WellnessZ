@@ -39,7 +39,7 @@ describe('HR referral role gating', () => {
     expect(referralNav(['MANAGER']).map((n) => n.path)).toEqual(['/refer']);
     expect(referralNav(['MANAGER', 'HR']).map((n) => n.path)).toEqual(['/refer', '/refer/hr']);
     expect(referralNav(['OH_CLINICIAN'])).toEqual([]);
-    expect(workspaceNav(['HR']).map((n) => n.label)).toEqual(['Team cases', 'HR referral', 'Team restrictions', 'Return to work', 'Documents', 'Absence', 'OH advice', 'Health surveillance', 'Pre-employment', 'Analytics']);
+    expect(workspaceNav(['HR']).map((n) => n.label)).toEqual(['Team cases', 'HR referral', 'Team restrictions', 'Return to work', 'Documents', 'Absence', 'OH advice', 'Health surveillance', 'Pre-employment', 'Claims', 'Analytics']);
   });
 
   it('blocks direct navigation to a referral route without the role', () => {

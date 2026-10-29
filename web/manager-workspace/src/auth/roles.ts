@@ -61,7 +61,8 @@ export type Feature =
   | 'absence'
   | 'adviceRequests'
   | 'compliance'
-  | 'preEmployment';
+  | 'preEmployment'
+  | 'claims';
 
 export function canUse(feature: Feature, roles: readonly string[] | undefined): boolean {
   switch (feature) {
@@ -81,6 +82,9 @@ export function canUse(feature: Feature, roles: readonly string[] | undefined): 
       return isManager(roles) || isHr(roles);
     case 'preEmployment':
       return isHr(roles);
+    // increment 4 (docs/increment-04/API-Contract-E04-E08.md §4.1, §6): HR claim status only – not for line managers
+    case 'claims':
+      return isHr(roles);
   }
 }
 
@@ -96,6 +100,7 @@ export const FEATURE_ROUTES = {
   adviceRequests: '/advice-requests',
   compliance: '/compliance',
   preEmployment: '/pre-employment',
+  claims: '/claims',
 } as const;
 const FEATURE_LABELS: Record<keyof typeof FEATURE_ROUTES, string> = {
   restrictions: 'Team restrictions',
@@ -106,6 +111,7 @@ const FEATURE_LABELS: Record<keyof typeof FEATURE_ROUTES, string> = {
   adviceRequests: 'OH advice',
   compliance: 'Health surveillance',
   preEmployment: 'Pre-employment',
+  claims: 'Claims',
 };
 
 /**

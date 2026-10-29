@@ -1,6 +1,6 @@
 import type {
   AnswerValue,
-  ConsentPurpose,
+  GrantablePurpose,
   PreferredContact,
   ReferralCategory,
   SelfReferralRequest,
@@ -48,7 +48,7 @@ export interface ReferralState<F extends FileLike = File> {
   answers: Record<string, AnswerValue>;
   preferredContact: PreferredContact;
   consentAssessment: boolean;
-  purposes: ConsentPurpose[];
+  purposes: GrantablePurpose[];
   files: F[];
   attachmentProblems: AttachmentProblem[];
   bodySide: 'FRONT' | 'BACK';
@@ -82,7 +82,7 @@ export type ReferralAction<F extends FileLike = File> =
   | { type: 'answer'; key: string; value: AnswerValue }
   | { type: 'contact'; value: PreferredContact }
   | { type: 'consent'; value: boolean }
-  | { type: 'togglePurpose'; value: ConsentPurpose }
+  | { type: 'togglePurpose'; value: GrantablePurpose }
   | { type: 'addFiles'; files: F[] }
   | { type: 'removeFile'; index: number }
   | { type: 'clearFiles' }
@@ -119,7 +119,7 @@ export function referralReducer<F extends FileLike>(s: ReferralState<F>, a: Refe
     case 'consent':
       return { ...s, consentAssessment: a.value };
     case 'togglePurpose':
-      return { ...s, purposes: toggleCode(s.purposes, a.value) as ConsentPurpose[] };
+      return { ...s, purposes: toggleCode(s.purposes, a.value) as GrantablePurpose[] };
     case 'addFiles': {
       const r = addAttachments(s.files, a.files);
       return { ...s, files: r.files, attachmentProblems: r.problems };

@@ -3,10 +3,10 @@
  * no employee features see only the pre-employment section – every route resolves there.
  */
 
-export type NavSource = 'portal' | 'oh';
+export type NavSource = 'portal' | 'oh' | 'care';
 export interface NavItem {
   path: string;
-  /** Key in `PortalStrings['nav']` (source portal) or `OhStrings['nav']` (source oh). */
+  /** Key in `PortalStrings['nav']` (source portal), `OhStrings['nav']` (source oh) or `CareStrings['nav']` (source care). */
   key: string;
   source: NavSource;
 }
@@ -25,6 +25,8 @@ const EMPLOYEE_NAV: readonly NavItem[] = [
   { path: '/', key: 'home', source: 'portal' },
   { path: '/refer', key: 'refer', source: 'portal' },
   { path: '/appointments', key: 'appointments', source: 'oh' },
+  { path: '/treatment', key: 'treatment', source: 'care' },
+  { path: '/telehealth', key: 'telehealth', source: 'care' },
   { path: '/advice', key: 'advice', source: 'portal' },
   { path: '/absence', key: 'absence', source: 'oh' },
   { path: '/surveillance', key: 'surveillance', source: 'oh' },

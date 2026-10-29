@@ -2,9 +2,10 @@ import { useState, type FormEvent } from 'react';
 import {
   asList,
   CONSENT_PURPOSE_LABELS,
-  CONSENT_PURPOSES,
+  SELF_GRANTABLE_PURPOSES,
   type Consent,
   type ConsentPurpose,
+  type GrantablePurpose,
   type GrantConsentRequest,
 } from '../api/types';
 import { SessionExpiredError } from '../auth/AuthClient';
@@ -31,14 +32,15 @@ function ConsentMeta({ c }: { c: Consent }) {
 
 export function Consents({ client, onSessionExpired }: ScreenProps) {
   const consents = useAsync(async () => asList<Consent>(await client.api<unknown>('/consents/me')), onSessionExpired);
-  const [purpose, setPurpose] = useState<ConsentPurpose>(CONSENT_PURPOSES[0]);
+  const [purpose, setPurpose] = useState<GrantablePurpose>(SELF_GRANTABLE_PURPOSES[0]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: 'error' | 'success'; text: string }>();
 
   const active = consents.data?.filter((c) => !isWithdrawn(c)) ?? [];
   const history = consents.data?.filter(isWithdrawn) ?? [];
   const activePurposes = new Set(active.map((c) => c.purpose));
-  const grantable = CONSENT_PURPOSES.filter((p) => !activePurposes.has(p));
+  // Telehealth and AI-documentation consents are given per session / encounter and only listed here.
+  const grantable = SELF_GRANTABLE_PURPOSES.filter((p) => !activePurposes.has(p));
   const selected = grantable.includes(purpose) ? purpose : grantable[0];
 
   const handle = async (fn: () => Promise<unknown>, ok: string) => {
@@ -107,7 +109,7 @@ export function Consents({ client, onSessionExpired }: ScreenProps) {
       ) : (
         <form onSubmit={grant} className="form">
           <label htmlFor="purpose">Purpose</label>
-          <select id="purpose" value={selected} onChange={(e) => setPurpose(e.target.value as ConsentPurpose)}>
+          <select id="purpose" value={selected} onChange={(e) => setPurpose(e.target.value as GrantablePurpose)}>
             {grantable.map((p) => (
               <option key={p} value={p}>
                 {CONSENT_PURPOSE_LABELS[p]}

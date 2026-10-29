@@ -13,6 +13,8 @@ import { MyAppointments } from './screens/MyAppointments';
 import { MyDocuments } from './screens/MyDocuments';
 import { MyReturnToWork } from './screens/MyReturnToWork';
 import { MySurveillance } from './screens/MySurveillance';
+import { MyTelehealth } from './screens/MyTelehealth';
+import { MyTreatment } from './screens/MyTreatment';
 import { PreEmployment } from './screens/PreEmployment';
 import { Privacy } from './screens/Privacy';
 import { Profile } from './screens/Profile';
@@ -21,6 +23,7 @@ import { startIdleTimer } from './security/idleTimeout';
 import { errorName, log } from './security/log';
 import { portalStrings, type PortalStrings } from './i18n/portal';
 import { ohStrings, type OhStrings } from './i18n/occupational';
+import { careStrings, type CareStrings } from './i18n/care';
 import { navFor, resolveRoute } from './routing/navigation';
 import { DEFAULT_LANGUAGES, dirFor, initialLanguage } from './i18n/strings';
 
@@ -33,6 +36,7 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
   const [lang, setLang] = useState(() => initialLanguage(DEFAULT_LANGUAGES, typeof navigator !== 'undefined' ? navigator.languages : []));
   const t = portalStrings(lang);
   const oh = ohStrings(lang);
+  const care = careStrings(lang);
   const hashRoute = useHashRoute();
 
   useEffect(() => {
@@ -105,6 +109,12 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
   switch (route) {
     case '/appointments':
       screen = <MyAppointments {...screenProps} />;
+      break;
+    case '/treatment':
+      screen = <MyTreatment {...screenProps} />;
+      break;
+    case '/telehealth':
+      screen = <MyTelehealth {...screenProps} />;
       break;
     case '/absence':
       screen = <MyAbsence {...screenProps} />;
@@ -180,7 +190,11 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
           {nav.map((n) => (
             <li key={n.path}>
               <a href={`#${n.path}`} aria-current={route === n.path ? 'page' : undefined}>
-                {n.source === 'oh' ? oh.nav[n.key as keyof OhStrings['nav']] : t.nav[n.key as keyof PortalStrings['nav']]}
+                {n.source === 'oh'
+                  ? oh.nav[n.key as keyof OhStrings['nav']]
+                  : n.source === 'care'
+                    ? care.nav[n.key as keyof CareStrings['nav']]
+                    : t.nav[n.key as keyof PortalStrings['nav']]}
               </a>
             </li>
           ))}

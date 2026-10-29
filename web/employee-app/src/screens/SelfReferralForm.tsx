@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import {
-  CONSENT_PURPOSES,
+  SELF_GRANTABLE_PURPOSES,
   CONTACT_OPTIONS,
   REFERRAL_CATEGORIES,
   type BodyMapRegion,
@@ -315,7 +315,7 @@ export function SelfReferralForm<F extends FileLike>(p: SelfReferralFormProps<F>
             </label>
             <details className="optional-consents">
               <summary>{t.consentOptional}</summary>
-              {CONSENT_PURPOSES.map((pp) => (
+              {SELF_GRANTABLE_PURPOSES.map((pp) => (
                 <label key={pp} className="checkbox">
                   <input type="checkbox" checked={s.purposes.includes(pp)} onChange={() => dispatch({ type: 'togglePurpose', value: pp })} />
                   <span>{t.purposes[pp]}</span>

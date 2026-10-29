@@ -209,8 +209,25 @@ export const CONSENT_PURPOSES = [
   'WEARABLE_DATA',
   'HEALTH_CAMPAIGNS',
   'RESEARCH_DEIDENTIFIED',
+  'AI_DOCUMENTATION',
+  'TELEHEALTH_CONSULTATION',
 ] as const;
 export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number];
+
+/**
+ * Purposes the employee can grant in general (consent screen, self-referral). `AI_DOCUMENTATION` is captured per
+ * encounter by the clinician and `TELEHEALTH_CONSULTATION` per session on the telehealth screen – both are listed
+ * (and can be withdrawn) on the consent screen but not offered there for a blanket grant.
+ */
+export const SELF_GRANTABLE_PURPOSES = [
+  'TREATMENT_SHARING_PARTNER',
+  'EAP_REFERRAL',
+  'INSURER_SHARING',
+  'WEARABLE_DATA',
+  'HEALTH_CAMPAIGNS',
+  'RESEARCH_DEIDENTIFIED',
+] as const satisfies readonly ConsentPurpose[];
+export type GrantablePurpose = (typeof SELF_GRANTABLE_PURPOSES)[number];
 
 export const CONSENT_PURPOSE_LABELS: Record<ConsentPurpose, string> = {
   TREATMENT_SHARING_PARTNER: 'Share treatment information with a partner provider',
@@ -219,6 +236,8 @@ export const CONSENT_PURPOSE_LABELS: Record<ConsentPurpose, string> = {
   WEARABLE_DATA: 'Use data from my wearable device',
   HEALTH_CAMPAIGNS: 'Invitations to health campaigns',
   RESEARCH_DEIDENTIFIED: 'Use of de-identified data for research',
+  AI_DOCUMENTATION: 'AI-assisted documentation of a consultation',
+  TELEHEALTH_CONSULTATION: 'Video or secure-chat consultation (telehealth)',
 };
 
 export interface Consent {
@@ -234,7 +253,7 @@ export interface Consent {
 }
 
 export interface GrantConsentRequest {
-  purpose: ConsentPurpose;
+  purpose: GrantablePurpose;
   scope?: string;
 }
 

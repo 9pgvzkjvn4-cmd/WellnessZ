@@ -1,4 +1,4 @@
-import type { ConsentPurpose, PreferredContact, ReferralCategory } from '../api/types';
+import type { GrantablePurpose, PreferredContact, ReferralCategory } from '../api/types';
 
 /**
  * UI strings of the self-referral form in the languages offered by `GET /languages` (E01-BL-010).
@@ -41,7 +41,7 @@ export interface ReferralStrings {
   consentLegend: string;
   consentAssessment: string;
   consentOptional: string;
-  purposes: Record<ConsentPurpose, string>;
+  purposes: Record<GrantablePurpose, string>;
   attachments: string;
   attachmentsHint: string;
   choosePhotos: string;

@@ -1,3 +1,4 @@
+import { loadCareCounts, type CareCounts } from '../api/care';
 import { toMyCases } from '../api/cases';
 import { loadOhCounts, type OhCounts } from '../api/occupational';
 import { loadPortalCounts, type PortalCounts } from '../api/portal';
@@ -14,6 +15,7 @@ import {
 import { describeError, formatDate, formatDay, humanise } from '../components/format';
 import { Alert, Loading, PageTitle, StatusBadge } from '../components/ui';
 import { useAsync } from '../components/useAsync';
+import { careStrings, type CareStrings } from '../i18n/care';
 import { ohStrings, type OhStrings } from '../i18n/occupational';
 import { portalStrings, type PortalStrings } from '../i18n/portal';
 import { dirFor } from '../i18n/strings';
@@ -55,6 +57,29 @@ export function OhTiles({ t, oh, lang, counts = {} }: { t: PortalStrings; oh: Oh
   return (
     <nav className="tiles" aria-labelledby="oh-tiles-title" dir={dirFor(lang)} lang={lang}>
       <h2 id="oh-tiles-title">{oh.tilesTitle}</h2>
+      <ul>
+        {tiles.map((tile) => (
+          <li key={tile.href}>
+            <a className="tile" href={tile.href}>
+              <span className="tile-label">{tile.label}</span>
+              {!!tile.count && <span className="tile-count badge badge-doc-action">{t.tileActions(tile.count)}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/** Hook-free tiles for the increment-4 sections (treatment plan, telehealth consultations). */
+export function CareTiles({ t, care, lang, counts = {} }: { t: PortalStrings; care: CareStrings; lang: string; counts?: Partial<CareCounts> }) {
+  const tiles = [
+    { href: '#/treatment', label: care.tileTreatment, count: counts.treatment },
+    { href: '#/telehealth', label: care.tileTelehealth, count: counts.telehealth },
+  ];
+  return (
+    <nav className="tiles" aria-labelledby="care-tiles-title" dir={dirFor(lang)} lang={lang}>
+      <h2 id="care-tiles-title">{care.tilesTitle}</h2>
       <ul>
         {tiles.map((tile) => (
           <li key={tile.href}>
@@ -116,6 +141,7 @@ export function Home({ client, session, onSessionExpired, lang }: PortalScreenPr
   const cases = useAsync(async () => toMyCases(await client.api<unknown>('/cases')), onSessionExpired);
   const counts = useAsync(() => loadPortalCounts(client), onSessionExpired);
   const ohCounts = useAsync(() => loadOhCounts(client), onSessionExpired);
+  const careCounts = useAsync(() => loadCareCounts(client), onSessionExpired);
 
   return (
     <section aria-labelledby="home-title">
@@ -137,6 +163,7 @@ export function Home({ client, session, onSessionExpired, lang }: PortalScreenPr
       </div>
 
       <OhTiles t={portalStrings(lang)} oh={ohStrings(lang)} lang={lang} counts={ohCounts.data} />
+      <CareTiles t={portalStrings(lang)} care={careStrings(lang)} lang={lang} counts={careCounts.data} />
       <PortalTiles t={portalStrings(lang)} lang={lang} counts={counts.data} />
 
       <h2 id="home-title">My cases</h2>

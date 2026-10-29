@@ -335,6 +335,9 @@ const en: PortalStrings = {
     RESEARCH_DEIDENTIFIED: 'Use of de-identified data for research',
     FITNESS_STATUS: 'Fitness for work status',
     LEGAL_OBLIGATION: 'Required by law',
+    AI_DOCUMENTATION: 'AI-assisted documentation of a consultation',
+    TELEHEALTH_CONSULTATION: 'Video or secure-chat consultation (telehealth)',
+    CLAIM: 'Insurance or compensation claim',
   },
 
   declTitle: 'Declaration received',
@@ -526,6 +529,9 @@ const fr: PortalStrings = {
     RESEARCH_DEIDENTIFIED: 'Utilisation de données anonymisées pour la recherche',
     FITNESS_STATUS: 'Statut d’aptitude au travail',
     LEGAL_OBLIGATION: 'Obligation légale',
+    AI_DOCUMENTATION: "Documentation d'une consultation assistée par IA",
+    TELEHEALTH_CONSULTATION: 'Consultation vidéo ou par messagerie sécurisée (télésanté)',
+    CLAIM: "Demande d'indemnisation ou d'assurance",
   },
 
   declTitle: 'Déclaration reçue',
@@ -716,6 +722,9 @@ const ar: PortalStrings = {
     RESEARCH_DEIDENTIFIED: 'استخدام بيانات مجهولة الهوية لأغراض البحث',
     FITNESS_STATUS: 'حالة اللياقة للعمل',
     LEGAL_OBLIGATION: 'مطلوب بموجب القانون',
+    AI_DOCUMENTATION: 'توثيق الاستشارة بمساعدة الذكاء الاصطناعي',
+    TELEHEALTH_CONSULTATION: 'استشارة بالفيديو أو بالمحادثة الآمنة (الرعاية الصحية عن بُعد)',
+    CLAIM: 'مطالبة تأمين أو تعويض',
   },
 
   declTitle: 'تم استلام الإقرار',

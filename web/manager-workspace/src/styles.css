@@ -776,3 +776,32 @@ dd .badge {
 .filters > button {
   align-self: flex-end;
 }
+
+/* ---------- increment 4: HR claim status ---------- */
+.badge-claim-notified,
+.badge-claim-under-review,
+.badge-lost-time {
+  background: #fff4d6;
+  color: #6b4a00;
+  border-color: #e0b84a;
+}
+.badge-claim-litigated {
+  background: var(--c-error-bg);
+  color: var(--c-error);
+}
+.badge-claim-settled {
+  background: var(--c-success-bg);
+  color: var(--c-success);
+}
+.badge-claim-closed {
+  opacity: 0.75;
+}
+@media (prefers-color-scheme: dark) {
+  .badge-claim-notified,
+  .badge-claim-under-review,
+  .badge-lost-time {
+    background: #3a2f10;
+    color: #ffd98a;
+    border-color: #7a6020;
+  }
+}

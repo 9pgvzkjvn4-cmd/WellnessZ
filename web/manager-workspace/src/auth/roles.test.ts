@@ -68,6 +68,7 @@ describe('increment 2 role gating (E05 / E03)', () => {
       '/advice-requests',
       '/compliance',
       '/pre-employment',
+      '/claims',
       '/analytics',
     ]);
   });
@@ -138,5 +139,19 @@ describe('increment 3 role gating (E06 / E07)', () => {
     expect(absenceSections(['MANAGER'])).toEqual({ team: true, lta: false, hrStage: false, certificates: false, analytics: false });
     expect(absenceSections(['HR'])).toEqual({ team: true, lta: true, hrStage: true, certificates: true, analytics: true });
     expect(absenceSections(['OH_ADMIN'])).toMatchObject({ team: false, lta: false });
+  });
+
+  it('increment 4: claim status (/claims) is HR-only', async () => {
+    const { canUse, resolveFeatureRoute, workspaceNav } = await import('./roles');
+    expect(canUse('claims', ['HR'])).toBe(true);
+    expect(canUse('claims', ['ROLE_hr'])).toBe(true);
+    expect(canUse('claims', ['MANAGER'])).toBe(false);
+    for (const roles of [['OH_CLINICIAN'], ['CASE_MANAGER'], ['PLATFORM_ADMIN'], ['CLAIMS_COORDINATOR'], [] as string[]]) expect(canUse('claims', roles)).toBe(false);
+    expect(workspaceNav(['HR'])).toContainEqual({ path: '/claims', label: 'Claims' });
+    expect(workspaceNav(['MANAGER']).map((n) => n.path)).not.toContain('/claims');
+    expect(workspaceNav(['MANAGER', 'HR']).filter((n) => n.path === '/claims')).toHaveLength(1);
+    expect(resolveFeatureRoute('/claims', ['HR'])).toEqual({ feature: 'claims', allowed: true });
+    expect(resolveFeatureRoute('/claims', ['MANAGER'])).toEqual({ feature: 'claims', allowed: false });
+    expect(resolveFeatureRoute('/claims/CLM-2026-000001', ['HR'])).toBeUndefined();
   });
 });

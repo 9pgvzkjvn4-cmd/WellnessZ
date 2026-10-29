@@ -8,6 +8,7 @@ import { AccessRestricted } from './screens/AccessRestricted';
 import { AdviceRequests } from './screens/AdviceRequests';
 import { Analytics } from './screens/Analytics';
 import { CaseStatus } from './screens/CaseStatus';
+import { Claims } from './screens/Claims';
 import { Compliance } from './screens/Compliance';
 import { Documents } from './screens/Documents';
 import { DutyProposals } from './screens/DutyProposals';
@@ -99,6 +100,7 @@ export function App({ client }: { client: AuthClient }) {
   else if (feature?.feature === 'adviceRequests') screen = <AdviceRequests {...props} />;
   else if (feature?.feature === 'compliance') screen = <Compliance {...props} />;
   else if (feature?.feature === 'preEmployment') screen = <PreEmployment {...props} />;
+  else if (feature?.feature === 'claims') screen = <Claims {...props} />;
   else if (feature?.feature === 'jobOffers' && feature.caseId) screen = <JobOffers {...props} caseId={feature.caseId} />;
   else if (feature?.feature === 'ihr' && feature.caseId) screen = <IhrAssessments {...props} caseId={feature.caseId} />;
   else if (caseMatch?.[1]) screen = <CaseStatus {...props} caseId={decodeURIComponent(caseMatch[1])} />;
