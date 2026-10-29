@@ -17,13 +17,16 @@
 > v1, cert-manager). The CNPG grants SQL was executed on PostgreSQL 16.15. `values-hybrid.yaml` and
 > `values-hybrid-cloud-edge.yaml` render and lint. **Nothing was installed on a real RKE2/OpenShift cluster or
 > connected through Arc or GKE Enterprise.**
+>
+> **Increment 1** (E01 intake, E02 triage) adds the OH workspace to the cloud web tier, schema `triage` to the
+> on-prem database and the EHS webhook on the on-prem API. The changes are listed in sections 8–10.
 
 ## 1. Target state
 
 | Location | Runs | Values / manifests |
 |---|---|---|
 | On-premises cluster (RKE2 ≥ 1.31 or OpenShift ≥ 4.18) | `wz-core-app`, Flyway Job, CloudNativePG cluster `wellnessz-db`, Vault CSI provider, External Secrets, cert-manager | `deploy/helm/wellnessz/values-hybrid.yaml`, `deploy/hybrid/cnpg/*`, `deploy/hybrid/external-secrets/*` |
-| Cloud cluster (AKS from guide 06, or GKE from guide 07) | `employee-portal`, `manager-workspace`, `wz-bff`; small managed PostgreSQL for BFF sessions | `values-azure.yaml` (or `values-gcp.yaml`) + `deploy/hybrid/values-hybrid-cloud-edge.yaml` |
+| Cloud cluster (AKS from guide 06, or GKE from guide 07) | `employee-portal`, `manager-workspace`, `oh-workspace` (increment 1), `wz-bff`; small managed PostgreSQL for BFF sessions | `values-azure.yaml` (or `values-gcp.yaml`) + `deploy/hybrid/values-hybrid-cloud-edge.yaml` |
 | Between them | ExpressRoute / Interconnect / IPsec VPN; only TCP 443 from the BFF egress range to the on-prem API ingress | Firewall change request |
 
 ## 2. Prerequisites
@@ -102,7 +105,9 @@ gcloud container fleet policycontroller enable --memberships=wz-onprem-prod
    * from on-prem: the API ingress VIP;
    * from the cloud: the AKS node/egress range (Azure CNI Overlay SNATs pods to node IPs) or the GKE subnet.
 3. **Firewall.** Allow `cloud BFF egress range → on-prem API ingress VIP : 443/TCP` only. Deny everything else and
-   log denies.
+   log denies. The EHS webhook (increment 1) is called by the EHS system on the corporate network: allow
+   `EHS system → on-prem API ingress VIP : 443/TCP` as a separate, documented rule rather than routing it through
+   the cloud edge (`ingress.api.enabled` is `false` there).
 4. **DNS.** A conditional forwarder for `onprem.example.internal`: Azure Private DNS Resolver, Cloud DNS
    forwarding zone or on-prem DNS.
 5. **TLS.** The API ingress certificate comes from the internal PKI. Add the internal root CA to the BFF JVM
@@ -285,6 +290,20 @@ helm upgrade --install wellnessz deploy/helm/wellnessz -n wellnessz -f deploy/he
 
 The pre-upgrade Flyway Job migrates `wellnessz` as `wz_migrator` and grants the per-table privileges to `wz_app`.
 
+**Increment 1 on-prem.**
+
+* Schema `triage` is in `migrations.job.core.schemas` and in the CNPG bootstrap (`deploy/hybrid/cnpg/03-cluster.yaml`:
+  `postInitApplicationSQL` and the grants loop). A cluster initialised before increment 1 gets the schema from
+  Flyway V5 (`wz_migrator` owns the database; V5 grants `USAGE` to `wz_app`). To align `search_path`, run
+  `ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, analytics;` as `postgres`
+  (`kubectl cnpg psql wellnessz-db -n wellnessz-db`).
+* `values-hybrid.yaml` disables `ohWorkspace` on-prem (like the other web apps) and already lists
+  `https://oh.wellnessz.example.com` in `WZ_CORS_ORIGINS`; replace the host with yours.
+* Set `WZ_OH_WORKSPACE_URL=https://oh.<domain>` and `WZ_OH_CONTACT` in the core `env` of your overrides file.
+* Register the EHS webhook client (Entra app with the `INTEGRATION` application role, guide 06 section 5.6). Its
+  calls go to `https://api.wellnessz.onprem.example.internal/api/v1/intake/ehs/incidents`.
+* Load the OH staff roster (`masterdata.staff_member`) with a reviewed SQL script; never enable `classpath:db/demo`.
+
 Verify:
 
 ```bash
@@ -306,6 +325,11 @@ kubectl -n wellnessz get pods && kubectl -n wellnessz logs deploy/wellnessz-core
    The core secrets are not needed in the cloud.
 4. Fill the placeholders of `deploy/hybrid/values-hybrid-cloud-edge.yaml` in your overrides file, especially
    `WZ_CORE_API_URL` and `WZ_BFF_DB_URL`.
+5. **OH workspace (increment 1).** The edge release inherits `ohWorkspace.enabled: true` from `values.yaml` and the
+   host `ingress.hosts.ohWorkspace` from `values-azure.yaml` (or `values-gcp.yaml`); set your host in the overrides
+   file. Create the DNS record and certificate for `oh.<domain>` at the cloud edge, and add
+   `https://oh.<domain>/login/oauth2/code/wellnessz` to the `wellnessz-bff` redirect URIs. The OH workspace holds no
+   data; all clinical calls go through the BFF to the on-prem core.
 
 ```bash
 helm upgrade --install wellnessz-edge deploy/helm/wellnessz -n wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-azure.yaml -f deploy/hybrid/values-hybrid-cloud-edge.yaml -f deploy/env/prod-hybrid-edge.yaml --set-string global.imageTag=v0.1.0 --atomic --wait
@@ -326,6 +350,10 @@ The Azure workload identity federated credentials expect the release name `welln
 | 6 | Cloud DB contents | Only the `bff` schema with `spring_session*` tables (no clinical schemas) |
 | 7 | EHS intake | On-prem IMAP (`mail.onprem.example.internal:993`) or Graph via the corporate proxy; Excel import as in guide 05, section 8.2 |
 | 8 | `tools/e2e/e2e.js` with `WZ_E2E_*` set to the cloud hosts | Status-only assertions pass |
+| 9 | OH workspace (increment 1): `https://oh.<domain>` as a Nursing Head test account | Work queues load; data comes from the on-prem core |
+| 10 | Schema location: `kubectl -n wellnessz-db exec wellnessz-db-1 -c postgres -- psql -U postgres -d wellnessz -c '\dn'` | `triage` present on-prem; the cloud session database still holds only `bff` |
+| 11 | EHS webhook from the EHS network to the on-prem API host (guide 06, section 5.6 smoke call) | `202` |
+| 12 | `tools/e2e/e2e-increment1.js` with `WZ_E2E_EMPLOYEE_URL`, `WZ_E2E_WORKSPACE_URL`, `WZ_E2E_OH_URL` set to the cloud hosts and `WZ_E2E_CORE_URL` to the on-prem API host (dev/test only, run from a host that can reach both) | 18 `PASS` lines |
 
 ## 11. Backup restore test (quarterly, SOC 2 A1.3)
 

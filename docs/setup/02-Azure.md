@@ -136,6 +136,15 @@ URIs; prod should have its own registrations.
 | `sg-wellnessz-auditors` | AUDITOR | Internal audit, GRC |
 | `sg-wellnessz-platform-admins` | PLATFORM_ADMIN | Platform operators (PIM-eligible only) |
 | `sg-wellnessz-partners` | PARTNER_PROVIDER | External providers (B2B guests) |
+| `sg-wellnessz-oh-physicians` | OH_PHYSICIAN | OH physicians (increment 1) |
+| `sg-wellnessz-ame` | AME | Aeromedical examiners (increment 1) |
+| `sg-wellnessz-cmo` | CMO | Chief Medical Officer and deputy (increment 1; approves triage protocols) |
+| `sg-wellnessz-nursing-head` | NURSING_HEAD | Head of OH nursing (increment 1) |
+| `sg-wellnessz-hse` | HSE_OFFICER | Health & safety officers (increment 1) |
+| `sg-wellnessz-crew-scheduling` | CREW_SCHEDULING | Crew scheduling desk – status only (increment 1) |
+| `sg-wellnessz-hygiene` | HYGIENE_MANAGER | Catering hygiene managers – status only (increment 1) |
+| `sg-wellnessz-clinic-reception` | CLINIC_RECEPTION | Clinic front desk (increment 1) |
+| `sg-wellnessz-first-aiders` | FIRST_AIDER | Workplace first aiders (increment 1) |
 | `sg-wellnessz-aks-admins` | – | AKS cluster admins (`aks_admin_group_object_ids`) |
 | `sg-wellnessz-db-admins` | – | PostgreSQL Entra admin (`postgres_entra_admin`) |
 
@@ -164,12 +173,22 @@ cat > /tmp/wz-roles.json <<'EOF'
  {"allowedMemberTypes":["User"],"displayName":"Auditor","value":"AUDITOR","description":"Read-only audit","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000008"},
  {"allowedMemberTypes":["User"],"displayName":"Platform admin","value":"PLATFORM_ADMIN","description":"Platform administration","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000009"},
  {"allowedMemberTypes":["Application"],"displayName":"Integration","value":"INTEGRATION","description":"Machine-to-machine clients","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000000a"},
- {"allowedMemberTypes":["User"],"displayName":"Partner provider","value":"PARTNER_PROVIDER","description":"External provider","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000000b"}
+ {"allowedMemberTypes":["User"],"displayName":"Partner provider","value":"PARTNER_PROVIDER","description":"External provider","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000000b"},
+ {"allowedMemberTypes":["User"],"displayName":"OH physician","value":"OH_PHYSICIAN","description":"Occupational health physician","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000000c"},
+ {"allowedMemberTypes":["User"],"displayName":"AME","value":"AME","description":"Aeromedical examiner","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000000d"},
+ {"allowedMemberTypes":["User"],"displayName":"CMO","value":"CMO","description":"Chief Medical Officer - approves triage protocols","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000000e"},
+ {"allowedMemberTypes":["User"],"displayName":"Nursing head","value":"NURSING_HEAD","description":"Head of OH nursing","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000000f"},
+ {"allowedMemberTypes":["User"],"displayName":"HSE officer","value":"HSE_OFFICER","description":"Health and safety - reconciliation, no clinical data","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000010"},
+ {"allowedMemberTypes":["User"],"displayName":"Crew scheduling","value":"CREW_SCHEDULING","description":"Crew fitness status only","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000011"},
+ {"allowedMemberTypes":["User"],"displayName":"Hygiene manager","value":"HYGIENE_MANAGER","description":"Food-handler status only","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000012"},
+ {"allowedMemberTypes":["User"],"displayName":"Clinic reception","value":"CLINIC_RECEPTION","description":"Walk-in registration, no clinical data","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000013"},
+ {"allowedMemberTypes":["User"],"displayName":"First aider","value":"FIRST_AIDER","description":"First-aid registration, no clinical data","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000014"}
 ]
 EOF
 ```
 
-Generate your own GUIDs (`uuidgen`) for the `id` fields; the values above are examples. Then create the API app:
+Generate your own GUIDs (`uuidgen`) for the `id` fields; the values above are examples. The last nine roles were
+added in increment 1 (E01 intake, E02 triage). Then create the API app:
 
 ```bash
 API_APP_ID=$(az ad app create --display-name wellnessz-api --identifier-uris api://wellnessz-api --app-roles @/tmp/wz-roles.json --query appId -o tsv) && echo $API_APP_ID
@@ -207,6 +226,24 @@ az rest --method POST --uri https://graph.microsoft.com/v1.0/servicePrincipals/$
 
 The access token then contains `"roles": ["OH_CLINICIAN"]`. The core reads `roles` (Entra), `realm_access.roles`
 (Keycloak) and, as a fallback, `groups`.
+
+**Existing tenant (upgrade to increment 1).** `az ad app create --app-roles` only applies to new registrations. For
+an existing `wellnessz-api`, append the nine new entries to the current list (keep the existing `id` values) and
+update it, then assign the new groups:
+
+```bash
+az ad app show --id $API_APP_ID --query appRoles > /tmp/wz-roles-current.json   # edit: append the nine new roles
+```
+
+```bash
+az ad app update --id $API_APP_ID --app-roles @/tmp/wz-roles-current.json
+```
+
+Repeat the `appRoleAssignedTo` call for each new group (for example `sg-wellnessz-nursing-head` with the
+`NURSING_HEAD` role id). A user in several groups receives all their roles; the OH workspace shows
+*Access restricted* to users without any role it knows. If you map roles from group object ids instead of app roles
+(`wellnessz.security.group-role-mapping` on the core and `wellnessz.bff.group-role-mapping` on the BFF), add the new
+groups to **both** mappings.
 
 **Values to note.** The API's application (client) ID is the **audience** (`WZ_OIDC_AUDIENCE`). The issuer is
 `https://login.microsoftonline.com/<tenant-id>/v2.0`.
@@ -254,7 +291,14 @@ with Entra audit logs.
 ### 5.4 BFF app registration `wellnessz-bff` (confidential web client)
 
 ```bash
-BFF_APP_ID=$(az ad app create --display-name wellnessz-bff --web-redirect-uris https://employee.wellnessz.example.com/login/oauth2/code/wellnessz https://manager.wellnessz.example.com/login/oauth2/code/wellnessz --query appId -o tsv) && echo $BFF_APP_ID
+BFF_APP_ID=$(az ad app create --display-name wellnessz-bff --web-redirect-uris https://employee.wellnessz.example.com/login/oauth2/code/wellnessz https://manager.wellnessz.example.com/login/oauth2/code/wellnessz https://oh.wellnessz.example.com/login/oauth2/code/wellnessz --query appId -o tsv) && echo $BFF_APP_ID
+```
+
+The BFF builds the redirect URI from the host the browser used, so every web host needs its own entry. The OH
+workspace host `oh.<domain>` was added in increment 1. For an existing registration:
+
+```bash
+az ad app update --id $BFF_APP_ID --web-redirect-uris https://employee.wellnessz.example.com/login/oauth2/code/wellnessz https://manager.wellnessz.example.com/login/oauth2/code/wellnessz https://oh.wellnessz.example.com/login/oauth2/code/wellnessz
 ```
 
 ```bash
@@ -304,6 +348,25 @@ application role `INTEGRATION` on `wellnessz-api` (an `appRoleAssignedTo` call l
 partner's service principal as `principalId`). Partners request tokens with the scope
 `api://wellnessz-api/.default`.
 
+**EHS webhook client (increment 1).** The EHS incident-management system pushes incidents to
+`POST https://api.<domain>/api/v1/intake/ehs/incidents`:
+
+1. Create an app registration `wellnessz-ehs-webhook` with a certificate credential (or a short-lived secret held
+   by the EHS vendor's secret store) and assign it the `INTEGRATION` application role as above.
+2. The EHS system requests a token with `client_credentials` and scope `api://wellnessz-api/.default`, then sends
+   each batch (≤ 500 incidents) with a unique `Idempotency-Key` header (8–200 characters, reused on retries of the
+   same batch).
+3. Invalid items are not rejected as a whole: they land in the dead-letter queue, which OH administrators review in
+   the OH workspace (*Intake → DLQ*). Add a SIEM alert on the log line `ALERT ehs-webhook dead-lettered`.
+4. Smoke test from a workstation with a token of that client:
+
+   ```bash
+   curl -s -o /dev/null -w '%{http_code}\n' -X POST https://api.<domain>/api/v1/intake/ehs/incidents -H "Authorization: Bearer $EHS_TOKEN" -H 'Content-Type: application/json' -H "Idempotency-Key: smoke-$(date +%s)" -d '{"externalRef":"SMOKE-1","occurredAt":"2026-10-28T09:00:00Z","incidentClass":"NEAR_MISS","severity":"LOW"}'
+   ```
+
+   Expected: `202`. The near miss matches the seeded `IGNORE` rule, so no case is created; it appears in the
+   reconciliation report.
+
 ### 5.7 Alternative: Keycloak instead of Entra ID
 
 If the airline uses Keycloak (or brokers Entra ID through Keycloak), run Keycloak 26 in **production mode**. Use
@@ -315,7 +378,10 @@ the Keycloak Operator in its own namespace, or a managed Keycloak service.
 3. Import `deploy/local/keycloak/wellnessz-realm.json` as a **template only**, after these changes:
    * delete the `users` array (test users);
    * regenerate both client secrets;
-   * replace the localhost redirect URIs with the real hosts;
+   * replace the localhost redirect URIs with the real hosts (employee, manager and OH workspace);
+   * keep the client **scope mappings** of `wellnessz-bff` and `wellnessz-mobile` complete: both clients have
+     `fullScopeAllowed=false`, so every role (including the nine increment-1 roles) must be listed there or it is
+     dropped from tokens;
    * set `sslRequired: all`;
    * configure SMTP;
    * enable OTP/WebAuthn for privileged roles.
@@ -477,6 +543,12 @@ PGPASSWORD="<token>" psql "host=<pghost> dbname=wellnessz user=sg-wellnessz-db-a
 Expected last line:
 `WellnessZ bootstrap complete: wz_migrator owns wellnessz + schemas; wz_app/wz_bff have CONNECT only (table grants via Flyway).`
 
+The script creates the schemas `platform, masterdata, intake, casemgmt, triage, analytics` (`triage` since increment 1).
+**Upgrading an environment bootstrapped before increment 1:** Flyway V5 creates schema `triage` itself (as
+`wz_migrator`, which owns the database) and grants `USAGE` to `wz_app`, so the upgrade works without a manual step.
+Re-run the idempotent bootstrap script anyway to align ownership and the roles' `search_path` with the new schema
+list.
+
 The pod is removed when you exit. Then delete the helper namespace:
 
 ```bash
@@ -485,8 +557,8 @@ kubectl delete namespace wz-admin
 
 ## 9. TLS certificates and DNS
 
-1. Obtain certificates for `employee.<domain>`, `manager.<domain>` and `api.<domain>`, either from your public CA
-   or with Key Vault-integrated issuance (DigiCert/GlobalSign).
+1. Obtain certificates for `employee.<domain>`, `manager.<domain>`, `oh.<domain>` (OH workspace, increment 1) and
+   `api.<domain>`, either from your public CA or with Key Vault-integrated issuance (DigiCert/GlobalSign).
 2. Import the certificate into Key Vault:
 
    ```bash
@@ -500,7 +572,7 @@ kubectl delete namespace wz-admin
    az network application-gateway ssl-cert create -g <rg> --gateway-name <agw> -n wellnessz-tls --key-vault-secret-id $(az keyvault certificate show --vault-name $KV -n wellnessz-tls --query sid -o tsv | sed 's#/[^/]*$##')
    ```
 
-4. Create DNS A records for the three hosts pointing to `application_gateway_public_ip`. If Front Door is enabled,
+4. Create DNS A records for the four hosts pointing to `application_gateway_public_ip`. If Front Door is enabled,
    use CNAMEs to the Front Door endpoint and validate the custom domains there.
 
 Verify:
@@ -579,8 +651,20 @@ overrides file (`ENV_VALUES_FILE`) and replace every `<placeholder>`:
 | `<wellnessz-api-client-id>` | `$API_APP_ID` (audience) |
 | `<bff-app-registration-client-id>` | `$BFF_APP_ID` |
 | `<ehs-mailbox-app-client-id>` | Section 13 |
-| Hostnames | Your domain |
+| Hostnames | Your domain: `ingress.hosts.employeePortal`, `managerWorkspace`, `ohWorkspace` (increment 1), `ingress.api.host`; the same hosts in `core.env.WZ_CORS_ORIGINS` |
 | `networkPolicy.ingressController.ipBlocks`, `networkPolicy.database.cidrs` | `subnet_cidrs` output (App Gateway, PostgreSQL) |
+
+Increment 1 also adds these core settings (put them under `core.env` in the overrides file):
+
+| Variable | Value |
+|---|---|
+| `WZ_OH_WORKSPACE_URL` | `https://oh.<domain>` – link in OH-team notification e-mails (the default `https://oh.wellnessz.local` is for local use only) |
+| `WZ_OH_CONTACT` | Contact line in stakeholder notifications, for example `Occupational Health service desk, ext. 4242` |
+| `WZ_SLA_POLL_INTERVAL` | Optional; default `PT60S` |
+
+Do not set `WZ_FLYWAY_LOCATIONS` to include `classpath:db/demo` in any shared environment; with `migrations.mode: job`
+the migration Job reads only `db/migration`. The OH staff roster (`masterdata.staff_member`) has no import yet: load it
+with a reviewed SQL script as `wz_migrator` and push HRIS employees to `POST /api/v1/masterdata/employees`.
 
 Validate before committing:
 
@@ -712,6 +796,12 @@ section 8.2, through the workspace or `POST /api/v1/intake/ehs/excel`. The respo
 | 9 | Audit chain | `GET /api/v1/audit/verify` as `AUDITOR` | Chain valid |
 | 10 | Logs | Log Analytics: `ContainerLogV2 \| where PodNamespace == "wellnessz" \| take 20` | JSON logs, no PHI in clear text |
 | 11 | EHS intake | Section 13 | Incident visible |
+| 12 | OH workspace (increment 1) | `curl -sI https://oh.<domain>/`, then browser login as a Nursing Head test account | `200` with HSTS; *Work queues* screen with counts; a reception account sees only *Reception* |
+| 13 | Modules | `GET /api/v1/modules` with any user token | E01 and E02 `IMPLEMENTED` |
+| 14 | New roles in tokens | Decode an access token of a CMO test user (<https://jwt.ms>) | `"roles"` contains `CMO` |
+| 15 | EHS webhook | Section 5.6 smoke call | `202`; repeating with the same key returns `Idempotent-Replayed: true` |
+| 16 | Status-only APIs | `GET https://api.<domain>/api/v1/status/crew?employeeIds=<id>` with a crew-scheduling token | Rows with `fitnessStatus`, `restrictionUntil` only |
+| 17 | Increment-1 end-to-end (dev/test only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment1.js` | Requires dedicated test accounts with the local user names and an adapted login step for Entra; 18 `PASS` lines |
 
 ## 15. Mobile app and MDM onboarding
 
@@ -745,7 +835,9 @@ Details: `web/employee-app/README.md`, section *Runtime configuration & MDM*.
 | Flyway job fails `password authentication failed for user "wz_migrator"` | Bootstrap (section 8) not run or passwords differ | Re-run the bootstrap with the Key Vault values |
 | Core 401 for valid Entra tokens | Audience mismatch (`api://…` vs client ID) or v1 tokens | `WZ_OIDC_AUDIENCE` = API client ID; `requestedAccessTokenVersion=2` |
 | Core 403 for a user with a group | Group not assigned to an app role, or the user has too many groups (overage) | Assign the group to the app role on the API enterprise app |
-| BFF login error `AADSTS50011` | Redirect URI mismatch | Add `https://<host>/login/oauth2/code/wellnessz` for each web host |
+| BFF login error `AADSTS50011` | Redirect URI mismatch | Add `https://<host>/login/oauth2/code/wellnessz` for each web host, including `oh.<domain>` |
+| OH workspace shows *Access restricted* for a clinician | New app role not defined or group not assigned; or group-based mapping missing the new group | Section 5.2 (existing tenant upgrade); check `GET /bff/session` roles |
+| Webhook `400 idempotency_key_required` / `403` | Missing `Idempotency-Key`; client lacks the `INTEGRATION` application role | Section 5.6 |
 | App Gateway backend unhealthy | NetworkPolicy blocks health probes on 8081 | `networkPolicy.ingressController.allowHealthChecks=true` and the App Gateway subnet in `ipBlocks` |
 | `cd.yml` cannot reach a private API server | GitHub-hosted runner | `AKS_PRIVATE=true` (uses command invoke) or a self-hosted runner via `DEPLOY_RUNNER` |
 | Graph mailbox `403` | RBAC for Applications scope missing or still replicating | `Test-ServicePrincipalAuthorization`; allow up to 2 hours for replication |

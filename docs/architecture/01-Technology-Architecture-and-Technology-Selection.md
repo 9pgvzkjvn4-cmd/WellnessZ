@@ -949,6 +949,21 @@ repository.
 | Web unit tests (Vitest) | employee-app **30**, manager-workspace **35**, all passing | `npm test` in each app (CI job *Web*) |
 | End-to-end (Playwright, real Keycloak 26.8.1) | Login through the BFF; session cookie `WZSESSION` is `HttpOnly`; no tokens in `localStorage`; employee self-referral → manager sees a status-only row without clinical text | `tools/e2e/e2e.js` with the local stack; screenshots in `docs/images/screens/` |
 
+Integration tests covering security properties include: status-only projection for managers and 404 outside org scope,
+restricted class hidden from general clinicians, clinical text and outbox payloads encrypted at rest, status-only
+rostering payload, append-only audit table and intact hash chain, Idempotency-Key replay/conflict, FHIR/HL7 validation,
+Excel import hardening and de-duplication, small-cell suppression, notification content rules and the disabled-module
+guard (`disabledModuleIsRefused`).
+
+![Employee self-referral](../images/screens/employee-03-referral.png)
+
+*Figure 8 – Employee app (BFF session): self-referral to Occupational Health (E2E run).*
+
+![Manager status-only team view](../images/screens/manager-02-team.png)
+
+*Figure 9 – Manager workspace after the self-referral: status-only row – case reference, name, status, fitness status,
+restriction date – with no clinical text (E2E run).*
+
 **Increment 1 (E01, E02).** Results of the increment-1 verification run (details in the
 [Release Notes](../increment-01/03-Release-Notes-Increment-1.md)):
 
@@ -966,21 +981,6 @@ repository.
 ![OH workspace triage](../images/screens/increment-01/inc1-oh-05-case-triage-result.png)
 
 *Figure 11 – OH workspace, server-computed triage result for an EHS-triggered case (increment-1 E2E run).*
-
-Integration tests covering security properties include: status-only projection for managers and 404 outside org scope,
-restricted class hidden from general clinicians, clinical text and outbox payloads encrypted at rest, status-only
-rostering payload, append-only audit table and intact hash chain, Idempotency-Key replay/conflict, FHIR/HL7 validation,
-Excel import hardening and de-duplication, small-cell suppression, notification content rules and the disabled-module
-guard (`disabledModuleIsRefused`).
-
-![Employee self-referral](../images/screens/employee-03-referral.png)
-
-*Figure 8 – Employee app (BFF session): self-referral to Occupational Health (E2E run).*
-
-![Manager status-only team view](../images/screens/manager-02-team.png)
-
-*Figure 9 – Manager workspace after the self-referral: status-only row – case reference, name, status, fitness status,
-restriction date – with no clinical text (E2E run).*
 
 ## 16. Risks, assumptions and open items
 

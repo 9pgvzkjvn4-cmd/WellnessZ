@@ -35,7 +35,7 @@ WellnessZ uses **trunk-based development** with short-lived branches.
 | Reviews | 2 approvals. Code Owner review is required for `deploy/`, `.github/`, `platform/wz-security`, `platform/wz-secrets`, migrations, `.gitleaks.toml` and `.trivyignore` (see `CODEOWNERS`) |
 | Commits | Signed (SSH or GPG); message references the ticket |
 | PR description | `.github/pull_request_template.md`: summary, change type, data-protection checklist, tests, deployment notes |
-| Required checks | `Java build & test`, `Web employee-app`, `Web manager-workspace`, `Secret scan (gitleaks)`, `OWASP dependency-check`, `Dependency review (PR)`, `IaC & config checks`, `Analyze (java-kotlin)`, `Analyze (javascript-typescript)` |
+| Required checks | `Java build & test`, `Web employee-app`, `Web manager-workspace`, `Web oh-workspace` (increment 1), `Secret scan (gitleaks)`, `OWASP dependency-check`, `Dependency review (PR)`, `IaC & config checks`, `Analyze (java-kotlin)`, `Analyze (javascript-typescript)` |
 | Releases | Annotated, signed tag `vMAJOR.MINOR.PATCH` on `main` |
 
 The flow:
@@ -53,18 +53,19 @@ The flow:
 |---|---|---|---|---|
 | `ci.yml` | `pull_request`, push to `main`, manual | `contents: read` (+ `security-events: write` for SARIF jobs, `pull-requests: write` for dependency review) | Jobs listed below | Test, coverage and SBOM artefacts; SARIF in *Security → Code scanning* |
 | `codeql.yml` | PR, push to `main`, weekly (Mon 03:23 UTC) | `security-events: write`, `actions: read` | CodeQL `java-kotlin` (manual build) and `javascript-typescript` with the `security-extended` suite | Code-scanning alerts |
-| `container.yml` | Push to `main` and `v*` tags, manual (`registry` = ghcr / acr / gar), `workflow_call` | `packages: write`, `id-token: write`, `attestations: write`, `security-events: write` | Matrix of 4 images (`wz-core-app`, `wz-bff`, `employee-app`, `manager-workspace`); steps listed below | Image digests, attestations, signatures |
+| `container.yml` | Push to `main` and `v*` tags, manual (`registry` = ghcr / acr / gar), `workflow_call` | `packages: write`, `id-token: write`, `attestations: write`, `security-events: write` | Matrix of 5 images (`wz-core-app`, `wz-bff`, `employee-app`, `manager-workspace`, `oh-workspace`); steps listed below | Image digests, attestations, signatures |
 | `cd.yml` | Push of tag `v*`; manual (`image_tag`, `start_at`) | Per job; deploy jobs `id-token: write`, `packages: read` | Calls `container.yml` (on tag), resolves the tag, then `deploy-env.yml` for `dev` → `test` → `prod`. Prod accepts only `v*` tags | Deployment records |
 | `deploy-env.yml` | `workflow_call` only | `id-token: write`, `packages: read` | Runs in the GitHub Environment; steps listed below | Job summary (actor, tag, run URL) |
-| `dependabot.yml` | Weekly (Helm monthly) | – | Updates for Maven, both npm projects, GitHub Actions (SHA pins), Docker base images, Docker Compose, Terraform providers and the Helm chart; grouped minor/patch PRs | Dependency PRs |
+| `dependabot.yml` | Weekly (Helm monthly) | – | Updates for Maven, the three npm projects (`web/employee-app`, `web/manager-workspace`, `web/oh-workspace`), GitHub Actions (SHA pins), Docker base images, Docker Compose, Terraform providers and the Helm chart; grouped minor/patch PRs | Dependency PRs |
 
 **`ci.yml` jobs:**
 
 * **java:** `./mvnw verify` (unit + integration tests on PostgreSQL via Testcontainers, ArchUnit, JaCoCo,
   CycloneDX), then **SpotBugs + FindSecBugs** (`-Psecurity -DskipTests -Ddependency-check.skip=true verify`; fails
   on any finding).
-* **web (matrix):** `npm ci --ignore-scripts`, lint, test, build, `npm audit --omit=dev --audit-level=high`,
-  CycloneDX SBOM.
+* **web (matrix `app: [employee-app, manager-workspace, oh-workspace]`):** `npm ci --ignore-scripts`, lint, test,
+  build, `npm audit --omit=dev --audit-level=high`, CycloneDX SBOM. Each matrix entry is a separate check named
+  `Web <app>`.
 * **gitleaks:** full history.
 * **OWASP dependency-check:** fails at CVSS ≥ 7; uses the NVD cache.
 * **dependency review:** PRs only; denies high CVEs and GPL/AGPL licences.
@@ -84,7 +85,8 @@ The flow:
 
 1. OIDC login: `azure/login` + kubelogin + `aks-set-context`, or `google-github-actions/auth` +
    `get-gke-credentials`.
-2. Registry login, then `cosign verify` of all four images against the `container.yml` identity.
+2. Registry login, then `cosign verify` of all five images (`wz-core-app wz-bff employee-app manager-workspace
+   oh-workspace`) against the `container.yml` identity.
 3. `helm upgrade --install --atomic --wait --timeout 15m --history-max 10`. Private AKS clusters use
    `az aks command invoke`.
 
@@ -128,6 +130,25 @@ docker run --rm -v "$PWD:/repo:ro" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo -
 Every entry needs an owner, a justification, a risk-acceptance reference and an expiry date. CODEOWNERS routes
 these files to the security team.
 
+### 3.1 End-to-end stage (pre-release)
+
+The Playwright scripts in `tools/e2e/` exercise the running system through real IdP logins and the BFF. They are
+**not** part of `ci.yml` today, because they need the full stack (PostgreSQL, Keycloak, core, BFF and the web dev
+servers or images). Run them as a release gate:
+
+| When | What | Pass criterion |
+|---|---|---|
+| Before opening the release PR (developer laptop, setup guide 05) | `node tools/e2e/e2e.js` and `node tools/e2e/e2e-increment1.js` | `e2e.js` ends with the status-only lines; `e2e-increment1.js` prints 18 `PASS` lines and exits 0 |
+| After `cd.yml` deploys to **dev** or **test** | `e2e-increment1.js` with `WZ_E2E_*` pointing at the environment and dedicated test accounts | Same; attach the log and screenshots to the release record (CC8.1 evidence) |
+
+Increment 1 baseline: `e2e-increment1.js` 18/18. Screenshots of the reference run are kept in
+`docs/images/screens/increment-01/`.
+
+To automate the stage later (recommended), add a `workflow_dispatch` / post-deploy job that starts the Docker Compose
+stack with `./deploy/local/up.sh --apps`, serves the three built web apps, installs `playwright@1` with Chromium,
+runs both scripts and uploads `tools/e2e/shots` as an artefact. Pin every action by SHA and keep the job's
+`permissions` at `contents: read`. Only local, generated secrets may be used; never point an automated run at prod.
+
 ## 4. Supply chain: pinning, signing, SBOM, provenance
 
 ### 4.1 Pinned actions
@@ -150,7 +171,7 @@ Images are signed keyless with the workflow's OIDC identity (Fulcio certificate,
 cosign verify <registry>/wellnessz/wz-core-app:v1.2.3 --certificate-identity-regexp '^https://github.com/OWNER/WellnessZ/.github/workflows/container.yml@' --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-`deploy-env.yml` runs this verification for all four images before every deployment. Clusters can enforce it at
+`deploy-env.yml` runs this verification for all five images before every deployment. Clusters can enforce it at
 admission:
 
 * GKE: Binary Authorization (attestor created by Terraform);
@@ -162,7 +183,7 @@ admission:
 | Artefact | Where |
 |---|---|
 | Java SBOM (CycloneDX, aggregate) | `ci.yml` artefact `sbom-java` (`target/bom.json`) |
-| Web SBOMs | Artefacts `sbom-employee-app`, `sbom-manager-workspace` |
+| Web SBOMs | Artefacts `sbom-employee-app`, `sbom-manager-workspace`, `sbom-oh-workspace` |
 | Image SBOM (Syft, CycloneDX) | Artefact `sbom-image-<name>` + registry attestation (`attest-sbom`) + cosign attestation (`--type cyclonedx`) |
 | Build provenance (SLSA) | Registry attestation via `attest-build-provenance` and BuildKit `provenance: mode=max` |
 
@@ -193,7 +214,7 @@ gh api -X POST repos/OWNER/WellnessZ/rulesets --input - <<'EOF'
     { "type": "pull_request", "parameters": { "required_approving_review_count": 2, "require_code_owner_review": true,
       "dismiss_stale_reviews_on_push": true, "require_last_push_approval": true, "required_review_thread_resolution": true } },
     { "type": "required_status_checks", "parameters": { "strict_required_status_checks_policy": true, "required_status_checks": [
-      { "context": "Java build & test" }, { "context": "Web employee-app" }, { "context": "Web manager-workspace" },
+      { "context": "Java build & test" }, { "context": "Web employee-app" }, { "context": "Web manager-workspace" }, { "context": "Web oh-workspace" },
       { "context": "Secret scan (gitleaks)" }, { "context": "OWASP dependency-check (fail CVSS >= 7)" },
       { "context": "IaC & config checks" }, { "context": "Analyze (java-kotlin)" }, { "context": "Analyze (javascript-typescript)" } ] } }
   ]
@@ -202,6 +223,9 @@ EOF
 ```
 
 Add a tag ruleset for `v*`: only release managers may create tags; no updates or deletions.
+
+For an existing ruleset, add the context `Web oh-workspace` (increment 1) to the required status checks; otherwise
+pull requests can merge without the OH workspace lint, tests and build.
 
 Also enable, under *Settings → Code security*:
 
@@ -396,13 +420,23 @@ repository. This requires the `attribute.environment` mapping shown above.
 
 ## 10. Extending the pipeline
 
-### 10.1 New Maven module (for example a business module `platform/wz-e07-surveillance`)
+### 10.1 New Maven module (for example a business module `modules/wz-e07-surveillance`)
 
-1. Add `<module>` to the root `pom.xml` and the dependency in `apps/wz-core-app/pom.xml`. CI picks it up
-   automatically through `./mvnw verify`, SpotBugs, dependency-check, CodeQL and the aggregate SBOM.
-2. Add migrations for its tables (section 8) and grants to `${app_role}`.
-3. Add the module path to `CODEOWNERS` if a different team owns it.
-4. Nothing else changes: it ships inside the core image.
+Increment 1 followed this checklist for `modules/wz-e01-intake` and `modules/wz-e02-triage`:
+
+1. Add `<module>` and the `<dependencyManagement>` entry to the root `pom.xml` and the dependency in
+   `apps/wz-core-app/pom.xml`. CI picks it up automatically through `./mvnw verify`, SpotBugs, dependency-check,
+   CodeQL and the aggregate SBOM.
+2. Extend `apps/wz-core-app/src/test/java/com/wellnessz/app/ArchitectureTest.java` with the new package (platform and
+   kernel must not depend on it; no cycles between business modules).
+3. Add migrations for its tables (section 8) and grants to `${app_role}`. A **new schema** must also be added to
+   `spring.flyway.schemas`, the Helm value `migrations.job.core.schemas`, `deploy/local/postgres/01-init-wellnessz.sh`,
+   `deploy/sql/bootstrap-managed-postgres.sql` and `deploy/hybrid/cnpg/03-cluster.yaml` (increment 1: `triage`).
+4. New roles: Keycloak realm roles **and** the scope mappings of `wellnessz-bff` / `wellnessz-mobile`; Entra app roles
+   (setup guide 06, section 5.2).
+5. SpotBugs exclusions only with a justification in `config/spotbugs-exclude.xml` (increment 1 added one: 5 entries).
+6. Add the module path (`/modules/<name>/`) to `CODEOWNERS` – today `/modules/` falls under the default owner `*`.
+7. Nothing else changes in the pipeline: it ships inside the core image.
 
 ### 10.2 New deployable service (new image)
 
@@ -418,12 +452,20 @@ repository. This requires the `attribute.environment` mapping shown above.
 
 ### 10.3 New web application
 
-1. Add `web/<app>` with `package.json`, `package-lock.json`, `Dockerfile` (nginx-unprivileged, port 8080,
-   `/healthz`).
-2. Add it to the `ci.yml` web matrix.
-3. Add it to the `container.yml` matrix and the `deploy-env.yml` verify loop.
-4. Add an npm entry in `dependabot.yml`.
-5. In Helm, add a component (template: `employeePortal`), an ingress host and the web NetworkPolicy.
+Increment 1 added `web/oh-workspace` this way; use it as the template.
+
+| # | File | Change (OH workspace example) |
+|---|---|---|
+| 1 | `web/<app>/` | `package.json` (exact versions), `package-lock.json`, `Dockerfile` (build on `node:24.22.2-alpine3.24`, run on nginx-unprivileged, port 8080, `/healthz`), `.dockerignore`, `nginx.conf`, `security-headers.conf`, ESLint config banning `console`, `localStorage`, `sessionStorage`; Vite dev port (5175) with proxy to `WZ_BFF_TARGET` |
+| 2 | `.github/workflows/ci.yml` | `matrix.app` += `oh-workspace` |
+| 3 | `.github/workflows/container.yml` | Matrix entry `image: oh-workspace`, `context: web/oh-workspace`, `dockerfile: web/oh-workspace/Dockerfile` |
+| 4 | `.github/workflows/deploy-env.yml` | Image name in the `cosign verify` loop |
+| 5 | `.github/dependabot.yml` | npm entry for `/web/oh-workspace` and the directory in the Docker entry |
+| 6 | Branch ruleset | Required check `Web oh-workspace` |
+| 7 | `deploy/helm/wellnessz` | Component block `ohWorkspace` in `values.yaml` and `values.schema.json` (required key), the key in every component list (`_helpers.tpl` `wellnessz.componentKeys`, `deployment-web.yaml`, `service.yaml`, `serviceaccount.yaml`, `hpa.yaml`, `pdb.yaml`, `networkpolicy.yaml`, `ingress.yaml`, `gke.yaml`, `NOTES.txt`), `ingress.hosts.ohWorkspace` in each platform values file, `ohWorkspace.enabled: false` in `values-hybrid.yaml` (on-prem) |
+| 8 | Core CORS | Host added to `WZ_CORS_ORIGINS` in each values file, `docker-compose.yml` and the `local` profile |
+| 9 | Identity | BFF redirect URI `https://<host>/login/oauth2/code/wellnessz` (Keycloak realm, Entra app registration) and post-logout redirect |
+| 10 | Docs and E2E | Setup guides, Deployment Architecture, an E2E script or checks in `tools/e2e/` |
 
 ### 10.4 New quality gate
 
@@ -578,6 +620,7 @@ For each production change, the auditor can obtain the following without extra w
 | 12 | Rollback capability tested (A1.2) | `helm --atomic` behaviour; quarterly rollback drill recorded |
 | 13 | Database changes controlled (CC8.1) | Flyway history table (`platform.flyway_schema_history`, `bff.flyway_schema_history_bff`) + migration PR |
 | 14 | Access to pipelines reviewed (CC6.2) | Quarterly export of repository collaborators, teams, environment reviewers and federated credentials |
+| 15 | Functional acceptance of the increment (CC8.1) | E2E log of `tools/e2e/e2e-increment1.js` (18/18 for increment 1) and screenshots attached to the release record |
 
 Retention: export workflow logs, deployment history and attestations to the evidence store (for example a WORM
 storage container) monthly. The GitHub default log retention (90 days) is shorter than a SOC 2 Type 2 observation

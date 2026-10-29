@@ -11,7 +11,7 @@ Step-by-step guides: [`docs/deployment/Deployment-Architecture.md`](../docs/depl
 | Path | What it is |
 |---|---|
 | [`local/`](local/) | Docker Compose dev stack: PostgreSQL 16, Keycloak 26 (realm import), Mailpit, GreenMail IMAP, OTel collector, optional core + bff |
-| [`local/keycloak/wellnessz-realm.json`](local/keycloak/wellnessz-realm.json) | Realm `wellnessz`: roles, clients (bff, mobile, api, integration), test users |
+| [`local/keycloak/wellnessz-realm.json`](local/keycloak/wellnessz-realm.json) | Realm `wellnessz`: roles (incl. the nine increment-1 roles), clients (bff, mobile, api, integration), test users |
 | [`docker/`](docker/) | `Dockerfile.core`, `Dockerfile.bff` (+ per-Dockerfile `.dockerignore`) |
 | [`helm/wellnessz/`](helm/wellnessz/) | Helm chart (core, bff, employee-portal, manager-workspace, oh-workspace) + `values-{local,azure,gcp,hybrid}.yaml`, `values.schema.json` |
 | [`terraform/azure/`](terraform/azure/) | AKS, PostgreSQL Flexible Server, Key Vault, ACR, App Gateway WAF v2 / Front Door, Log Analytics, identities |
@@ -48,7 +48,7 @@ containers additionally run read-only with `cap_drop: ALL` and a `/tmp` tmpfs.
 
 | Role | Purpose | Privileges |
 |---|---|---|
-| `wz_migrator` | Flyway only | owns `wellnessz` and schemas `platform, masterdata, intake, casemgmt, analytics` (+ `bff` created by BFF migrations) |
+| `wz_migrator` | Flyway only | owns `wellnessz` and schemas `platform, masterdata, intake, casemgmt, triage, analytics` (+ `bff` created by BFF migrations; `triage` since increment 1) |
 | `wz_app` | core runtime | `CONNECT` + schema `USAGE`; **table privileges are granted only by the Flyway migrations** (e.g. `platform.audit_event` is SELECT/INSERT = append-only) |
 | `wz_bff` | BFF session store | `CONNECT`; DML on `bff.spring_session*` via BFF migrations; no access to clinical schemas |
 | `keycloak` | IdP | owns the separate `keycloak` database |
@@ -57,12 +57,19 @@ containers additionally run read-only with `cap_drop: ALL` and a `/tmp` tmpfs.
 `change-me-local-only`), `wellnessz-mobile` (public, PKCE S256), `wellnessz-api`
 (audience only, added to access tokens of bff/mobile/integration via audience
 mappers), `wellnessz-integration` (client-credentials, role `INTEGRATION`).
-Least-privilege scope mappings (no full-scope), direct-access grants disabled,
+Least-privilege scope mappings (no full-scope – every role a token may carry,
+including the increment-1 roles, must be listed in the scope mappings of
+`wellnessz-bff` and `wellnessz-mobile`), direct-access grants disabled,
 brute-force detection (5 failures, up to 15 min lockout), password policy
 (≥12 chars, mixed classes, history 5, not username/email), access token 5 min,
 SSO idle 15 min, refresh-token rotation, login + admin events enabled.
-Test users `employee1, manager1, hr1, clinician1, psych1, auditor1, admin1` use
-the temporary password `ChangeMe!123` and must change it on first login.
+Test users `employee1, manager1, hr1, clinician1, psych1, auditor1, admin1` and
+(increment 1) `nurse1, nurse2, physician1, ame1, cmo1, nursinghead1, hse1,
+crewsched1, hygiene1, reception1, firstaider1` use the temporary password
+`ChangeMe!123` and must change it on first login. The realm is imported only
+when it does not exist: after a realm change run `./down.sh --purge` and `./up.sh`.
+The BFF client allows redirects for the dev servers on 5173, 5174 and 5175
+(OH workspace).
 
 **Issuer inside containers**: tokens carry `iss=http://localhost:8180/realms/wellnessz`.
 In the `apps` profile a tiny socat container (`apps-net`) owns the network
@@ -84,7 +91,9 @@ docker build -f deploy/docker/Dockerfile.bff  -t wellnessz/wz-bff:dev .
   (OS packages upgraded at build), Spring Boot layered extraction (`-Djarmode=tools extract --layers --launcher`).
 * Non-root `10001:10001`, application files root-owned/read-only, only `/tmp` writable
   (`readOnlyRootFilesystem`), `JAVA_TOOL_OPTIONS` with `MaxRAMPercentage=75`, `ExitOnOutOfMemoryError`, UTC.
-* Web images are built from `web/<app>/Dockerfile` (owned by the web team; nginx-unprivileged on 8080).
+* Web images are built from `web/<app>/Dockerfile` (owned by the web team; nginx-unprivileged on 8080):
+  `employee-app`, `manager-workspace` and, since increment 1, `oh-workspace`
+  (`docker build -t wellnessz/oh-workspace:dev web/oh-workspace`).
 
 ## 3. Kubernetes (`deploy/helm/wellnessz`)
 
@@ -104,6 +113,11 @@ helm upgrade --install wellnessz deploy/helm/wellnessz -n wellnessz --create-nam
 | Migrations | `migrations.mode: app` (core/bff run Flyway as `wz_migrator`) or `job` (pre-install/upgrade Flyway Job with its own identity; runtime pods never hold the migrator secret – prod default) |
 | Ingress | Same-origin routing (`/bff`, `/oauth2`, `/login`, `/logout` → bff; `/` → SPA), API host for mobile/M2M, TLS; AGIC (Azure), GCE + BackendConfig/Cloud Armor/FrontendConfig/ManagedCertificate (GCP), OpenShift router (hybrid) |
 | Observability | Prometheus annotations / optional ServiceMonitor, OTLP endpoint + resource attributes |
+
+Increment 1 adds the component `ohWorkspace` (image `oh-workspace`, host
+`ingress.hosts.ohWorkspace`, e.g. `oh.wellnessz.example.com`; disabled on-prem in
+`values-hybrid.yaml`, served by the cloud edge) and schema `triage` in
+`migrations.job.core.schemas`.
 
 Platform files: `values-local.yaml` (kind / minikube / Docker Desktop, secrets
 from pre-created K8s Secrets), `values-azure.yaml`, `values-gcp.yaml`,
@@ -181,9 +195,9 @@ the CSI driver picks up the new file (Azure rotation every 2 min).
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `ci.yml` | PR, push `main` | Java 21 `./mvnw verify` (JaCoCo, Surefire reports, CycloneDX SBOM) + SpotBugs/FindSecBugs (`-Psecurity`); web lint/test/build/`npm audit`/CycloneDX for both apps; gitleaks (full history); OWASP dependency-check (fail CVSS ≥ 7, `NVD_API_KEY`, SARIF to code scanning); dependency review on PRs; Helm lint/template, `terraform fmt`, Trivy IaC scan |
+| `ci.yml` | PR, push `main` | Java 21 `./mvnw verify` (JaCoCo, Surefire reports, CycloneDX SBOM) + SpotBugs/FindSecBugs (`-Psecurity`); web lint/test/build/`npm audit`/CycloneDX for the three apps; gitleaks (full history); OWASP dependency-check (fail CVSS ≥ 7, `NVD_API_KEY`, SARIF to code scanning); dependency review on PRs; Helm lint/template, `terraform fmt`, Trivy IaC scan |
 | `codeql.yml` | PR, push, weekly | CodeQL `java-kotlin` + `javascript-typescript`, `security-extended` |
-| `container.yml` | push `main`/tags, dispatch, `workflow_call` | Build 4 images → Trivy gate (CRITICAL/HIGH, fixed) → push to GHCR / ACR / Artifact Registry (OIDC) → SBOM + SLSA provenance attestations → cosign keyless signature → Binary Authorization attestation (GAR) |
+| `container.yml` | push `main`/tags, dispatch, `workflow_call` | Build 5 images (incl. `oh-workspace`) → Trivy gate (CRITICAL/HIGH, fixed) → push to GHCR / ACR / Artifact Registry (OIDC) → SBOM + SLSA provenance attestations → cosign keyless signature → Binary Authorization attestation (GAR) |
 | `cd.yml` (+ `deploy-env.yml`) | tag `v*`, dispatch | dev → test → prod through GitHub Environments; cosign verification of every image before deploy; Azure (`azure/login` OIDC + kubelogin + AKS context or `az aks command invoke` for private clusters) or GCP (WIF + `get-gke-credentials`); `helm upgrade --install --atomic --wait` |
 
 All actions are pinned to full commit SHAs (version in comment), every workflow

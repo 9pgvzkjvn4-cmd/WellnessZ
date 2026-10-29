@@ -4,7 +4,9 @@ Base framework for an airline occupational-health platform. It delivers the **pl
 logical architecture (E15 integration & API gateway, E16 identity / ABAC / consent / immutable audit,
 E17 de-identified analytics, E18 master data & no-code configuration, notification gateway), the
 **EHS incident intake** (mailbox or Excel), a **case kernel** with the status-only disclosure rule, and the
-**employee/crew app & portal** plus the **manager & HR workspace**. Business modules E01–E14 plug in incrementally.
+**employee/crew app & portal** plus the **manager & HR workspace**. Business modules E01–E14 plug in incrementally;
+**increment 1** delivered E01 (case intake & incident-triggered case initiation) and E02 (clinical triage, risk
+stratification, triage queue, SLA & case assignment) with the **OH clinical workspace**.
 
 > Core rule: clinical data stays inside the Occupational Health domain; operations and HR receive
 > **status-only** outputs. It is enforced in the ABAC policy engine, in the API projections, at the outbound
@@ -21,16 +23,19 @@ E17 de-identified analytics, E18 master data & no-code configuration, notificati
 | `platform/wz-integration` | E15 – transactional outbox event bus, idempotency, replay, FHIR R4, HL7 v2, terminology, connectors |
 | `platform/wz-notification` | Push / SMS / e-mail gateway with content rules and quiet hours |
 | `platform/wz-analytics` | E17 – de-identified KPIs, small-cell + complementary suppression, pseudonymisation |
-| `platform/wz-case-kernel` | Case aggregate, pathway state machine, status-only projection, `CaseModule` SPI, incident-to-case rules |
+| `platform/wz-case-kernel` | Case aggregate, pathway state machine, status-only projection, `CaseModule` and `CaseTransitionGuard` SPIs, case numbering, timeline, tasks, attachments |
 | `platform/wz-ehs-intake` | EHS feed: IMAP / Microsoft Graph mailbox reader and hardened Excel import |
-| `apps/wz-core-app` | Runnable core API (8080, management 8081) + Flyway migrations |
+| `modules/wz-e01-intake` | E01 – intake rule table, EHS incident rules, referrals, walk-in/emergency encounters, system triggers, duplicates, recordability, notification matrix |
+| `modules/wz-e02-triage` | E02 – triage protocols (versioned JSON), SLA timers, assignment engine, work queues, escalations, complexity, status-only crew / food-handler APIs |
+| `apps/wz-core-app` | Runnable core API (8080, management 8081) + Flyway migrations (`db/migration`; demo data `db/demo` for the `local` profile only) |
 | `apps/wz-bff` | Backend-for-Frontend (8090): OIDC login, encrypted JDBC sessions, CSRF, token relay |
 | `web/employee-app` | React + Capacitor crew app (PWA / iOS / Android, MDM AppConfig) |
-| `web/manager-workspace` | React manager & HR workspace (status-only) |
+| `web/manager-workspace` | React manager & HR workspace (status-only, manager and HR referrals) |
+| `web/oh-workspace` | React OH clinical workspace (dev port 5175): queues, triage, assignment, escalation, intake operations, configuration, reception |
 | `deploy/` | Docker Compose (local), Dockerfiles, Helm chart, Terraform (Azure, GCP), hybrid blueprint |
 | `.github/` | CI, CodeQL, container build/sign, CD workflows, Dependabot |
 | `docs/` | Architecture, SOC 2 mapping, deployment architecture, setup guides, CI/CD guide, OpenAPI |
-| `tools/` | `encrypt-secret.sh`, Playwright end-to-end smoke test |
+| `tools/` | `encrypt-secret.sh`; `tools/e2e/` Playwright end-to-end tests: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, 18 checks) |
 
 ## Quick start (developer laptop)
 
@@ -55,9 +60,10 @@ Integration tests use PostgreSQL via Testcontainers, or an existing database whe
 
 * `./mvnw verify` – unit, integration (real PostgreSQL), ArchUnit boundary tests, JaCoCo, CycloneDX SBOM
 * `./mvnw -Psecurity verify` – SpotBugs + FindSecBugs SAST and OWASP dependency-check (needs `NVD_API_KEY`)
-* `npm run lint && npm test && npm run build` in each `web/*` app
+* `npm run lint && npm test && npm run build` in each `web/*` app (`employee-app`, `manager-workspace`, `oh-workspace`)
+* `node tools/e2e/e2e-increment1.js` against the running local stack (release gate)
 * CI adds CodeQL, gitleaks, Trivy image scanning, SBOM attestation and cosign signing
 
 ## Documentation
 
-Start with `docs/README.md`.
+Start with `docs/README.md`. Increment 1 documents are in `docs/increment-01/`.

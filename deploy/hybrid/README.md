@@ -34,7 +34,7 @@ runs only the stateless, PHI-free web tier in the cloud.
 
 | Component | Location | Data | Helm values |
 |---|---|---|---|
-| employee-portal, manager-workspace (static) | cloud | none | `values-hybrid-cloud-edge.yaml` |
+| employee-portal, manager-workspace, oh-workspace (static; OH workspace since increment 1) | cloud | none | `values-hybrid-cloud-edge.yaml` |
 | wz-bff (OIDC client, session cookie, token relay) | cloud | session only (no PHI persisted) | `values-hybrid-cloud-edge.yaml` |
 | wz-core-app (API, Flyway, outbox, integrations) | on-prem | PHI in transit/processing | `../helm/wellnessz/values-hybrid.yaml` |
 | PostgreSQL 16 (CloudNativePG, 3 instances) | on-prem | PHI at rest | `cnpg/` |

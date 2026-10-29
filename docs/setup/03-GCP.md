@@ -104,16 +104,18 @@ gcloud storage buckets add-iam-policy-binding gs://wellnessz-tfstate-dev --membe
 GKE does not change the identity model. Users still authenticate with **Microsoft Entra ID**. Follow the Azure guide
 (document 06), section 5, to create:
 
-* the groups;
-* `wellnessz-api` with app roles, the `access_as_user` scope and v2 tokens;
+* the groups (including the nine increment-1 groups for OH_PHYSICIAN, AME, CMO, NURSING_HEAD, HSE_OFFICER,
+  CREW_SCHEDULING, HYGIENE_MANAGER, CLINIC_RECEPTION and FIRST_AIDER);
+* `wellnessz-api` with app roles (20, including the nine increment-1 roles), the `access_as_user` scope and v2 tokens;
 * the `employee_id` / `org_scope` claims;
-* `wellnessz-bff`, with redirect URIs `https://employee.<domain>/login/oauth2/code/wellnessz` and
-  `https://manager.<domain>/login/oauth2/code/wellnessz`;
+* `wellnessz-bff`, with redirect URIs `https://employee.<domain>/login/oauth2/code/wellnessz`,
+  `https://manager.<domain>/login/oauth2/code/wellnessz` and (increment 1) `https://oh.<domain>/login/oauth2/code/wellnessz`;
 * `wellnessz-mobile`;
-* M2M apps.
+* M2M apps, including the **EHS webhook client** with the `INTEGRATION` application role (Azure guide, section 5.6).
 
 Those steps need only Entra ID, not an Azure subscription. If the airline uses **Keycloak**, follow section 5.7 of
-the Azure guide. On GKE, run Keycloak with the Keycloak Operator and a separate Cloud SQL database, behind its own
+the Azure guide; keep the nine increment-1 roles in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`
+(`fullScopeAllowed=false`). On GKE, run Keycloak with the Keycloak Operator and a separate Cloud SQL database, behind its own
 Ingress and Cloud Armor policy.
 
 Note for section 11: the **issuer**, **audience** (Entra: API client ID), **BFF client ID** and **mobile client
@@ -258,6 +260,10 @@ On GCP no password variables are passed: Terraform already set them. The script:
 * makes `wz_migrator` the owner of the database and schemas;
 * grants `CONNECT` to the runtime roles.
 
+The schema list includes `triage` (increment 1). For an instance bootstrapped earlier, Flyway V5 creates `triage` and
+grants `USAGE` to `wz_app` during the next deployment; re-run the idempotent script to align the roles'
+`search_path`.
+
 ```bash
 kubectl delete namespace wz-admin
 ```
@@ -290,9 +296,11 @@ crane copy flyway/flyway:11.20.3-alpine europe-west4-docker.pkg.dev/<project-id>
 
 ## 10. DNS and certificates
 
-1. Create A records for `employee.<domain>`, `manager.<domain>` and `api.<domain>` pointing to
-   `ingress_static_ip`.
-2. The chart creates `ManagedCertificate` resources. Provisioning starts after the Ingress exists and DNS
+1. Create A records for `employee.<domain>`, `manager.<domain>`, `oh.<domain>` (OH workspace, increment 1) and
+   `api.<domain>` pointing to `ingress_static_ip`.
+2. The chart creates `ManagedCertificate` resources; the `oh.<domain>` host is added to the certificate domains
+   automatically when `ohWorkspace.enabled` is true and `ingress.hosts.ohWorkspace` is set. Adding a domain to an
+   existing certificate re-provisions it. Provisioning starts after the Ingress exists and DNS
    resolves, and takes 15–60 minutes.
 
 ```bash
@@ -342,11 +350,15 @@ Copy `values-gcp.yaml` placeholders into an overrides file, for example `deploy/
 | `gcp.backendConfig.securityPolicy` | `cloud_armor_policy_name` |
 | `gcp.frontendConfig.sslPolicy` | `ssl_policy_name` |
 | `networkPolicy.database.cidrs` | `psa_cidr` |
-| Hostnames | Your domain |
+| Hostnames | Your domain: `ingress.hosts.employeePortal`, `managerWorkspace`, `ohWorkspace` (increment 1), `ingress.api.host`; the same web hosts in `core.env.WZ_CORS_ORIGINS` |
+| `core.env.WZ_OH_WORKSPACE_URL`, `WZ_OH_CONTACT` (increment 1) | `https://oh.<domain>`; the OH service-desk contact line for notifications |
 
 ```bash
 helm lint deploy/helm/wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-gcp.yaml -f deploy/env/dev-gcp.yaml
 ```
+
+Never add `classpath:db/demo` to `WZ_FLYWAY_LOCATIONS` outside local development. Load the OH staff roster
+(`masterdata.staff_member`) with a reviewed SQL script and push HRIS employees to `POST /api/v1/masterdata/employees`.
 
 ## 13. Build, attest and deploy
 
@@ -378,7 +390,8 @@ helm lint deploy/helm/wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/h
    kubectl -n wellnessz get pods,ingress,backendconfig,managedcertificate,secretproviderclass
    ```
 
-   Expected: all pods `Running`; the Ingress has the static IP; the BackendConfig references `wellnessz-waf`.
+   Expected: all pods `Running` (including `wellnessz-oh-workspace`); the Ingress has the static IP; the BackendConfig
+   references `wellnessz-waf`.
 
 5. After a successful release, switch Binary Authorization to enforcement. Set
    `binauthz_enforcement_mode = "ENFORCED_BLOCK_AND_AUDIT_LOG"`, then:
@@ -414,6 +427,10 @@ Run the same checklist as the Azure guide, section 14, with these GCP specifics:
 
   This is denied once enforcement is on. In dry-run, a `cloudaudit` log entry is created instead.
 * **End-to-end:** use `WZ_E2E_*` as in the Azure guide.
+* **Increment 1:** run checks 12–17 of the Azure guide, section 14: OH workspace host and login, E01/E02
+  `IMPLEMENTED` in `GET /api/v1/modules`, new roles in tokens, EHS webhook `202`, status-only crew API, and
+  `tools/e2e/e2e-increment1.js` with `WZ_E2E_OH_URL=https://oh.<domain>` in dev/test. Cloud Armor must allow webhook
+  bodies of up to 500 incidents; check `jsonPayload.enforcedSecurityPolicy` if the call returns `403`.
 
 ## 15. EHS mailbox and MDM
 
