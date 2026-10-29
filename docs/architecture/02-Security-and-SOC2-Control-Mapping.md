@@ -186,7 +186,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 |---|---|---|
 | Application audit trail | `GET /api/v1/audit?from=...&to=...&limit=5000` as AUDITOR (each read is itself audited) | CC6.1, CC6.3, CC7.2, P6.2 |
 | Audit integrity proof | `GET /api/v1/audit/verify` → `{intact, recordsChecked, firstBrokenId}`; schedule daily, store results and the head hash in WORM storage | CC4.1, CC7.2, PI1.5 |
-| Integration event log | `GET /api/v1/integration/events?status=DEAD|FAILED|PUBLISHED` (metadata only) | PI1.4, CC7.4, P6.2 |
+| Integration event log | `GET /api/v1/integration/events?status=DEAD\|FAILED\|PUBLISHED` (metadata only) | PI1.4, CC7.4, P6.2 |
 | Test reports | Maven Surefire/Failsafe reports, JaCoCo coverage, Vitest results per build | CC8.1, CC3.4 |
 | SAST / SCA reports | SpotBugs + FindSecBugs (`mvn -Psecurity verify`), OWASP dependency-check HTML + SARIF, CodeQL alerts | CC7.1, CC8.1 |
 | SBOM | CycloneDX aggregate BOM (`target/bom.json`/`bom.xml`) attached to each release | CC7.1, CC9.2 |

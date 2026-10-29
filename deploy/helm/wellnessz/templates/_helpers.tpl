@@ -148,3 +148,62 @@ topologySpreadConstraints:
 {{- define "wellnessz.componentKeys" -}}
 core bff employeePortal managerWorkspace
 {{- end -}}
+
+{{/* Flyway CLI container for one migration set.
+     (dict "root" $ "set" "core|bff" "cfg" $mig.job.<set> "secretsOn" .. "secretDir" ..) */}}
+{{- define "wellnessz.flywayContainer" -}}
+{{- $mig := .root.Values.migrations -}}
+image: {{ default (printf "%s:%s" $mig.job.image.repository $mig.job.image.tag) $mig.job.image.fullName | quote }}
+imagePullPolicy: {{ .root.Values.global.imagePullPolicy }}
+command: ["sh", "-c"]
+args:
+  - >-
+    {{- if .secretsOn }}
+    export FLYWAY_PASSWORD="$(cat {{ .secretDir }}/wz-migrator-db-password)" &&
+    {{- end }}
+    exec flyway
+    -url="${FLYWAY_URL}"
+    -user="${FLYWAY_USER}"
+    -locations=filesystem:/flyway/{{ .set }}
+    -schemas={{ .cfg.schemas }}
+    -defaultSchema={{ first (splitList "," .cfg.schemas) }}
+    -createSchemas=true
+    -table={{ .cfg.table }}
+    -placeholders.app_role={{ .cfg.appRole }}
+    -connectRetries=10
+    -validateMigrationNaming=true
+    {{- range $mig.job.extraArgs }} {{ . }}{{- end }}
+    migrate
+env:
+  - name: FLYWAY_URL
+    {{- $url := default .root.Values.core.env.WZ_DB_URL $mig.job.dbUrl }}
+    {{- if and .root.Values.core.env.WZ_DB_SSLMODE (not (contains "sslmode=" $url)) }}
+    {{- $url = printf "%s%ssslmode=%s" $url (ternary "&" "?" (contains "?" $url)) .root.Values.core.env.WZ_DB_SSLMODE }}
+    {{- end }}
+    value: {{ $url | quote }}
+  - name: FLYWAY_USER
+    value: {{ $mig.migratorUsername | quote }}
+  {{- if and (not .secretsOn) .root.Values.secrets.existingSecret.migrations }}
+  - name: FLYWAY_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: {{ .root.Values.secrets.existingSecret.migrations }}
+        key: WZ_DB_MIGRATOR_PASSWORD
+  {{- end }}
+securityContext:
+  {{- toYaml .root.Values.containerSecurityContext | nindent 2 }}
+resources:
+  {{- toYaml $mig.job.resources | nindent 2 }}
+volumeMounts:
+  - name: sql
+    mountPath: /flyway/{{ .set }}
+    subPath: {{ .set }}
+    readOnly: true
+  - name: tmp
+    mountPath: /tmp
+  {{- if .secretsOn }}
+  - name: secrets-migrations
+    mountPath: {{ .secretDir }}
+    readOnly: true
+  {{- end }}
+{{- end -}}

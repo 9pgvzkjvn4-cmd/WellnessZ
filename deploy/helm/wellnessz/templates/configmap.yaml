@@ -6,6 +6,9 @@
 {{- $env := deepCopy $comp.env }}
 {{- if eq $key "bff" }}
 {{- $_ := set $env "WZ_CORE_API_URL" (include "wellnessz.bffCoreUrl" $root) }}
+{{- if not $env.WZ_BFF_DB_URL }}
+{{- $_ := set $env "WZ_BFF_DB_URL" $root.Values.core.env.WZ_DB_URL }}
+{{- end }}
 {{- end }}
 {{- $_ := set $env "SPRING_PROFILES_ACTIVE" $root.Values.global.springProfiles }}
 {{- $_ := set $env "SERVER_PORT" (toString $comp.ports.http) }}

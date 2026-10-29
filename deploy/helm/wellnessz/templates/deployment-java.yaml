@@ -90,7 +90,7 @@ spec:
             - secretRef:
                 name: {{ . }}
             {{- end }}
-            {{- if and (eq $key "core") (eq $mig.mode "app") $root.Values.secrets.existingSecret.migrations }}
+            {{- if and (eq $mig.mode "app") $root.Values.secrets.existingSecret.migrations }}
             - secretRef:
                 name: {{ $root.Values.secrets.existingSecret.migrations }}
             {{- end }}
@@ -106,18 +106,17 @@ spec:
                   fieldPath: metadata.namespace
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "deployment.environment={{ $root.Values.global.environment }},k8s.namespace.name=$(POD_NAMESPACE),k8s.pod.name=$(POD_NAME)"
-            {{- if eq $key "core" }}
-            - name: SPRING_FLYWAY_ENABLED
+            - name: WZ_FLYWAY_ENABLED
               value: {{ eq $mig.mode "app" | quote }}
             {{- if eq $mig.mode "app" }}
-            - name: SPRING_FLYWAY_USER
+            - name: WZ_DB_MIGRATOR_USERNAME
               value: {{ $mig.migratorUsername | quote }}
             {{- end }}
-            {{- end }}
             {{- if $secretsOn }}
-            - name: SPRING_CONFIG_IMPORT
-              value: "optional:configtree:{{ $secretDir }}/"
             {{- $files := index $root.Values.secrets $key "files" }}
+            {{- if eq $mig.mode "app" }}
+            {{- $files = concat $files $root.Values.secrets.migrations.files }}
+            {{- end }}
             {{- range $files }}
             {{- if .env }}
             - name: {{ .env }}

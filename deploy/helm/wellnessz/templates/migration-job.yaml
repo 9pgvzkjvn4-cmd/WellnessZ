@@ -58,10 +58,12 @@ spec:
       securityContext:
         {{- include "wellnessz.podSecurityContext" (dict "root" $root "comp" $comp) | nindent 8 }}
       initContainers:
-        - name: copy-migrations
+        # Copy SQL scripts out of the application images so the Job always
+        # applies exactly the migrations shipped with this release.
+        - name: copy-core-migrations
           image: {{ include "wellnessz.image" (dict "root" $root "comp" .Values.core) | quote }}
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-          command: ["sh", "-c", "cp -R {{ $mig.job.locationInImage }}/. /flyway/sql/"]
+          command: ["sh", "-c", "cp -R {{ $mig.job.core.locationInImage }}/. /flyway/core/"]
           securityContext:
             {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           resources:
@@ -69,53 +71,40 @@ spec:
             limits: { memory: 128Mi }
           volumeMounts:
             - name: sql
-              mountPath: /flyway/sql
-      containers:
-        - name: flyway
-          image: {{ default (printf "%s:%s" $mig.job.image.repository $mig.job.image.tag) $mig.job.image.fullName | quote }}
+              mountPath: /flyway/core
+              subPath: core
+        {{- if .Values.bff.enabled }}
+        - name: copy-bff-migrations
+          image: {{ include "wellnessz.image" (dict "root" $root "comp" .Values.bff) | quote }}
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-          command: ["sh", "-c"]
-          args:
-            - >-
-              {{- if $secretsOn }}
-              export FLYWAY_PASSWORD="$(cat {{ $secretDir }}/spring.flyway.password)" &&
-              {{- end }}
-              exec flyway
-              -url="${FLYWAY_URL}"
-              -user="${FLYWAY_USER}"
-              -locations=filesystem:/flyway/sql
-              -schemas={{ $mig.job.schemas }}
-              -connectRetries=10
-              -validateMigrationNaming=true
-              {{- range $mig.job.extraArgs }} {{ . }}{{- end }}
-              migrate
-          env:
-            - name: FLYWAY_URL
-              value: {{ default .Values.core.env.WZ_DB_URL $mig.job.dbUrl | quote }}
-            - name: FLYWAY_USER
-              value: {{ $mig.migratorUsername | quote }}
-            {{- if and (not $secretsOn) .Values.secrets.existingSecret.migrations }}
-            - name: FLYWAY_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.secrets.existingSecret.migrations }}
-                  key: SPRING_FLYWAY_PASSWORD
-            {{- end }}
+          command: ["sh", "-c", "cp -R {{ $mig.job.bff.locationInImage }}/. /flyway/bff/"]
           securityContext:
             {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           resources:
-            {{- toYaml $mig.job.resources | nindent 12 }}
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 128Mi }
           volumeMounts:
             - name: sql
-              mountPath: /flyway/sql
-              readOnly: true
-            - name: tmp
-              mountPath: /tmp
-            {{- if $secretsOn }}
-            - name: secrets-migrations
-              mountPath: {{ $secretDir }}
-              readOnly: true
-            {{- end }}
+              mountPath: /flyway/bff
+              subPath: bff
+        {{- end }}
+        # Core migrations first (init container), then bff (main container)
+        - name: flyway-core
+          {{- include "wellnessz.flywayContainer" (dict "root" $root "set" "core" "cfg" $mig.job.core "secretsOn" $secretsOn "secretDir" $secretDir) | nindent 10 }}
+      containers:
+        {{- if .Values.bff.enabled }}
+        - name: flyway-bff
+          {{- include "wellnessz.flywayContainer" (dict "root" $root "set" "bff" "cfg" $mig.job.bff "secretsOn" $secretsOn "secretDir" $secretDir) | nindent 10 }}
+        {{- else }}
+        - name: done
+          image: {{ include "wellnessz.image" (dict "root" $root "comp" .Values.core) | quote }}
+          command: ["true"]
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 32Mi }
+        {{- end }}
       volumes:
         - name: sql
           emptyDir:

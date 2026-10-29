@@ -97,6 +97,8 @@ spec:
         - protocol: TCP
           port: {{ .Values.core.ports.http }}
     {{- end }}
+    # Session store (schema bff)
+    {{- include "wellnessz.np.dbEgress" $np | nindent 4 }}
     {{- include "wellnessz.np.httpsEgress" $np | nindent 4 }}
     {{- include "wellnessz.np.otelEgress" $np | nindent 4 }}
     {{- with $np.extraEgress.bff }}

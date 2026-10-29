@@ -13,9 +13,10 @@
 #     --from-literal=WZ_DB_PASSWORD="$WZ_APP_DB_PASSWORD" \
 #     --from-literal=WZ_MASTER_KEY="$WZ_MASTER_KEY" --from-literal=WZ_PSEUDONYM_KEY="$WZ_PSEUDONYM_KEY"
 #   kubectl -n wellnessz create secret generic wellnessz-migrations-secrets \
-#     --from-literal=SPRING_FLYWAY_PASSWORD="$WZ_MIGRATOR_DB_PASSWORD"
+#     --from-literal=WZ_DB_MIGRATOR_PASSWORD="$WZ_MIGRATOR_DB_PASSWORD"
 #   kubectl -n wellnessz create secret generic wellnessz-bff-secrets \
-#     --from-literal=WZ_BFF_CLIENT_SECRET=change-me-local-only
+#     --from-literal=WZ_BFF_CLIENT_SECRET=change-me-local-only \
+#     --from-literal=WZ_BFF_DB_PASSWORD="$WZ_BFF_DB_PASSWORD" --from-literal=WZ_MASTER_KEY="$WZ_BFF_MASTER_KEY"
 #   helm upgrade --install wellnessz deploy/helm/wellnessz -n wellnessz \
 #     -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-local.yaml
 #
@@ -52,6 +53,7 @@ core:
     limits: { memory: 1Gi }
   env:
     WZ_DB_URL: "jdbc:postgresql://host.docker.internal:5432/wellnessz"
+    WZ_DB_SSLMODE: prefer
     WZ_OIDC_ISSUERS: "http://host.docker.internal:8180/realms/wellnessz"
     WZ_CORS_ORIGINS: "http://employee.localtest.me,http://manager.localtest.me"
     WZ_EHS_MAILBOX_MODE: imap
@@ -72,6 +74,8 @@ bff:
   env:
     WZ_BFF_ISSUER_URI: "http://host.docker.internal:8180/realms/wellnessz"
     WZ_BFF_POST_LOGOUT_URI: "http://employee.localtest.me/"
+    WZ_DB_SSLMODE: prefer
+    WZ_COOKIE_SECURE: "false"   # plain HTTP ingress locally
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4318"
 
 employeePortal:

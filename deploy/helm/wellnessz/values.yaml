@@ -50,9 +50,8 @@ workloadIdentity:
 #   provider: azure -> Azure Key Vault provider (workload identity)
 #   provider: gcp   -> GCP Secret Manager provider (workload identity)
 #   provider: vault -> HashiCorp Vault provider (Kubernetes auth)
-# Files land in <mountPath>/<component>/<fileName>; core consumes them as
-# WZ_DB_PASSWORD=file:/... and WZ_MASTER_KEY_FILE=/..., and every file is also
-# exposed to Spring through `configtree:` (file name == property name).
+# Files land in <mountPath>/<component>/<fileName>; the apps read them through
+# `file:` references (wz-secrets SecretResolver) or WZ_MASTER_KEY_FILE.
 # -----------------------------------------------------------------------------
 secrets:
   provider: none
@@ -79,8 +78,8 @@ secrets:
       bff: wellnessz-bff
       migrations: wellnessz-migrations
   # remoteName = Key Vault secret name / Secret Manager secret id / Vault "path#key"
-  # env/format (optional): also export an env var pointing at the file:
-  #   format: fileRef -> ENV=file:<path>   (wz-secrets SecretResolver)
+  # env/format: export an env var pointing at the mounted file
+  #   format: fileRef -> ENV=file:<path>   (wz-secrets SecretResolver, sensitive props)
   #   format: path    -> ENV=<path>        (e.g. WZ_MASTER_KEY_FILE)
   core:
     files:
@@ -98,15 +97,27 @@ secrets:
         format: fileRef
   bff:
     files:
-      # configtree: file name == Spring property / placeholder name
-      - fileName: WZ_BFF_CLIENT_SECRET
+      - fileName: wz-bff-client-secret
         remoteName: wz-bff-client-secret
+        env: WZ_BFF_CLIENT_SECRET
+        format: fileRef
+      - fileName: wz-bff-db-password
+        remoteName: wz-bff-db-password
+        env: WZ_BFF_DB_PASSWORD
+        format: fileRef
+      # Session-encryption key - deliberately NOT the core master key
+      - fileName: wz-bff-session-key
+        remoteName: wz-bff-session-key
+        env: WZ_MASTER_KEY_FILE
+        format: path
   migrations:
     files:
-      # migrations.mode=app: merged into the core volume and read by Spring as
-      # spring.flyway.password (configtree). mode=job: read by the Flyway Job.
-      - fileName: spring.flyway.password
+      # migrations.mode=app: merged into the core and bff volumes;
+      # mode=job: mounted only into the Flyway Job.
+      - fileName: wz-migrator-db-password
         remoteName: wz-migrator-db-password
+        env: WZ_DB_MIGRATOR_PASSWORD
+        format: fileRef
   # provider=none only: names of pre-created Secrets injected with envFrom.
   existingSecret:
     core: ""
@@ -114,8 +125,11 @@ secrets:
     migrations: ""
 
 # -----------------------------------------------------------------------------
-# Database migrations (Flyway)
-#   app: core runs Flyway on start-up as the schema-owner role (spring.flyway.*)
+# Database migrations (Flyway) - core (schemas platform..analytics) and bff
+# (schema bff, Spring Session tables). Table-level grants come from the
+# migrations via the ${app_role} placeholder.
+#   app: core and bff run Flyway on start-up as the schema-owner role
+#        (WZ_DB_MIGRATOR_USERNAME / WZ_DB_MIGRATOR_PASSWORD)
 #   job: a pre-install/pre-upgrade Job runs Flyway CLI; core then runs with
 #        Flyway disabled and never holds the migrator credential (preferred
 #        for prod - least privilege).
@@ -128,11 +142,19 @@ migrations:
       repository: flyway/flyway
       tag: 11.20.3-alpine
       fullName: ""   # overrides repository:tag when set (e.g. mirrored image)
-    # Location of SQL migrations inside the core image (Spring Boot layered extraction)
-    locationInImage: /app/BOOT-INF/classes/db/migration
+    # Location of SQL migrations inside the images (Spring Boot layered extraction)
+    core:
+      locationInImage: /app/BOOT-INF/classes/db/migration
+      schemas: platform,masterdata,intake,casemgmt,analytics
+      table: flyway_schema_history
+      appRole: wz_app
+    bff:
+      locationInImage: /app/BOOT-INF/classes/db/bff
+      schemas: bff
+      table: flyway_schema_history_bff
+      appRole: wz_bff
     # JDBC URL for Flyway; defaults to core.env.WZ_DB_URL
     dbUrl: ""
-    schemas: platform,masterdata,intake,casemgmt,analytics
     extraArgs: []
     backoffLimit: 1
     activeDeadlineSeconds: 900
@@ -206,8 +228,10 @@ core:
   affinity: {}
   # Non-secret configuration (rendered into a ConfigMap)
   env:
-    WZ_DB_URL: "jdbc:postgresql://postgres.example.internal:5432/wellnessz?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+    # sslmode is set through WZ_DB_SSLMODE (app default verify-full)
+    WZ_DB_URL: "jdbc:postgresql://postgres.example.internal:5432/wellnessz?sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
     WZ_DB_USERNAME: wz_app
+    WZ_DB_SSLMODE: verify-full
     WZ_OIDC_ISSUERS: ""
     WZ_OIDC_AUDIENCE: wellnessz-api
     WZ_CORS_ORIGINS: ""
@@ -270,6 +294,11 @@ bff:
     # core runs elsewhere (hybrid: on-prem core over private connectivity).
     WZ_CORE_API_URL: ""
     WZ_BFF_POST_LOGOUT_URI: ""
+    # Session store: empty = core.env.WZ_DB_URL (schema bff, role wz_bff)
+    WZ_BFF_DB_URL: ""
+    WZ_BFF_DB_USERNAME: wz_bff
+    WZ_DB_SSLMODE: verify-full
+    WZ_COOKIE_SECURE: "true"
     OTEL_EXPORTER_OTLP_ENDPOINT: ""
     OTEL_SERVICE_NAME: wz-bff
   extraEnv: []
