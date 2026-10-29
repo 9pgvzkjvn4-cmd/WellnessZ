@@ -1,0 +1,103 @@
+{
+  "type": "TRAVEL",
+  "version": 1,
+  "bodyMapRequired": false,
+  "title": "Travel health consultation",
+  "bodyMap": false,
+  "requiresDiagnosis": false,
+  "fitnessStandardPrompt": false,
+  "protocolPrompts": [
+    "Check destination-specific vaccination and malaria advice"
+  ],
+  "sections": [
+    {
+      "key": "trip",
+      "title": "Trip",
+      "fields": [
+        {
+          "key": "destinations",
+          "label": "Destination(s)",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "key": "departureDate",
+          "label": "Departure date",
+          "type": "DATE",
+          "required": true
+        },
+        {
+          "key": "durationDays",
+          "label": "Duration",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "days"
+        },
+        {
+          "key": "vaccinesAdvised",
+          "label": "Vaccines advised",
+          "type": "MULTISELECT",
+          "required": false,
+          "options": [
+            {
+              "value": "HEP_A",
+              "label": "Hepatitis A"
+            },
+            {
+              "value": "HEP_B",
+              "label": "Hepatitis B"
+            },
+            {
+              "value": "TYPHOID",
+              "label": "Typhoid"
+            },
+            {
+              "value": "YELLOW_FEVER",
+              "label": "Yellow fever"
+            },
+            {
+              "value": "RABIES",
+              "label": "Rabies"
+            }
+          ]
+        },
+        {
+          "key": "malariaProphylaxis",
+          "label": "Malaria prophylaxis advised",
+          "type": "BOOLEAN",
+          "required": false
+        }
+      ]
+    },
+    {
+      "key": "soap",
+      "title": "Clinical note (SOAP)",
+      "fields": [
+        {
+          "key": "subjective",
+          "label": "Subjective – history and symptoms",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "objective",
+          "label": "Objective – examination findings",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "assessment",
+          "label": "Assessment",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "plan",
+          "label": "Plan",
+          "type": "TEXTAREA",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

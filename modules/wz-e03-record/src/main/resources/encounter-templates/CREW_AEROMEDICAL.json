@@ -1,0 +1,213 @@
+{
+  "type": "CREW_AEROMEDICAL",
+  "version": 1,
+  "bodyMapRequired": false,
+  "title": "Crew aeromedical assessment (local CAA format – draft)",
+  "bodyMap": false,
+  "requiresDiagnosis": false,
+  "fitnessStandardPrompt": true,
+  "protocolPrompts": [
+    "Licensed-role decisions require AME sign-off; record operational limitation codes only on the medical report"
+  ],
+  "sections": [
+    {
+      "key": "licence",
+      "title": "Licence and examination",
+      "fields": [
+        {
+          "key": "examinationType",
+          "label": "Examination",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "INITIAL",
+              "label": "Initial"
+            },
+            {
+              "value": "REVALIDATION",
+              "label": "Revalidation"
+            },
+            {
+              "value": "RENEWAL",
+              "label": "Renewal"
+            },
+            {
+              "value": "POST_ILLNESS",
+              "label": "Post illness / injury"
+            }
+          ]
+        },
+        {
+          "key": "licenceNumber",
+          "label": "Licence / attestation number",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "key": "flightHoursLast6Months",
+          "label": "Flight hours (last 6 months)",
+          "type": "NUMBER",
+          "required": false
+        }
+      ]
+    },
+    {
+      "key": "vitals",
+      "title": "Observations",
+      "fields": [
+        {
+          "key": "systolic",
+          "label": "Systolic BP",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "mmHg"
+        },
+        {
+          "key": "diastolic",
+          "label": "Diastolic BP",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "mmHg"
+        },
+        {
+          "key": "heartRate",
+          "label": "Heart rate",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "/min"
+        },
+        {
+          "key": "temperature",
+          "label": "Temperature",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "°C"
+        },
+        {
+          "key": "spo2",
+          "label": "SpO2",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "%"
+        }
+      ]
+    },
+    {
+      "key": "systems",
+      "title": "Systems review",
+      "fields": [
+        {
+          "key": "visualAcuityMeetsStandard",
+          "label": "Visual acuity meets the standard",
+          "type": "BOOLEAN",
+          "required": true
+        },
+        {
+          "key": "colourVisionMeetsStandard",
+          "label": "Colour vision meets the standard",
+          "type": "BOOLEAN",
+          "required": false
+        },
+        {
+          "key": "hearingMeetsStandard",
+          "label": "Hearing meets the standard",
+          "type": "BOOLEAN",
+          "required": true
+        },
+        {
+          "key": "ecgPerformed",
+          "label": "ECG performed",
+          "type": "BOOLEAN",
+          "required": false
+        },
+        {
+          "key": "proposedOutcome",
+          "label": "Proposed outcome",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "FIT",
+              "label": "Fit"
+            },
+            {
+              "value": "FIT_WITH_LIMITATIONS",
+              "label": "Fit with limitations"
+            },
+            {
+              "value": "TEMPORARILY_UNFIT",
+              "label": "Temporarily unfit"
+            },
+            {
+              "value": "PERMANENTLY_UNFIT",
+              "label": "Permanently unfit"
+            },
+            {
+              "value": "PENDING",
+              "label": "Pending further information"
+            }
+          ]
+        },
+        {
+          "key": "limitationCodes",
+          "label": "Limitation codes",
+          "type": "MULTISELECT",
+          "required": false,
+          "options": [
+            {
+              "value": "TML",
+              "label": "TML – time limitation"
+            },
+            {
+              "value": "VDL",
+              "label": "VDL – distant vision correction"
+            },
+            {
+              "value": "VNL",
+              "label": "VNL – near vision correction"
+            },
+            {
+              "value": "OML",
+              "label": "OML – multi-pilot only"
+            },
+            {
+              "value": "SIC",
+              "label": "SIC – specific medical examination"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "soap",
+      "title": "Clinical note (SOAP)",
+      "fields": [
+        {
+          "key": "subjective",
+          "label": "Subjective – history and symptoms",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "objective",
+          "label": "Objective – examination findings",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "assessment",
+          "label": "Assessment",
+          "type": "TEXTAREA",
+          "required": true
+        },
+        {
+          "key": "plan",
+          "label": "Plan",
+          "type": "TEXTAREA",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

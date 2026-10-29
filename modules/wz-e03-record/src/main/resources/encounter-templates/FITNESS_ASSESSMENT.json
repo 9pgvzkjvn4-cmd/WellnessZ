@@ -1,0 +1,189 @@
+{
+  "type": "FITNESS_ASSESSMENT",
+  "version": 1,
+  "bodyMapRequired": false,
+  "title": "Fitness-for-work assessment",
+  "bodyMap": false,
+  "requiresDiagnosis": false,
+  "fitnessStandardPrompt": true,
+  "protocolPrompts": [
+    "Assess against the applicable fitness standard and record functional limitations only on the certificate"
+  ],
+  "sections": [
+    {
+      "key": "role",
+      "title": "Role and standard",
+      "fields": [
+        {
+          "key": "reason",
+          "label": "Reason for assessment",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "PRE_PLACEMENT",
+              "label": "Pre-placement"
+            },
+            {
+              "value": "PERIODIC",
+              "label": "Periodic"
+            },
+            {
+              "value": "RETURN_TO_WORK",
+              "label": "Return to work"
+            },
+            {
+              "value": "MANAGEMENT_REFERRAL",
+              "label": "Management referral"
+            }
+          ]
+        },
+        {
+          "key": "safetyCritical",
+          "label": "Safety-critical duties",
+          "type": "BOOLEAN",
+          "required": false
+        },
+        {
+          "key": "jobDemandsReviewed",
+          "label": "Job demand profile reviewed",
+          "type": "BOOLEAN",
+          "required": true
+        }
+      ]
+    },
+    {
+      "key": "vitals",
+      "title": "Observations",
+      "fields": [
+        {
+          "key": "systolic",
+          "label": "Systolic BP",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "mmHg"
+        },
+        {
+          "key": "diastolic",
+          "label": "Diastolic BP",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "mmHg"
+        },
+        {
+          "key": "heartRate",
+          "label": "Heart rate",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "/min"
+        },
+        {
+          "key": "temperature",
+          "label": "Temperature",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "°C"
+        },
+        {
+          "key": "spo2",
+          "label": "SpO2",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "%"
+        }
+      ]
+    },
+    {
+      "key": "functional",
+      "title": "Functional assessment",
+      "fields": [
+        {
+          "key": "visionAdequate",
+          "label": "Vision adequate for role",
+          "type": "BOOLEAN",
+          "required": false
+        },
+        {
+          "key": "hearingAdequate",
+          "label": "Hearing adequate for role",
+          "type": "BOOLEAN",
+          "required": false
+        },
+        {
+          "key": "mobility",
+          "label": "Mobility",
+          "type": "SELECT",
+          "required": false,
+          "options": [
+            {
+              "value": "NORMAL",
+              "label": "Normal"
+            },
+            {
+              "value": "LIMITED",
+              "label": "Limited"
+            }
+          ]
+        },
+        {
+          "key": "proposedOutcome",
+          "label": "Proposed outcome",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "FIT",
+              "label": "Fit"
+            },
+            {
+              "value": "FIT_WITH_LIMITATIONS",
+              "label": "Fit with limitations"
+            },
+            {
+              "value": "TEMPORARILY_UNFIT",
+              "label": "Temporarily unfit"
+            },
+            {
+              "value": "PERMANENTLY_UNFIT",
+              "label": "Permanently unfit"
+            },
+            {
+              "value": "PENDING",
+              "label": "Pending further information"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "soap",
+      "title": "Clinical note (SOAP)",
+      "fields": [
+        {
+          "key": "subjective",
+          "label": "Subjective – history and symptoms",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "objective",
+          "label": "Objective – examination findings",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "assessment",
+          "label": "Assessment",
+          "type": "TEXTAREA",
+          "required": true
+        },
+        {
+          "key": "plan",
+          "label": "Plan",
+          "type": "TEXTAREA",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

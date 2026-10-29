@@ -1,0 +1,135 @@
+{
+  "type": "SURVEILLANCE_EXAM",
+  "version": 1,
+  "bodyMapRequired": false,
+  "title": "Health surveillance examination",
+  "bodyMap": false,
+  "requiresDiagnosis": false,
+  "fitnessStandardPrompt": false,
+  "protocolPrompts": [
+    "Compare audiometry with the baseline audiogram (standard threshold shift)",
+    "Repeat spirometry if FEV1/FVC < 0.70 or FEV1 < 80 % predicted"
+  ],
+  "sections": [
+    {
+      "key": "programme",
+      "title": "Surveillance programme",
+      "fields": [
+        {
+          "key": "hazards",
+          "label": "Hazards covered",
+          "type": "MULTISELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "NOISE",
+              "label": "Occupational noise"
+            },
+            {
+              "value": "COSMIC_RAD",
+              "label": "Cosmic radiation"
+            },
+            {
+              "value": "FOOD_HYGIENE",
+              "label": "Food handler hygiene"
+            },
+            {
+              "value": "JET_FUEL",
+              "label": "Jet fuel / chemical exposure"
+            },
+            {
+              "value": "MANUAL_HANDLING",
+              "label": "Manual handling"
+            },
+            {
+              "value": "FATIGUE",
+              "label": "Fatigue / circadian disruption"
+            }
+          ]
+        },
+        {
+          "key": "exposureSinceLast",
+          "label": "Exposure since last examination",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "ppeUse",
+          "label": "Hearing / respiratory protection used",
+          "type": "SELECT",
+          "required": false,
+          "options": [
+            {
+              "value": "ALWAYS",
+              "label": "Always"
+            },
+            {
+              "value": "SOMETIMES",
+              "label": "Sometimes"
+            },
+            {
+              "value": "NEVER",
+              "label": "Never"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "outcome",
+      "title": "Outcome",
+      "fields": [
+        {
+          "key": "surveillanceOutcome",
+          "label": "Outcome",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "NO_CHANGE",
+              "label": "No change"
+            },
+            {
+              "value": "CHANGE_NOTED",
+              "label": "Change noted – follow up"
+            },
+            {
+              "value": "REFER",
+              "label": "Refer"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "soap",
+      "title": "Clinical note (SOAP)",
+      "fields": [
+        {
+          "key": "subjective",
+          "label": "Subjective – history and symptoms",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "objective",
+          "label": "Objective – examination findings",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "assessment",
+          "label": "Assessment",
+          "type": "TEXTAREA",
+          "required": true
+        },
+        {
+          "key": "plan",
+          "label": "Plan",
+          "type": "TEXTAREA",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "type": "MENTAL_HEALTH",
+  "version": 1,
+  "bodyMapRequired": false,
+  "title": "Mental-health consultation (restricted)",
+  "bodyMap": false,
+  "requiresDiagnosis": true,
+  "fitnessStandardPrompt": false,
+  "protocolPrompts": [
+    "Restricted clinical record: content is visible to psychological-health clinicians only",
+    "Screen for risk of harm and agree a safety plan where indicated"
+  ],
+  "sections": [
+    {
+      "key": "screening",
+      "title": "Screening",
+      "fields": [
+        {
+          "key": "phq9",
+          "label": "PHQ-9 score",
+          "type": "NUMBER",
+          "required": false
+        },
+        {
+          "key": "gad7",
+          "label": "GAD-7 score",
+          "type": "NUMBER",
+          "required": false
+        },
+        {
+          "key": "riskOfHarm",
+          "label": "Risk of harm identified",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "NONE",
+              "label": "None"
+            },
+            {
+              "value": "LOW",
+              "label": "Low"
+            },
+            {
+              "value": "MODERATE",
+              "label": "Moderate"
+            },
+            {
+              "value": "HIGH",
+              "label": "High"
+            }
+          ]
+        },
+        {
+          "key": "workFactors",
+          "label": "Work-related factors",
+          "type": "MULTISELECT",
+          "required": false,
+          "options": [
+            {
+              "value": "WORKLOAD",
+              "label": "Workload"
+            },
+            {
+              "value": "ROSTER",
+              "label": "Roster / fatigue"
+            },
+            {
+              "value": "CONFLICT",
+              "label": "Interpersonal conflict"
+            },
+            {
+              "value": "TRAUMA",
+              "label": "Traumatic incident"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "soap",
+      "title": "Clinical note (SOAP)",
+      "fields": [
+        {
+          "key": "subjective",
+          "label": "Subjective – history and symptoms",
+          "type": "TEXTAREA",
+          "required": true
+        },
+        {
+          "key": "objective",
+          "label": "Objective – examination findings",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "assessment",
+          "label": "Assessment",
+          "type": "TEXTAREA",
+          "required": true
+        },
+        {
+          "key": "plan",
+          "label": "Plan",
+          "type": "TEXTAREA",
+          "required": true
+        }
+      ]
+    }
+  ]
+}
