@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | 05 – Setup guide: Local MacBook Pro (Apple Silicon) |
 | **Audience** | Developers, testers, solution architects preparing demos |
-| **Result** | Full stack on a laptop: PostgreSQL, Keycloak, mail servers, OTel collector, core API, BFF, the three web apps (employee portal, manager workspace, OH workspace); ready for incremental module development |
+| **Result** | Full stack on a laptop: PostgreSQL, Keycloak, mail servers, OTel collector, core API, BFF, the four web apps (employee portal, manager workspace, OH workspace and – since increment 4 – the partner portal); ready for incremental module development |
 | **Time** | About 45 minutes on a clean machine (most of it downloads) |
 | **Related** | 04 – Deployment Architecture · 03 – Developer Guide · 09 – CI/CD Guide |
 
@@ -40,6 +40,14 @@
 > `scheduling`, the users `scheduler1`, `biomed1`, `crewlicensing1` and `candidate1`, a test database that must be
 > recreated before every run (section 4.2), gateway smoke calls for absence feeds and fridge readings (section 8.6) and
 > manual checks for the three epics (section 8.7).
+>
+> **Increment 4** (E04 treatment coordination & partner referrals, E08 claims coordination, partner portal) was
+> verified on this setup: 275 Java tests, web tests (oh-workspace 570, employee-app 223, manager-workspace 164,
+> partner-portal 119) and `tools/e2e/e2e-increment4.js` with 22/22 checks passing, plus the three earlier scripts
+> (section 7.4). New here: schemas `treatment`, `claims`, the users `claims1`, `adjuster1`, `legal1`, `finance1`,
+> `procurement1`, `physio1` (section 3.3), the partner portal on port 5176 (section 6), optional MFA rehearsal for
+> partner and adjuster users (section 6.1), FHIR / telehealth smoke calls (section 8.8) and manual checks for E04 / E08
+> (section 8.9).
 
 ## 1. Prerequisites
 
@@ -206,7 +214,7 @@ Expected: `"aud": "wellnessz-api"` and `"roles": ["INTEGRATION"]`.
 |---|---|---|
 | PostgreSQL 16.15 | `localhost:5432`, databases `wellnessz`, `keycloak` | Roles `wz_migrator` (DDL), `wz_app` (core runtime), `wz_bff` (sessions); passwords in `.env` |
 | Keycloak 26.8.1 | <http://localhost:8180/admin> | `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD` from `.env` |
-| Realm users | `employee1`, `manager1`, `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; increment 1: `nurse1`, `nurse2`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`; increment 2: `dpo1`, `partner1`; increment 3: `scheduler1`, `biomed1`, `crewlicensing1`, `candidate1` | Temporary password `ChangeMe!123`; change it at first login |
+| Realm users | `employee1`, `manager1`, `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; increment 1: `nurse1`, `nurse2`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`; increment 2: `dpo1`, `partner1`; increment 3: `scheduler1`, `biomed1`, `crewlicensing1`, `candidate1`; increment 4: `claims1`, `adjuster1`, `legal1`, `finance1`, `procurement1`, `physio1` | Temporary password `ChangeMe!123`; change it at first login |
 | Mailpit | UI <http://localhost:8025>, SMTP `localhost:1025` | none |
 | GreenMail | IMAP `localhost:3143`, SMTP `localhost:3025` | `ehs-feed@wellnessz.local` / `WZ_IMAP_PASSWORD` |
 | OTel collector | OTLP `localhost:4317` (gRPC) / `4318` (HTTP) | – |
@@ -237,6 +245,13 @@ mappings.
 | `biomed1` (increment 3) | BIOMEDICAL (`S8602`, `/AIRLINE`) | Equipment register, calibration certificates, fridge readings and cold-chain reports |
 | `crewlicensing1` (increment 3) | CREW_LICENSING (`S8603`, `/AIRLINE/OPS`) | Crew medical certificate validity, expiring list and crew without a valid medical (status only) |
 | `candidate1` (increment 3) | CANDIDATE (`C9001`, `/CANDIDATES`) | Pre-employment candidate portal in the employee app (questionnaire, consent, documents, booking); `C9001` is deliberately not in the HRIS master |
+| `partner1` (increment 4 use) | PARTNER_PROVIDER (`P9101`, `/PARTNERS/CITYHOSP`) | **Partner portal** (5176): referral inbox of City General Hospital (demo referral awaiting acceptance), documents |
+| `physio1` (increment 4) | PARTNER_PROVIDER (`X8706`, `/PARTNERS/PHYSIOPLUS`) | Partner portal: PhysioPlus referrals – accept, appointment, seen, report and invoice upload, telehealth |
+| `adjuster1` (increment 4) | TPA_ADJUSTER (`X8702`, `/PARTNERS/GULFTPA`) | Partner portal: GULFTPA claims (RTW status, tasks, messages, consented documents) and pre-authorisation decisions |
+| `claims1` (increment 4) | CLAIMS_COORDINATOR (`S8701`, `/AIRLINE`) | OH workspace: claims, first reports and deadlines, disclosure sets, costs, pre-authorisation follow-up; no clinical screens |
+| `legal1` (increment 4) | LEGAL_COUNSEL (`S8703`, `/AIRLINE`) | OH workspace *Legal & litigation*: litigation hold, privilege, medico-legal requests and reports |
+| `finance1` (increment 4) | FINANCE (`S8704`, `/AIRLINE`) | OH workspace *Claim & treatment costs*: roll-ups by unit (no names), budget vs actual, ERP export and reconciliation |
+| `procurement1` (increment 4) | PROCUREMENT (`S8705`, `/AIRLINE`) | OH workspace *Provider network*: directory, contracts, rates, SLAs, network gaps, scorecards |
 
 **Increment-2 role.** The realm adds `DPO`, included in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`.
 A realm imported before increment 2 has neither the role nor `dpo1` / `partner1`: run `./deploy/local/down.sh --purge`
@@ -252,6 +267,26 @@ docker compose -f deploy/local/docker-compose.yml exec -T keycloak /opt/keycloak
 ```
 
 Expected: the four role names.
+
+**Increment-4 roles.** The realm adds `CLAIMS_COORDINATOR`, `TPA_ADJUSTER`, `LEGAL_COUNSEL`, `FINANCE` and
+`PROCUREMENT` (all in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`), the users `claims1`, `adjuster1`,
+`legal1`, `finance1`, `procurement1` and `physio1`, and for the partner portal the redirect URI
+`http://localhost:5176/login/oauth2/code/wellnessz`, the post-logout URI `http://localhost:5176/*` and the web origin
+`http://localhost:5176` on `wellnessz-bff`. A realm imported before increment 4 has none of them – the partner portal
+login then fails with *Invalid parameter: redirect_uri*. Run `./deploy/local/down.sh --purge` and
+`./deploy/local/up.sh` to re-import it (this deletes local data). Check after the re-import:
+
+```bash
+docker compose -f deploy/local/docker-compose.yml exec -T keycloak /opt/keycloak/bin/kcadm.sh get roles -r wellnessz --no-config --server http://localhost:8180 --realm master --user "$KEYCLOAK_ADMIN_USER" --password "$KEYCLOAK_ADMIN_PASSWORD" --fields name | grep -cE 'CLAIMS_COORDINATOR|TPA_ADJUSTER|LEGAL_COUNSEL|"FINANCE"|PROCUREMENT'
+```
+
+Expected: `5`.
+
+```bash
+docker compose -f deploy/local/docker-compose.yml exec -T keycloak /opt/keycloak/bin/kcadm.sh get clients -r wellnessz -q clientId=wellnessz-bff --no-config --server http://localhost:8180 --realm master --user "$KEYCLOAK_ADMIN_USER" --password "$KEYCLOAK_ADMIN_PASSWORD" --fields redirectUris | grep -c 5176
+```
+
+Expected: `1`.
 
 The Keycloak container imports the realm only when it does not exist yet (`--import-realm`). A stack created before
 increment 1 keeps the old realm without the new roles and users: run `./deploy/local/down.sh --purge` and
@@ -272,20 +307,30 @@ member `E7001`, enrolments, the pre-employment record of candidate `C9001`, and 
 `E1004` that is skipped on `*_test` databases) and `R__demo_e14_scheduling.sql` (clinicians, rooms and diary templates
 for the clinic sites, the equipment `AUD-LHR-01`, `AUD-LHR-02` (calibration overdue), `SPIRO-HQ-01`, `ECG-HQ-01`,
 `VIS-LHR-01`, `FRIDGE-HQ-01`, `FRIDGE-LHR-01`, a vaccination appointment for `E1001` 30 minutes after the first start
-and the campaign *LHR ramp audiometry day*). Encrypted columns stay empty in demo data.
+and the campaign *LHR ramp audiometry day*). Encrypted columns stay empty in demo data. Increment 4 adds
+`R__demo_e04_treatment.sql` (injury case of `E1004` with an active `BACK_STRAIN` plan and an open variance alert,
+referrals `RFL-<year>-900001` to `CITYHOSP` awaiting acceptance, `900002` scheduled with `PHYSIOPLUS`, `900003` with an
+overdue report, `900004` with a received report, `900005` draft; pre-authorisations `PA-<year>-900001` submitted to
+`GULFTPA` and `900002` approved with a matched invoice; a telehealth session of `E1003` with `TELEDOC`; clinic stock with
+an expired batch; provider scorecards for last month) and `R__demo_e08_claims.sql` (claims `CLM-<year>-900001` open and
+lost-time with payer `GULFTPA`, `900002` litigated and on hold, `900003` closed, `900004` notified; first reports,
+budgets and last month's ERP export). The `ClaimsDemoSeeder` bean (`local` / `test` profiles) then writes the encrypted
+E08 demo fields through the application. Demo data cannot contain encrypted narrative text otherwise – the demo
+referral `RFL-<year>-900001` therefore has no letter text.
 
 **Schemas.** `01-init-wellnessz.sh` creates `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness,
-absence, surveillance, scheduling, analytics`. Load `.env` first (`set -a; source deploy/local/.env; set +a`) for the
-check below. On a database volume created before increment 2 or 3, Flyway V6–V8 and V10–V12 create the new schemas
-themselves; `search_path` of `wz_app` is only updated by a fresh init, so prefer `./deploy/local/down.sh --purge` once.
+absence, surveillance, scheduling, treatment, claims, analytics`. Load `.env` first (`set -a; source deploy/local/.env;
+set +a`) for the check below. On a database volume created before increment 2, 3 or 4, Flyway V6–V8, V10–V12 and
+V14–V15 create the new schemas themselves; `search_path` of `wz_app` is only updated by a fresh init, so prefer
+`./deploy/local/down.sh --purge` once.
 Check:
 
 ```bash
 docker compose -f deploy/local/docker-compose.yml exec -T -e PGPASSWORD="$POSTGRES_SUPERUSER_PASSWORD" postgres psql -h 127.0.0.1 -U postgres -d wellnessz -c '\dn'
 ```
 
-Expected (after the core has started once): `docs`, `ohrecord`, `fitness`, `absence`, `surveillance` and `scheduling`
-in the list, all owned by `wz_migrator`.
+Expected (after the core has started once): `docs`, `ohrecord`, `fitness`, `absence`, `surveillance`, `scheduling`,
+`treatment` and `claims` in the list, all owned by `wz_migrator`.
 
 ## 4. Build and test
 
@@ -354,7 +399,7 @@ export NVD_API_KEY=<your-key> && ./mvnw -Psecurity -DskipTests verify
 
 ### 4.4 Web apps
 
-Run this block in each of `web/employee-app`, `web/manager-workspace` and `web/oh-workspace`:
+Run this block in each of `web/employee-app`, `web/manager-workspace`, `web/oh-workspace` and `web/partner-portal`:
 
 ```bash
 cd web/employee-app && npm ci && npm run lint && npm test && npm run build && cd ../..
@@ -368,7 +413,12 @@ cd web/manager-workspace && npm ci && npm run lint && npm test && npm run build 
 cd web/oh-workspace && npm ci && npm run lint && npm test && npm run build && cd ../..
 ```
 
-Expected test counts at the increment-1 baseline: employee-app 81, manager-workspace 55, oh-workspace 151.
+```bash
+cd web/partner-portal && npm ci && npm run lint && npm test && npm run build && cd ../..
+```
+
+Expected test counts at the increment-4 baseline: employee-app 223, manager-workspace 164, oh-workspace 570,
+partner-portal 119 (increment 1: 81, 55, 151).
 
 ## 5. Run core and BFF
 
@@ -493,11 +543,18 @@ cd web/oh-workspace && WZ_BFF_TARGET=http://localhost:8090 npx vite --port 5175
 
 `npm run dev` in `web/oh-workspace` is equivalent (port 5175 is set in `vite.config.ts`).
 
+and the partner portal (increment 4):
+
+```bash
+cd web/partner-portal && npm run dev
+```
+
 * Employee portal: <http://localhost:5173>
 * Manager & HR workspace: <http://localhost:5174>
 * OH workspace: <http://localhost:5175>
+* Partner portal: <http://localhost:5176> (sign-in button *Sign in with multi-factor authentication*)
 
-All three dev servers proxy `/bff`, `/oauth2`, `/login` and `/logout` to the BFF on `http://localhost:8090`. If the BFF
+All four dev servers proxy `/bff`, `/oauth2`, `/login` and `/logout` to the BFF on `http://localhost:8090`. If the BFF
 runs elsewhere (another port, a remote dev environment), set `WZ_BFF_TARGET`:
 
 ```bash
@@ -514,8 +571,48 @@ WZ_BFF_TARGET=http://localhost:18090 npm run dev
 5. In another private window, open <http://localhost:5175> as `nursinghead1`. The **Work queues** screen lists the
    new case with its urgency, owner and SLA state. Signing in as `reception1` shows only the reception screen.
 
-The BFF redirect URIs for the three ports (`http://localhost:517[3-5]/login/oauth2/code/wellnessz`) and the CORS
-origins (`WZ_CORS_ORIGINS`, local profile `wellnessz.security.cors-origins`) already include port 5175.
+6. In another private window, open <http://localhost:5176> as `physio1`. The partner portal shows the PhysioPlus
+   referral inbox; as `adjuster1` it shows the GULFTPA claims and pending pre-authorisations. An OH user (for example
+   `nurse1`) sees *This portal is for WellnessZ partner organisations*.
+
+The BFF redirect URIs for the four ports (`http://localhost:517[3-6]/login/oauth2/code/wellnessz`) and the CORS
+origins (`WZ_CORS_ORIGINS`, local profile `wellnessz.security.cors-origins`) already include ports 5175 and 5176.
+
+### 6.1 MFA for partner and adjuster users (increment 4, optional locally)
+
+In shared environments the core grants `PARTNER_PROVIDER` and `TPA_ADJUSTER` only when the access token proves MFA
+(`amr` contains `mfa`, `otp`, `totp`, `hwk`, `swk`, `sms`, `webauthn` or `fido`, or `acr` is `2`, `3`, `mfa` or `c1`).
+The `local` profile switches the gate off (`WZ_MFA_REQUIRED_ROLES` empty) because the demo realm has no OTP enrolment,
+and the E2E scripts rely on that. To rehearse the production behaviour:
+
+1. Start the core with the gate on (section 5.1, terminal 1):
+
+   ```bash
+   WZ_MFA_REQUIRED_ROLES=PARTNER_PROVIDER,TPA_ADJUSTER java -jar apps/wz-core-app/target/wz-core-app.jar
+   ```
+
+   Sign in to <http://localhost:5176> as `physio1`: the portal shows *Your account needs multi-factor sign-in or has
+   no partner access* (the core dropped the role), and `/bff/api/partner/referrals` answers `403`.
+2. Enrol OTP for the user. Keycloak admin console (<http://localhost:8180/admin>) → realm `wellnessz` → *Users* →
+   `physio1` → *Required user actions*: **Configure OTP** → *Save*. At the next login Keycloak shows a QR code; scan it
+   with an authenticator app and enter the code. The default browser flow (*Conditional OTP*) then asks for the code at
+   every login.
+3. Make the token prove it. Either
+   * add an **AMR** mapper: *Clients* → `wellnessz-bff` → *Client scopes* → `wellnessz-bff-dedicated` → *Add mapper* →
+     *By configuration* → *Authentication Method Reference (AMR)*, *Add to access token* on; then in *Authentication* →
+     *browser* flow set the *Authentication Reference* of the *OTP Form* execution to `otp` (and of *Username Password
+     Form* to `pwd`) where your Keycloak version asks for it; or
+   * use a step-up flow: *Realm settings* → *General* → *ACR to LoA Mapping* `mfa` → `2`; copy the *browser* flow and
+     replace the conditional OTP sub-flow by two *Condition – Level of Authentication* sub-flows (level 1: password,
+     level 2: OTP form, max age 0), bind the copy as browser flow and set *Default ACR values* `2` on a client that only
+     partners use. Without such a flow Keycloak issues `acr` = `1` and the gate keeps dropping the role.
+4. Sign out, sign in again with password and OTP: the portal now shows the inbox, and
+   <http://localhost:5176/bff/api/me> lists `PARTNER_PROVIDER` in `roles`. If the role is still missing, the token
+   carries no MFA proof – check the mapper output in *Clients* → `wellnessz-bff` → *Client scopes* → *Evaluate* (user
+   `physio1`, *Generated access token*). Tokens never reach the browser (BFF pattern), so browser developer tools do not
+   show them.
+
+Switch the gate off again by restarting the core without `WZ_MFA_REQUIRED_ROLES` before running the E2E scripts.
 
 ## 7. End-to-end smoke test (Playwright)
 
@@ -621,7 +718,41 @@ Expected: 32 lines starting with `PASS`; exit code 0. Screenshots go to `tools/e
 published set (37 images) is in `docs/images/screens/increment-03/`. The script handles first and later logins, but
 several checks **consume demo state** (they calibrate `AUD-LHR-02`, release the demo advice report and complete the
 candidate's consent). For a clean repeat, purge and recreate the local database (`./deploy/local/down.sh --purge`,
-`./deploy/local/up.sh`, restart the core) and run the three increment scripts in order.
+`./deploy/local/up.sh`, restart the core) and run the increment scripts in order.
+
+### 7.4 Increment-4 end-to-end test (E04, E08, partner portal)
+
+`tools/e2e/e2e-increment4.js` covers increment 4 with 22 checks across all four apps: employee injury report with
+partner and insurer consent, treatment plan from the wrist-sprain template and the employee's plain-language view,
+referral data-set and consent checks with letter and FHIR payload, partner accept / appointment / seen / report /
+invoice in the portal and `404` for another organisation, report rating and overdue worklist, provider search and
+scorecards, pre-authorisation approved by `adjuster1`, clinic medication with an expired batch refused, outcomes,
+telehealth consent and chat, treatment KPIs; claim with automatic nurse case manager and case badge, first report of
+injury with deadline, consent-gated disclosure set visible to the adjuster, adjuster collaboration with clinical
+wording refused and providers without claim access, nurse assignment KPI, finance roll-up and reconciled ERP export
+without claim detail, legal hold and medico-legal report, HR status only, DPO disclosure report. It needs the same
+setup as section 7.1 plus the partner portal dev server (section 6), the increment-4 realm (section 3.3) and a core
+started with the `local` profile (MFA gate off, increment-4 demo data).
+
+```bash
+node tools/e2e/e2e-increment4.js
+```
+
+Expected: 22 lines starting with `PASS`; exit code 0. Screenshots go to `tools/e2e/shots/` (`WZ_E2E_OUT`); the
+published set (26 images) is in `docs/images/screens/increment-04/`. Additional variable: `WZ_E2E_PARTNER_URL`
+(default `http://localhost:5176`). Like the increment-3 script it **consumes demo state** (claims, the monthly ERP
+export, the litigation hold), so for a gate run purge and recreate the database and run the four increment scripts in
+order:
+
+```bash
+./deploy/local/down.sh --purge && ./deploy/local/up.sh
+```
+
+Then restart the core with the `local` profile (section 5.1) and run:
+
+```bash
+for n in 1 2 3 4; do node tools/e2e/e2e-increment$n.js || break; done
+```
 
 ## 8. EHS intake tests
 
@@ -784,6 +915,52 @@ With the core on the `local` profile, the BFF and the three dev servers running 
 | E14 clinic flow | `reception1` | *Clinic → Check-in kiosk* → check in `E1001` (demo vaccination appointment) by badge `B-1001`; open *Clinic → Queue board* | A ticket number, no names; `nurse1` uses *Call next* and lands in the chart |
 | E14 equipment | `biomed1` | *Clinic → Equipment & cold chain* | `AUD-LHR-02` overdue; after recording a passing calibration, device results for it are accepted again |
 
+### 8.8 Gateway smoke calls (increment 4)
+
+Partner hospital systems, insurer systems and the telehealth video platform are machine clients with the
+`INTEGRATION` role; locally `wellnessz-integration` plays them (`$TOKEN` from section 5.3). Read a demo referral as a
+FHIR R4 `ServiceRequest`:
+
+```bash
+REF_ID=$(docker compose -f deploy/local/docker-compose.yml exec -T -e PGPASSWORD="$POSTGRES_SUPERUSER_PASSWORD" postgres psql -h 127.0.0.1 -U postgres -d wellnessz -tAc "select id from treatment.referral where ref like 'RFL-%-900002'")
+```
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/integration/referrals/$REF_ID/fhir | jq '{resourceType, status, intent}'
+```
+
+Expected: `"resourceType": "ServiceRequest"`, `"status": "active"`, `"intent": "order"`; the read is written to the
+disclosure log (recipient `Partner PHYSIOPLUS (FHIR)`). Redeem an invalid telehealth token:
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' http://localhost:8080/api/v1/integration/telehealth/tokens/redeem -d '{"token":"not-a-real-token-0000000000"}' | jq
+```
+
+Expected: `{"valid": false}` and an audit row `TELEHEALTH_TOKEN_REDEEM` with outcome `DENIED`. The other machine
+endpoints are `POST /api/v1/integration/referrals/fhir/document-reference`,
+`/integration/preauthorisations/{ref}/decision` and `/integration/claims/reports/{ref}/acknowledgement` (contract:
+`docs/increment-04/API-Contract-E04-E08.md`). Outbound messages to `insurer-gateway`, `authority-gateway` and
+`erp-finance` go to the outbox and the logging publisher; check them as `admin1` with
+`GET /api/v1/integration/events` (metadata only).
+
+### 8.9 Manual verification of E04 and E08 (increment 4)
+
+With the core on the `local` profile, the BFF and the four dev servers running (section 6):
+
+| Epic | Sign in as | Do | Expected |
+|---|---|---|---|
+| E04 plan | `nurse1` (OH workspace) | Open the demo injury case of `E1004` → tab *Treatment* | Active `BACK_STRAIN` plan with follow-ups; *Treatment → Recovery variance* lists the open alert |
+| E04 referral | `nurse1` | *Treatment → Referrals* | `RFL-…-900003` overdue with chase count; send a new referral without the data set → `422 data_set_incomplete` |
+| E04 partner | `partner1` (partner portal) | *Referrals* | Only CITYHOSP referrals (`RFL-…-900001`); opening a PhysioPlus referral id → *Not found or not shared with your organisation* |
+| E04 pre-auth | `adjuster1` (partner portal) | *Pre-authorisations* | `PA-…-900001` pending; approve with an approval reference → status `APPROVED` in the OH workspace |
+| E04 providers | `procurement1` (OH workspace) | *Provider network*, *Network gaps*, *Provider scorecards* | Contracts with ACTIVE / EXPIRING / EXPIRED status; scorecards for last month |
+| E04 medication | `nurse1` | *Clinic medications* (stock) and the case's administration form with batch `ADR-2207` | `422 batch_expired` |
+| E08 claims | `claims1` (OH workspace) | *Claims → Claims* → `CLM-…-900001` | Lost-time claim with nurse case manager, report deadlines, draft disclosure set; no menu entry for the chart |
+| E08 adjuster | `adjuster1` (partner portal) | *Claims* → `CLM-…-900001` | RTW status and milestones, tasks, messages; a message with a diagnosis → `422` |
+| E08 finance | `finance1` (OH workspace) | *Claims → Claim & treatment costs* | Units with fewer than 5 cases suppressed; no names; last month's export can be reconciled |
+| E08 legal | `legal1` (OH workspace) | *Claims → Legal & litigation* | `CLM-…-900002` litigated, on hold and privileged; medico-legal request open |
+| E08 HR | `hr1` (manager workspace) | *Claims* | Claim status only – no costs, payer or adjuster |
+
 ## 9. Secrets in configuration: `ENC(...)`
 
 Values that must live in configuration files, such as a connector password, are stored encrypted:
@@ -806,7 +983,8 @@ Docker Desktop includes Kubernetes (*Settings → Kubernetes → Enable*). Alter
 (`brew install kind`). The values file `deploy/helm/wellnessz/values-local.yaml` documents every command in its
 header. In short:
 
-1. Build the four images with tag `local`.
+1. Build the images with tag `local` (core, BFF and the four web apps – `values-local.yaml` lists the commands,
+   including `wellnessz/partner-portal:local`; the chart serves the partner portal on `partners.localtest.me`).
 2. Create the namespace and the three Secrets (`wellnessz-core-secrets`, `wellnessz-bff-secrets`,
    `wellnessz-migrations-secrets`).
 3. Install an ingress controller.
@@ -837,7 +1015,7 @@ development.
 | Keycloak unhealthy, log shows `password authentication failed for user "keycloak"` | Old database volume with different passwords | `./deploy/local/down.sh --purge` (deletes local data), then `up.sh` |
 | `Found non-empty schema(s) … but no schema history table` | Tables created manually in an app schema | Purge the volume or drop the stray tables as `wz_migrator` |
 | Port already in use (5432, 8080, 8180, 5173 …) | Another local PostgreSQL / app / dev server | `lsof -nP -iTCP:<port> -sTCP:LISTEN` and stop it |
-| BFF login loops or redirect URI error | Opened via `127.0.0.1` instead of `localhost`, or wrong port | Use `http://localhost:5173`; the realm allows `localhost:5173`, `5174`, `5175` and `8090` |
+| BFF login loops or redirect URI error | Opened via `127.0.0.1` instead of `localhost`, or wrong port | Use `http://localhost:5173`; the realm allows `localhost:5173`, `5174`, `5175`, `5176` and `8090` |
 | OH workspace shows *Access restricted* for `nurse1` (or `GET /bff/session` lacks the new roles) | Realm imported before increment 1, or a role missing from the `wellnessz-bff` scope mapping | `./deploy/local/down.sh --purge` and `up.sh` to re-import; when editing the realm, add new roles to the scope mappings of `wellnessz-bff` and `wellnessz-mobile` |
 | Referrals answer `404` for every employee, reception lookups fail with `unknown_employee`, or no case owner is assigned | Core not started with the `local` profile, so the demo employees and OH staff roster were not loaded | Start the core with `SPRING_PROFILES_ACTIVE=local` (section 5.1) |
 | Webhook returns `400 idempotency_key_required` | Missing or too short `Idempotency-Key` | Send a key of 8–200 characters `[A-Za-z0-9._:-]` |
@@ -859,6 +1037,13 @@ development.
 | FIT decision answers `422 clearance_required` | An open return-after-illness requirement (for example the demo for `E1004`) | Complete the return-after-illness medical in *Surveillance → Return after illness* |
 | Absence queue, due list or diary are empty | Core not started with the `local` profile, so the increment-3 demo files were not loaded | Start the core with `SPRING_PROFILES_ACTIVE=local` |
 | `e2e-increment3.js` fails on the calibration, advice or candidate checks on a second run | The first run consumed the demo state | Purge and recreate the database (section 7.3) |
+| Partner portal login: *Invalid parameter: redirect_uri*; or `claims1`, `adjuster1`, `legal1`, `finance1`, `procurement1`, `physio1` cannot log in | Realm imported before increment 4 (5176 redirect, roles or users missing) | `./deploy/local/down.sh --purge` and `up.sh` to re-import the realm (section 3.3) |
+| Partner portal shows *Your account needs multi-factor sign-in or has no partner access* for `partner1` / `adjuster1` | Core started with `WZ_MFA_REQUIRED_ROLES` set while the token has no `amr` / `acr` proof | Unset the variable for local work, or enrol OTP and add the AMR mapper / LoA flow (section 6.1) |
+| Partner portal API calls fail with CORS errors (core called directly) | `WZ_CORS_ORIGINS` overridden without `http://localhost:5176` | Use the shipped local value (all four dev ports) or call through the BFF |
+| Referral send answers `422 consent_required` | The employee has no active `TREATMENT_SHARING_PARTNER` consent (intended) | Choose a consent in the picker; the employee grants it in the employee app (*Consents*) |
+| Disclosure set send or pre-authorisation submit answers `422 consent_required` | No active `INSURER_SHARING` consent for the employee | Same as above with the insurer purpose |
+| `e2e-increment4.js` fails on the claim, ERP export or legal-hold checks on a second run | The first run consumed the demo state (`409 claim_exists`, `409 export_exists`) | Purge and recreate the database and run the scripts 1 → 4 in order (section 7.4) |
+| Claims, providers or costs screens are empty | Core not started with the `local` profile, so the increment-4 demo files and `ClaimsDemoSeeder` did not run | Start the core with `SPRING_PROFILES_ACTIVE=local` |
 
 ## 13. Teardown
 

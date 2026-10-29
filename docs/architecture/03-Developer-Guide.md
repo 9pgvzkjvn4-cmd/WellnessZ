@@ -4,9 +4,10 @@
 |---|---|
 | **Document** | 03 – Developer Guide |
 | **Audience** | Developers and technical leads building business modules E01–E14 and integrations |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increments 1–3 (E01, E02 – Section 14; E03, E05 – Section 15; E06, E07, E14 – Section 16) |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increments 1–4 (E01, E02 – Section 14; E03, E05 – Section 15; E06, E07, E14 – Section 16; E04, E08 and the partner portal – Section 17) |
 | **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
 | **Increment 3 documents** | [Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md) · [Requirements Traceability Matrix](../increment-03/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-03/03-Release-Notes-Increment-3.md) · [API Contract](../increment-03/API-Contract-E06-E07-E14.md) |
+| **Increment 4 documents** | [Solution Design E04/E08](../increment-04/01-Solution-Design-E04-E08.md) · [Requirements Traceability Matrix](../increment-04/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-04/03-Release-Notes-Increment-4.md) · [API Contract](../increment-04/API-Contract-E04-E08.md) |
 | **Companion documents** | 01 – Technology Architecture and Technology Selection · 02 – Security and SOC 2 Control Mapping |
 
 This guide explains how to add a business module (an *E-number* from the logical architecture) to the base framework
@@ -14,7 +15,7 @@ without weakening its security properties. The running example is **E07 – Surv
 immunisation**; replace names as appropriate. Everything referenced exists in the repository unless marked
 *recommended*. Since increment 3, E07 exists for real (`modules/wz-e07-surveillance`, package `com.wellnessz.e07`):
 Sections 2–9 keep the simplified teaching layout (`com.wellnessz.surveillance`), and Section 16 shows how E06, E07 and
-E14 were actually built.
+E14 were actually built. Section 17 covers E04, E08, the increment-4 SPIs and the partner portal for external users.
 
 ## 1. Orientation
 
@@ -29,8 +30,9 @@ E14 were actually built.
 | `modules/wz-e01-intake`, `modules/wz-e02-triage` | Business modules of increment 1 – the worked example in Section 14 |
 | `modules/wz-e03-record`, `modules/wz-e05-fitness` | Business modules of increment 2 (OH record, fitness for duty) – the worked example in Section 15 |
 | `modules/wz-e06-absence`, `modules/wz-e07-surveillance`, `modules/wz-e14-scheduling` | Business modules of increment 3 (absence & sickness, medical surveillance, scheduling & clinic operations) – the worked example in Section 16 |
-| `web/employee-app`, `web/manager-workspace`, `web/oh-workspace` | React front-ends (the OH clinical workspace was added in increment 1) |
-| `tools/e2e` | Playwright end-to-end scripts: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, Section 14.7), `e2e-increment2.js` (E03/E05, Section 15.12), `e2e-increment3.js` (E06/E07/E14, Section 16.10) |
+| `modules/wz-e04-treatment`, `modules/wz-e08-claims` | Business modules of increment 4 (treatment coordination & partner referrals, claims coordination) – the worked example in Section 17 |
+| `web/employee-app`, `web/manager-workspace`, `web/oh-workspace`, `web/partner-portal` | React front-ends (the OH clinical workspace was added in increment 1, the partner portal for external providers and adjusters in increment 4) |
+| `tools/e2e` | Playwright end-to-end scripts: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, Section 14.7), `e2e-increment2.js` (E03/E05, Section 15.12), `e2e-increment3.js` (E06/E07/E14, Section 16.10), `e2e-increment4.js` (E04/E08 and the partner portal, Section 17.8) |
 | `deploy/local` | Docker Compose: PostgreSQL, Keycloak (realm import), Mailpit, GreenMail, OpenTelemetry collector |
 | `config/` | SpotBugs exclusions and dependency-check suppressions (justification required) |
 
@@ -51,7 +53,7 @@ cd deploy/local && ./up.sh
 export WZ_MASTER_KEY=$(openssl rand -base64 32)        # never reuse outside your machine
 mvn -pl apps/wz-core-app -am spring-boot:run -Dspring-boot.run.profiles=local
 
-# 3. BFF (8090) and a web app (5173 employee / 5174 manager / 5175 OH workspace)
+# 3. BFF (8090) and a web app (5173 employee / 5174 manager / 5175 OH workspace / 5176 partner portal)
 mvn -pl apps/wz-bff -am spring-boot:run -Dspring-boot.run.profiles=local
 cd web/employee-app && npm ci && npm run dev
 ```
@@ -60,7 +62,11 @@ Test users in the local Keycloak realm `wellnessz` (password `ChangeMe!123`, tem
 `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; since increment 1 also `nurse1`, `nurse2`, `physician1`, `ame1`,
 `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`; since increment 2 `dpo1`,
 `partner1`; since increment 3 `scheduler1` (CLINIC_SCHEDULER), `biomed1` (BIOMEDICAL), `crewlicensing1`
-(CREW_LICENSING) and `candidate1` (CANDIDATE, candidate id `C9001`). The `local` profile loads synthetic HRIS
+(CREW_LICENSING) and `candidate1` (CANDIDATE, candidate id `C9001`); since increment 4 `claims1` (CLAIMS_COORDINATOR),
+`adjuster1` (TPA_ADJUSTER, `/PARTNERS/GULFTPA`), `legal1` (LEGAL_COUNSEL), `finance1` (FINANCE), `procurement1`
+(PROCUREMENT) and `physio1` (PARTNER_PROVIDER, `/PARTNERS/PHYSIOPLUS`; `partner1` is `/PARTNERS/CITYHOSP`). Partner and
+adjuster users sign in on the partner portal (5176); the `local` profile switches the MFA gate off (Section 17.6).
+The `local` profile loads synthetic HRIS
 employees, the OH staff roster and the module demo data from `db/demo` (never enabled in shared environments).
 
 ### 1.3 The rules you must not break
@@ -570,10 +576,11 @@ In CI every pull request runs `.github/workflows/ci.yml` (Java build and tests w
 `npm audit` and SBOM, gitleaks, OWASP dependency-check, dependency review, Helm/Terraform/Trivy config checks) and
 `codeql.yml` (Java and TypeScript). Images are built, Trivy-gated, signed and attested by `container.yml`; releases are
 deployed by `cd.yml` through `deploy-env.yml`. The `java` CI job also runs SpotBugs + FindSecBugs and fails on any
-finding. The increment-3 baseline is **210 Java tests** (14 ArchUnit rules), **0 SpotBugs findings** (6 justified
-exclusions) and web tests oh-workspace 463 / employee-app 191 / manager-workspace 154 with 0 lint warnings (increment 1:
-65 tests, 5 exclusions; increment 2: 128 tests, 6 exclusions); keep it that way. Before a release, also run the
-end-to-end scripts of all increments (Sections 14.7, 15.12, 16.10).
+finding. The increment-4 baseline is **275 Java tests** (17 ArchUnit rules), **0 SpotBugs findings** (6 justified
+exclusions) and web tests oh-workspace 570 / employee-app 223 / manager-workspace 164 / partner-portal 119 with 0 lint
+warnings (increment 1: 65 tests, 5 exclusions; increment 2: 128 tests, 6 exclusions; increment 3: 210 tests, 14 rules);
+keep it that way. Before a release, also run the end-to-end scripts of all increments (Sections 14.7, 15.12, 16.10,
+17.8).
 
 ## 10. Web and mobile feature additions
 
@@ -613,14 +620,22 @@ in `src/auth/roles.ts` (unit-tested). Two rules specific to clinical work:
 
 Dev server: `npm run dev` on port 5175 (proxy target `WZ_BFF_TARGET`, default `http://localhost:8090`), for example
 `WZ_BFF_TARGET=http://localhost:8090 npx vite --port 5175`. See `web/oh-workspace/README.md` for the screen and test
-inventory.
+inventory. Since increment 4, roles that never see clinical data (claims coordinator, finance, legal, procurement)
+also use the OH workspace; their navigation must not offer clinical screens (unit-tested in `src/auth/roles.ts`), and
+consent ids are chosen from pickers, never typed.
+
+### 10.3a Partner portal (`web/partner-portal`, increment 4)
+
+The fourth browser app, for **external** partner providers and TPA adjusters (dev port 5176). Same conventions, plus:
+access is decided from the roles in `GET /bff/api/me` (MFA-gated in the core), API mappers whitelist contract fields,
+and every screen carries a confidentiality hint. Details in Section 17.7 and `web/partner-portal/README.md`.
 
 ### 10.4 BFF
 
 No change is normally needed – `/bff/api/**` proxies all `/api/v1/**` paths. If a module needs a role-gated alias,
 follow `/bff/api/workspace/**`. Core endpoints that natively live under `/api/v1/workspace/...` must be listed in
 `ApiProxyController.CORE_WORKSPACE_RESOURCES` (increment 2: `team-restrictions`, `duty-proposals`, `rtw-plans`,
-`documents`; increment 3: `absence`, `advice-requests`, `surveillance`, `pre-employment`) and covered in
+`documents`; increment 3: `absence`, `advice-requests`, `surveillance`, `pre-employment`; increment 4: `claims`) and covered in
 `ApiProxyPathTest`. The BFF does **not** parse request bodies: `spring.servlet.multipart.enabled=false` keeps
 `multipart/form-data` uploads intact for the core (an increment-3 fix – with Spring's multipart parsing on, the proxy
 forwarded an empty body and uploads failed with `400`). Validate uploads in the core only. Do not forward additional
@@ -633,7 +648,7 @@ headers without a security review.
 | `application.yml` + environment variables | Technical settings per environment (12-factor) | `wellnessz.surveillance.recall-cron: ${WZ_SURV_RECALL_CRON:0 30 2 * * *}` |
 | `ENC(...)` / `file:` | Secrets (passwords, client secrets, API keys) | `password: ${WZ_LAB_PASSWORD:}` with `ENC(...)` value or `file:/mnt/secrets/lab-password` (property name must contain password/secret/key/token/credential for `file:` resolution) |
 | E18 `ConfigService` | Business configuration changed by OH admins without deployment (flags, SLA values, JSON form/rule definitions) | `config.flag("modules.e07.enabled", false)`, `config.get("surveillance.noise.interval-months")` |
-| `@ConfigurationProperties` | Typed groups of settings | see `MailboxProperties` |
+| `@ConfigurationProperties` | Typed groups of settings | see `MailboxProperties`; `WellnessZSecurityProperties` (`mfa-required-roles`, `mfa-amr-values`, `mfa-acr-values` – increment 4) |
 
 Never hard-code secrets or environment URLs. New secrets must be added to the Helm `secrets.core.files` list and the
 cloud secret store via Terraform/External Secrets.
@@ -1267,4 +1282,208 @@ It uses the same environment variables as the earlier scripts (`WZ_E2E_EMPLOYEE_
 integration client feeds absence episodes, IH measurements and fridge readings. The published screenshots are in
 `docs/images/screens/increment-03/`. Several checks consume demo state (calibration of `AUD-LHR-02`, release of the
 demo advice report, the candidate's consent), so repeat it on a freshly purged database (setup guide 05, Section 7.3).
-Run all three increment scripts before a release (CI/CD Guide, Section 3.1).
+Run all increment scripts before a release (CI/CD Guide, Section 3.1).
+
+## 17. Worked example: E04, E08, the partner portal and the increment-4 SPIs (increment 4)
+
+Increment 4 added two business modules that exchange money, referrals and claim context in both directions – E04 posts
+costs and reads the claim context, E08 requests IMEs and listens to referral status – without a compile-time
+dependency in either direction. The answer is again a set of small kernel SPIs, plus three **module SPIs** that are the
+seams for vendors still to be selected (video platform, e-prescribing, insurer / authority connectors). It also added
+the first front end for external users. Design background:
+[Solution Design E04/E08](../increment-04/01-Solution-Design-E04-E08.md); endpoints:
+[API Contract E04/E08](../increment-04/API-Contract-E04-E08.md); requirement coverage:
+[Requirements Traceability Matrix](../increment-04/02-Requirements-Traceability-Matrix.md); changes:
+[Release Notes](../increment-04/03-Release-Notes-Increment-4.md).
+
+### 17.1 Module wiring
+
+| Step | E04 (`modules/wz-e04-treatment`) | E08 (`modules/wz-e08-claims`) |
+|---|---|---|
+| Package | `com.wellnessz.e04` | `com.wellnessz.e08` |
+| Maven dependencies | `wz-e03-record` (allergies, medication list, draft encounters, CDS), `wz-e05-fitness`, `wz-documents` | `wz-e05-fitness` (RTW status), `wz-documents` – **never** `wz-e03-record` |
+| Root `pom.xml` / core app | `<module>` + `<dependencyManagement>`; dependency in `apps/wz-core-app/pom.xml` | same |
+| Registration | `E04Module` (code `E04`) | `E08Module` (code `E08`) |
+| Schema / migration | `treatment` (V14); platform additions in V13 | `claims` (V15) |
+| Demo data (`db/demo`) | `R__demo_e04_treatment.sql` | `R__demo_e08_claims.sql` + `ClaimsDemoSeeder` (`@Profile({"local","test"})`, fills encrypted demo fields) |
+| ArchUnit | `treatmentAndClaimsAreIndependent` | `claimsDoesNotDependOnTreatmentOrClinicalRecord`; both covered by `earlierIncrementsDoNotDependOnIncrement4` and `earlierModulesDoNotDependOnLaterOnes` (17 rules) |
+| Jobs (`JobRunGuard`) | `treatment-variance`, `referral-chase`, `provider-scorecards` (`TreatmentJobs`) | `claims-report-deadlines` (`ClaimsJobs`, hourly run key) |
+| Integration test | `Increment4TreatmentIntegrationTest` (10) | `Increment4ClaimsIntegrationTest` (10) |
+| Unit tests | `TreatmentRulesTest` (11: plan maths, data set, chase rules, FHIR mapping, scorecards, invoice matching, medication checks, token window) | `ClaimRulesTest`, `CostMathTest`, `DisclosureRulesTest`, `ReportDeadlinesTest` (28) |
+
+### 17.2 The increment-4 SPIs at a glance
+
+| SPI | Kind | Provider (implements) | Consumer (calls) | How the consumer injects it | Behaviour when no implementation is deployed |
+|---|---|---|---|---|---|
+| `CaseCostRecorder` | kernel | E08 `CostService` | E04 `PreauthService`, invoice capture (via `TreatmentSpis.recordCost`) | `ObjectProvider<CaseCostRecorder>` (all beans) | Costs stay case-level in E04 only |
+| `ExternalReferralGateway` | kernel | E04 `EReferralService` | E08 `LegalService` (IME / expert) | `ObjectProvider<ExternalReferralGateway>.getIfAvailable()` | Legal request records `referralStatus NOT_AVAILABLE` and raises an OH task |
+| `ReferralStatusListener` | kernel | E08 `LegalService` (`supports("CLAIM_IME")`) | E04 on every referral status change (via `TreatmentSpis.referralStatusChanged`) | `ObjectProvider<ReferralStatusListener>` filtered by `supports` | Nobody is notified |
+| `ClaimContextProvider` | kernel | E08 `ClaimService` | E04 pre-authorisation (payer default); case header via `GET /cases/{id}/claim-status` | `ObjectProvider<ClaimContextProvider>` | No payer default, no badge |
+| `CaseTransitionGuard` (increment 1) | kernel | E04 `OutcomeClosureGuard` | kernel `CaseService` | `List<CaseTransitionGuard>` | – |
+| `ChartContributor` (increment 2) | kernel | E04 `TreatmentChartContributor` | E03 `ChartService` | `List<ChartContributor>` | – |
+| `AppointmentStatusListener` (increment 3) | kernel | E04 `TreatmentAppointmentListener` (`TREATMENT_FOLLOW_UP`, `TELEHEALTH_SESSION`) | E14 `StatusNotifier` | as in 16.2 | – |
+| `TelehealthProvider` | module (E04) | `LinkTelehealthProviderConfig` (default) | E04 `TelehealthService` | single bean, default `@ConditionalOnMissingBean` | Link provider on `treatment.telehealth.base-url` |
+| `EPrescribingGateway` | module (E04) | `EPrescribingConfig` (no-op default) | `GET /treatment/eprescribing/status` | single bean, default `@ConditionalOnMissingBean` | `enabled: false` with the decision memo |
+| `ClaimsSubmissionGateway` | module (E08) | `DefaultClaimsSubmissionGateway` (`@Component`) | E08 `ReportService.submit` | single bean – replace with `@Primary` | Outbox event + content-free e-mail |
+
+The rules of Section 16.2 apply unchanged (optional by construction, identifiers and amounts only, same transaction,
+filter with `supports`, audit as `MODULE`). Two additions:
+
+1. **Resolve lazily when modules call each other in both directions.** E04 calls E08 through `CaseCostRecorder` and
+   `ClaimContextProvider`, and E08 calls E04 through `ExternalReferralGateway`. Injecting `ObjectProvider<…>` and
+   resolving at call time (`TreatmentSpis`) avoids a bean cycle; never inject the other module's implementation type.
+2. **Money crosses the SPI, clinical content does not.** `CostEntry` carries case, employee id, category, kind,
+   amount, currency, date, provider code and a non-clinical description; `ClaimContext` carries status, payer and
+   flags – no reserves or costs. A pre-authorisation justification never leaves E04.
+
+### 17.3 Posting costs through `CaseCostRecorder`
+
+```java
+// E04 preauth (abridged): an estimate when the pre-authorisation is submitted
+spis.recordCost(user.username(), new CaseCostRecorder.CostEntry(a.getCaseId(), a.getEmployeeId(),
+        CaseCostRecorder.Category.MEDICAL, CaseCostRecorder.Kind.ESTIMATE, a.getEstimateAmount(), a.getCurrency(),
+        support.today(), a.getProviderCode(), "Pre-authorisation " + a.getRef(), "PREAUTH", a.getId().toString()));
+```
+
+The entry is idempotent on `(sourceType, sourceRef, kind)`: posting the same pre-authorisation again updates the
+entry instead of duplicating it, so retries and status changes are safe. Use `sourceType` values that name your object
+(`PREAUTH`, `PROVIDER_INVOICE`); roll-ups count only `INVOICE` and `PAYMENT` – `ESTIMATE` and `RESERVE` are exposure.
+Amounts are converted to `claims.base-currency` with `claims.fx-rates`; an unknown currency is `422
+currency_not_supported`.
+
+### 17.4 Raising a referral through `ExternalReferralGateway` and listening to it
+
+```java
+// E08 LegalService (abridged): an IME for a claim
+ExternalReferralGateway gateway = referrals.getIfAvailable();
+Optional<ExternalReferralGateway.ReferralRef> ref = gateway == null ? Optional.empty()
+        : gateway.requestReferral(user.username(), new ExternalReferralGateway.ReferralRequest(c.getCaseId(),
+                c.getEmployeeId(), "IME", r.getProviderCode(), "ROUTINE", "Independent medical examination requested for claim …",
+                SOURCE_TYPE /* CLAIM_IME */, r.getId().toString()));
+// empty → referralStatus NOT_AVAILABLE and an OH task; present → DRAFT referral that OH completes and sends
+
+// E08 LegalService also implements the listener
+@Override public boolean supports(String sourceType) { return "CLAIM_IME".equals(sourceType); }
+@Override public void referralStatusChanged(UUID referralId, String sourceType, String sourceRef, Status status, UUID reportDocumentId) {
+    // update the legal request; REPORT_RECEIVED carries the provider report's document id
+}
+```
+
+The gateway creates a **DRAFT** – OH still has to complete the data set and select the employee's consent before it
+can be sent, so a module can never push personal data to a provider on its own. `serviceCode` must exist in the E04
+service catalogue (`treatment.service_catalogue`, for example `IME`, `ORTHOPAEDICS`, `PHYSIOTHERAPY`); unknown codes
+return empty. Integration tests: `imeThroughExternalReferralGatewayNotifiesListeners` (E04 side) and the IME check in
+`Increment4ClaimsIntegrationTest` (E08 side, DRAFT referral raised when E04 is deployed).
+
+### 17.5 Implementing `TelehealthProvider`, `EPrescribingGateway` and `ClaimsSubmissionGateway`
+
+```java
+// A video-platform adapter (replaces the default link provider because the default is @ConditionalOnMissingBean)
+@Component
+class AcmeVideoTelehealthProvider implements TelehealthProvider {
+    @Override public String joinUrl(String sessionRef, String mode, String token) {
+        // create or look up the room for sessionRef via the vendor API (credentials from ENC(...) / file: secrets);
+        // return a join URL that carries the single-use token; the platform later redeems it at
+        // POST /api/v1/integration/telehealth/tokens/redeem with its INTEGRATION client
+        return vendor.joinLink(sessionRef, "CHAT".equals(mode), token);
+    }
+}
+
+// An authority connector (replaces DefaultClaimsSubmissionGateway, which is a plain @Component)
+@Component @Primary
+class OshAuthorityGateway implements ClaimsSubmissionGateway {
+    private final DefaultClaimsSubmissionGateway fallback;                      // keep the outbox path for insurers
+    @Override public Receipt submit(Submission s) {
+        if (!"AUTHORITY".equals(s.recipientType())) return fallback.submit(s);
+        String id = authorityApi.send(s.formCode(), s.reportRef(), s.documentId()); // fetch the signed PDF via the documents API
+        return new Receipt(id);
+    }
+}
+```
+
+Rules: the adapter runs inside the caller's transaction – keep remote calls short with timeouts, or write to the
+outbox and transmit asynchronously; the document travels only over the connector's secure channel (authorities) or as
+a consent-checked `INSURER` share – never inside an event; outbound HTTPS needs a `networkPolicy.extraEgress.core`
+rule and a firewall / proxy rule; a new third-party SDK goes through the dependency review (CI/CD Guide, Section 3.2).
+An `EPrescribingGateway` implementation returns `Status(true, route, memo)` and adds its own endpoints only after the
+legal route is approved (doc 01, D19).
+
+### 17.6 External users: organisation scope and the MFA gate
+
+* **Organisation from the token, not the request.** Partner endpoints derive the organisation from `org_scope`
+  (`/PARTNERS/<CODE>` → `<CODE>`) and filter every query by it; never accept an organisation code from the client.
+  Return `404` for another organisation's object (existence not disclosed).
+* **Projections per audience.** Partner and adjuster views are separate record types (`/partner/**`) without case ids,
+  clinical notes, reserves, hashes or the justification. Text written by external users is screened with
+  `ClinicalContentException.screen(field, value)`.
+* **Disclosure log on first read.** `DisclosureLogService.record(...)` with recipient type `PARTNER`, `INSURER`,
+  `AUTHORITY`, `LEGAL` or `HR` and the purpose (Section 16.7); the claim RTW status and HR claim status are logged
+  once per recipient and status.
+* **Consent ids from the user, checked by the server.** Endpoints that share take an optional `consentId` (without
+  one, the employee's latest active consent of the purpose is used – E04 `Consents.require`); the server checks that
+  it is an **active** consent of **that employee** with the right purpose (`TREATMENT_SHARING_PARTNER`,
+  `INSURER_SHARING`, `TELEHEALTH_CONSULTATION`) and answers `422 consent_required` otherwise. Shares use
+  `DocumentService.shareAsSystem(actor, documentId, target, organisation, consentId)` with target `PARTNER` or
+  `INSURER`.
+* **MFA gate.** `PARTNER_PROVIDER` and `TPA_ADJUSTER` reach your `@PreAuthorize` only when the token proves MFA
+  (`WellnessZJwtConverter`, `wellnessz.security.mfa-required-roles`). Locally the gate is **off** (the `local` profile
+  sets `mfa-required-roles` to `${WZ_MFA_REQUIRED_ROLES:}` because the demo realm has no OTP enrolment). To rehearse it:
+
+```bash
+# core with the gate on: partner1 / adjuster1 then lose their roles unless their token proves MFA
+WZ_MFA_REQUIRED_ROLES=PARTNER_PROVIDER,TPA_ADJUSTER \
+  mvn -pl apps/wz-core-app -am spring-boot:run -Dspring-boot.run.profiles=local
+# to make it pass locally: Keycloak admin → Users → partner1 → Required user actions: Configure OTP; enrol an
+# authenticator app at the next login; then add the AMR mapper (or a level-of-authentication flow) so the token
+# carries amr=otp / acr=2 (setup guide 05, Section 6.1)
+```
+
+Add new external roles to `mfa-required-roles` (default in `WellnessZSecurityProperties` and `application.yml`) and to
+`MfaRoleGateTest`.
+
+### 17.7 The partner portal (`web/partner-portal`)
+
+Same stack and conventions as the other web apps (React 19, TypeScript, Vite, hash routing, BFF only, no browser
+storage, strict CSP, nginx-unprivileged on 8080). Specifics:
+
+* **Access from `/me`, not from the session.** `GET /bff/api/me` decides which screens exist; without a partner role
+  (for example because the token did not prove MFA) the portal shows the MFA / no-access page. Role gating is
+  convenience; the core enforces access.
+* **Whitelisting mappers.** `src/api/*` keeps only the contract fields; add a field there explicitly with a test.
+* **Errors.** `404` → *not found or not shared with your organisation*; `422 clinical_content_not_allowed` highlights
+  the field; `422 consent_required` explains the inactive consent; problem `detail` is never rendered.
+* **Uploads.** PDF / JPEG / PNG ≤ 10 MB (`src/api/upload.ts`), multipart with the CSRF header; the core validates again.
+* **Text.** All UI text in `src/strings.ts`.
+
+```bash
+cd web/partner-portal && npm ci
+npm run dev        # http://localhost:5176 – proxies /bff /oauth2 /login /logout → $WZ_BFF_TARGET (default http://localhost:8090)
+npm run lint && npm test && npm run build      # 119 tests at the increment-4 baseline
+```
+
+The BFF needs no change for the portal (same client `wellnessz-bff`); the Keycloak client lists
+`http://localhost:5176/login/oauth2/code/wellnessz`, the post-logout URI and the web origin, and the core's local CORS
+list includes 5176. A new host in another environment needs the same three Keycloak / Entra entries and the Helm
+`partnerPortal` component (document 04, Section 20). See `web/partner-portal/README.md` for the screen inventory.
+
+### 17.8 Running the increment-4 end-to-end test
+
+`tools/e2e/e2e-increment4.js` drives E04 and E08 across **all four apps** through real Keycloak logins and the BFF and
+prints 22 `PASS`/`FAIL` lines (exit code 1 on any failure). Prerequisites as in Section 16.10 plus the partner portal
+dev server on 5176; the core runs with the `local` profile (gate off, demo data `R__demo_e04_treatment.sql`,
+`R__demo_e08_claims.sql`, `ClaimsDemoSeeder`). A realm imported before increment 4 lacks the five new roles, the users
+`claims1`, `adjuster1`, `legal1`, `finance1`, `procurement1`, `physio1` and the 5176 redirect: run
+`./deploy/local/down.sh --purge` and `./deploy/local/up.sh` once.
+
+```bash
+node tools/e2e/e2e-increment4.js
+```
+
+Environment variables: those of the earlier scripts plus `WZ_E2E_PARTNER_URL` (default `http://localhost:5176`). Realm
+users: `employee1`, `hr1`, `nurse1`, `physician1`, `cmo1`, `nursinghead1`, `dpo1`, `partner1` and the increment-4 users
+`claims1`, `adjuster1`, `legal1`, `finance1`, `procurement1`, `physio1`; the integration client is used for the FHIR
+and insurer endpoints. The 26 published screenshots are in `docs/images/screens/increment-04/`. Like the increment-3
+script it **consumes demo state** (it opens claim `CLM-2026-000001`, exports the month's costs once, sets a litigation
+hold), and the increment-3 script consumes its own; run the scripts in order 1 → 4 on a **freshly purged** database
+(`./deploy/local/down.sh --purge`, `./deploy/local/up.sh`, restart the core). Run all four increment scripts before a
+release (CI/CD Guide, Section 3.1).

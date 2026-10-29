@@ -5,10 +5,11 @@
 | **Document** | 02 – Security and SOC 2 Control Mapping |
 | **System** | WellnessZ Airline Occupational Health Case Management (OHCM) – base framework |
 | **Audience** | Cyber GRC team, CISO, internal audit, Data Protection Officer, CIO |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`; updated for **increment 1** (E01, E02 – Section 11), **increment 2** (E03, E05 – Section 12) and **increment 3** (E06, E07, E14 – Section 13) |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`; updated for **increment 1** (E01, E02 – Section 11), **increment 2** (E03, E05 – Section 12), **increment 3** (E06, E07, E14 – Section 13) and **increment 4** (E04, E08, partner portal – Section 14) |
 | **Companion documents** | 01 – Technology Architecture and Technology Selection · 03 – Developer Guide |
 | **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
 | **Increment 3 documents** | [Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md) · [Requirements Traceability Matrix](../increment-03/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-03/03-Release-Notes-Increment-3.md) · [API Contract](../increment-03/API-Contract-E06-E07-E14.md) |
+| **Increment 4 documents** | [Solution Design E04/E08](../increment-04/01-Solution-Design-E04-E08.md) · [Requirements Traceability Matrix](../increment-04/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-04/03-Release-Notes-Increment-4.md) · [API Contract](../increment-04/API-Contract-E04-E08.md) |
 
 > **Important – what SOC 2 is and is not.** A SOC 2 Type 2 report is an attestation by an independent CPA firm about
 > the controls of a **service organisation** – the organisation that operates WellnessZ – over a review period
@@ -31,6 +32,10 @@ employee identifiers and contact details, consent records, audit records, integr
 – physical security, hypervisor, managed PostgreSQL, Key Vault/Secret Manager), the identity provider (Microsoft Entra
 ID or other OIDC IdP), the MDM provider, SMTP/SMS/push gateways, and enterprise systems that receive status-only data.
 Their SOC 2 / ISO 27001 reports must be obtained and reviewed (complementary subservice organisation controls, CSOCs).
+Since increment 4 the system also has **external user entities**: partner providers and insurer / TPA adjusters who
+use the partner portal, and insurers, authorities, the ERP and a future telehealth video platform that receive
+reference-only messages or consented documents. Their obligations (MFA, named users, data-sharing agreements) are
+complementary user-entity controls (CUECs, Section 14.10).
 
 **Applicable TSC categories recommended for the report:** Security (Common Criteria, mandatory), Availability,
 Confidentiality, Privacy. Processing Integrity is recommended for fitness-for-duty outputs because rostering decisions
@@ -134,7 +139,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Criterion | Framework control | Evidence source | Resp. | Status |
 |---|---|---|---|---|
 | CC9.1 Business disruption risk | Multi-replica, zone spread, PDB, zone-redundant DB HA (IaC), outbox buffering when downstream is unavailable | DR plan, test results | F/O | Implemented / Org |
-| CC9.2 Vendor and business-partner risk | Data contracts per connector (`ConnectorRegistry`); status-only outbound; consent purposes for partner/insurer sharing | vendor assessments, DPAs | O/F | Partial |
+| CC9.2 Vendor and business-partner risk | Data contracts per connector (`ConnectorRegistry`); status-only outbound; consent purposes for partner/insurer sharing; increment 4: partner organisations in master data, MFA-gated partner portal, reference-only insurer / authority / ERP destinations (Section 14) | vendor assessments, DPAs | O/F | Partial |
 
 ## 4. Additional criteria
 
@@ -168,14 +173,14 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Criterion | Framework control | Organisation responsibility | Status |
 |---|---|---|---|
 | P1.1 Notice | `notice_version` on every consent | Publish privacy notice for OH processing | F: Implemented; O: Org |
-| P2.1 Choice and consent | Consent per purpose, grant/withdraw by data subject, audited, evidence preserved | Decide lawful basis per purpose (Art. 9(2)(h)/(b) vs (a)) | Implemented; gate `hasActiveConsent` not yet called (no sharing flows yet). Increment 2: partner sharing checks `ConsentService.isActive` (`TREATMENT_SHARING_PARTNER`); AI documentation requires an `AI_DOCUMENTATION` consent; withdrawal triggers `ConsentWithdrawalListener`s |
+| P2.1 Choice and consent | Consent per purpose, grant/withdraw by data subject, audited, evidence preserved | Decide lawful basis per purpose (Art. 9(2)(h)/(b) vs (a)) | Implemented; gate `hasActiveConsent` not yet called (no sharing flows yet). Increment 2: partner sharing checks `ConsentService.isActive` (`TREATMENT_SHARING_PARTNER`); AI documentation requires an `AI_DOCUMENTATION` consent; withdrawal triggers `ConsentWithdrawalListener`s. Increment 4: `INSURER_SHARING` gates insurer shares, pre-authorisations and disclosure sets; `TELEHEALTH_CONSULTATION` gates telehealth joins (Section 14.3) |
 | P3.1–P3.2 Collection limited to purpose; explicit consent for sensitive data | Status-only rule; minimal event payloads; restricted class | DPIA, data-minimisation review per module | Implemented (base) |
 | P4.1 Use limited to purpose | ABAC per purpose of role; analytics on de-identified view only | Purpose specification per module | Implemented |
 | P4.2 Retention | – ; increment 2: `docs.retention_schedule` (7 record classes, proposed periods, DPO approval audited) | Retention schedule | **Partial** (documents) |
 | P4.3 Disposal | – ; increment 2: flagging of documents past retention, legal hold; no automatic deletion | Secure deletion procedures | **Partial** (flagging only) |
 | P5.1 Data-subject access | `GET /cases` (own), `/consents/me`, `/me` in the employee app; increment 2: `/me/documents`, `/me/disclosures`, `/me/rtw-plans`, `/me/job-offers` | DSAR process for full export (FHIR export `GET /employees/{id}/fhir` is OH-operated) | Partial (no self-service export) |
 | P5.2 Correction | – | Correction process via OH | Planned |
-| P6.1 Disclosure to third parties with consent | Outbound allow-list (default deny); consent purposes `TREATMENT_SHARING_PARTNER`, `INSURER_SHARING` | Processor/controller agreements | Partial |
+| P6.1 Disclosure to third parties with consent | Outbound allow-list (default deny); consent purposes `TREATMENT_SHARING_PARTNER`, `INSURER_SHARING`; increment 4: consent-checked partner and insurer shares, disclosure sets, disclosure log for every external recipient (Section 14.4) | Processor/controller agreements | Partial |
 | P6.2–P6.3 Record of disclosures | Outbox records every external disclosure with destination and time (encrypted payload, 30-day default retention); audit trail; increment 2: **disclosure log** `platform.disclosure_log` for every document share outside OH (recipient, purpose, consent, revocation), visible to the employee | Records of processing (Art. 30); export to long-term store if disclosures must be kept longer | Implemented (retention to be confirmed) |
 | P6.4–P6.5 Third-party commitments and notification | – | DPAs, breach-notification clauses | Org |
 | P6.6–P6.7 Breach notification; accounting of disclosures | Audit and outbox provide data for the accounting | Breach procedure (GDPR 72 h) | Org |
@@ -213,6 +218,12 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Increment 3: candidate purge | Audit `PRE_EMPLOYMENT_PURGE`; `surveillance.pre_employment.purged_at`; job run rows in `platform.scheduled_job_run` (`pre-employment-purge`) | C1.2, P4.2 |
 | Increment 3: data integrity | `scheduling.calibration` (certificate SHA-256), `scheduling.excursion` (acknowledgement), audit of rejected device results, `absence.feed_run` / `feed_mismatch` | PI1.2–PI1.4 |
 | Increment 3: segregation tests | `Increment3AbsenceIntegrationTest`, `Increment3SurveillanceIntegrationTest`, `Increment3SchedulingIntegrationTest`, `NotificationRulesTest`; E2E log of `tools/e2e/e2e-increment3.js` (32 checks) and screenshots in `docs/images/screens/increment-03/` | CC6.1, CC6.3, CC8.1 |
+| Increment 4: external access | IdP export of partner / adjuster accounts with MFA method and Conditional Access policy; decoded test token showing `amr` / `acr`; core configuration `WZ_MFA_REQUIRED_ROLES`; audit of denied partner reads (`PARTNER_*` with outcome `DENIED`) | CC6.1, CC6.2 |
+| Increment 4: disclosures to partners, insurers, authorities, legal, HR | `GET /api/v1/claims/disclosure-report?from=&to=` (DPO); `GET /api/v1/disclosures?employeeId=`; audit `CLAIM_DISCLOSURE_CREATE/SEND/REDACT/REVOKE`, `REFERRAL_SEND`, `PARTNER_REFERRAL_READ`, `REFERRAL_FHIR_READ`, `PREAUTH_SUBMIT`, `CLAIM_REPORT_SUBMIT` | P6.1–P6.3, P2.1, CC6.7 |
+| Increment 4: legal hold and retention | `claims.claim.litigation_hold`, `docs.document.legal_hold`; audit `CLAIM_LEGAL_HOLD_SET/RELEASED`, `LEGAL_HOLD_SET/RELEASED`, `CLAIM_PRIVILEGE`, `LEGAL_REPORT_READ` | C1.2, P4.2 |
+| Increment 4: finance completeness | `claims.cost_export` (rows, total, SHA-256, status), `GET /claims/reconciliation?month=`; audit `CLAIM_COST_EXPORT`, `CLAIM_COST_EXPORT_RECONCILE` | PI1.4, PI1.5 |
+| Increment 4: statutory timeliness | `GET /api/v1/claims/reports?status=` and `/claims/reports/kpis` (`onTimeSubmissionPct`); job runs `claims-report-deadlines` | PI1.2, CC7.2 |
+| Increment 4: segregation tests | `Increment4TreatmentIntegrationTest`, `Increment4ClaimsIntegrationTest`, `MfaRoleGateTest`, `ArchitectureTest` (17 rules); E2E log of `tools/e2e/e2e-increment4.js` (22 checks) and screenshots in `docs/images/screens/increment-04/` | CC6.1, CC6.3, CC8.1 |
 
 ## 6. Cross-reference to other frameworks
 
@@ -1019,3 +1030,244 @@ a template that introduces clinical vocabulary fails the build (CC8.1, P3). Reci
 | RR26 | IoT gateway and telehealth service not yet assessed | Manual readings; link-only telehealth | Gateway and video-service selection with DPA (doc 01, D15, D16) |
 | RR27 | Candidate identities outside the workforce directory | Short role scope, own namespace, 12-month purge | Candidate IdP with automatic de-provisioning (doc 01, D17) |
 | RR28 | Business modules of increments 2–3 do not enforce `modules.eXX.enabled` | Modules are deployed together; flag visible in `/modules` | Add `requireEnabled` to use cases and jobs (doc 01, O17) |
+
+## 14. Increment 4 – E04 treatment coordination, E08 claims coordination and the partner portal
+
+Increment 4 adds the business modules `modules/wz-e04-treatment` (schema `treatment`) and `modules/wz-e08-claims`
+(schema `claims`), four kernel SPIs, 25 partner organisations, five roles, the `INSURER` share target, four document
+templates, the retention class `CLAIM_RECORD`, 13 notification templates, three reference-only outbound destinations
+and the **partner portal** (`web/partner-portal`) – the first front end for users who are not employees of the
+airline. The design is in
+[`docs/increment-04/01-Solution-Design-E04-E08.md`](../increment-04/01-Solution-Design-E04-E08.md), requirement
+coverage in [`02-Requirements-Traceability-Matrix.md`](../increment-04/02-Requirements-Traceability-Matrix.md), the
+change list in [`03-Release-Notes-Increment-4.md`](../increment-04/03-Release-Notes-Increment-4.md) and the endpoints
+in [`API-Contract-E04-E08.md`](../increment-04/API-Contract-E04-E08.md). Statements were checked against the code at
+the increment-4 baseline (2026-10-29).
+
+The question for this increment is: **what can a party outside Occupational Health – a partner provider, an insurer
+or TPA, an authority, finance, legal or procurement – obtain, and how is every disclosure justified and recorded?**
+The contract states five confidentiality rules; each maps to a control below:
+
+| # | Rule | Control (section) |
+|---|---|---|
+| 1 | Partner providers see only referrals, telehealth sessions and documents addressed to their own organisation, under the employee's active `TREATMENT_SHARING_PARTNER` consent | Organisation isolation and consent gate (14.2, 14.3) |
+| 2 | Adjusters see only claims where their organisation is payer, RTW status and milestones, shared tasks and messages, documents disclosed under `INSURER_SHARING` – never clinical notes | Payer isolation, projections, clinical-text guard, disclosure sets (14.2–14.4) |
+| 3 | Claims coordinators, finance, legal and procurement never read the OH record; finance sees money by unit, not by person | ArchUnit, `@PreAuthorize`, de-identified finance views (14.1, 14.6) |
+| 4 | Every disclosure outside OH writes the disclosure log | Disclosure log (14.4) |
+| 5 | `PARTNER_PROVIDER` and `TPA_ADJUSTER` only with MFA proof in the token | MFA gate (14.2) |
+
+### 14.1 New roles and segregation of duties
+
+The canonical role list grows from 25 to 30. `GET /api/v1/me` reports `STATUS_ONLY` for all new roles and for
+`PARTNER_PROVIDER`; no ABAC policy grants them `CLINICAL`.
+
+| Role | New in increment 4 | Data reach | Notable permissions | Cannot (enforced server-side) |
+|---|---|---|---|---|
+| `CLAIMS_COORDINATOR` | new | claim, cost and report data; names | Open and manage claims, first reports and deadlines, disclosure sets (non-clinical document types), pre-authorisation follow-up, invoices, tasks and messages, reconciliation | Open the OH record, chart, encounters or provider reports (E08 cannot reference `e03` – ArchUnit; claims coordinators never open clinical screens – UI and integration tests); add `PROVIDER_REPORT` / `EXTERNAL_REPORT` to a disclosure set; pre-authorisation justification (`justification_oh_only`) |
+| `TPA_ADJUSTER` | new (external) | own payer organisation's claims | Partner portal: claims where the organisation is payer, RTW status and milestones, shared tasks, secure messages, consented documents, pre-authorisation decisions | Claims of another payer (`404`); clinical notes, reserves, justification; clinical wording in tasks / messages (`422 clinical_content_not_allowed`); the role itself without MFA |
+| `PARTNER_PROVIDER` | first real use | own organisation's referrals and sessions | Partner portal: referral inbox, accept / decline, appointment, seen, report and invoice upload, telehealth, documents shared with the organisation | Another organisation's referrals (`404`); any claim endpoint (`403`); the role itself without MFA |
+| `LEGAL_COUNSEL` | new | litigated / held claims, legal access set | Litigation hold, privilege, medico-legal / expert / IME requests, medico-legal report versions, set a claim to `LITIGATED` | Other status transitions; the OH record; claims that are neither litigated nor on hold |
+| `FINANCE` | new | money by unit | Cost roll-ups (suppressed below the minimum group size), budgets, budget versus actual, ERP export and reconciliation, invoices, claim cost ledger | Names in roll-ups and exports; claim detail (`403`); clinical data |
+| `PROCUREMENT` | new | provider organisations | Provider directory, profiles, contracts, rate cards, SLAs, network gaps, scorecards | Person-level data |
+| `CASE_MANAGER` | extended | as before | Nurse case manager of lost-time claims (automatic assignment), claim tasks and messages, RTW status for the adjuster | – |
+| `HR` | extended | status only | Claim status of employees in scope (`/workspace/claims` – disclosure-logged) | Costs, payer, adjuster, clinical detail |
+| `DPO` | extended | disclosures | Claim disclosure report; revoke disclosure sets | Clinical data |
+| `HSE_OFFICER` | extended | statutory reports | Report forms, first reports and the deadline dashboard | Clinical record |
+| `INTEGRATION` | extended | machine | FHIR referral read / report, insurer pre-authorisation decision and report acknowledgement, telehealth token redemption | User-facing endpoints |
+
+Segregation-of-duties controls added: a pre-authorisation justification (clinical) is written only by OH roles;
+provider and external reports enter a disclosure set only when an OH role adds them; redaction is an OH action;
+the litigation hold and privilege are set only by legal counsel; ERP exports are generated and reconciled by finance
+(one per month unless `MISMATCH`); contracts are changed only by procurement (versioned, audited
+`PROVIDER_CONTRACT_CREATE`).
+
+Identity configuration: Keycloak realm roles `CLAIMS_COORDINATOR`, `TPA_ADJUSTER`, `LEGAL_COUNSEL`, `FINANCE`,
+`PROCUREMENT`; users `claims1`, `adjuster1` (`/PARTNERS/GULFTPA`), `legal1`, `finance1`, `procurement1` and the second
+partner user `physio1` (`/PARTNERS/PHYSIOPLUS`; `partner1` remains `/PARTNERS/CITYHOSP`); all roles in the scope
+mappings of `wellnessz-bff` and `wellnessz-mobile`; redirect URIs, post-logout URIs and web origins for the partner
+portal (`http://localhost:5176`). Entra ID: app roles on `wellnessz-api`; partner and adjuster users as B2B guests with
+`org_scope=/PARTNERS/<ORG>`.
+
+### 14.2 External-user access: MFA gate and organisation isolation (CC6.1, CC6.6)
+
+| Control | Implementation | Evidence |
+|---|---|---|
+| MFA enforced by the IdP | Entra ID Conditional Access for guest / external users with an authentication strength; Keycloak OTP / WebAuthn required action and a level-of-authentication flow or AMR mapper (doc 01, Section 14.30) | IdP configuration export, sign-in logs (Org) |
+| MFA verified by the API | `WellnessZJwtConverter` drops `PARTNER_PROVIDER` / `TPA_ADJUSTER` unless `amr` ∈ {`mfa`, `otp`, `totp`, `hwk`, `swk`, `sms`, `webauthn`, `fido`} or `acr` ∈ {`2`, `3`, `mfa`, `c1`}; `wellnessz.security.mfa-required-roles` (`WZ_MFA_REQUIRED_ROLES`) on by default, empty only in the `local` profile | `MfaRoleGateTest` (3 tests), `application.yml` |
+| Portal decides on server roles | The partner portal grants screens only from the roles in `GET /bff/api/me`; without a partner role it shows *multi-factor sign-in required / no partner access*; route gating is convenience only | partner-portal tests, E2E |
+| Organisation isolation | Organisation code = last segment of `org_scope` (`/PARTNERS/<CODE>`); every partner query filters by it; other organisations' referrals, sessions, claims and pre-authorisations answer `404` (existence not disclosed) | `f02ReferralSendPartnerPortalFlowAndDenials`, `adjusterSeesOwnPayerClaimsOnlyWithRtwMilestonesTasksAndMessages`; E2E *CITYHOSP → 404*, *provider → 403 on claims* |
+| Field whitelisting | Partner projections omit case ids, clinical notes, reserves, document hashes and the pre-authorisation justification; the portal's API mappers whitelist the contract fields again | contract, `src/api/*` mappers |
+| Clinical-text guard | Free text written by or for external parties (appointment instructions, tasks, messages, claim notes, first-report descriptions, subrogation) is screened → `422 clinical_content_not_allowed` | integration tests, E2E *clinical wording → 422* |
+| Exposure | Only `partners.<domain>` is intended for the internet audience outside the airline; WAF / rate limits on login paths; same BFF, CSRF and session controls as the other apps (15-minute idle logout) | doc 04, Section 20 |
+
+### 14.3 Consent-gated disclosure and the `INSURER` target (P2.1, P6.1)
+
+* **Partner shares.** Sending a referral requires the full data set (`422 data_set_incomplete` with the field) and an
+  active `TREATMENT_SHARING_PARTNER` consent of that employee (`422 consent_required`); the letter and attachments are
+  shared with the provider organisation; the first portal read of a referral and every FHIR read write the
+  disclosure log.
+* **Insurer shares (new target).** `DocumentService` shares with target `INSURER` (insurer or TPA organisation code)
+  only under an active `INSURER_SHARING` consent of the employee (disclosure purpose `CLAIM`): pre-authorisation
+  requests, insurer first reports and disclosure sets. Withdrawal revokes the shares (`DocumentConsentListener`, as in
+  increment 2).
+* **Disclosure sets.** Allowed types: `FITNESS_CERTIFICATE`, `RESTRICTION_NOTE`, `RTW_PLAN`, `PREAUTH_REQUEST`,
+  `FIRST_REPORT_OF_INJURY`, `PROVIDER_INVOICE`, `REDACTED_COPY`, and – added by an OH role only – `PROVIDER_REPORT`,
+  `EXTERNAL_REPORT`. **Never** `MEDICO_LEGAL_REPORT`, photographs, restricted-class documents or material of a claim
+  marked privileged (`422 document_not_disclosable`). The OH workspace shows non-disclosable documents disabled with
+  the reason. Sending checks the consent, shares each document and writes the disclosure log; the claims coordinator
+  or the DPO can revoke the set.
+* **Redaction.** An OH user can replace a document in a set by a `REDACTED_COPY` (text re-rendered with up to 50
+  phrases masked); the original is never sent.
+* **Telehealth.** Joining requires `TELEHEALTH_CONSULTATION` consent; participant tokens are single-use, stored as
+  hashes and valid only from 15 minutes before the start to the end; redemption by the video platform is audited
+  (`TELEHEALTH_TOKEN_REDEEM`).
+* **Authorities.** Statutory first reports are a legal obligation: no consent is asked, the disclosure log records the
+  recipient and the legal basis.
+* **No free-text consent ids.** The UIs choose consents from the employee's active consents of the right purpose.
+
+Tests: `disclosureSetsAreConsentGatedRedactableAndRevocable`, `privilegedAndNeverDisclosedMaterialIsExcluded`,
+`insurerAndStatutoryReportsWithConsentLegalBasisAcknowledgementAndDeadlines`, `f07TelehealthConsentJoinTokensChatAndCompletion`;
+E2E *invalid consent → 422 consent_required*, *3 disclosable of 6*.
+
+### 14.4 Disclosure logging (P6.1–P6.3, CC6.7)
+
+Increment 4 writes a disclosure-log entry for every flow that lets personal health information leave OH:
+
+| Recipient type | Disclosure | Purpose |
+|---|---|---|
+| `PARTNER` | referral (portal read, FHIR read), telehealth session, shared documents | treatment |
+| `INSURER` | disclosure-set documents, pre-authorisation request, insurer first report, RTW status read by the adjuster (`CLAIM_RTW_STATUS`, once per recipient and status) | `CLAIM` |
+| `AUTHORITY` | statutory first report | legal obligation |
+| `LEGAL` | medico-legal report read by legal counsel | `LEGAL_PROCEEDINGS` |
+| `HR` | claim status (`CLAIM_STATUS`, once per recipient and status) | claim status |
+
+The DPO reads every insurer disclosure with its consent in `GET /api/v1/claims/disclosure-report` (E2E: 14
+disclosures); employees see theirs at `/me/disclosures`.
+
+### 14.5 Legal hold, retention and privileged material (C1.2, P4.2)
+
+* **Litigation hold.** `POST /claims/{id}/legal-hold` (legal counsel, reason required) sets `litigationHold` and calls
+  `DocumentService.legalHoldForCase`, which puts **every document of the case** on legal hold; the retention job no
+  longer lists them for destruction. Releasing the hold releases them. Audit `CLAIM_LEGAL_HOLD_SET` / `_RELEASED`
+  and per case `LEGAL_HOLD_SET` / `LEGAL_HOLD_RELEASED`; case timeline entry.
+* **Retention class `CLAIM_RECORD`.** 10 years from the document date (proposed, pending DPO approval), suspended
+  while a litigation hold is active. Still flagging only – no automatic deletion.
+* **Privilege.** Legal counsel marks a claim privileged with a basis; the claim's medico-legal and IME reports are then
+  excluded from disclosure sets.
+* **Medico-legal reports.** Each version is a signed `MEDICO_LEGAL_REPORT` in the legal access set (legal counsel and
+  physicians; claims coordinators `403`); reads by legal counsel are audited and disclosure-logged.
+
+Test: `litigationHoldPutsCaseDocumentsOnHoldAndMedicoLegalReportsStayInTheLegalAccessSet`; E2E *hold=true, legal=200,
+claims coordinator=403*.
+
+### 14.6 Finance de-identification and outbound references (C1.1, P3.1, CC6.7)
+
+* **Roll-ups.** `GET /claims/costs/rollup` groups by subsidiary, department or cost centre; units with fewer cases
+  than `wellnessz.analytics.min-group-size` are returned `suppressed: true` without amounts; no names or employee ids;
+  finance gets `403` on claim detail. E2E: *units=4, suppressed=2, claim detail → 403*.
+* **ERP export.** Monthly CSV (cost centre, category, amounts – no names) with a SHA-256 checksum and the reference-only
+  event `claim.cost.export.v1` to `erp-finance`; reconciliation against the ERP total (`RECONCILED` / `MISMATCH`).
+* **Allow-lists.** `insurer-gateway`, `authority-gateway` and `erp-finance` accept only reference fields (doc 01,
+  Section 7.3); documents never travel in events.
+* **Money visibility.** Reserves, paid totals and costs only for `CLAIMS_COORDINATOR`, `FINANCE`, `CMO`; HR sees claim
+  status only; the case-header badge (`ClaimContextProvider`) carries status and payer, not costs.
+
+### 14.7 Interfaces: machine endpoints, FHIR, telehealth and notifications
+
+* **Machine-only paths** (`INTEGRATION`): `/integration/referrals/{id}/fhir`, `/integration/referrals/fhir/document-reference`,
+  `/integration/preauthorisations/{ref}/decision`, `/integration/claims/reports/{ref}/acknowledgement`,
+  `/integration/telehealth/tokens/redeem`. Partner hospital systems, insurer systems and the video platform each get
+  their own client-credentials client (certificate credential recommended).
+* **Uploads from partners** (reports, invoices, insurer acknowledgements) go through `DocumentService.storeUpload`
+  (PDF / JPEG / PNG by magic bytes, ≤ 10 MB, encrypted at rest); the BFF streams multipart bodies unchanged.
+* **Notifications.** 13 new templates (`referral.sent`, `referral.chase`, `referral.overdue-team`,
+  `referral.appointment`, `treatment.follow-up`, `treatment.variance`, `preauth.status`, `telehealth.invite`,
+  `claim.assigned`, `claim.report-due`, `claim.task`, `claim.message`, `legal.request`) are content-free; the new
+  placeholder `reference` carries a reference number only; `NotificationRulesTest` renders every template through the
+  content rules. Partner and adjuster mails link to the portal (`wellnessz.notification.partner-portal-url`).
+
+### 14.8 Threat model additions (STRIDE)
+
+| ID | Flow |
+|---|---|
+| F33 | Partner provider (unmanaged device) → `partners.<domain>` → BFF → `/partner/referrals`, `/partner/telehealth`, `/partner/documents` |
+| F34 | TPA adjuster → `partners.<domain>` → BFF → `/partner/claims`, `/partner/preauthorisations`, claim tasks / messages |
+| F35 | Partner hospital system ↔ `/integration/referrals/**` (FHIR `ServiceRequest` / `DocumentReference`) |
+| F36 | Core → `insurer-gateway` / `authority-gateway` (outbox) and content-free e-mail; insurer system → decision / acknowledgement endpoints |
+| F37 | Core → `erp-finance` (outbox) and CSV export → ERP; finance roll-ups |
+| F38 | Video platform → `/integration/telehealth/tokens/redeem`; participants → join links, chat |
+| F39 | Legal counsel → legal hold, privilege, medico-legal reports |
+
+```mermaid
+flowchart LR
+  P[Partner provider<br/>unmanaged device] -->|TLS, WAF| PH[partners.&lt;domain&gt;]
+  A[TPA adjuster] -->|TLS, WAF| PH
+  PH -->|/bff, /oauth2, /login| BFF[wz-bff<br/>session, CSRF]
+  BFF -->|OIDC + MFA| IDP[IdP: Entra ID B2B / Keycloak OTP]
+  BFF -->|Bearer token with amr / acr| CORE[wz-core-app<br/>MFA gate · org isolation · consent]
+  HS[Partner hospital system] -->|client credentials| CORE
+  CORE -->|references only| OB[(outbox: insurer-gateway,<br/>authority-gateway, erp-finance)]
+  CORE --> DL[(disclosure log)]
+```
+
+| Flow | Threat (STRIDE) | Scenario | Controls | Residual |
+|---|---|---|---|---|
+| F33/F34 | **S**poofing | Phished partner password used to read referrals or claims | MFA at the IdP and MFA gate in the core; WAF rate limits; 15-minute idle logout; quarterly partner access review | L (M until production MFA enrolment is verified – RR30) |
+| F33/F34 | **E**levation of privilege | Partner of organisation A reads organisation B's referral or claim by id | Organisation filter on every query, `404` for others; `org_scope` set by the IdP, not by the user | L |
+| F33/F34 | **I**nformation disclosure | Adjuster obtains clinical detail | Projections without clinical fields, RTW status only, disclosure sets limited to allowed types, clinical-text guard on messages | L |
+| F33 | **T**ampering | Malicious report or invoice upload | Magic-byte and size checks in the core, documents stored encrypted, never executed; report attaches to the case only for the addressed referral | L |
+| F34 | **R**epudiation | Adjuster disputes a pre-authorisation decision | Decision audited (`PREAUTH_DECIDE_PARTNER`) with user, time and approval reference; `preauth.status` notice | L |
+| F35 | **S**poofing / **I**nformation disclosure | Another machine client reads a referral or posts a report for it | `INTEGRATION` client-credentials token; `context.related` must reference an existing referral; reads audited | M – the endpoints do not bind the client to the provider organisation (RR33) |
+| F36 | **I**nformation disclosure | Clinical data leaves in an insurer or authority message | Reference-only allow-lists; documents only through consented `INSURER` shares; authority reports logged with legal basis | L |
+| F36 | **D**enial of service | Missed statutory deadline because the connector is down | Hourly deadline job, LATE status, escalation to the claims mailbox; manual channel | M – no authority connector yet (RR31) |
+| F37 | **I**nformation disclosure | Re-identification from cost roll-ups | Suppression below the minimum group size, no names, finance denied claim detail | L |
+| F37 | **T**ampering | ERP export altered in transit | SHA-256 checksum, reconciliation with `MISMATCH` status, one export per month | L |
+| F38 | **S**poofing | Join link forwarded to a third person | Single-use token, hashed, 15-minute window, consent required; platform redeems once | M – depends on the platform's lobby and identity check (D15) |
+| F38 | **I**nformation disclosure | Recording of the consultation by the platform | Consent text states video and sound are not stored – to be confirmed with the selected platform | M until D15 |
+| F39 | **T**ampering | Case documents destroyed while litigation is pending | Legal hold on every case document; no `DELETE` grant; retention flagging only | L |
+
+### 14.9 Control mapping additions
+
+| Criterion | Increment-4 control | Evidence source | Resp. | Status |
+|---|---|---|---|---|
+| CC6.1 | MFA gate for external roles; organisation isolation; `@PreAuthorize` on every E04 / E08 endpoint; `/integration/**` machine-only | `MfaRoleGateTest`, `Increment4*IntegrationTest`, E2E | F | Implemented |
+| CC6.2 | Five roles and six test users with scope mappings; partner / adjuster accounts with `org_scope`; MFA enrolment | realm export, Entra B2B guests and CA policies | O/F | Implemented (enrolment and assignment: Org) |
+| CC6.3 | Claims, finance, legal and procurement without clinical access (ArchUnit rule: E08 independent of E03); OH-only justification, provider reports and redaction; legal-only hold and privilege | `ArchitectureTest`, tests | F | Implemented |
+| CC6.6 | External users only through `partners.<domain>` with WAF; uploads validated in the core | doc 04, Section 20; ingress / WAF config | F/O | Implemented (WAF tuning: Org) |
+| CC6.7 | Reference-only `insurer-gateway`, `authority-gateway`, `erp-finance`; consent-checked `INSURER` shares; content-free notifications | `application.yml`, `OutboundPayloadGuard`, `NotificationRulesTest` | F | Implemented |
+| CC7.2 | Report deadline reminders and LATE escalation; referral chase / escalation; denied partner access audited | audit, mail log, `platform.scheduled_job_run` | F/O | Implemented (SIEM rules: Org) |
+| CC8.1 | Flyway V13–V15; versioned provider contracts and plan templates; E2E `e2e-increment4.js` 22/22 plus regressions (97 checks) | `flyway_schema_history`, release record | F/O | Implemented |
+| CC9.2 | Partner organisations with data-sharing agreements; insurer / TPA and telehealth vendor assessments | contracts, DPAs | O | Org |
+| PI1.2 | Referral data-set validation; first-report completeness (`422 report_incomplete`); medication batch / expiry checks; invoice matching with tolerance | tests | F | Implemented |
+| PI1.4 | Claim reconciliation (paid vs ledger), ERP export reconciliation, report acknowledgement | `/claims/reconciliation`, `claims.cost_export` | F | Implemented |
+| C1.1 | `treatment`, `claims` classified; free text and chat encrypted; telehealth tokens hashed | migrations, entities | F | Implemented |
+| C1.2 / P4.2 | `CLAIM_RECORD` retention class; case-level legal hold | Section 14.5, audit | F/O | Partial (schedule approval: Org) |
+| P2.1 | Consent gates `TREATMENT_SHARING_PARTNER`, `INSURER_SHARING`, `TELEHEALTH_CONSULTATION`; authority reports on legal basis | Section 14.3 tests | F/O | Implemented (lawful-basis review: DPO) |
+| P3.1 | Minimisation: partner and adjuster projections, RTW status only, finance by unit | code, tests | F | Implemented |
+| P6.1–P6.3 / P6.7 | Disclosure log for partner, insurer, authority, legal and HR disclosures; DPO disclosure report; employee view | `platform.disclosure_log`, `/claims/disclosure-report`, `/me/disclosures` | F | Implemented |
+
+Evidence catalogue additions are listed in Section 5.
+
+### 14.10 Organisation-operated controls and residual risks added
+
+| Control | Frequency | Owner (proposed) | TSC |
+|---|---|---|---|
+| MFA enrolment and Conditional Access / required-action configuration for every partner and adjuster account; verify `amr` / `acr` in a decoded token per IdP; keep `WZ_MFA_REQUIRED_ROLES` at its default | Before go-live, after IdP changes | IAM + OH service owner | CC6.1, CC6.2 |
+| Partner on-boarding: data-sharing agreement or processor contract, `org_scope` assignment, named users only; off-boarding within 24 h of contract end | Per partner | Procurement + DPO + IAM | CC6.2, CC9.2, P6.4 |
+| Access review of `PARTNER_PROVIDER`, `TPA_ADJUSTER`, `CLAIMS_COORDINATOR`, `LEGAL_COUNSEL`, `FINANCE`, `PROCUREMENT` accounts and the new `INTEGRATION` clients (FHIR partners, insurer systems, video platform) | Quarterly | OH service owner + IAM | CC6.2, CC6.3 |
+| Monthly review of the DPO claim disclosure report; investigation of revoked or disputed disclosure sets | Monthly | DPO | P6.1, P6.7 |
+| Legal / HSE sign-off of the report forms and statutory deadlines; manual submission procedure while connectors are missing | Before go-live, per regulation change | Legal + HSE | PI1.2, CC7.2 |
+| Approval of `CLAIM_RECORD` retention; litigation-hold procedure (who may set and release) | Before go-live, annual | DPO + Legal | C1.2, P4.2 |
+| Telehealth platform assessment (DPA, regional hosting, recording off, lobby, token redemption) and confirmation of the consent wording | Before enabling video | DPO + CMO + procurement | CC9.2, P2.1 |
+| WAF and rate-limit tuning for `partners.<domain>`; SIEM rules on repeated `404` / `403` from one partner account and on `TELEHEALTH_TOKEN_REDEEM` denials | Continuous | SOC | CC6.6, CC7.2 |
+| DPIA update for treatment coordination, claims and external access | Before go-live | DPO | P1.1, CC9.2 |
+
+| ID | Residual risk | Compensating control (now) | Target remediation |
+|---|---|---|---|
+| RR29 | External users on unmanaged devices | MFA (IdP + core gate), organisation isolation, no tokens in the browser, idle logout | Phishing-resistant authentication strength for partners; device-based Conditional Access where partners accept it |
+| RR30 | MFA claim formats differ per IdP; an empty `WZ_MFA_REQUIRED_ROLES` would silently remove the gate | Gate on by default; local profile only switches it off; release checklist | Configuration test per environment (decoded token, doc 01, Section 14.30); alert on configuration change |
+| RR31 | No insurer, authority or ERP connector (outbox + e-mail only); forms pending sign-off | Deadline dashboard, reminders, LATE escalation, manual channel | Connectors (doc 01, D18), form sign-off (O24) |
+| RR32 | Telehealth video platform not selected; recording behaviour unknown | Link provider, single-use tokens, consent | Platform selection (doc 01, D15) |
+| RR33 | The FHIR endpoints accept **any** `INTEGRATION` client: every gateway client (absence feed, IoT, laboratory …) could read any referral's `ServiceRequest` or post a report for any referral | One client per system, certificate credentials, access review, audit `REFERRAL_FHIR_READ` / `REFERRAL_REPORT_FHIR` | Bind each partner client id to its organisation code and check it on both endpoints (code change) |
+| RR34 | Illustrative provider network and rates | Procurement owns the data and its changes are audited | Load the contracted network before go-live (doc 01, O27) |
+| RR35 | E04 / E08 do not enforce `modules.eXX.enabled` (as RR28) | Modules deployed together | `requireEnabled` (doc 01, O17) |
