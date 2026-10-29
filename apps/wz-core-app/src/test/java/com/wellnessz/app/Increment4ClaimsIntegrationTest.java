@@ -719,14 +719,20 @@ class Increment4ClaimsIntegrationTest extends IntegrationTestBase {
         mvc.perform(get("/api/v1/legal-requests").with(FINANCE)).andExpect(status().isForbidden());
         mvc.perform(post("/api/v1/legal-requests/" + lrId + "/close").with(LEGAL)).andExpect(jsonPath("$.status").value("CLOSED"));
 
-        // IME without a referral service (E04 absent): graceful – request stays OPEN, OH gets a task
+        // IME: with E04 deployed a DRAFT referral is raised through ExternalReferralGateway; without it the request stays
+        // OPEN with referralStatus NOT_AVAILABLE and OH gets a task to arrange the examination
         JsonNode ime = body(postJson("/api/v1/claims/" + id + "/legal-requests", LEGAL, toJson(Map.of("type", "IME", "questions",
                 "Independent examination of current work capacity", "dueDate", LocalDate.now().plusDays(21).toString(), "providerCode", "STMARYS_ORTHO")))
                 .andExpect(status().isCreated()).andReturn());
         assertThat(ime.get("status").asString()).isEqualTo("OPEN");
-        assertThat(ime.get("referralStatus").asString()).isEqualTo("NOT_AVAILABLE");
-        assertThat(count("select count(*) from casemgmt.case_task where case_id = ? and title like ?", caseId, "%" + ime.get("ref").asString() + "%"))
-                .isEqualTo(1);
+        if ("DRAFT".equals(ime.get("referralStatus").asString())) {
+            assertThat(count("select count(*) from treatment.referral where source_type = 'CLAIM_IME' and source_ref = ?", ime.get("id").asString()))
+                    .isEqualTo(1);
+        } else {
+            assertThat(ime.get("referralStatus").asString()).isEqualTo("NOT_AVAILABLE");
+            assertThat(count("select count(*) from casemgmt.case_task where case_id = ? and title like ?", caseId, "%" + ime.get("ref").asString() + "%"))
+                    .isEqualTo(1);
+        }
         // a referral status update from E04 moves the request on
         referralListeners.stream().filter(l -> l.supports("CLAIM_IME")).forEach(l -> l.referralStatusChanged(UUID.randomUUID(), "CLAIM_IME",
                 ime.get("id").asString(), ReferralStatusListener.Status.SCHEDULED, null));
