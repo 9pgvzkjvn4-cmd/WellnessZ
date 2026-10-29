@@ -5,6 +5,10 @@ spring:
   threads:
     virtual:
       enabled: true
+  # the BFF streams uploads to the core API untouched – it must not parse (and consume) multipart bodies itself
+  servlet:
+    multipart:
+      enabled: false
   datasource:
     url: ${WZ_BFF_DB_URL:${WZ_DB_URL:jdbc:postgresql://localhost:5432/wellnessz}}
     username: ${WZ_BFF_DB_USERNAME:${WZ_DB_USERNAME:wz_app}}
