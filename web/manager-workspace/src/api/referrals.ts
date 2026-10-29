@@ -54,6 +54,9 @@ export const HR_QUESTION_MAX = 500;
 export const HR_MAX_QUESTIONS = 10;
 
 export const CLINICAL_CONTENT_CODE = 'clinical_content_not_allowed';
+/** Increment 3 (`ClinicalContentException.screen`, docs/increment-03 contract) reports `422 code=clinical_content`. */
+export const CLINICAL_CONTENT_CODE_V3 = 'clinical_content';
+export const isClinicalContentCode = (code: string | undefined) => code === CLINICAL_CONTENT_CODE || code === CLINICAL_CONTENT_CODE_V3;
 export const CLINICAL_CONTENT_MESSAGE =
   'This looks like medical information (for example a diagnosis or clinical opinion). Describe only the impact on work.';
 export const GUIDANCE = 'Do not include diagnoses or medical opinions – describe the impact on work only.';
@@ -202,7 +205,7 @@ export async function submitReferral(
   } catch (e) {
     if (e instanceof SessionExpiredError) return { ok: false, fieldErrors: {}, message: 'Your session has ended. Please sign in again.', sessionExpired: true };
     if (e instanceof ApiError && (e.status === 422 || e.status === 400)) {
-      const clinical = e.problem?.code === CLINICAL_CONTENT_CODE;
+      const clinical = isClinicalContentCode(e.problem?.code);
       const key = problemFieldKey(e.problem?.field, allowedFields, sentIndexToRow);
       const fieldMsg = clinical ? CLINICAL_CONTENT_MESSAGE : 'Please check this field.';
       return {

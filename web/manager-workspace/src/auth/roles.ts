@@ -51,7 +51,17 @@ export const isHr = (roles: readonly string[] | undefined) => has(roles, 'HR');
  * managers – team restrictions, modified duty, RTW plans (acknowledge), documents;
  * HR – team restrictions, RTW plans (read-only), documents, job offers, ill-health retirement / redeployment.
  */
-export type Feature = 'restrictions' | 'dutyProposals' | 'rtwPlans' | 'documents' | 'jobOffers' | 'ihr';
+export type Feature =
+  | 'restrictions'
+  | 'dutyProposals'
+  | 'rtwPlans'
+  | 'documents'
+  | 'jobOffers'
+  | 'ihr'
+  | 'absence'
+  | 'adviceRequests'
+  | 'compliance'
+  | 'preEmployment';
 
 export function canUse(feature: Feature, roles: readonly string[] | undefined): boolean {
   switch (feature) {
@@ -64,6 +74,13 @@ export function canUse(feature: Feature, roles: readonly string[] | undefined): 
     case 'jobOffers':
     case 'ihr':
       return isHr(roles);
+    // increment 3 (docs/increment-03/API-Contract-E06-E07-E14.md §3.1, §3.5, §4.2, §4.3)
+    case 'absence':
+    case 'adviceRequests':
+    case 'compliance':
+      return isManager(roles) || isHr(roles);
+    case 'preEmployment':
+      return isHr(roles);
   }
 }
 
@@ -75,13 +92,31 @@ export const FEATURE_ROUTES = {
   dutyProposals: '/duty-proposals',
   rtwPlans: '/rtw-plans',
   documents: '/documents',
+  absence: '/absence',
+  adviceRequests: '/advice-requests',
+  compliance: '/compliance',
+  preEmployment: '/pre-employment',
 } as const;
 const FEATURE_LABELS: Record<keyof typeof FEATURE_ROUTES, string> = {
   restrictions: 'Team restrictions',
   dutyProposals: 'Modified duty',
   rtwPlans: 'Return to work',
   documents: 'Documents',
+  absence: 'Absence',
+  adviceRequests: 'OH advice',
+  compliance: 'Health surveillance',
+  preEmployment: 'Pre-employment',
 };
+
+/**
+ * Increment-3 absence screen sections (UX guard; the API enforces scope and roles). Managers see their team's absence
+ * status; HR additionally sees the long-term absence pathway (and may set the HR stage), the certificate validity list
+ * with escalations and unit-level absence analytics / the monthly export.
+ */
+export function absenceSections(roles: readonly string[] | undefined) {
+  const hr = isHr(roles);
+  return { team: hr || isManager(roles), lta: hr, hrStage: hr, certificates: hr, analytics: hr };
+}
 
 export const jobOffersRoute = (caseId: string) => `/cases/${encodeURIComponent(caseId)}/job-offers`;
 export const ihrRoute = (caseId: string) => `/cases/${encodeURIComponent(caseId)}/ihr`;

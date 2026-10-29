@@ -7,9 +7,13 @@ const WHO = {
   documents: 'managers and HR',
   jobOffers: 'HR business partners',
   ihr: 'HR business partners',
+  absence: 'managers and HR',
+  adviceRequests: 'managers and HR',
+  compliance: 'managers and HR',
+  preEmployment: 'HR business partners',
 } as const;
 
-/** Shown when an increment-2 route is opened without the required role. */
+/** Shown when an increment-2 / increment-3 route is opened without the required role. */
 export function FeatureNotAvailable({ feature }: { feature: keyof typeof WHO }) {
   return (
     <section>
