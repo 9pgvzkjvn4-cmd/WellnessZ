@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,10 +50,14 @@ public class TriggerService {
     private final AuditService audit;
     private final JsonMapper json;
     private final Clock clock;
+    private final String ameContact;
+    private final int ackSlaHours;
 
     public TriggerService(AbsenceEpisodeRepository absences, TriggerEventRepository triggers, CaseService cases,
                           OhCaseRepository caseRepo, CaseLinkRepository links, EmployeeRepository employees, ConfigService config,
-                          AuditService audit, JsonMapper json, Clock clock) {
+                          AuditService audit, JsonMapper json, Clock clock,
+                          @Value("${wellnessz.fitness.ame-contact:Aeromedical examiner on duty via the Occupational Health service desk}") String ameContact,
+                          @Value("${wellnessz.fitness.declaration-ack-hours:24}") int ackSlaHours) {
         this.absences = absences;
         this.triggers = triggers;
         this.cases = cases;
@@ -63,10 +68,26 @@ public class TriggerService {
         this.audit = audit;
         this.json = json;
         this.clock = clock;
+        this.ameContact = ameContact;
+        this.ackSlaHours = ackSlaHours;
     }
 
     public record TriggerResult(String outcome, String caseId, String caseRef) {
     }
+
+    /**
+     * Crew decrease-in-fitness declaration receipt (E05-BL-010): what happens next, who the aeromedical contact is and by
+     * when the declaration will be acknowledged (24-hour SLA).
+     */
+    public record DeclarationResult(String outcome, String caseId, String caseRef, List<String> nextSteps, String ameContact,
+                                    java.time.Instant acknowledgementDueBy) {
+    }
+
+    static final List<String> DECLARATION_NEXT_STEPS = List.of(
+            "Do not report for flight duty until an aeromedical examiner (AME) has assessed your fitness.",
+            "Crew scheduling has been told that you are unavailable pending assessment – no medical details are shared.",
+            "An AME will contact you to acknowledge your declaration and arrange an assessment.",
+            "Keep any reports or prescriptions available for your assessment.");
 
     // ------------------------------------------------------------- absence (E01-BL-014)
 
@@ -130,7 +151,7 @@ public class TriggerService {
     // ------------------------------------------------------------- crew decrease in fitness (E01-BL-016)
 
     @Transactional
-    public TriggerResult fitnessDeclaration(CurrentUser user, String reason, LocalDate unfitFrom, LocalDate expectedUntil, String details) {
+    public DeclarationResult fitnessDeclaration(CurrentUser user, String reason, LocalDate unfitFrom, LocalDate expectedUntil, String details) {
         if (user.employeeId() == null || !user.hasRole(Roles.EMPLOYEE)) {
             throw ApiException.forbidden("Declarations are made by the employee");
         }
@@ -150,7 +171,8 @@ public class TriggerService {
         triggers.save(new TriggerEvent(TriggerEvent.Type.FITNESS_DECLARATION, sourceRef, user.employeeId(), reason,
                 TriggerEvent.Outcome.CASE_CREATED, c.getId(), clock.instant()));
         audit.record("FITNESS_DECLARATION", "CASE", c.getId().toString(), AuditService.Outcome.SUCCESS, null);
-        return new TriggerResult("CASE_CREATED", c.getId().toString(), c.getCaseRef());
+        return new DeclarationResult("CASE_CREATED", c.getId().toString(), c.getCaseRef(), DECLARATION_NEXT_STEPS, ameContact,
+                c.getCreatedAt().plus(java.time.Duration.ofHours(ackSlaHours)));
     }
 
     // ------------------------------------------------------------- D&A (E01-HLR-04)
