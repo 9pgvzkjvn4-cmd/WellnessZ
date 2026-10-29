@@ -4,14 +4,17 @@
 |---|---|
 | **Document** | 03 – Developer Guide |
 | **Audience** | Developers and technical leads building business modules E01–E14 and integrations |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increment 2 (E03, E05 – Section 15) |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increment 2 (E03, E05 – Section 15) and increment 3 (E06, E07, E14 – Section 16) |
 | **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
+| **Increment 3 documents** | [Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md) · [Requirements Traceability Matrix](../increment-03/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-03/03-Release-Notes-Increment-3.md) · [API Contract](../increment-03/API-Contract-E06-E07-E14.md) |
 | **Companion documents** | 01 – Technology Architecture and Technology Selection · 02 – Security and SOC 2 Control Mapping |
 
 This guide explains how to add a business module (an *E-number* from the logical architecture) to the base framework
 without weakening its security properties. The running example is **E07 – Surveillance, statutory medicals &
 immunisation**; replace names as appropriate. Everything referenced exists in the repository unless marked
-*recommended*.
+*recommended*. Since increment 3, E07 exists for real (`modules/wz-e07-surveillance`, package `com.wellnessz.e07`):
+Sections 2–9 keep the simplified teaching layout (`com.wellnessz.surveillance`), and Section 16 shows how E06, E07 and
+E14 were actually built.
 
 ## 1. Orientation
 
@@ -25,8 +28,9 @@ immunisation**; replace names as appropriate. Everything referenced exists in th
 | `apps/wz-bff` | Backend-for-Frontend for browser apps |
 | `modules/wz-e01-intake`, `modules/wz-e02-triage` | Business modules of increment 1 – the worked example in Section 14 |
 | `modules/wz-e03-record`, `modules/wz-e05-fitness` | Business modules of increment 2 (OH record, fitness for duty) – the worked example in Section 15 |
+| `modules/wz-e06-absence`, `modules/wz-e07-surveillance`, `modules/wz-e14-scheduling` | Business modules of increment 3 (absence & sickness, medical surveillance, scheduling & clinic operations) – the worked example in Section 16 |
 | `web/employee-app`, `web/manager-workspace`, `web/oh-workspace` | React front-ends (the OH clinical workspace was added in increment 1) |
-| `tools/e2e` | Playwright end-to-end scripts: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, Section 14.7), `e2e-increment2.js` (E03/E05, Section 15.12) |
+| `tools/e2e` | Playwright end-to-end scripts: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, Section 14.7), `e2e-increment2.js` (E03/E05, Section 15.12), `e2e-increment3.js` (E06/E07/E14, Section 16.10) |
 | `deploy/local` | Docker Compose: PostgreSQL, Keycloak (realm import), Mailpit, GreenMail, OpenTelemetry collector |
 | `config/` | SpotBugs exclusions and dependency-check suppressions (justification required) |
 
@@ -54,8 +58,10 @@ cd web/employee-app && npm ci && npm run dev
 
 Test users in the local Keycloak realm `wellnessz` (password `ChangeMe!123`, temporary): `employee1`, `manager1`,
 `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; since increment 1 also `nurse1`, `nurse2`, `physician1`, `ame1`,
-`cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`. The `local` profile loads
-synthetic HRIS employees and the OH staff roster from `db/demo` (never enabled in shared environments).
+`cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`; since increment 2 `dpo1`,
+`partner1`; since increment 3 `scheduler1` (CLINIC_SCHEDULER), `biomed1` (BIOMEDICAL), `crewlicensing1`
+(CREW_LICENSING) and `candidate1` (CANDIDATE, candidate id `C9001`). The `local` profile loads synthetic HRIS
+employees, the OH staff roster and the module demo data from `db/demo` (never enabled in shared environments).
 
 ### 1.3 The rules you must not break
 
@@ -73,7 +79,8 @@ synthetic HRIS employees and the OH staff roster from `db/demo` (never enabled i
 ### 2.1 Location and naming
 
 Create business modules under the top-level folder `modules/` (keeps `platform/` for shared services). Increment 1
-created it with `modules/wz-e01-intake` and `modules/wz-e02-triage`; Section 14 walks through them.
+created it with `modules/wz-e01-intake` and `modules/wz-e02-triage` (Section 14); increment 2 added `wz-e03-record` and
+`wz-e05-fitness` (Section 15), increment 3 `wz-e06-absence`, `wz-e07-surveillance` and `wz-e14-scheduling` (Section 16).
 
 ```
 modules/wz-e07-surveillance/
@@ -500,7 +507,10 @@ class SurveillanceController {
 
 `IntegrationTestBase` uses the database from `WZ_TEST_DB_URL` (+ `WZ_TEST_DB_USERNAME`, `WZ_TEST_DB_PASSWORD`,
 optional `WZ_TEST_DB_MIGRATOR_USERNAME`/`_PASSWORD`) when set – e.g. a CI service container – and otherwise starts
-`postgres:16-alpine` with Testcontainers (Docker required). The `test` profile supplies throw-away keys.
+`postgres:16-alpine` with Testcontainers (Docker required). The `test` profile supplies throw-away keys, and
+`IntegrationTestBase` generates `WZ_MASTER_KEY` / `WZ_PSEUDONYM_KEY` anew for every test JVM: encrypted columns are
+keyed per run, so a persistent test database from `WZ_TEST_DB_URL` must be **dropped and recreated before every run**
+(Section 16.9).
 
 ```java
 class SurveillanceIntegrationTest extends IntegrationTestBase {
@@ -560,9 +570,10 @@ In CI every pull request runs `.github/workflows/ci.yml` (Java build and tests w
 `npm audit` and SBOM, gitleaks, OWASP dependency-check, dependency review, Helm/Terraform/Trivy config checks) and
 `codeql.yml` (Java and TypeScript). Images are built, Trivy-gated, signed and attested by `container.yml`; releases are
 deployed by `cd.yml` through `deploy-env.yml`. The `java` CI job also runs SpotBugs + FindSecBugs and fails on any
-finding. The increment-1 baseline is **65 Java tests**, **0 SpotBugs findings** (5 justified exclusions) and web tests
-oh-workspace 151 / employee-app 81 / manager-workspace 55; keep it that way. Before a release, also run the
-end-to-end script of your increment (Section 14.7).
+finding. The increment-3 baseline is **210 Java tests** (14 ArchUnit rules), **0 SpotBugs findings** (6 justified
+exclusions) and web tests oh-workspace 463 / employee-app 191 / manager-workspace 154 with 0 lint warnings (increment 1:
+65 tests, 5 exclusions; increment 2: 128 tests, 6 exclusions); keep it that way. Before a release, also run the
+end-to-end scripts of all increments (Sections 14.7, 15.12, 16.10).
 
 ## 10. Web and mobile feature additions
 
@@ -607,7 +618,13 @@ inventory.
 ### 10.4 BFF
 
 No change is normally needed – `/bff/api/**` proxies all `/api/v1/**` paths. If a module needs a role-gated alias,
-follow `/bff/api/workspace/**`. Do not forward additional headers without a security review.
+follow `/bff/api/workspace/**`. Core endpoints that natively live under `/api/v1/workspace/...` must be listed in
+`ApiProxyController.CORE_WORKSPACE_RESOURCES` (increment 2: `team-restrictions`, `duty-proposals`, `rtw-plans`,
+`documents`; increment 3: `absence`, `advice-requests`, `surveillance`, `pre-employment`) and covered in
+`ApiProxyPathTest`. The BFF does **not** parse request bodies: `spring.servlet.multipart.enabled=false` keeps
+`multipart/form-data` uploads intact for the core (an increment-3 fix – with Spring's multipart parsing on, the proxy
+forwarded an empty body and uploads failed with `400`). Validate uploads in the core only. Do not forward additional
+headers without a security review.
 
 ## 11. Configuration
 
@@ -1029,3 +1046,223 @@ published set is in `docs/images/screens/increment-02/`) and the realm users `em
 `physician1`, `ame1`, `cmo1`, `crewsched1`, `dpo1` and `admin1`. It seeds a pilot incident through the EHS webhook
 (client `wellnessz-integration`), so `WZ_E2E_CORE_URL` and `WZ_E2E_INTEGRATION_SECRET` must match the environment.
 Run both increment scripts before a release (CI/CD Guide, Section 3.1).
+
+## 16. Worked example: E06, E07, E14 and the increment-3 kernel SPIs (increment 3)
+
+Increment 3 added three business modules that need each other's behaviour – booking, attendance, calibration, results,
+clearance, absence signals and capacity – without depending on each other's classes. The answer is seven small SPIs in
+the kernel (`platform/wz-case-kernel/src/main/java/com/wellnessz/casekernel/support/`). Use this section as the
+reference when a new module needs behaviour that another module owns. Design background:
+[Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md); endpoints:
+[API Contract E06/E07/E14](../increment-03/API-Contract-E06-E07-E14.md).
+
+### 16.1 Module wiring
+
+| Step | E06 (`modules/wz-e06-absence`) | E07 (`modules/wz-e07-surveillance`) | E14 (`modules/wz-e14-scheduling`) |
+|---|---|---|---|
+| Package | `com.wellnessz.e06` | `com.wellnessz.e07` | `com.wellnessz.e14` |
+| Maven dependencies | `wz-e05-fitness` (functional-text screening and fitness support), `wz-documents` | `wz-e03-record`, `wz-e05-fitness`, `wz-documents` | `wz-e02-triage`, `wz-documents` |
+| Root `pom.xml` / core app | `<module>` + `<dependencyManagement>`; dependency in `apps/wz-core-app/pom.xml` | same | same |
+| Registration | `E06Module` (code `E06`) | `E07Module` (code `E07`) | `E14Module` (code `E14`) |
+| Schema / migration | `absence` (V10); platform additions in V9 | `surveillance` (V11) | `scheduling` (V12) |
+| Demo data (`db/demo`) | `R__demo_e06_absence.sql` | `R__demo_e07_surveillance.sql` | `R__demo_e14_scheduling.sql` |
+| ArchUnit | `absenceIsIndependentOfSurveillanceAndScheduling` | `surveillanceIsIndependentOfAbsenceAndScheduling` | `schedulingIsIndependentOfClinicalModules` |
+| Jobs (`JobRunGuard`) | `absence-feed`, `absence-triggers`, `absence-lta` | `surveillance-due`, `crew-certificates`, `pre-employment-purge` | `appointment-reminders`, `appointment-no-show`, `equipment-calibration` |
+| Integration test | `Increment3AbsenceIntegrationTest` | `Increment3SurveillanceIntegrationTest` | `Increment3SchedulingIntegrationTest` |
+
+`increment2ModulesDoNotDependOnIncrement3` keeps E03 and E05 free of the new modules: they call the new behaviour only
+through SPIs. Remember to add every new module package to the platform, kernel and document-service rules in
+`ArchitectureTest` (Section 9.3) – increment 3 did this for `e06`, `e07`, `e14`.
+
+### 16.2 The increment-3 SPIs at a glance
+
+| SPI | Provider of the behaviour (implements) | Consumer (calls) | How the consumer injects it | Behaviour when no implementation is deployed |
+|---|---|---|---|---|
+| `AppointmentBooking` | E14 `AppointmentBookingAdapter` | E07 `Booker`, E06 `LtaService` | `ObjectProvider<AppointmentBooking>` | Callers record "invited, not booked" |
+| `AppointmentStatusListener` | E07 `SurveillanceSpi`, E06 `AbsenceCapacityDemand` | E14 `StatusNotifier` | `ObjectProvider<AppointmentStatusListener>` (all beans) | Nobody is notified |
+| `DeviceCalibrationCheck` | E14 `EquipmentCalibrationCheck` | E03 `ResultService` | `List<DeviceCalibrationCheck>` | Every device accepted |
+| `ResultFollowUpListener` | E07 `FollowUpService` | E03 `ResultService` | `List<ResultFollowUpListener>` | No follow-up evaluation |
+| `FitnessClearanceGuard` | E07 `RaiService` | E05 `FitnessDecisionService` | `List<FitnessClearanceGuard>` | No clearance check |
+| `AbsenceSignalListener` | E07 `RaiService` | E06 `LtaService` | `List<AbsenceSignalListener>` | No signal |
+| `CapacityDemandSource` | E07 `SurveillanceSpi`, E06 `AbsenceCapacityDemand` | E14 `CapacityService` | `ObjectProvider<CapacityDemandSource>` | Supply without demand |
+
+Rules that apply to all of them:
+
+1. **Optional by construction.** Inject a `List<…>` or `ObjectProvider<…>`, never a single required bean, so the
+   consumer starts and works when the provider module is absent (E2E and integration tests run with all modules, unit
+   tests without).
+2. **Identifiers, codes and counts only.** No free text, reason, diagnosis or person-level data beyond ids crosses an
+   SPI (`CapacityDemandSource` is counts per site / service / month; `AbsenceSignalListener` never receives the
+   absence reason; `FitnessClearanceGuard` returns a reason that contains **no clinical content** because it is shown
+   in the `422` problem detail).
+3. **Same transaction, no surprises.** Listeners run inside the caller's transaction. Do not call external systems, do
+   not swallow errors silently, and throw only for a real veto (`DeviceCalibrationCheck`, `FitnessClearanceGuard`
+   return a verdict instead of throwing). E06 books the first LTA contact in a separate transaction
+   (`TransactionTemplate` with `REQUIRES_NEW`) so a full diary cannot roll back the pathway.
+4. **Filter with `supports`.** `AppointmentStatusListener.supports(sourceType)` limits callbacks to the appointments a
+   module created (`sourceType` such as `SURVEILLANCE_INVITATION`, `PRE_EMPLOYMENT`, `IMMUNISATION`, `CREW_RENEWAL` for E07 and
+   `ABSENCE_CONTACT` for E06; `sourceRef` = the module's own id).
+5. **Audit as the module.** Use `audit.recordAs("system", "MODULE", …)` for actions taken in a callback.
+
+### 16.3 Booking through `AppointmentBooking`
+
+```java
+// E07 support/Booker.java – the pattern to copy
+@Component
+public class Booker {
+    private final ObjectProvider<AppointmentBooking> booking;
+    public Booker(ObjectProvider<AppointmentBooking> booking) { this.booking = booking; }
+
+    public boolean available() { return booking.orderedStream().findFirst().isPresent(); }
+
+    public Optional<AppointmentBooking.Booking> book(String actor, AppointmentBooking.BookingRequest request) {
+        return booking.orderedStream().findFirst().flatMap(b -> b.bookNext(actor, request));
+    }
+}
+
+// a caller – DueService.invite (abridged): no booking → the invitation stays INVITED
+Optional<AppointmentBooking.Booking> b = booker.book(actor, new AppointmentBooking.BookingRequest(e.getEmployeeId(),
+        p.getServiceCode(), siteCode, earliest, campaignId, SOURCE_TYPE /* SURVEILLANCE_INVITATION */, i.getId().toString(), null));
+if (b.isPresent()) {
+    i.setStatus("BOOKED");
+    i.setAppointmentId(b.get().appointmentId());
+}
+```
+
+`serviceCode` must exist in the E14 service catalogue (`scheduling.appointment_type`, for example `AUDIOMETRY`,
+`ABSENCE_REVIEW`, `VACCINATION`, `TELEHEALTH_CONSULT`); add new types with a migration or *OH workspace → Scheduling →
+Catalogue* (OH_ADMIN, Nursing Head). Bookings made through the SPI follow the same conflict rules as interactive
+bookings.
+
+### 16.4 Implementing a listener or a guard
+
+```java
+// E07 followup/RaiService.java (abridged) – one bean implementing two SPIs
+@Service
+public class RaiService implements AbsenceSignalListener, FitnessClearanceGuard {
+
+    static final String BLOCKING_REASON =                       // shown in the 422 – no clinical content
+            "A return-after-illness medical is required before this employee returns to a safety-critical role";
+
+    @Override
+    public void longTermAbsence(String employeeId, UUID caseId, LocalDate startDate, long days) {
+        Employee e = support.employee(employeeId).orElse(null);
+        if (e == null || !support.isSafetyCritical(e) || rai.existsByEmployeeIdAndStatus(employeeId, REQUIRED)) {
+            return;                                                  // only safety-critical jobs, once
+        }
+        ReturnAfterIllness r = create(employeeId, "LONG_TERM_ABSENCE", "E06", caseId, "system");
+        audit.recordAs("system", "MODULE", "RAI_REQUIRED", "RAI", r.getId().toString(), AuditService.Outcome.SUCCESS, "source=E06 days=" + days);
+    }
+
+    @Override
+    public Optional<String> blockingReason(String employeeId, String outcome) {
+        return rai.existsByEmployeeIdAndStatus(employeeId, REQUIRED) ? Optional.of(BLOCKING_REASON) : Optional.empty();
+    }
+}
+```
+
+`FitnessDecisionService` turns a non-empty reason into `422 clearance_required`. Follow the same shape for
+`DeviceCalibrationCheck` (return `Status(verdict, calibrationId, dueOn)`; E03 maps `OUT_OF_CALIBRATION` /
+`OUT_OF_SERVICE` to `422`) and `ResultFollowUpListener` (evaluate `RecordedResult` codes and flags; create follow-ups
+inside the transaction). Integration tests that prove the contract end to end:
+`f07ReturnAfterIllnessBlocksFitDecisionUntilCompleted`, `f04EquipmentCalibrationBlocksE03DeviceCapture`,
+`f07DeviceStsResultRaisesFollowUpAndCase`.
+
+### 16.5 Writing an `AbsenceFeedConnector`
+
+E06 ships `NoopAbsenceFeedConnector`. A site adapter is one more bean in E06 (or in a separate integration module that
+depends on E06):
+
+```java
+@Component
+class TnaAbsenceFeedConnector implements AbsenceFeedConnector {
+    @Override public String sourceSystem() { return "TNA"; }       // HRIS, TNA, CREW or MANUAL
+
+    @Override public List<FeedRow> pull(LocalDate since) {
+        // read the source (SFTP CSV, REST, database view) with credentials from ENC(...) / file: secrets
+        return rows.stream().map(r -> new FeedRow(r.ref(), r.badgeOrEmployeeId(), r.start(), r.end(),
+                r.type(), r.reasonCategory(), r.certified())).toList();
+    }
+}
+```
+
+The nightly `absence-feed` job calls every connector and runs the rows through the same reconciliation as the push
+endpoint (`POST /api/v1/integration/absence/episodes`): unknown employees become `feed_mismatch` rows for OH admin;
+only allow-listed absence types and reason **categories** are accepted – map source codes to categories in the
+adapter and never pass diagnosis text. Add a unit test for the mapping and an integration test with a stub source.
+Outbound egress for the adapter needs a `networkPolicy.extraEgress.core` rule.
+
+### 16.6 Module-level `DocumentService` API
+
+Increment 2's `DocumentService` methods take a `CurrentUser` and apply OH access rules. Modules sometimes act for a
+workflow that they have **already authorised** – an employee uploading their own certificate, a candidate, a nightly
+job – so increment 3 added four methods that take an actor name instead:
+
+| Method | Use | Rules that still apply |
+|---|---|---|
+| `storeUpload(actor, employeeId, caseId, documentType, title, bytes, classification)` | Employee / candidate / integration upload (`SICK_CERTIFICATE`, `PRE_EMPLOYMENT_DOCUMENT`, `VACCINATION_RECORD`, `EXTERNAL_AEROMEDICAL_REPORT`, `EXTERNAL_REPORT`); the employee id may be a candidate id | Magic bytes, size, text extraction, hashing, blind index, encryption |
+| `generateSigned(actor, templateCode, employeeId, caseId, fields)` | Generate and sign in one step (released `OH_ADVICE_REPORT`, `VACCINATION_CERTIFICATE`, `PRE_EMPLOYMENT_OUTCOME`) | Merge-field validation and clinical-text screening exactly as `generate` |
+| `shareAsSystem(actor, id, target)` | Share as a workflow step (employee consented to release; employee requested a certificate) | Non-clinical rule for MANAGER / HR, disclosure log; **no partner shares** |
+| `systemContent(actor, id)` | Content for a module endpoint that has authorised the reader (a candidate's own upload, a certificate for OH) | Audited `DOCUMENT_DOWNLOAD` as `MODULE` |
+
+**Authorise before you call.** These methods do not check the caller's role or scope – the module endpoint must do
+that first (`@PreAuthorize` plus `EmployeeRecordAccess` or an ownership check). Calibration certificates are not
+employee documents and therefore are stored in `scheduling.calibration` (`bytea` + SHA-256), not in `docs`.
+
+### 16.7 Status-only views, suppression and disclosure logging
+
+* **New roles get projections, not filters.** Give schedulers, reception, crew licensing and HR their own record
+  types (e.g. appointment with type and time but no reason; certificate with `validity` only). Never return the OH type
+  and null out fields.
+* **Log disclosures of named status.** When a manager, HR or the hygiene manager sees health-related status of a named
+  employee (surveillance compliance, immunisation status, pre-employment outcome), call
+  `DisclosureLogService.record(employeeId, recipientType, recipientName, resourceType, resourceId, title, purpose,
+  consentId, actor)` – see `DueService.team` and `ImmunisationService`.
+* **Aggregate with the minimum group size.** Read `wellnessz.analytics.min-group-size` and publish groups below it as
+  `suppressed: true` without counts (`UnitAggregator`, `ComplianceMaths`); add a unit test with a group of *k − 1*.
+* **Screen functional text.** Text that leaves OH (advice reports, HR stage notes, admin notes on appointments,
+  equipment status reasons) goes through `FitnessSupport.functional(...)` / `ClinicalContentException.screen(...)`
+  → `422 clinical_content_not_allowed`.
+
+### 16.8 Scheduled jobs and notification templates
+
+Jobs follow `AbsenceJobs` / `SurveillanceJobs` / `SchedulingJobs`: `@Scheduled(cron = "${wellnessz.<module>.<job>-cron:…}",
+zone = "UTC")`, then `if (guard.tryStart("<job-name>", runKey))` with the date (daily) or the quarter-hour bucket
+(`SchedulingJobs.bucket`) as run key, so only one replica runs each occurrence. Log counts only. New notification
+templates go into `NotificationTemplates` with allow-listed placeholders; `NotificationRulesTest` renders every
+template through the content rules and fails the build on clinical wording.
+
+### 16.9 Running integration tests: recreate the test database every run
+
+`IntegrationTestBase` generates `WZ_MASTER_KEY` and `WZ_PSEUDONYM_KEY` per test JVM. Encrypted columns written by a
+previous run therefore cannot be decrypted, and repeatable demo migrations re-run against old data. With
+Testcontainers (default) every run gets a new container. When you use a persistent database through `WZ_TEST_DB_URL`,
+**drop and recreate it before every run** (setup guide 05, Section 4.2):
+
+```bash
+psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS wellnessz_test WITH (FORCE)" \
+     -c "CREATE DATABASE wellnessz_test OWNER wz_migrator" -c "GRANT CONNECT, TEMPORARY ON DATABASE wellnessz_test TO wz_app"
+```
+
+The E07 demo return-after-illness requirement for `E1004` is skipped on `*_test` databases so it cannot block the E05
+fitness tests – keep the `_test` suffix in the database name.
+
+### 16.10 Running the increment-3 end-to-end test
+
+`tools/e2e/e2e-increment3.js` drives E06, E07 and E14 through real Keycloak logins and the BFF and prints 32
+`PASS`/`FAIL` lines (exit code 1 on any failure). Prerequisites as in Section 14.7: local stack, core with the `local`
+profile (increment-3 demo data: absence episodes and LTA case of `E1004`, advice request of `E1001`, pre-employment of
+candidate `C9001`, campaign, equipment `AUD-LHR-01/02`, fridges), BFF (with multipart parsing disabled, as shipped) and
+the three dev servers. A realm imported before increment 3 lacks the four new roles and users: run
+`./deploy/local/down.sh --purge` and `./deploy/local/up.sh` once.
+
+```bash
+node tools/e2e/e2e-increment3.js
+```
+
+It uses the same environment variables as the earlier scripts (`WZ_E2E_EMPLOYEE_URL`, `WZ_E2E_WORKSPACE_URL`,
+`WZ_E2E_OH_URL`, `WZ_E2E_IDP_URL`, `WZ_E2E_CORE_URL`, `WZ_E2E_INTEGRATION_SECRET`, `WZ_E2E_OUT`,
+`WZ_E2E_NEW_PASSWORD`) and the realm users `employee1`, `manager1`, `hr1`, `nurse1`, `physician1`, `cmo1`, `hse1`,
+`reception1`, `admin1` and the increment-3 users `scheduler1`, `biomed1`, `crewlicensing1` and `candidate1`; the
+integration client feeds absence episodes, IH measurements and fridge readings. The published screenshots are in
+`docs/images/screens/increment-03/`. Run all three increment scripts before a release (CI/CD Guide, Section 3.1).

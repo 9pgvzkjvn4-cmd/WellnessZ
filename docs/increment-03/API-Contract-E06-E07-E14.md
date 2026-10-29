@@ -20,7 +20,7 @@ New roles (realm, `Roles.java`, Keycloak `scopeMappings` of `wellnessz-bff` and 
 
 | Role | Purpose | Demo user (employeeId) |
 |---|---|---|
-| `CLINIC_SCHEDULER` | diaries, bookings, campaigns, waitlists, due-list invitations; names + appointment type only | `scheduler1` (S8601) |
+| `CLINIC_SCHEDULER` | diaries, bookings, campaigns, waitlists, due-list invitations; names + appointment type only | `scheduler1` (S8611) |
 | `BIOMEDICAL` | equipment register, calibration, cold-chain logs | `biomed1` (S8602) |
 | `CREW_LICENSING` | crew medical certificate validity / expiry (status only) | `crewlicensing1` (S8603) |
 | `CANDIDATE` | pre-employment candidate: own questionnaire, consent, documents, booking | `candidate1` (**C9001**, not in the HRIS master) |

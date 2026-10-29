@@ -27,6 +27,12 @@ state proposed service levels, cost shape and the validation status of each setu
 > (`docs`, `ohrecord`, `fitness`), the `DPO` role, optional PDF font and OCR settings and pull endpoints for the
 > laboratory, device and rostering gateways. It was verified on the local setup (128 Java tests, web tests,
 > `tools/e2e/e2e-increment2.js` 25/25). Section 18 lists the changes per environment.
+>
+> **Increment 3** (E06 absence, E07 surveillance, E14 scheduling & clinic operations) adds no new image or Helm
+> component either. It adds three schemas (`absence`, `surveillance`, `scheduling`), four roles, nine scheduled jobs in
+> the core and machine endpoints for absence feeds, industrial hygiene, dosimetry, recruiting and IoT fridge readings.
+> It was verified on the local setup (210 Java tests, web tests, `tools/e2e/e2e-increment3.js` 32/32). Section 19
+> lists the changes per environment.
 
 ## 1. Reference deployment topology
 
@@ -43,8 +49,8 @@ around the cluster change.
 | **Manager & HR workspace** | `web/manager-workspace` – static SPA (port 8080) | Status-only views |
 | **OH workspace** (increment 1) | `web/oh-workspace` – static SPA (port 8080), Helm component `ohWorkspace`, host `oh.<domain>` | Clinical console for the OH team, reception and first aiders; same origin as the BFF |
 | **BFF** | `apps/wz-bff` – Spring Boot, port 8090, management 8081 (k8s) / 8091 (local) | OIDC confidential client, encrypted JDBC sessions (schema `bff`), CSRF, token relay; tokens never reach the browser |
-| **Core API** | `apps/wz-core-app` – Spring Boot, port 8080, management 8081 | Multi-issuer JWT resource server, ABAC, audit, integrations, EHS intake, Flyway migrations |
-| **Database** | PostgreSQL 16 | Schemas `platform, masterdata, intake, casemgmt, triage, analytics` + `bff` (`triage` since increment 1; `docs`, `ohrecord`, `fitness` since increment 2); roles `wz_migrator` (owner), `wz_app`, `wz_bff` |
+| **Core API** | `apps/wz-core-app` – Spring Boot, port 8080, management 8081 | Multi-issuer JWT resource server, ABAC, audit, integrations, EHS intake, Flyway migrations, business modules E01–E03, E05–E07, E14 and their scheduled jobs |
+| **Database** | PostgreSQL 16 | Schemas `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics` + `bff` (`triage` since increment 1; `docs`, `ohrecord`, `fitness` since increment 2; `absence`, `surveillance`, `scheduling` since increment 3); roles `wz_migrator` (owner), `wz_app`, `wz_bff` |
 | **Identity provider** | Microsoft Entra ID (production), Keycloak 26 (local / alternative), any OIDC IdP | Roles from `realm_access.roles`, `roles` (Entra app roles) or `groups`; `employee_id` and `org_scope` claims drive ABAC |
 | **Secrets** | Azure Key Vault, GCP Secret Manager or HashiCorp Vault via Secrets Store CSI | Mounted as files; consumed through `file:` references, `WZ_MASTER_KEY_FILE` and `ENC(...)` values |
 | **Edge** | App Gateway WAF v2 / Front Door (Azure), Cloud Armor + global LB (GCP), internal ingress (on-prem) | TLS 1.2+, OWASP rule sets, rate limiting on login paths |
@@ -119,7 +125,10 @@ around the cluster change.
   `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`). The
   realm defines the nine increment-1 roles, and the scope mappings of `wellnessz-bff` and `wellnessz-mobile` include
   them, because both clients have `fullScopeAllowed=false`. Increment 2 adds the role `DPO` (also in both scope
-  mappings) and two more test users, `dpo1` (DPO) and `partner1` (PARTNER_PROVIDER, `org_scope=/PARTNERS/CITYHOSP`). The realm also enforces brute-force protection, a password policy,
+  mappings) and two more test users, `dpo1` (DPO) and `partner1` (PARTNER_PROVIDER, `org_scope=/PARTNERS/CITYHOSP`).
+  Increment 3 adds the roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING` and `CANDIDATE` (also in both scope
+  mappings) and the users `scheduler1`, `biomed1`, `crewlicensing1` (`org_scope=/AIRLINE/OPS`) and `candidate1`
+  (`employee_id=C9001`, `org_scope=/CANDIDATES`). The realm also enforces brute-force protection, a password policy,
   5-minute access tokens, a 15-minute SSO idle timeout and least-privilege scope mappings. The ABAC attributes
   `employee_id` and `org_scope` are editable by administrators only.
 * **Secrets.** `./up.sh` generates `deploy/local/.env` (mode 600, git-ignored) containing random values. These
@@ -301,7 +310,10 @@ environment and runs the smoke tests from the setup guides.
 * **API host** (`api.*`). Publishes only `/api/v1` for the mobile app and M2M integrations, including the EHS
   webhook `POST /api/v1/intake/ehs/incidents` (increment 1) and, since increment 2, the gateway endpoints
   `/api/v1/integration/lis/**`, `/api/v1/integration/hl7v2`, `/api/v1/integration/roster-feed/**` and
-  `/api/v1/employees/{id}/results/device`. The management port is never exposed through the ingress.
+  `/api/v1/employees/{id}/results/device`, and since increment 3 `/api/v1/integration/absence/**`,
+  `/api/v1/integration/ih-measurements`, `/api/v1/integration/cosmic-dose`, `/api/v1/integration/pre-employment` and the
+  IoT fridge readings `/api/v1/integration/cold-chain/readings`. The management port is never exposed through the
+  ingress.
 * **WAF rule sets:**
   * Microsoft DRS 2.1 + Bot Manager (Azure);
   * Cloud Armor CRS 3.3 preconfigured rules (GCP).
@@ -332,7 +344,10 @@ Recommended alerts:
 * pod restarts or OOM;
 * `/actuator/health/readiness` failures;
 * audit chain verification failure;
-* certificate expiry under 30 days.
+* certificate expiry under 30 days;
+* (increment 3) a scheduled job that did not run (`platform.scheduled_job_run` has no row for today's
+  `absence-feed`, `surveillance-due` or `pre-employment-purge`), cold-chain excursions left unacknowledged, IoT
+  gateway silence (no fridge readings for longer than the expected interval).
 
 ## 13. Scaling and capacity
 
@@ -340,7 +355,7 @@ Recommended alerts:
 |---|---|---|---|
 | Web apps | HPA on CPU | 2–4 | Static content; scale is cheap |
 | BFF | HPA on CPU and memory | 2–6 | Sessions in PostgreSQL, so pods are stateless |
-| Core | HPA on CPU and memory | 2–6 | Virtual threads; the DB pool (`WZ_DB_POOL_SIZE`, default 20) × replicas must stay below the server's `max_connections` |
+| Core | HPA on CPU and memory | 2–6 | Virtual threads; the DB pool (`WZ_DB_POOL_SIZE`, default 20) × replicas must stay below the server's `max_connections`; scheduled jobs run once per occurrence regardless of the replica count (`JobRunGuard`) |
 | Nodes | AKS cluster autoscaler (3–9 user nodes) / GKE Autopilot | – | Zone spread with `DoNotSchedule` in prod |
 | Database | Vertical (SKU / tier) + storage auto-grow | GP D4ds_v5 / db-custom-4-16384 | Add read replicas for analytics if needed |
 
@@ -389,6 +404,8 @@ Non-production environments should switch off HA, Front Door and geo-redundancy 
 | 7 | Increment 1: OH staff roster has no import path; demo data must never reach shared environments | Roster import before go-live; `WZ_FLYWAY_LOCATIONS` reviewed in each environment's values |
 | 8 | Increment 2: the Helm chart has no extra-volume hook, so a PDF font or Tesseract needs a derived core image | Build `wz-core-app` plus fonts / Tesseract in the pipeline (scanned and signed like the base image), or add a `core.extraVolumes` value |
 | 9 | Increment 2: gateway clients (LIS, devices, rostering, HR, hygiene) are not part of the repository | Each gateway is an `INTEGRATION` client with a certificate credential; pull model needs no core egress |
+| 10 | Increment 3: no absence connector, IoT gateway or telehealth service is deployed; candidate identity source open | Push endpoints and manual entry until selected (doc 01, D15–D17); each gateway its own `INTEGRATION` client |
+| 11 | Increment 3: IoT readings grow `scheduling.temperature_reading` continuously | Archive / partition policy before scaling the fridge estate; include in backup sizing |
 
 ## 17. Increment 1 deployment changes (E01, E02, OH workspace)
 
@@ -453,4 +470,59 @@ Gateway connectivity per environment:
 |---|---|
 | Local | `tools/e2e/e2e-increment2.js` – 25 checks, all `PASS` (after `e2e-increment1.js` 18/18) |
 | Azure / GCP | `\dn` lists `docs`, `ohrecord`, `fitness`; `GET /api/v1/modules` shows E03 and E05 `IMPLEMENTED`; a DPO test account sees *Break-glass reviews* but gets `403`/`404` on a chart; LIS pull-queue smoke call with an `INTEGRATION` token returns `200`; the E2E script with `WZ_E2E_*` pointing at the environment (dev/test only) |
+| Hybrid | As above from the cloud edge; additionally confirm that the three new schemas exist only in the on-prem database and that gateway calls reach the on-prem API host |
+
+## 19. Increment 3 deployment changes (E06, E07, E14)
+
+Increment 3 adds no image, Helm component or host. The three modules ship inside the core image; the new screens ship
+inside the three existing web images. Everything else is database bootstrap, identity, configuration, jobs and
+gateway connectivity.
+
+| Change | What to deploy / configure | Artefact |
+|---|---|---|
+| Schemas `absence`, `surveillance`, `scheduling` | Created by Flyway V10–V12 (V9 adds platform rows: clinic sites, hazards, job codes, retention classes); owner `wz_migrator`, `USAGE` and table grants for `wz_app` from the migrations; new environments get the schemas from the bootstrap scripts; `migrations.job.core.schemas` = `platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,analytics`; `spring.flyway.schemas` lists the same set | `deploy/sql/bootstrap-managed-postgres.sql`, `deploy/hybrid/cnpg/03-cluster.yaml`, `deploy/local/postgres/01-init-wellnessz.sh`, `deploy/helm/wellnessz/values.yaml` |
+| Search path | `wz_app` and `wz_migrator`: `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics` (re-run the idempotent bootstrap on existing environments; on CNPG apply the updated `03-cluster.yaml` post-init SQL by hand on an existing cluster) | same files |
+| Demo data | `R__demo_e06_absence.sql`, `R__demo_e07_surveillance.sql`, `R__demo_e14_scheduling.sql` and employees `E1006`–`E1010` – `local` / `test` profiles only; never add `classpath:db/demo` to `WZ_FLYWAY_LOCATIONS` elsewhere | `apps/wz-core-app/src/main/resources/db/demo` |
+| Roles | `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE`: Entra app roles on `wellnessz-api` assigned to groups; Keycloak realm roles **and** scope mappings of `wellnessz-bff` and `wellnessz-mobile` | setup guide 06 §5.1–5.2, local realm |
+| Candidates | Candidate accounts (role `CANDIDATE`) with `employee_id` = candidate id (`C…`) and `org_scope=/CANDIDATES`; a separate identity source (B2C / External ID tenant or a candidate realm), never the workforce directory; accounts removed when the offer closes | doc 01, D17; setup guide 06 §5.3 |
+| Business configuration (E18) | Set per environment through `PUT /api/v1/masterdata/config/{key}` (audited): `absence.hr-email`, `notifications.crew-licensing.email`, `notifications.hr-onboarding.email`, `notifications.biomedical.email`, `scheduling.telehealth-base-url` (an approved video service), `absence.public-holidays` (per country), optionally SLA days and self-booking rules | doc 01 §21.4 |
+| Jobs | Nine jobs inside the core (doc 01 §21.3), all UTC, once per run across replicas via `platform.scheduled_job_run`; schedules can be overridden with the `wellnessz.absence.*-cron`, `wellnessz.surveillance.*-job-cron`, `wellnessz.scheduling.*-cron` properties (relaxed binding in `core.extraEnv`, e.g. `WELLNESSZ_ABSENCE_FEEDCRON`) | `AbsenceJobs`, `SurveillanceJobs`, `SchedulingJobs` |
+| Optional strict device register | `WELLNESSZ_RECORD_REQUIREREGISTEREDDEVICES=true` in `core.extraEnv` once every result-producing device is in the E14 register | doc 02 §13.7 |
+| Outbound allow-list | `hr-systems` extended by `offerRef`, `candidateId`, `preEmploymentStatus`, `ohEngaged`, `certificateValidity` | `application.yml` |
+| BFF | Ships with `spring.servlet.multipart.enabled=false` (uploads streamed untouched to the core) and passes `/bff/api/workspace/{absence,advice-requests,surveillance,pre-employment}` unchanged; no configuration – do not override the multipart setting | `apps/wz-bff` |
+| Upload limits at the edge | Certificate photos, candidate documents and calibration certificates are ≤ 10 MB; the WAF request-body limit (sized for the 20 MB Excel import) already covers them | WAF policy |
+| Pipeline | No new image or matrix entry; no new third-party dependency; `e2e-increment3.js` joins the pre-release gate | CI/CD Guide |
+
+**Integration endpoints (new gateways).** All are machine endpoints on the **API host**, called with client-credentials
+tokens carrying the `INTEGRATION` role; the core opens no outbound connection for them:
+
+| Gateway | Endpoint | Volume / sizing note |
+|---|---|---|
+| HRIS / time & attendance / crew management (absence push) | `POST /api/v1/integration/absence/episodes`, `POST /api/v1/integration/absence/certificates` | Batches ≤ 5,000 rows; daily delta is typically a few hundred rows per 10,000 employees |
+| Absence pull (site adapters) | Outbound from the core through an `AbsenceFeedConnector` bean (none shipped) | Needs a `networkPolicy.extraEgress.core` rule per source when an adapter is added |
+| Industrial hygiene / dosimetry | `POST /api/v1/integration/ih-measurements`, `POST /api/v1/integration/cosmic-dose` | Periodic batches |
+| Recruiting / applicant tracking | `POST /api/v1/integration/pre-employment` | One call per offer |
+| **IoT fridge gateway** | `POST /api/v1/integration/cold-chain/readings` | ≤ 5,000 readings per call; at one reading per fridge every 5 minutes, 50 fridges produce ~14,400 rows per day (~5 million per year) in `scheduling.temperature_reading` – plan storage and an archive / partitioning policy before scaling the fridge estate |
+
+**Sizing notes.** The new jobs are light (set-based queries over the employee population, quarter-hourly reminders and
+no-shows); campaign booking of 500 people in one call is covered by the integration tests. The main new growth drivers
+are `scheduling.temperature_reading` (IoT), `scheduling.appointment` (one row per visit) and `absence.episode` (feed);
+the default database tiers in Section 13 still apply. Calibration certificates are stored as `bytea` in
+`scheduling.calibration` (vendor PDFs, typically < 1 MB each) and count towards backup size.
+
+Gateway connectivity per environment:
+
+| Setup | Absence feeds, IH / dosimetry, recruiting, IoT gateway |
+|---|---|
+| Local | No gateways; the integration client `wellnessz-integration` plays all of them; `e2e-increment3.js` posts absence episodes, IH measurements and fridge readings |
+| Azure | Gateways reach `https://api.<domain>` through App Gateway WAF; IoT gateways on site networks via ExpressRoute / VPN to the private listener where possible |
+| GCP | Gateways reach `https://api.<domain>` through Cloud Armor; allow JSON bodies up to the batch cap on `/api/v1/integration/**` |
+| Hybrid | Gateways on the corporate network call the **on-prem** internal API host directly (firewall rule per gateway, like the EHS webhook); fridge readings never transit the cloud edge |
+
+**Verification per environment** (details in each setup guide):
+
+| Setup | Verification |
+|---|---|
+| Local | `tools/e2e/e2e-increment3.js` – 32 checks, all `PASS` (after `e2e-increment1.js` 18/18 and `e2e-increment2.js` 25/25) |
+| Azure / GCP | `\dn` lists `absence`, `surveillance`, `scheduling`; `GET /api/v1/modules` shows E06, E07 and E14 `IMPLEMENTED`; a scheduler test account opens the diary but gets `403` on `/api/v1/absence/queue`; a cold-chain smoke call with an `INTEGRATION` token returns `200` with `unknownDevices` listed; an upload through the BFF (employee certificate) succeeds; the E2E script with `WZ_E2E_*` pointing at the environment (dev/test only) |
 | Hybrid | As above from the cloud edge; additionally confirm that the three new schemas exist only in the on-prem database and that gateway calls reach the on-prem API host |

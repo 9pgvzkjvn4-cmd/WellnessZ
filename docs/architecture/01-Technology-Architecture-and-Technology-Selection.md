@@ -423,7 +423,7 @@ To set expectations precisely: the following columns rely on storage encryption 
 | `idempotency_record.response_body` | Stored API responses | Purged after 7 days by `IdempotencyService.purge()` |
 | `notification.address`, `body` | Recipient address and content-free message | Body is content-free by construction |
 | `audit_event` | Actor, action, resource id, reason, client IP | Reasons are sanitised; must not contain PHI by coding standard |
-| `absence.episode` (increment 3) | Employee, dates, absence type, reason category, certified flag | ABAC (status-only for managers / HR within org scope); managers never receive `reasonCategory`; only SICKNESS / INJURY episodes feed the trigger rules |
+| `absence.episode` (increment 3) | Employee, dates, absence type, reason category, certified flag | ABAC (status-only for managers / HR within org scope); managers never receive `reasonCategory`; only sickness and injury episodes (`SICKNESS`, `INJURY_WORK`, `INJURY_NON_WORK`) feed the trigger rules |
 | `scheduling.appointment` (increment 3) | Employee, appointment type, site, time, status, check-in ticket | Visible to OH, schedulers and reception (no clinical read); queue board shows tickets, not names |
 | `surveillance.employee_profile` (increment 3) | Date of birth, licence types | OH roles only; used for age-based examination frequencies (e.g. Class 1 every 6 months from age 40) |
 | `scheduling.calibration.document_content` (increment 3) | Calibration certificate (vendor PDF) | Not personal data; integrity by stored SHA-256 |
@@ -1265,7 +1265,7 @@ rows) and a daily **pull** (`absence-feed` job) through the `AbsenceFeedConnecto
 a no-op. Each source system gets its own connector bean (CSV/SFTP drop, REST or database view – decided per system with
 E15); unknown employees or badges are listed for reconciliation instead of being dropped. Only the reason **category**
 is accepted (allow-listed values), never a diagnosis. Rule evaluation runs nightly (`absence-triggers`) over open
-episodes and those ended within 30 days; only `SICKNESS` and `INJURY` count; rule thresholds are versioned data
+episodes and those ended within 30 days; only `SICKNESS`, `INJURY_WORK` and `INJURY_NON_WORK` count; rule thresholds are versioned data
 (`absence.trigger_rule_version`), with subsidiary-specific overrides of the same type and action.
 
 **Vaccine barcodes.** Immunisation fast entry accepts the GS1 element string of the vaccine pack (GTIN, expiry, lot,

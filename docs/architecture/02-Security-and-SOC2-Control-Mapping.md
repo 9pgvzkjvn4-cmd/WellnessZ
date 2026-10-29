@@ -5,9 +5,10 @@
 | **Document** | 02 – Security and SOC 2 Control Mapping |
 | **System** | WellnessZ Airline Occupational Health Case Management (OHCM) – base framework |
 | **Audience** | Cyber GRC team, CISO, internal audit, Data Protection Officer, CIO |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`; updated for **increment 1** (E01, E02 – Section 11) and **increment 2** (E03, E05 – Section 12) |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`; updated for **increment 1** (E01, E02 – Section 11), **increment 2** (E03, E05 – Section 12) and **increment 3** (E06, E07, E14 – Section 13) |
 | **Companion documents** | 01 – Technology Architecture and Technology Selection · 03 – Developer Guide |
 | **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
+| **Increment 3 documents** | [Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md) · [Requirements Traceability Matrix](../increment-03/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-03/03-Release-Notes-Increment-3.md) · [API Contract](../increment-03/API-Contract-E06-E07-E14.md) |
 
 > **Important – what SOC 2 is and is not.** A SOC 2 Type 2 report is an attestation by an independent CPA firm about
 > the controls of a **service organisation** – the organisation that operates WellnessZ – over a review period
@@ -208,6 +209,10 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Increment 2: document integrity and retention | `docs.document` (`sha256`, `signature_sha256`, `signed_by`, `signed_at`, `legal_hold`); `GET /documents/retention[/due]`; audit `DOCUMENT_SIGN`, `RETENTION_SCHEDULE_APPROVED`, `RETENTION_DUE_LISTED`, `LEGAL_HOLD_SET/RELEASED` | PI1.5, C1.2, P4.2 |
 | Increment 2: roster feed completeness | `GET /api/v1/crew/roster-feed/reconciliation` (sent, acknowledged, latency); audit `ROSTER_FEED_UNACKNOWLEDGED` | PI1.4, CC7.2 |
 | Increment 2: segregation tests | `Increment2RecordIntegrationTest.f08HrManagersEmployeesAndReceptionNeverOpenClinicalRecords`, `Increment2PlatformIntegrationTest`; E2E log of `tools/e2e/e2e-increment2.js` (25 checks) and screenshots in `docs/images/screens/increment-02/` | CC6.1, CC6.3, CC8.1 |
+| Increment 3: advice release and disclosures | `absence.advice_report` (status, employee decision), audit `ADVICE_REPORT_SIGN`, `ADVICE_EMPLOYEE_DECISION`; `GET /api/v1/disclosures?employeeId=` (purposes `SURVEILLANCE_STATUS`, `IMMUNISATION_STATUS`, `PRE_EMPLOYMENT_OUTCOME`, advice reports) | P6.1–P6.3, CC6.7 |
+| Increment 3: candidate purge | Audit `PRE_EMPLOYMENT_PURGE`; `surveillance.pre_employment.purged_at`; job run rows in `platform.scheduled_job_run` (`pre-employment-purge`) | C1.2, P4.2 |
+| Increment 3: data integrity | `scheduling.calibration` (certificate SHA-256), `scheduling.excursion` (acknowledgement), audit of rejected device results, `absence.feed_run` / `feed_mismatch` | PI1.2–PI1.4 |
+| Increment 3: segregation tests | `Increment3AbsenceIntegrationTest`, `Increment3SurveillanceIntegrationTest`, `Increment3SchedulingIntegrationTest`, `NotificationRulesTest`; E2E log of `tools/e2e/e2e-increment3.js` (32 checks) and screenshots in `docs/images/screens/increment-03/` | CC6.1, CC6.3, CC8.1 |
 
 ## 6. Cross-reference to other frameworks
 
@@ -779,3 +784,238 @@ extension point; enabling one requires a DPA, a regional endpoint and an egress 
 | RR20 | Simple electronic signature only | SHA-256 integrity, audit chain | Qualified signing provider for external-effect documents (doc 01, D12) |
 | RR21 | Template and CDS content is draft | Status visible; CMO approval workflow | Go-live gate: all templates and rules approved (doc 01, O14) |
 | RR22 | Gateway adapters (LIS, rostering, HR, hygiene) not built | Pull APIs with acknowledgement and reconciliation | Gateway clients with certificate credentials and monitoring |
+
+## 13. Increment 3 – E06 absence, E07 surveillance and E14 scheduling
+
+Increment 3 adds the business modules `modules/wz-e06-absence` (schema `absence`), `modules/wz-e07-surveillance`
+(schema `surveillance`) and `modules/wz-e14-scheduling` (schema `scheduling`), seven kernel SPIs, clinic sites, four
+roles, three document templates and 23 notification templates. The design is in
+[`docs/increment-03/01-Solution-Design-E06-E07-E14.md`](../increment-03/01-Solution-Design-E06-E07-E14.md), requirement
+coverage in [`02-Requirements-Traceability-Matrix.md`](../increment-03/02-Requirements-Traceability-Matrix.md), the
+change list in [`03-Release-Notes-Increment-3.md`](../increment-03/03-Release-Notes-Increment-3.md) and the endpoints in
+[`API-Contract-E06-E07-E14.md`](../increment-03/API-Contract-E06-E07-E14.md). Statements were checked against the code
+at the increment-3 baseline (2026-10-29).
+
+Absence and surveillance data are among the most sensitive inputs to employment decisions. The controls below
+therefore concentrate on one question: **what can a manager, HR, a scheduler or another non-OH party learn about an
+employee's health?**
+
+### 13.1 New roles and the status-only rule
+
+The canonical role list grows from 21 to 25. None of the new roles receives a clinical disclosure level: no ABAC
+policy grants them `CLINICAL`, `GET /api/v1/me` reports `STATUS_ONLY` for `CLINIC_SCHEDULER` and `CREW_LICENSING`,
+`SELF` for `CANDIDATE` and `NONE` for `BIOMEDICAL`, and every endpoint they can call is gated by `@PreAuthorize` and
+returns a projection without clinical fields.
+
+| Role | New in increment 3 | Data reach | Notable permissions | Cannot (enforced server-side) |
+|---|---|---|---|---|
+| `CLINIC_SCHEDULER` | new | names, appointment type, time, site | Diaries and diary templates, booking / move / cancel, waitlist, campaigns, surveillance due list and invitations, capacity | Read absence data, results, encounters or the reason for an appointment (integration test `schedulerAndOtherNonOhRolesCannotReadAbsenceData`, `catalogueTemplatesTelehealthAndRoleDenials`) |
+| `BIOMEDICAL` | new | equipment and cold-chain data only | Equipment register, calibration certificates, status changes (reason screened by the clinical-text guard), fridge readings and cold-chain reports | Any person-level data; acknowledge excursions (clinical decision about vaccine usability) |
+| `CREW_LICENSING` | new | status only | Crew medical certificate validity, `EXPIRING` list, crew without a valid medical | Examination answers, findings or the medical report document |
+| `CANDIDATE` | new | own pre-employment record | Own questionnaire, consent, documents and booking (`/me/pre-employment/**`) | Any other endpoint; the candidate is not in the HRIS master (`employee_id` = candidate id, e.g. `C9001`, `org_scope=/CANDIDATES`) |
+| `MANAGER` | extended | status only | Team absence table (no reason category), advice requests and released advice (fitness and functional advice only), team surveillance compliance | Absence reason, certificates' content, LTA notes, clinical findings |
+| `HR` | extended | status only | As manager plus LTA status and HR stage, certificate **validity**, pre-employment clearance status | Certificate content, advice drafts, clinical notes; clinical text in the HR stage note (`422 clinical_content_not_allowed`) |
+| `CLINIC_RECEPTION` | extended | registration data | Badge / app check-in, diary and attendance, queue board (tickets, no names), certificate scan and validity checks | Open or verify certificates; read clinical content |
+| `HYGIENE_MANAGER`, `CREW_SCHEDULING` | extended | status only | Food-handler immunisation status (disclosure logged); crew certificate status and the without-valid-medical list | Vaccine lots, titres, examination content |
+| `AUDITOR`, `HSE_OFFICER` | extended | aggregates | Surveillance compliance and audit packs – always anonymised | Identifiable packs (CMO and Nursing Head only) |
+| `INTEGRATION` | extended | machine | Absence feed and certificates, IH measurements, cosmic dose, pre-employment, cold-chain readings | User-facing endpoints |
+
+Segregation-of-duties controls added: excursions are acknowledged by clinicians, not by biomedical staff; programme
+content is changed by OH_ADMIN / CMO / Nursing Head (versioned, audited) and absence trigger rules are versioned with
+a test mode; identifiable audit packs are limited to the CMO and the Nursing Head; reception can check in and scan
+but not read.
+
+Identity configuration: Keycloak realm roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE`, users
+`scheduler1`, `biomed1`, `crewlicensing1`, `candidate1`, and the four roles added to the scope mappings of
+`wellnessz-bff` and `wellnessz-mobile` (`fullScopeAllowed=false` – a missing scope mapping silently drops the role);
+Entra ID: app roles on `wellnessz-api` assigned to groups; candidates need a separate identity source (doc 01, D17).
+
+### 13.2 Absence data: status only for managers and HR
+
+| Rule | Control | Evidence |
+|---|---|---|
+| Managers never see the reason | Team absence rows carry dates, days, episode count, `ohEngaged` and certificate validity – no `reasonCategory` field exists in the manager / HR projection | `f01FeedReconciliationMismatchResolveAndStatusOnlyHistory`, E2E *manager never sees reasonCategory* |
+| Certificates: validity only | Upload by the employee (photo / PDF, stored as an OH document); OH validates; HR / manager views and the `hr-systems` feed carry `certificateValidity` (`PENDING`, `VALID`, `INVALID`) only; content at `/absence/certificates/{id}/content` for OH roles | `f03CertificatesUploadChecksValidationVerificationAndHrValidityOnly`, E2E |
+| No clinical text in HR-facing fields | HR stage notes and every advice-report field go through the clinical-text guard (`422 clinical_content_not_allowed` naming the field) | `f04LongTermAbsencePathwayMilestonesHrStageAndReturnToWork`, E2E *HR stage with clinical note → 422* |
+| Org scope | Manager / HR reads go through `EmployeeRecordAccess.requireStatus` (org scope, audited 404 outside) | integration tests |
+| Status-only outbound | `absence.hr-status.v1` to `hr-systems` with `ohEngaged` / `certificateValidity` only; the allow-list rejects any other field | `application.yml`, `OutboundPayloadGuard` |
+| Encryption | Contact, milestone and conference notes, certificate extraction and validation notes, advice context and decline reason use `EncryptedStringConverter` | entities, migrations |
+
+### 13.3 OH advice reports: employee review before release
+
+Management advice is the main channel through which OH opinion reaches the employer. The release flow is a privacy
+control (GDPR transparency and fairness; SOC 2 P3 / P6):
+
+1. The request (manager or HR, within scope) names structured questions; the free-text context is encrypted and
+   visible to OH and the requester only.
+2. OH drafts the report; **every text field is screened** (fitness, adjustments, restrictions, prognosis, answers ≤ 400
+   characters) – a diagnosis is rejected with `422 clinical_content_not_allowed`.
+3. Signing moves the report to `AWAITING_EMPLOYEE` when `absence.advice.employee-review-required` is `true`
+   (default); the employee receives a content-free `absence.advice-review` notice, reads the report in the app and
+   **consents to its release or declines** (audited `ADVICE_EMPLOYEE_DECISION`; an optional comment travels with the
+   report).
+4. Release generates and signs `OH_ADVICE_REPORT`, shares it with the employee and the requester (line manager for
+   manager requests, HR otherwise) and writes the **disclosure log** (visible to the employee at `/me/disclosures`);
+   a decline leaves the request `WITHHELD`, and the requester sees the status only.
+
+Test: `f05AdviceRequestReportScreeningConsentReleaseAndDecline`; E2E *advice report with diagnosis → 422*, *signed →
+AWAITING_EMPLOYEE*, *employee consent → RELEASED*, *manager sees fitness only*. Switching the review off is a
+configuration change (audited) that the DPO should approve.
+
+### 13.4 Disclosure log for manager, HR and hygiene views
+
+Increment 2 logged document shares. Increment 3 also logs **status views** that reveal health-related status of a
+named employee outside OH:
+
+* manager / HR **surveillance compliance** (`/workspace/surveillance/compliance`) – one `SURVEILLANCE_STATUS` disclosure per
+  employee shown, recipient type `MANAGER` or `HR`;
+* the hygiene manager's **food-handler immunisation status** – `IMMUNISATION_STATUS` disclosure;
+* **pre-employment outcome** to HR – a `PRE_EMPLOYMENT_OUTCOME` disclosure; the outcome document itself is shared only
+  when the candidate is already in the HRIS master, otherwise HR has the status view and the disclosure log entry
+  (doc 01, O21);
+* **advice reports** on release (Section 13.3).
+
+Every such read is also audited (`SURVEILLANCE_TEAM_COMPLIANCE`, `IMMUNISATION_STATUS_READ`, `PRE_EMPLOYMENT_HR_LIST`).
+
+### 13.5 Aggregates: small-cell suppression and anonymised audit packs
+
+* **Absence analytics** (`UnitAggregator`) and **surveillance compliance** (`ComplianceMaths`) publish a unit or
+  programme row only when its population reaches `wellnessz.analytics.min-group-size` (default 5, floor 3); smaller
+  groups are returned as `suppressed: true` without counts, and the web apps render `<k`. Reason categories appear only
+  in the OH variant; managers and HR receive no person-level analytics. Test:
+  `f06AnalyticsSuppressionCategoriesAndExport`; E2E *analytics suppression + KPIs*.
+* **Audit packs** (IOSA, CAA, food safety, labour inspectorate templates) are **anonymised by default**: pseudonymous
+  subject ids, no names, counts below *k* shown as `<k`, a disclosure-control section in the PDF. `AUDITOR` and
+  `HSE_OFFICER` always receive anonymised packs; only the CMO and the Nursing Head may request identifiable packs, which
+  are labelled medical-in-confidence. Test: `f08ComplianceSnapshotTrendOverdueAndAuditPacks`; E2E *anonymised
+  FOOD_SAFETY audit pack*.
+* **Capacity demand** crosses module boundaries as monthly counts per site and service only (`CapacityDemandSource`).
+
+### 13.6 Candidate data: minimisation, retention and purge (privacy P4)
+
+| Aspect | Control |
+|---|---|
+| Separation | Candidates are not employees: role `CANDIDATE`, own `employee_id` namespace (`C…`), `org_scope=/CANDIDATES`, no HRIS master record; they reach only their own pre-employment endpoints |
+| Consent | Questionnaire processing requires the candidate's consent in the portal (audited `PRE_EMPLOYMENT_CONSENT`) |
+| HR output | `preEmploymentStatus` (and `offerRef`, `candidateId`) to `hr-systems`; HR sees clearance status only – E2E *HR clearance FIT only* |
+| Retention | Class `PRE_EMPLOYMENT`, 1 year (proposed); hired candidates move to `OH_RECORD` |
+| Purge | Nightly `pre-employment-purge` anonymises records past retention: name replaced, e-mail, questionnaire, conditions, documents and government reference cleared, `purged_at` set, audited `PRE_EMPLOYMENT_PURGE` – the first automatic deletion of personal data in the platform |
+| Encryption | Questionnaire and conditions encrypted (`EncryptedStringConverter`) |
+
+Test: `f03PreEmploymentCandidatePortalOutcomeAndHrStatusOnly`.
+
+### 13.7 Data integrity: calibration blocking, follow-up and clearance guards (PI1)
+
+* **Calibration blocking.** E03 consults `DeviceCalibrationCheck` before storing a device-captured result. A device
+  that is out of calibration or out of service in the E14 register is refused (`422 device_out_of_calibration` /
+  `device_out_of_service`); once a passing calibration certificate is recorded the same device is accepted. Calibration
+  certificates are stored with their SHA-256 in `scheduling.calibration`; the `equipment-calibration` job alerts
+  biomedical engineering before the due date. Unregistered devices are accepted unless
+  `wellnessz.record.require-registered-devices=true` (RR23). Test:
+  `f04EquipmentCalibrationBlocksE03DeviceCapture`; E2E *AUD-LHR-02 blocked 422 then accepted after calibration*.
+* **Result follow-up.** Every LIS / HL7 / device result is passed to `ResultFollowUpListener` in the recording
+  transaction; E07 rules (for example an audiometric standard threshold shift) open follow-up cases, so abnormal
+  surveillance results cannot be filed without action. Test: `f07DeviceStsResultRaisesFollowUpAndCase`.
+* **Return-after-illness clearance.** A long-term absence in a safety-critical job creates a requirement; until it is
+  completed E05 refuses FIT / FIT_WITH_LIMITATIONS (`422 clearance_required`, reason without clinical content). Test:
+  `f07ReturnAfterIllnessBlocksFitDecisionUntilCompleted`; E2E *FIT decision for E1004 blocked*.
+* **Booking integrity.** Conflict-checked booking under advisory locks (`409 resource_conflict`), campaign booking of
+  500 people in one call without double booking (`f02CampaignGeneratesSlotsAndBooksFiveHundredInOneCall`).
+* **Cold chain.** Fridge readings outside the configured range (default 2–8 °C) open an excursion; it can be closed
+  only after a clinician has **acknowledged** it with the action taken; readings, excursions and acknowledgements form
+  an auditable cold-chain record next to the vaccine administrations; monthly cold-chain reports. IoT readings use the
+  machine path (`INTEGRATION`, ≤ 5,000 per call, plausible range). Test:
+  `f04ColdChainIotReadingExcursionAcknowledgeAndReport`; E2E *fridge IoT 10.4 °C excursion acknowledged*.
+
+### 13.8 Interfaces: machine endpoints, BFF and uploads
+
+* **Machine-only paths.** All new gateway endpoints live under `/api/v1/integration/**`
+  (`absence/episodes`, `absence/certificates`, `ih-measurements`, `cosmic-dose`, `pre-employment`,
+  `cold-chain/readings`), limited by `ResourceServerSecurityConfig` and `@PreAuthorize("hasRole('INTEGRATION')")`; batch
+  caps (5,000 rows) and allow-listed codes (absence types, reason categories, source systems) bound the input.
+* **BFF workspace paths.** `/bff/api/workspace/{absence,advice-requests,surveillance,pre-employment}` are passed to the
+  core with their `/workspace` prefix (`ApiProxyController.CORE_WORKSPACE_RESOURCES`, unit-tested in
+  `ApiProxyPathTest`); the core re-applies role and scope checks.
+* **BFF multipart fix.** The E2E run found that the BFF parsed browser `multipart/form-data` uploads with Spring's
+  servlet multipart support and then forwarded an **empty body** – uploads (sick certificates, pre-employment
+  documents, calibration certificates) failed with `400`. The BFF now sets `spring.servlet.multipart.enabled=false`
+  and streams the body unchanged; size limits and magic-byte checks remain in the core (single point of validation).
+  Change control: configuration change with regression coverage by `e2e-increment3.js` (certificate upload).
+* **Uploads.** Certificates and candidate documents go through `DocumentService.storeUpload` (PDF / JPEG / PNG by magic
+  bytes, ≤ 10 MB, encrypted at rest).
+
+### 13.9 Notification content rules for the new templates
+
+The 23 new templates (absence engagement, milestones, advice requested / review / released / declined, certificate
+received / escalation, surveillance invitation and manager escalation, follow-up, crew medical expiring (crew and
+licensing), dose review, immunisation due, appointment booked / cancelled, waitlist offer, cold-chain excursion,
+calibration due, among others) contain no clinical content and use allow-listed placeholders only. The unit test
+`NotificationRulesTest.everyApprovedTemplatePassesTheContentRules` renders **every** template through `ContentRules`, so
+a template that introduces clinical vocabulary fails the build (CC8.1, P3). Recipient lists for status-only mail
+(`absence.hr-email`, `notifications.crew-licensing.email`, `notifications.hr-onboarding.email`,
+`notifications.biomedical.email`) are E18 configuration.
+
+### 13.10 Threat model additions (STRIDE)
+
+| ID | Flow |
+|---|---|
+| F26 | HRIS / T&A / crew systems → `/integration/absence/**` → E06 feed, rules, queue |
+| F27 | Manager / HR → `/workspace/absence`, `/workspace/advice-requests` → advice report → employee review → release |
+| F28 | Employee / candidate app → certificate and pre-employment uploads → BFF → core |
+| F29 | E03 results → `ResultFollowUpListener` / `DeviceCalibrationCheck` → E07 follow-up, E14 register |
+| F30 | IoT gateway → `/integration/cold-chain/readings` → excursions → clinician acknowledgement |
+| F31 | Scheduler / reception / kiosk → diary, check-in, queue board |
+| F32 | E07 → audit packs and compliance → auditors, HSE, regulators |
+
+| Flow | Threat (STRIDE) | Scenario | Controls | Residual |
+|---|---|---|---|---|
+| F26 | **S**poofing / **T**ampering | Forged absence data triggers interventions | Client-credentials `INTEGRATION`, allow-listed codes, reconciliation of unknown employees, versioned rules | L |
+| F26 | **I**nformation disclosure | Diagnosis delivered in the feed | Only reason categories accepted (pattern), no free text | L |
+| F27 | **I**nformation disclosure | Manager infers the illness from the advice report or absence table | Clinical-text guard on every report field, functional advice only, no reason category for managers, employee review before release | M – inference from functional advice cannot be excluded |
+| F27 | **R**epudiation | Employee disputes release | Decision audited, disclosure log visible to the employee | L |
+| F28 | **D**oS / **T**ampering | Large or malformed upload | Core-side size cap and magic bytes; BFF streams without parsing | L |
+| F29 | **T**ampering | Results recorded on an uncalibrated device | Calibration check `422`; registration optional (RR23) | L / M for unregistered devices |
+| F30 | **S**poofing | Fake readings hide or fake an excursion | `INTEGRATION` token, plausible range, unknown devices reported, manual readings by authorised roles | M – gateway authentication depends on the gateway product |
+| F31 | **I**nformation disclosure | Waiting-room screen reveals who attends which service | Queue board shows ticket numbers only; schedulers see appointment type, not reason | L |
+| F32 | **I**nformation disclosure | Re-identification from audit packs | Anonymised by default, pseudonymous ids, `<k` suppression, identifiable packs CMO / Nursing Head only | L |
+
+### 13.11 Control mapping additions
+
+| Criterion | Increment-3 control | Evidence source | Resp. | Status |
+|---|---|---|---|---|
+| CC6.1 | `@PreAuthorize` on every E06 / E07 / E14 endpoint; record-level ABAC for manager / HR reads; `/integration/**` machine-only | controllers, `Increment3*IntegrationTest`, E2E | F | Implemented |
+| CC6.2 | Four roles and test users in the realm with scope mappings; Entra app roles | realm export, Entra assignments | O/F | Implemented (assignment: Org) |
+| CC6.3 | No clinical disclosure for the new roles; excursion acknowledgement by clinicians; identifiable audit packs CMO / Nursing Head only | code, tests, access reviews | F/O | Implemented |
+| CC6.6 | Batch caps, allow-listed codes, upload checks in the core; BFF streams multipart unchanged | code, `ApiProxyPathTest`, E2E | F | Implemented |
+| CC6.7 | Status-only `hr-systems` fields (`ohEngaged`, `certificateValidity`, `preEmploymentStatus`); advice release only after employee review; content-free notifications | `application.yml`, `AdviceService`, `NotificationRulesTest` | F | Implemented |
+| CC7.2 | Excursion and calibration alerts; overdue LTA milestones; certificate escalation; crew expiry alerts | audit, mail log | F/O | Implemented (SIEM rules: Org) |
+| CC8.1 | Flyway V9–V12; versioned trigger rules and programmes; E2E `e2e-increment3.js` 32/32; template content-rule test | `flyway_schema_history`, audit, release record | F/O | Implemented |
+| PI1.2 | Feed reconciliation; GS1 barcode parsing for vaccine lots; IH action / limit validation | tests, `Gs1Lot` | F | Implemented |
+| PI1.3 | Calibration blocking; result follow-up; return-after-illness clearance guard; conflict-checked booking | Section 13.7 tests | F | Implemented |
+| PI1.4 | Absence feed runs and mismatches; campaign booking result `{booked, waitlisted, alreadyBooked, rejected}` | `absence.feed_run`, `absence.feed_mismatch` | F | Implemented (source connectors: Org / later) |
+| C1.1 | `absence`, `surveillance`, `scheduling` classified; free text encrypted | migrations, entities | F | Implemented |
+| C1.2 / P4.2 / P4.3 | `PRE_EMPLOYMENT` purge; `ABSENCE_RECORD` retention class (flagging) | Section 13.6, audit `PRE_EMPLOYMENT_PURGE` | F/O | Partial (schedule approval: Org) |
+| P3.1 / P3.2 | Minimisation: reason categories only, validity only, counts only for capacity, suppression | code, tests | F | Implemented |
+| P6.1–P6.3 / P6.7 | Disclosure log for advice release, compliance status, immunisation status, pre-employment outcome; employee review of advice | `platform.disclosure_log`, `/me/disclosures` | F | Implemented |
+
+### 13.12 Organisation-operated controls and residual risks added
+
+| Control | Frequency | Owner (proposed) | TSC |
+|---|---|---|---|
+| Approval of absence trigger rules, the 13 surveillance programmes, evaluation rules and immunisation requirements; CAA confirmation of crew examination formats | Before go-live, then per version | CMO + Nursing Head (+ HR for trigger thresholds, works council where required) | CC8.1, PI1.3 |
+| Approval of the retention classes `ABSENCE_RECORD` and `PRE_EMPLOYMENT`; review of the purge audit trail | Before go-live, then annual | DPO | C1.2, P4.2 |
+| Keep `absence.advice.employee-review-required=true`; any change approved by the DPO | Continuous | DPO + OH service owner | P6.1 |
+| Access review including `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE` accounts and the new `INTEGRATION` clients (absence feed, IH, dosimetry, recruiting, IoT gateway); de-provisioning of candidate accounts | Quarterly / at offer close | OH service owner + IAM | CC6.2, CC6.3 |
+| Calibration programme for every device that records results; register all devices, then enable `require-registered-devices` | Per manufacturer interval | Biomedical engineering | PI1.3 |
+| Cold-chain excursion handling procedure (vaccine quarantine, manufacturer advice) | Per excursion | Nursing Head | PI1.3 |
+| SIEM rules on `PRE_EMPLOYMENT_PURGE` failures, excursion alerts, repeated `clinical_content_not_allowed` from one HR / manager account | Continuous | SOC | CC7.2 |
+| DPIA update for absence management and pre-employment (employment context, Art. 9(2)(b)/(h)) | Before go-live | DPO | P1.1, CC9.2 |
+
+| ID | Residual risk | Compensating control (now) | Target remediation |
+|---|---|---|---|
+| RR23 | Device results from unregistered devices are accepted | Calibration check for registered devices; device id stored with each result | Register all devices; set `wellnessz.record.require-registered-devices=true` |
+| RR24 | Functional advice and absence patterns allow inference about health | Clinical-text guard, employee review, no reason for managers, suppression | Periodic review of released reports by the CMO; manager training |
+| RR25 | Only a no-op absence connector ships; manual or push feeds can diverge from HR records | Reconciliation list, feed runs | Connectors per source system (doc 01, O18) |
+| RR26 | IoT gateway and telehealth service not yet assessed | Manual readings; link-only telehealth | Gateway and video-service selection with DPA (doc 01, D15, D16) |
+| RR27 | Candidate identities outside the workforce directory | Short role scope, own namespace, 12-month purge | Candidate IdP with automatic de-provisioning (doc 01, D17) |
+| RR28 | Business modules of increments 2–3 do not enforce `modules.eXX.enabled` | Modules are deployed together; flag visible in `/modules` | Add `requireEnabled` to use cases and jobs (doc 01, O17) |

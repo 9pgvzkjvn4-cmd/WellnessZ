@@ -33,6 +33,13 @@
 > (oh-workspace 305, employee-app 138, manager-workspace 99) and `tools/e2e/e2e-increment2.js` with 25/25 checks
 > passing (section 7.2). New here: schemas `docs`, `ohrecord`, `fitness`, the `dpo1` and `partner1` users, gateway
 > smoke calls (section 8.4) and the optional PDF font and OCR (section 8.5).
+>
+> **Increment 3** (E06 absence & sickness, E07 medical surveillance, E14 scheduling & clinic operations) was verified on
+> this setup: 210 Java tests, web tests (oh-workspace 463, employee-app 191, manager-workspace 154) and
+> `tools/e2e/e2e-increment3.js` with 32/32 checks passing (section 7.3). New here: schemas `absence`, `surveillance`,
+> `scheduling`, the users `scheduler1`, `biomed1`, `crewlicensing1` and `candidate1`, a test database that must be
+> recreated before every run (section 4.2), gateway smoke calls for absence feeds and fridge readings (section 8.6) and
+> manual checks for the three epics (section 8.7).
 
 ## 1. Prerequisites
 
@@ -199,7 +206,7 @@ Expected: `"aud": "wellnessz-api"` and `"roles": ["INTEGRATION"]`.
 |---|---|---|
 | PostgreSQL 16.15 | `localhost:5432`, databases `wellnessz`, `keycloak` | Roles `wz_migrator` (DDL), `wz_app` (core runtime), `wz_bff` (sessions); passwords in `.env` |
 | Keycloak 26.8.1 | <http://localhost:8180/admin> | `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD` from `.env` |
-| Realm users | `employee1`, `manager1`, `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; increment 1: `nurse1`, `nurse2`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`; increment 2: `dpo1`, `partner1` | Temporary password `ChangeMe!123`; change it at first login |
+| Realm users | `employee1`, `manager1`, `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; increment 1: `nurse1`, `nurse2`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`; increment 2: `dpo1`, `partner1`; increment 3: `scheduler1`, `biomed1`, `crewlicensing1`, `candidate1` | Temporary password `ChangeMe!123`; change it at first login |
 | Mailpit | UI <http://localhost:8025>, SMTP `localhost:1025` | none |
 | GreenMail | IMAP `localhost:3143`, SMTP `localhost:3025` | `ehs-feed@wellnessz.local` / `WZ_IMAP_PASSWORD` |
 | OTel collector | OTLP `localhost:4317` (gRPC) / `4318` (HTTP) | – |
@@ -226,10 +233,25 @@ mappings.
 | `admin1` | PLATFORM_ADMIN, OH_ADMIN | Configuration screens, dead-letter queue |
 | `dpo1` (increment 2) | DPO | Break-glass reviews, disclosure log, retention schedule and legal hold in the OH workspace; no clinical access |
 | `partner1` (increment 2) | PARTNER_PROVIDER, `org_scope=/PARTNERS/CITYHOSP` | Documents shared with partner `CITYHOSP` under consent (`GET /api/v1/partner/documents`) |
+| `scheduler1` (increment 3) | CLINIC_SCHEDULER (`S8611`, `/AIRLINE`) | Clinic diary, bookings, campaigns, waitlist, surveillance due list and invitations in the OH workspace; no clinical or absence data |
+| `biomed1` (increment 3) | BIOMEDICAL (`S8602`, `/AIRLINE`) | Equipment register, calibration certificates, fridge readings and cold-chain reports |
+| `crewlicensing1` (increment 3) | CREW_LICENSING (`S8603`, `/AIRLINE/OPS`) | Crew medical certificate validity, expiring list and crew without a valid medical (status only) |
+| `candidate1` (increment 3) | CANDIDATE (`C9001`, `/CANDIDATES`) | Pre-employment candidate portal in the employee app (questionnaire, consent, documents, booking); `C9001` is deliberately not in the HRIS master |
 
 **Increment-2 role.** The realm adds `DPO`, included in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`.
 A realm imported before increment 2 has neither the role nor `dpo1` / `partner1`: run `./deploy/local/down.sh --purge`
 and `./deploy/local/up.sh` to re-import it (this deletes local data).
+
+**Increment-3 roles.** The realm adds `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING` and `CANDIDATE`, all four in
+the scope mappings of `wellnessz-bff` and `wellnessz-mobile`, and the users `scheduler1`, `biomed1`, `crewlicensing1`
+and `candidate1`. A realm imported before increment 3 has none of them: run `./deploy/local/down.sh --purge` and
+`./deploy/local/up.sh` to re-import it (this deletes local data). Check after the re-import (with `.env` loaded):
+
+```bash
+docker compose -f deploy/local/docker-compose.yml exec -T keycloak /opt/keycloak/bin/kcadm.sh get roles -r wellnessz --no-config --server http://localhost:8180 --realm master --user "$KEYCLOAK_ADMIN_USER" --password "$KEYCLOAK_ADMIN_PASSWORD" --fields name | grep -E 'CLINIC_SCHEDULER|BIOMEDICAL|CREW_LICENSING|CANDIDATE'
+```
+
+Expected: the four role names.
 
 The Keycloak container imports the realm only when it does not exist yet (`--import-realm`). A stack created before
 increment 1 keeps the old realm without the new roles and users: run `./deploy/local/down.sh --purge` and
@@ -240,18 +262,30 @@ increment 1 keeps the old realm without the new roles and users: run `./deploy/l
 `nurse2`, `clinician1`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `psych1`) and the crew-scheduling and hygiene
 notification addresses. Other profiles never load it. Increment 2 adds `R__demo_e03_record.sql` (OH chart of
 `E1004`: penicillin allergy, a work-related problem, hepatitis B immunisation, a baseline audiogram and an earlier job) and `R__demo_e05_fitness.sql` (fleet and base of the crew members
-`E1002`, `E1003`).
+`E1002`, `E1003`). Increment 3 adds five employees (`E1006` engineer, `E1007` security screener, `E1008` forklift
+operator, `E1009` aircraft cleaner, `E1010` catering associate) to `R__demo_reference_people.sql` and three module
+files: `R__demo_e06_absence.sql` (short absences and a Monday / Friday pattern for `E1001` with an early-intervention
+item and an advice request awaiting the employee's review, a six-week absence of `E1004` on the LTA pathway, crew
+sickness of `E1003` in the AME review queue, a certificate and an advice request for `E1010`, feed runs with
+unmatched badge / crew ids), `R__demo_e07_surveillance.sql` (dates of birth for age-based frequencies, the expired crew
+member `E7001`, enrolments, the pre-employment record of candidate `C9001`, and a return-after-illness requirement for
+`E1004` that is skipped on `*_test` databases) and `R__demo_e14_scheduling.sql` (clinicians, rooms and diary templates
+for the clinic sites, the equipment `AUD-LHR-01`, `AUD-LHR-02` (calibration overdue), `SPIRO-HQ-01`, `ECG-HQ-01`,
+`VIS-LHR-01`, `FRIDGE-HQ-01`, `FRIDGE-LHR-01`, a vaccination appointment for `E1001` 30 minutes after the first start
+and the campaign *LHR ramp audiometry day*). Encrypted columns stay empty in demo data.
 
 **Schemas.** `01-init-wellnessz.sh` creates `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness,
-analytics`. Load `.env` first (`set -a; source deploy/local/.env; set +a`) for the check below. On a database volume
-created before increment 2, Flyway V6–V8 create the three new schemas themselves;
-`search_path` of `wz_app` is only updated by a fresh init, so prefer `./deploy/local/down.sh --purge` once. Check:
+absence, surveillance, scheduling, analytics`. Load `.env` first (`set -a; source deploy/local/.env; set +a`) for the
+check below. On a database volume created before increment 2 or 3, Flyway V6–V8 and V10–V12 create the new schemas
+themselves; `search_path` of `wz_app` is only updated by a fresh init, so prefer `./deploy/local/down.sh --purge` once.
+Check:
 
 ```bash
 docker compose -f deploy/local/docker-compose.yml exec -T -e PGPASSWORD="$POSTGRES_SUPERUSER_PASSWORD" postgres psql -h 127.0.0.1 -U postgres -d wellnessz -c '\dn'
 ```
 
-Expected (after the core has started once): `docs`, `ohrecord` and `fitness` in the list, owned by `wz_migrator`.
+Expected (after the core has started once): `docs`, `ohrecord`, `fitness`, `absence`, `surveillance` and `scheduling`
+in the list, all owned by `wz_migrator`.
 
 ## 4. Build and test
 
@@ -290,6 +324,18 @@ export WZ_TEST_DB_URL=jdbc:postgresql://localhost:5432/wellnessz_test WZ_TEST_DB
 ```bash
 ./mvnw verify
 ```
+
+**Recreate the test database before every run.** The integration tests generate new encryption keys
+(`WZ_MASTER_KEY`, `WZ_PSEUDONYM_KEY`) for every test JVM, so rows encrypted by the previous run can no longer be
+decrypted and the next run fails. Drop and recreate `wellnessz_test` before each `./mvnw verify` (Testcontainers does
+this implicitly with a fresh container):
+
+```bash
+docker compose -f deploy/local/docker-compose.yml exec -T -e PGPASSWORD="$POSTGRES_SUPERUSER_PASSWORD" postgres psql -h 127.0.0.1 -U postgres -c "DROP DATABASE IF EXISTS wellnessz_test WITH (FORCE)" -c "CREATE DATABASE wellnessz_test OWNER wz_migrator" -c "GRANT CONNECT, TEMPORARY ON DATABASE wellnessz_test TO wz_app"
+```
+
+Keep the `_test` suffix: the E07 demo data skips the return-after-illness requirement for `E1004` on `*_test`
+databases so that it does not block the E05 fitness tests.
 
 Unset the variables (`unset WZ_TEST_DB_URL`) to return to Testcontainers.
 
@@ -551,6 +597,32 @@ Expected: 25 lines starting with `PASS`; exit code 0. Screenshots go to `tools/e
 published set is in `docs/images/screens/increment-02/`. Like `e2e-increment1.js`, the script handles first and later
 logins, so it can be repeated; each run creates new cases. Run `e2e-increment1.js` first when you verify a release.
 
+### 7.3 Increment-3 end-to-end test (E06, E07, E14)
+
+`tools/e2e/e2e-increment3.js` covers increment 3 with 32 checks: absence feed with matched and unmatched rows,
+`DURATION_10D` early intervention, case and first contact, trigger rules, employee photo certificate validated by OH
+with HR seeing validity only, LTA milestones (weeks 2, 4, 8, 12, 26) with overdue items, HR stage with clinical text
+→ `422`, advice report with a diagnosis → `422`, signed report awaiting the employee, employee consent → released,
+manager sees fitness only and never the reason category, analytics suppression and KPIs; hearing-conservation
+simulation, scheduler invitation and booking, noise dosimetry above the action level, audiometer `AUD-LHR-02`
+blocked (`422`) and accepted after calibration, threshold-shift follow-up case, FIT decision for `E1004` blocked with
+`422 clearance_required`, candidate questionnaire and consent, HR clearance status only, crew licensing sees expiring
+and expired medicals, GS1 vaccine entry, compliance and anonymised audit pack; double booking `409
+resource_conflict`, self-booking and reschedule, badge check-in, queue board without names, call-next hand-off to the
+chart, fridge reading of 10.4 °C opening an excursion that is acknowledged, campaign cohort booking and capacity
+forecast. It needs the same setup as section 7.1, the increment-3 realm (section 3.3) and a core started with the
+`local` profile on a database that contains the increment-3 demo data.
+
+```bash
+node tools/e2e/e2e-increment3.js
+```
+
+Expected: 32 lines starting with `PASS`; exit code 0. Screenshots go to `tools/e2e/shots/` (`WZ_E2E_OUT`); the
+published set (37 images) is in `docs/images/screens/increment-03/`. The script handles first and later logins, but
+several checks **consume demo state** (they calibrate `AUD-LHR-02`, release the demo advice report and complete the
+candidate's consent). For a clean repeat, purge and recreate the local database (`./deploy/local/down.sh --purge`,
+`./deploy/local/up.sh`, restart the core) and run the three increment scripts in order.
+
 ## 8. EHS intake tests
 
 ### 8.1 Mailbox (IMAP via GreenMail)
@@ -668,6 +740,50 @@ Only `/usr/bin/tesseract`, `/usr/local/bin/tesseract` and `/opt/homebrew/bin/tes
 `ara`, `fra`, `eng+ara`, `eng+fra`, `eng+ara+fra` are accepted; any other value stops the core at start-up. In
 Option B (containers) neither font nor Tesseract is in the image; use Option A to try them.
 
+### 8.6 Gateway smoke calls (increment 3)
+
+The absence-feed, industrial-hygiene, dosimetry, recruiting and IoT fridge gateways are machine clients with the
+`INTEGRATION` role; locally `wellnessz-integration` plays all of them (`$TOKEN` from section 5.3). Push one absence
+episode for a demo employee and one for an unknown badge:
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' http://localhost:8080/api/v1/integration/absence/episodes -d "{\"sourceSystem\":\"HRIS\",\"episodes\":[{\"sourceRef\":\"SMOKE-$(date +%s)-1\",\"employeeRef\":\"E1005\",\"startDate\":\"$(date +%F)\",\"absenceType\":\"SICKNESS\",\"reasonCategory\":\"RESPIRATORY\",\"certified\":false},{\"sourceRef\":\"SMOKE-$(date +%s)-2\",\"employeeRef\":\"B-9998\",\"startDate\":\"$(date +%F)\",\"absenceType\":\"SICKNESS\",\"certified\":false}]}" | jq
+```
+
+Expected: `200` with `received: 2`, `matched: 1`, `unmatched: 1`; the unknown badge appears in *OH workspace →
+Absence → Feed quality* (as `admin1`). Only the allow-listed absence types (`SICKNESS`, `INJURY_WORK`,
+`INJURY_NON_WORK`, `MATERNITY_RELATED`, `OTHER_AUTHORISED`) and reason categories are accepted.
+
+Post an IoT fridge reading outside 2–8 °C:
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' http://localhost:8080/api/v1/integration/cold-chain/readings -d "[{\"deviceId\":\"FRIDGE-HQ-01\",\"temperatureC\":9.2,\"recordedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"},{\"deviceId\":\"FRIDGE-UNKNOWN\",\"temperatureC\":5.0,\"recordedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}]" | jq
+```
+
+Expected: `200` with `accepted: 1`, `excursionsOpened: 1` (or `0` if an excursion for the fridge is already open) and
+`unknownDevices: ["FRIDGE-UNKNOWN"]`. A clinician (for example `nurse1`) acknowledges the excursion in *OH workspace →
+Scheduling → Equipment*; `biomed1` sees it but cannot acknowledge. The other machine endpoints are
+`POST /api/v1/integration/absence/certificates`, `/integration/ih-measurements`, `/integration/cosmic-dose` and
+`/integration/pre-employment` (contract: `docs/increment-03/API-Contract-E06-E07-E14.md`). A user token through the
+BFF gets `403` on `/integration/**`.
+
+### 8.7 Manual verification of the three epics (increment 3)
+
+With the core on the `local` profile, the BFF and the three dev servers running (section 6):
+
+| Epic | Sign in as | Do | Expected |
+|---|---|---|---|
+| E06 absence | `nurse1` (OH workspace) | *Absence → Queue* | Early-intervention items raised by trigger rules (for example `E1001`); *Absence → LTA* shows `E1004` with milestones |
+| E06 absence | `manager1` (manager workspace) | *Absence* | Team table with dates and days only – no reason category |
+| E06 advice | `employee1` (employee app) | *Advice reports* | The demo report waits for review; consent releases it to `manager1`, who sees fitness and functional advice only |
+| E06 certificates | `employee1` | *My absence → upload certificate* (photo or PDF) | Upload succeeds through the BFF; `hr1` later sees the certificate **validity** only |
+| E07 surveillance | `nurse1` / `cmo1` | *Surveillance → Programmes*, *Due list*, *Compliance* | 13 programmes; due list with invitations; compliance with groups below 5 shown as suppressed |
+| E07 crew | `crewlicensing1` (OH workspace) | *Crew certificates* | Expiring certificates and `E7001` without a valid medical; no examination content |
+| E07 pre-employment | `candidate1` (employee app) | Candidate portal | Only the pre-employment questionnaire, consent, documents and booking; no other menu entries |
+| E14 scheduling | `scheduler1` (OH workspace) | *Scheduling → Diary*; book the same clinician twice for the same slot | Second booking answers `409 resource_conflict` |
+| E14 clinic flow | `reception1` | *Reception kiosk* → check in `E1001` by badge `B-1001`; open the *Queue board* | A ticket number, no names; `nurse1` uses *Call next* and lands in the chart |
+| E14 equipment | `biomed1` | *Scheduling → Equipment* | `AUD-LHR-02` overdue; after recording a passing calibration, device results for it are accepted again |
+
 ## 9. Secrets in configuration: `ENC(...)`
 
 Values that must live in configuration files, such as a connector password, are stored encrypted:
@@ -736,6 +852,13 @@ development.
 | Core stops with `Unsupported OCR binary location` or `Unsupported OCR language list` | OCR properties outside the allow-list | Use one of the values in section 8.5 or unset both variables |
 | Arabic text in generated PDFs is missing or replaced | No Unicode font configured | Set `WZ_DOCUMENTS_FONT_PATH` to a readable TrueType font (section 8.5) |
 | Closing a case fails with `422 diagnosis_required` | Clinical case without a coded diagnosis (intended) | Sign an encounter with a coded diagnosis, or set `WZ_DIAGNOSIS_REQUIRED_ON_CLOSE=false` for local experiments only |
+| `scheduler1`, `biomed1`, `crewlicensing1` or `candidate1` cannot log in, or see *Access restricted* | Realm imported before increment 3 (roles, users or scope mappings missing) | `./deploy/local/down.sh --purge` and `up.sh` to re-import the realm (section 3.3) |
+| Second `./mvnw verify` against `WZ_TEST_DB_URL` fails with decryption errors (`AEADBadTagException`, `cannot decrypt`) or unexpected demo rows | Test keys are generated per run; the database still holds data encrypted by the previous run | Drop and recreate `wellnessz_test` before every run (section 4.2) |
+| Certificate or document upload in a browser fails with `400` | BFF started with multipart parsing enabled (for example an overridden `spring.servlet.multipart.enabled`) | Keep `spring.servlet.multipart.enabled=false` in the BFF (shipped default); restart the BFF |
+| Device result answers `422 device_out_of_calibration` / `device_out_of_service` | The device is overdue or out of service in the equipment register (intended) | Record a passing calibration as `biomed1`, or use a calibrated device |
+| FIT decision answers `422 clearance_required` | An open return-after-illness requirement (for example the demo for `E1004`) | Complete the return-after-illness medical in *Surveillance → Return after illness* |
+| Absence queue, due list or diary are empty | Core not started with the `local` profile, so the increment-3 demo files were not loaded | Start the core with `SPRING_PROFILES_ACTIVE=local` |
+| `e2e-increment3.js` fails on the calibration, advice or candidate checks on a second run | The first run consumed the demo state | Purge and recreate the database (section 7.3) |
 
 ## 13. Teardown
 
