@@ -5,6 +5,9 @@
 import type { AuthClient } from '../auth/AuthClient';
 import type { Money } from '../domain/money';
 import { bffLink, buildQuery, seg } from './links';
+import { toConsent, type ActiveConsent } from './treatment';
+
+export type { ActiveConsent };
 
 export const CLAIM_TYPES = ['WORKERS_COMP', 'EMPLOYER_LIABILITY', 'GROUP_MEDICAL', 'THIRD_PARTY'] as const;
 export type ClaimType = (typeof CLAIM_TYPES)[number];
@@ -57,6 +60,7 @@ export interface Claim {
   settledAt?: string;
   closedAt?: string;
   nurseCaseManager?: string;
+  nurseCaseManagerName?: string;
   nurseAssignedAt?: string;
   reserves?: Partial<Record<CostCategory, Money | string>> | null;
   paidTotal?: Money | string | null;
@@ -65,12 +69,53 @@ export interface Claim {
   privileged: boolean;
   openTasks?: number;
   reportStatus?: ReportStatus | string;
+  notes?: string;
+}
+/** `ClaimViews.ReportSummary` – no fields / document; the full reports come from `GET /claims/{id}/reports`. */
+export interface ReportSummary {
+  id: string;
+  ref: string;
+  formCode: string;
+  recipientCode: string;
+  status: ReportStatus;
+  dueAt: string;
+  submittedAt?: string;
+  acknowledgedAt?: string;
+}
+/** `ClaimViews.DisclosureSetSummary` – a document count only; the sets come from `GET /claims/{id}/disclosure-sets`. */
+export interface DisclosureSetSummary {
+  id: string;
+  recipientCode: string;
+  status: (typeof DISCLOSURE_SET_STATUSES)[number];
+  documents: number;
+  sentAt?: string;
+}
+/** `ClaimViews.LegalRequestSummary` – no questions / report versions. */
+export interface LegalRequestSummary {
+  id: string;
+  ref: string;
+  type: LegalRequestType;
+  status: (typeof LEGAL_REQUEST_STATUSES)[number];
+  dueDate: string;
 }
 export interface ClaimDetail extends Claim {
-  history?: { status: ClaimStatus; at: string; by?: string; reason?: string }[];
-  reports?: FirstReport[];
-  disclosureSets?: DisclosureSet[];
-  legalRequests?: LegalRequest[];
+  holdReason?: string;
+  privilegeBasis?: string;
+  nextStatuses?: ClaimStatus[];
+  history?: { type?: string; fromStatus?: string; status: ClaimStatus; at: string; by?: string; reason?: string }[];
+  reports?: ReportSummary[];
+  disclosureSets?: DisclosureSetSummary[];
+  legalRequests?: LegalRequestSummary[];
+}
+/** `LegalService.HoldView` – answer of the legal-hold / privilege endpoints. */
+export interface HoldView {
+  claimId: string;
+  claimRef: string;
+  litigationHold: boolean;
+  reason?: string;
+  documentsAffected: number;
+  privileged: boolean;
+  privilegeBasis?: string;
 }
 export interface ClaimBody {
   claimType: ClaimType;
@@ -114,8 +159,11 @@ export interface ReportForm {
   jurisdiction: string;
   recipientType: 'AUTHORITY' | 'INSURER';
   recipientCode: string;
+  recipientName?: string;
   title: string;
   deadlineHours: number;
+  specifiedDeadlineHours?: number | null;
+  signOffStatus?: string;
   trigger: string;
   fields: { code: string; label: string; source?: string }[];
 }
@@ -125,10 +173,14 @@ export interface FirstReport {
   claimId?: string;
   claimRef?: string;
   formCode: string;
+  recipientType?: 'AUTHORITY' | 'INSURER' | string;
   recipientCode: string;
+  recipientName?: string;
   status: ReportStatus;
   dueAt: string;
   hoursLeft?: number;
+  specifiedInjury?: boolean;
+  rejectionReason?: string;
   fields?: Record<string, string>;
   submittedAt?: string;
   acknowledgedAt?: string;
@@ -143,9 +195,23 @@ export interface DisclosureDoc {
   type?: string;
   redactedFromId?: string;
 }
+/** `DisclosureSetService.CandidateView` – a document of the claim's employee and whether it may go into a set. */
+export interface DisclosureCandidate {
+  documentId: string;
+  documentNumber?: string;
+  title: string;
+  type?: string;
+  createdAt?: string;
+  disclosable: boolean;
+  /** Why the document cannot be disclosed (set when `disclosable` is false). */
+  reason?: string;
+}
 export interface DisclosureSet {
   id: string;
+  claimId?: string;
+  claimRef?: string;
   recipientCode: string;
+  recipientName?: string;
   purpose: string;
   status: (typeof DISCLOSURE_SET_STATUSES)[number];
   documents: DisclosureDoc[];
@@ -153,17 +219,29 @@ export interface DisclosureSet {
   sentAt?: string;
   sentBy?: string;
   revokedAt?: string;
+  revokedBy?: string;
+  createdBy?: string;
+  createdAt?: string;
 }
+/**
+ * `DisclosureSetService.DisclosureRow` – one row per disclosed document from the platform disclosure log (purpose CLAIM,
+ * CLAIM_STATUS, LEGAL_PROCEEDINGS or LEGAL_OBLIGATION…); `status` ACTIVE | REVOKED.
+ */
 export interface DisclosureReportRow {
-  claimRef?: string;
-  claimId?: string;
-  recipientCode?: string;
-  recipient?: string;
-  documents?: (DisclosureDoc | string)[];
-  consentId?: string;
-  by?: string;
-  at?: string;
+  id: string;
+  at: string;
+  employeeId?: string;
+  recipientType?: string;
+  recipientName?: string;
+  resourceType?: string;
+  resourceId?: string;
+  /** Document title. */
+  document?: string;
   purpose?: string;
+  consentId?: string | null;
+  by?: string;
+  status?: 'ACTIVE' | 'REVOKED' | string;
+  revokedAt?: string | null;
 }
 
 export interface ClaimTask {
@@ -193,7 +271,9 @@ export interface CostEntry {
   incurredOn?: string;
   description?: string;
   invoiceNumber?: string;
+  providerCode?: string;
   sourceType?: string;
+  sourceRef?: string;
   createdAt?: string;
   createdBy?: string;
 }
@@ -220,6 +300,7 @@ export interface BudgetRow {
 export interface ErpExport {
   id: string;
   month: string;
+  batchId?: string;
   rows: number;
   total: MoneyLike;
   checksum: string;
@@ -238,22 +319,43 @@ export interface ReconciliationRow {
 export interface NurseAssignmentKpi {
   lostTimeClaims: number;
   assignedWithin48h: number;
-  pct: number;
-  unassigned: { claimRef: string; notifiedAt: string }[];
+  /** null when there are no lost-time claims in the range. */
+  pct: number | null;
+  unassigned: { claimId?: string; claimRef: string; notifiedAt: string }[];
 }
 export interface LegalRequest {
   id: string;
   ref: string;
   claimId?: string;
   claimRef?: string;
+  caseRef?: string;
   type: LegalRequestType;
   status: (typeof LEGAL_REQUEST_STATUSES)[number];
   questions: string;
   dueDate: string;
   providerCode?: string;
+  providerName?: string;
   referralId?: string;
+  referralRef?: string;
+  referralStatus?: string;
   reports: { version: number; documentId: string; createdAt: string; author?: string }[];
 }
+
+/** Candidate row → UI shape (`documentId`, falling back to `id`). */
+export function toCandidate(raw: Partial<DisclosureCandidate> & { id?: string }): DisclosureCandidate {
+  return {
+    documentId: String(raw.documentId ?? raw.id ?? ''),
+    ...(raw.documentNumber ? { documentNumber: raw.documentNumber } : {}),
+    title: raw.title ?? raw.documentNumber ?? String(raw.documentId ?? raw.id ?? ''),
+    ...(raw.type ? { type: raw.type } : {}),
+    ...(raw.createdAt ? { createdAt: raw.createdAt } : {}),
+    disclosable: raw.disclosable === true,
+    ...(raw.reason ? { reason: raw.reason } : {}),
+  };
+}
+
+/** A claim summary legal request as a list row (claims coordinators cannot read the full request). */
+export const legalSummaryRow = (s: LegalRequestSummary, claim: Pick<Claim, 'id' | 'claimRef'>): LegalRequest => ({ ...s, claimId: claim.id, claimRef: claim.claimRef, questions: '', reports: [] });
 
 const cl = (id: string) => `/claims/${seg(id)}`;
 
@@ -266,16 +368,18 @@ export function claimsApi(c: AuthClient) {
     createClaim: (caseId: string, body: ClaimBody) => c.api<Claim>(`/cases/${seg(caseId)}/claims`, { method: 'POST', body }),
     claims: (f: ClaimFilter = {}) => c.api<Claim[]>(`/claims${buildQuery({ ...f, lostTime: f.lostTime === '' ? undefined : f.lostTime })}`),
     claim: (id: string) => c.api<ClaimDetail>(cl(id)),
-    updateClaim: (id: string, body: ClaimUpdate) => c.api<ClaimDetail>(cl(id), { method: 'PUT', body }),
-    setStatus: (id: string, status: ClaimStatus, reason?: string) => c.api<ClaimDetail>(`${cl(id)}/status`, { method: 'POST', body: reason ? { status, reason } : { status } }),
+    updateClaim: (id: string, body: ClaimUpdate) => c.api<Claim>(cl(id), { method: 'PUT', body }),
+    setStatus: (id: string, status: ClaimStatus, reason?: string) => c.api<Claim>(`${cl(id)}/status`, { method: 'POST', body: reason ? { status, reason } : { status } }),
     /** `204` → undefined (no claim). */
     caseClaimStatus: (caseId: string) => c.api<ClaimStatusBadge | undefined>(`/cases/${seg(caseId)}/claim-status`),
     subrogation: (id: string, body: { thirdPartyName: string; thirdPartyType: string; thirdPartyInsurer?: string; reference?: string; description: string }) =>
-      c.api<ClaimDetail>(`${cl(id)}/subrogation`, { method: 'POST', body }),
+      c.api<Claim>(`${cl(id)}/subrogation`, { method: 'POST', body }),
     reconciliation: (month: string) => c.api<ReconciliationRow[]>(`/claims/reconciliation${buildQuery({ month })}`),
 
     // F02
     reportForms: () => c.api<ReportForm[]>('/claims/report-forms'),
+    /** Full reports of a claim (the claim detail only carries summaries). */
+    claimReports: (id: string) => c.api<FirstReport[]>(`${cl(id)}/reports`),
     createReport: (id: string, formCode: string) => c.api<FirstReport>(`${cl(id)}/reports`, { method: 'POST', body: { formCode } }),
     updateReport: (reportId: string, fields: Record<string, string>) => c.api<FirstReport>(`/claims/reports/${seg(reportId)}`, { method: 'PUT', body: { fields } }),
     submitReport: (reportId: string, channel: string) => c.api<FirstReport>(`/claims/reports/${seg(reportId)}/submit`, { method: 'POST', body: { channel } }),
@@ -289,6 +393,10 @@ export function claimsApi(c: AuthClient) {
     reports: (f: { status?: string; dueWithinHours?: number } = {}) => c.api<FirstReport[]>(`/claims/reports${buildQuery(f)}`),
 
     // F03
+    /** Disclosure candidates (all documents of the claim's employee, each with `disclosable` / `reason`). */
+    claimDocuments: (id: string) => c.api<(DisclosureCandidate & { id?: string })[]>(`${cl(id)}/documents`).then((l) => (l ?? []).map(toCandidate)),
+    /** The claim employee's active INSURER_SHARING consents. */
+    claimConsents: (id: string) => c.api<ActiveConsent[]>(`${cl(id)}/consents`).then((l) => (l ?? []).map(toConsent)),
     createDisclosureSet: (id: string, body: { recipientCode: string; purpose: string; documentIds: string[] }) =>
       c.api<DisclosureSet>(`${cl(id)}/disclosure-sets`, { method: 'POST', body }),
     disclosureSets: (id: string) => c.api<DisclosureSet[]>(`${cl(id)}/disclosure-sets`),
@@ -310,7 +418,7 @@ export function claimsApi(c: AuthClient) {
     costs: (id: string) => c.api<CostEntry[]>(`${cl(id)}/costs`),
     addCost: (id: string, body: CostBody) => c.api<CostEntry>(`${cl(id)}/costs`, { method: 'POST', body }),
     rollup: (f: { groupBy: string; from?: string; to?: string }) => c.api<RollupRow[]>(`/claims/costs/rollup${buildQuery(f)}`),
-    setBudget: (year: number, unitCode: string, amount: Money) => c.api<unknown>(`/claims/budgets/${seg(year)}/${seg(unitCode)}`, { method: 'PUT', body: amount }),
+    setBudget: (year: number, unitCode: string, amount: Money) => c.api<{ year: number; unitCode: string; amount: Money }>(`/claims/budgets/${seg(year)}/${seg(unitCode)}`, { method: 'PUT', body: amount }),
     budgetVsActual: (f: { year: number; groupBy: string }) => c.api<BudgetRow[]>(`/claims/costs/budget-vs-actual${buildQuery(f)}`),
     createExport: (month: string) => c.api<ErpExport>('/claims/costs/exports', { method: 'POST', body: { month } }),
     exports: () => c.api<ErpExport[]>('/claims/costs/exports'),
@@ -318,12 +426,13 @@ export function claimsApi(c: AuthClient) {
       c.api<ErpExport>(`/claims/costs/exports/${seg(id)}/reconcile`, { method: 'POST', body: { erpTotal, erpReference } }),
 
     // F06
-    legalHold: (id: string, reason: string) => c.api<ClaimDetail>(`${cl(id)}/legal-hold`, { method: 'POST', body: { reason } }),
-    releaseLegalHold: (id: string, reason: string) => c.api<ClaimDetail>(`${cl(id)}/legal-hold`, { method: 'DELETE', body: { reason } }),
-    privilege: (id: string, privileged: boolean, basis: string) => c.api<ClaimDetail>(`${cl(id)}/privilege`, { method: 'POST', body: { privileged, basis } }),
+    legalHold: (id: string, reason: string) => c.api<HoldView>(`${cl(id)}/legal-hold`, { method: 'POST', body: { reason } }),
+    releaseLegalHold: (id: string, reason: string) => c.api<HoldView>(`${cl(id)}/legal-hold`, { method: 'DELETE', body: { reason } }),
+    privilege: (id: string, privileged: boolean, basis: string) => c.api<HoldView>(`${cl(id)}/privilege`, { method: 'POST', body: { privileged, basis } }),
     createLegalRequest: (id: string, body: { type: LegalRequestType; questions: string; dueDate: string; providerCode?: string }) =>
       c.api<LegalRequest>(`${cl(id)}/legal-requests`, { method: 'POST', body }),
     legalRequests: (status?: string) => c.api<LegalRequest[]>(`/legal-requests${buildQuery({ status })}`),
+    legalRequest: (requestId: string) => c.api<LegalRequest>(`/legal-requests/${seg(requestId)}`),
     submitLegalReport: (requestId: string, opinion: string) => c.api<LegalRequest>(`/legal-requests/${seg(requestId)}/report`, { method: 'POST', body: { opinion } }),
     closeLegalRequest: (requestId: string) => c.api<LegalRequest>(`/legal-requests/${seg(requestId)}/close`, { method: 'POST' }),
   };

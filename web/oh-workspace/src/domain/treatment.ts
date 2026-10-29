@@ -201,7 +201,7 @@ export function validateWizardStep(step: WizardStep, f: ReferralForm, service: R
     case 'data':
       return validateDataSet(service, f.dataSet);
     case 'consent':
-      return f.consentId.trim() ? [] : [{ field: 'rf-consent', message: "Enter the employee's treatment-sharing consent reference – the provider cannot receive the referral without it" }];
+      return f.consentId.trim() ? [] : [{ field: 'rf-consent', message: "Choose the employee's treatment-sharing consent – the provider cannot receive the referral without it" }];
     default:
       return [];
   }

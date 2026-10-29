@@ -84,7 +84,8 @@ export function ReferralDetailPanel({ id, props, onChanged }: { id: string; prop
           ['Provider', <>{r.providerName} <ProviderBadges p={{ preferred: r.preferred, contract: r.contracted ? { ref: '', status: 'ACTIVE' } : null }} /></>],
           ['Urgency', humanise(r.urgency)],
           ['Channel', humanise(r.channel)],
-          ['Appointment', formatDate(r.appointmentAt)],
+          ['Appointment', `${formatDate(r.appointmentAt)}${r.appointmentLocation ? ` · ${r.appointmentLocation}` : ''}`],
+          ...(r.declineReason ? [['Declined', r.declineReason] as [string, string]] : []),
           ['Report due', due ? <ToneBadge tone={due.tone}>{due.label}</ToneBadge> : formatDate(r.reportDueAt)],
           ['Reason', r.reason],
           ['Question', r.question],
@@ -94,7 +95,7 @@ export function ReferralDetailPanel({ id, props, onChanged }: { id: string; prop
       {Object.keys(r.dataSet ?? {}).length > 0 && (
         <>
           <h3>Data set</h3>
-          <Dl items={Object.entries(r.dataSet).map(([k, v]) => [humanise(k), v])} />
+          <Dl items={Object.entries(r.dataSet).map(([k, v]) => [humanise(k), Array.isArray(v) ? v.join(', ') : v])} />
         </>
       )}
       <ul className="plain-list">

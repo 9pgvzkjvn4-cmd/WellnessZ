@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { platformApi, type DocumentMeta } from '../../api/platform';
-import { CHANNELS, treatmentApi, URGENCIES, type Provider, type ReferralDetail, type ReferralService } from '../../api/treatment';
+import { CHANNELS, treatmentApi, URGENCIES, type ActiveConsent, type Provider, type ReferralDetail, type ReferralService } from '../../api/treatment';
+import { ConsentPicker } from '../../components/ConsentPicker';
 import { ErrorSummary, IdField, type FieldError } from '../../components/forms';
-import { errorInfo, formatDay, humanise } from '../../components/format';
+import { errorInfo, formatDate, formatDay, humanise } from '../../components/format';
 import { ActionFeedback, Alert, Empty, ErrorAlert, Field, Loading } from '../../components/ui';
 import { useAction, useAsync } from '../../components/useAsync';
 import { formatMoney } from '../../domain/money';
+import { ApiError } from '../../auth/AuthClient';
 import {
   cleanDataSet,
   dataSetFieldId,
@@ -35,11 +37,19 @@ const fromDetail = (r: ReferralDetail): ReferralForm => ({
   providerCode: r.providerCode,
   reason: r.reason ?? '',
   question: r.question ?? '',
-  dataSet: { ...(r.dataSet ?? {}) },
-  consentId: '',
+  dataSet: Object.fromEntries(Object.entries(r.dataSet ?? {}).map(([k, v]) => [k, Array.isArray(v) ? v.join(', ') : String(v ?? '')])),
+  consentId: r.consentId ?? '',
   channel: r.channel,
   attachDocumentIds: (r.attachments ?? []).map((a) => (typeof a === 'string' ? a : a.documentId)),
 });
+
+/** Field the server named in a 400 / 422 data-set problem (`DataSetValidator.DataSetException` → `field`). */
+const problemField = (e: unknown): string | undefined => (e instanceof ApiError && typeof e.problem?.field === 'string' ? e.problem.field : undefined);
+
+function describeConsent(list: readonly ActiveConsent[] | undefined, consentId: string): string {
+  const c = (list ?? []).find((x) => x.id === consentId);
+  return c ? `${humanise(c.purpose)} – granted ${formatDate(c.grantedAt)}` : '–';
+}
 
 function ProviderPicker({ props, service, form, setForm, error }: { props: ScreenProps; service?: ReferralService; form: ReferralForm; setForm: (f: ReferralForm) => void; error?: string }) {
   const api = treatmentApi(props.client);
@@ -110,6 +120,7 @@ export function ReferralWizard({ props, caseId, existing, onDone }: { props: Scr
   const api = treatmentApi(client);
   const services = useAsync(() => api.services(), onSessionExpired);
   const docs = useAsync(() => platformApi(client).documents({ caseId }).catch(() => [] as DocumentMeta[]), onSessionExpired);
+  const consents = useAsync(() => api.caseConsents(caseId, 'TREATMENT_SHARING_PARTNER'), onSessionExpired, [caseId]);
   const [form, setForm] = useState<ReferralForm>(() => (existing ? fromDetail(existing) : emptyReferralForm()));
   const [step, setStep] = useState<WizardStep>('service');
   const [errors, setErrors] = useState<FieldError[]>([]);
@@ -171,11 +182,14 @@ export function ReferralWizard({ props, caseId, existing, onDone }: { props: Scr
     }
     const code = problemCode(failed);
     if (code === 'consent_required') {
+      consents.reload();
       setStep('consent');
-      setErrors([{ field: 'rf-consent', message: `No active treatment-sharing consent for this provider${savedId || !existing ? ' – the referral is saved as a draft' : ''}. Record the employee's consent and enter its reference.` }]);
-    } else if (code === 'data_set_incomplete' || code === 'required_field_missing') {
+      setErrors([{ field: 'rf-consent', message: `The chosen treatment-sharing consent is not active${savedId || !existing ? ' – the referral is saved as a draft' : ''}. Choose an active consent or ask the employee to grant it in the employee app.` }]);
+    } else if (code === 'data_set_incomplete' || code === 'required_field_missing' || code === 'unknown_field' || code === 'invalid_field') {
+      const named = problemField(failed);
+      const field = service?.requiredFields.find((f) => f.code === named) ?? service?.requiredFields[0];
       setStep('data');
-      setErrors([{ field: service?.requiredFields[0] ? dataSetFieldId(service.requiredFields[0].code) : 'rf-service', message: errorInfo(failed).message }]);
+      setErrors([{ field: field ? dataSetFieldId(field.code) : 'rf-service', message: errorInfo(failed).message }]);
     }
   }
 
@@ -259,9 +273,7 @@ export function ReferralWizard({ props, caseId, existing, onDone }: { props: Scr
       {step === 'consent' && (
         <div className="form">
           <p>The provider only sees the referral under the employee&apos;s active <strong>treatment sharing (partner)</strong> consent. Sending checks it.</p>
-          <IdField id="rf-consent" label="Consent reference" required error={err('rf-consent')}>
-            {(db) => <input id="rf-consent" aria-describedby={db} aria-invalid={!!err('rf-consent')} value={form.consentId} onChange={(e) => setForm({ ...form, consentId: e.target.value })} />}
-          </IdField>
+          <ConsentPicker id="rf-consent" legend="Treatment-sharing consent" consents={consents} value={form.consentId} onChange={(consentId) => setForm({ ...form, consentId })} error={err('rf-consent')} />
         </div>
       )}
 
@@ -298,7 +310,7 @@ export function ReferralWizard({ props, caseId, existing, onDone }: { props: Scr
             <div className="details-row"><dt>Service</dt><dd>{service?.name ?? form.serviceCode} · {humanise(form.urgency)}</dd></div>
             <div className="details-row"><dt>Provider</dt><dd>{form.providerCode}</dd></div>
             <div className="details-row"><dt>Data set</dt><dd>{Object.keys(cleanDataSet(service, form.dataSet)).length} of {service?.requiredFields.length ?? 0} fields</dd></div>
-            <div className="details-row"><dt>Consent</dt><dd>{form.consentId || '–'}</dd></div>
+            <div className="details-row"><dt>Consent</dt><dd>{describeConsent(consents.data, form.consentId)}</dd></div>
             <div className="details-row"><dt>Channel</dt><dd>{humanise(form.channel)}</dd></div>
             <div className="details-row"><dt>Attachments</dt><dd>{form.attachDocumentIds.length}</dd></div>
           </dl>

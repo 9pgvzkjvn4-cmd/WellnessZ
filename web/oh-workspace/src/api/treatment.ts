@@ -41,6 +41,20 @@ export const CONTRACT_STATUSES = ['ACTIVE', 'EXPIRING', 'EXPIRED', 'NONE'] as co
 export type ContractStatus = (typeof CONTRACT_STATUSES)[number];
 export const COST_GROUP_BY = ['SUBSIDIARY', 'DEPARTMENT', 'COST_CENTRE'] as const;
 export const VARIANCE_ALERT_STATUSES = ['OPEN', 'ACKNOWLEDGED', 'ESCALATED'] as const;
+export const CONSENT_PURPOSES = ['TREATMENT_SHARING_PARTNER', 'INSURER_SHARING'] as const;
+export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number];
+
+// ---------------------------------------------------------------- active consents (consent pickers)
+/**
+ * An active disclosure consent of the employee (`GET /cases/{caseId}/consents?purpose=…`, `GET /claims/{id}/consents`).
+ * Backend record `ConsentView(UUID id, String purpose, Instant grantedAt, String scope)`.
+ */
+export interface ActiveConsent {
+  id: string;
+  purpose: ConsentPurpose | string;
+  grantedAt: string;
+  scope?: string | null;
+}
 
 // ---------------------------------------------------------------- F01 treatment plans
 export interface PlanTemplate {
@@ -163,10 +177,18 @@ export interface Referral {
 export interface ReferralDetail extends Referral {
   reason: string;
   question: string;
-  dataSet: Record<string, string>;
+  /** LIST fields may come back as arrays (`Map<String, Object>` on the server). */
+  dataSet: Record<string, string | string[]>;
+  /** Consent the referral was (or will be) sent under – `ReferralView.consentId`. */
+  consentId?: string | null;
   letterDocumentId?: string;
   attachments: ({ documentId: string; title?: string } | string)[];
   history: { status: ReferralStatus; at: string; by?: string }[];
+  declinedAt?: string;
+  declineReason?: string;
+  appointmentLocation?: string;
+  appointmentInstructions?: string;
+  reportSummary?: string;
   fhir?: unknown;
 }
 export interface ReferralBody {
@@ -292,9 +314,13 @@ export interface Preauth {
   payerCode?: string;
   payerName?: string;
   serviceCode: string;
+  serviceName?: string;
   providerCode: string;
+  providerName?: string;
+  referralId?: string;
   estimate: Money;
   status: PreauthStatus;
+  slaBreached?: boolean;
   submittedAt?: string;
   slaDueAt?: string;
   decidedAt?: string;
@@ -407,11 +433,12 @@ export interface Administration {
   allergyOverride?: string | boolean | null;
   siteCode?: string;
 }
+/** Backend `UsageRow(month, itemCode, name, siteCode, administrations)` – there is no quantity column. */
 export interface UsageRow {
+  month?: string;
   itemCode: string;
   name?: string;
   siteCode?: string;
-  quantity?: number;
   administrations?: number;
 }
 export interface EPrescribingStatus {
@@ -434,7 +461,10 @@ export interface Outcome {
   recordedBy?: string;
 }
 export type OutcomeBody = Omit<Outcome, 'id' | 'recordedAt' | 'recordedBy'>;
-/** The contract reads "[Outcome] + {improvement}" – accept a plain array or `{outcomes|items, improvement}`. */
+/**
+ * Backend `OutcomeList(outcomes, improvement)` with `improvement = {painDelta, functionDelta}` (latest − baseline, raw –
+ * the UI derives the direction-corrected improvement itself). A plain array / `items` is still accepted.
+ */
 export type OutcomesResponse = Outcome[] | { outcomes?: Outcome[]; items?: Outcome[]; improvement?: { painDelta?: number; functionDelta?: number } };
 
 // ---------------------------------------------------------------- F07 telehealth
@@ -518,6 +548,8 @@ export function treatmentApi(c: AuthClient) {
     cancelReferral: (id: string, reason: string) => c.api<ReferralDetail>(`${ref(id)}/cancel`, { method: 'POST', body: { reason } }),
     rateReferral: (id: string, rating: number, comment?: string) => c.api<ReferralDetail>(`${ref(id)}/rating`, { method: 'POST', body: comment ? { rating, comment } : { rating } }),
     caseReferrals: (caseId: string) => c.api<Referral[]>(`${cs(caseId)}/referrals`),
+    /** Active consents of the case's employee for one purpose (CLAIMS_COORDINATOR: INSURER_SHARING only). */
+    caseConsents: (caseId: string, purpose: ConsentPurpose) => c.api<ActiveConsent[]>(`${cs(caseId)}/consents${buildQuery({ purpose })}`).then((l) => (l ?? []).map(toConsent)),
     kpis: (f: { from?: string; to?: string }) => c.api<TreatmentKpis>(`/treatment/kpis${buildQuery(f)}`),
 
     // F03
@@ -583,3 +615,8 @@ export interface PartnerOrganisation {
 }
 
 export type TreatmentApi = ReturnType<typeof treatmentApi>;
+
+/** Normalises a consent row (ids as strings; tolerate a missing purpose). */
+export function toConsent(raw: ActiveConsent): ActiveConsent {
+  return { id: String(raw.id), purpose: raw.purpose ?? '', grantedAt: raw.grantedAt, ...(raw.scope ? { scope: raw.scope } : {}) };
+}

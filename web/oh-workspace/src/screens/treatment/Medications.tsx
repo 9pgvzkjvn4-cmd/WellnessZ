@@ -209,14 +209,13 @@ function UsageView({ props }: { props: ScreenProps }) {
       {rows.length > 0 && (
         <table>
           <caption>Medication usage {month}</caption>
-          <thead><tr><th scope="col">Item</th><th scope="col">Site</th><th scope="col" className="num">Administrations</th><th scope="col" className="num">Quantity</th></tr></thead>
+          <thead><tr><th scope="col">Item</th><th scope="col">Site</th><th scope="col" className="num">Administrations</th></tr></thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={`${r.itemCode}-${r.siteCode ?? i}`}>
                 <th scope="row">{r.name ?? r.itemCode}</th>
                 <td>{r.siteCode ?? 'All'}</td>
                 <td className="num">{r.administrations ?? '–'}</td>
-                <td className="num">{r.quantity ?? '–'}</td>
               </tr>
             ))}
           </tbody>

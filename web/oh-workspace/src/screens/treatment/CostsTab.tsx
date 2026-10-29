@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { documentContentUrl } from '../../api/platform';
 import { PREAUTH_DECISIONS, treatmentApi, type Invoice, type Preauth, type PreauthDecision } from '../../api/treatment';
 import { can, hasAnyRole, OH_ROLES } from '../../auth/roles';
+import { ConsentPicker } from '../../components/ConsentPicker';
 import { Dialog } from '../../components/Dialog';
 import { ErrorSummary, IdField, type FieldError } from '../../components/forms';
 import { formatDate, formatDay, humanise } from '../../components/format';
@@ -10,6 +11,7 @@ import { ActionFeedback, Empty, ErrorAlert, Field, Loading, StatusBadge } from '
 import { useAction, useAsync } from '../../components/useAsync';
 import { slaTone } from '../../domain/absence';
 import { asMoney, CURRENCIES, describeServerVariance, formatMoney, invoiceVariance, parseAmount } from '../../domain/money';
+import { problemCode } from '../../domain/treatment';
 import { errorFor } from '../../domain/validation';
 import type { CaseTabProps } from '../case/caseTabProps';
 import type { ScreenProps } from '../types';
@@ -34,6 +36,7 @@ function PreauthForm({ props, onDone }: { props: PanelProps; onDone: () => void 
   const oh = hasAnyRole(session.roles, OH_ROLES);
   const services = useAsync(() => api.services(), onSessionExpired);
   const referrals = useAsync(() => (oh ? api.caseReferrals(caseId) : Promise.resolve([])), onSessionExpired);
+  const consents = useAsync(() => api.caseConsents(caseId, 'INSURER_SHARING'), onSessionExpired, [caseId]);
   const [f, setF] = useState({ payerCode: '', serviceCode: '', providerCode: '', referralId: '', amount: '', currency: 'GBP', justification: '', consentId: '' });
   const [errors, setErrors] = useState<FieldError[]>([]);
   const action = useAction(onSessionExpired);
@@ -47,11 +50,12 @@ function PreauthForm({ props, onDone }: { props: PanelProps; onDone: () => void 
     if (!f.providerCode.trim()) errs.push({ field: 'pa-provider', message: 'Enter the provider code' });
     if (!amount) errs.push({ field: 'pa-amount', message: 'Estimate: enter an amount such as 450.00' });
     if (oh && !f.justification.trim()) errs.push({ field: 'pa-justification', message: 'Clinical justification is required' });
-    if (!f.consentId.trim()) errs.push({ field: 'pa-consent', message: "Enter the employee's insurer-sharing consent reference" });
+    if (!f.consentId) errs.push({ field: 'pa-consent', message: "Choose the employee's insurer-sharing consent" });
     setErrors(errs);
     if (errs.length || !amount) return;
-    if (
-      await action.run(async () => {
+    let failed: unknown;
+    const ok = await action.run(async () => {
+      try {
         const p = await api.createPreauth(caseId, {
           ...(f.payerCode.trim() ? { payerCode: f.payerCode.trim().toUpperCase() } : {}),
           serviceCode: f.serviceCode,
@@ -59,12 +63,21 @@ function PreauthForm({ props, onDone }: { props: PanelProps; onDone: () => void 
           ...(f.referralId ? { referralId: f.referralId } : {}),
           estimate: { amount, currency: f.currency },
           ...(oh && f.justification.trim() ? { justification: f.justification.trim() } : {}),
-          consentId: f.consentId.trim(),
+          consentId: f.consentId,
         });
         return `Pre-authorisation ${p.ref} created as draft.`;
-      })
-    )
-      onDone();
+      } catch (ex) {
+        failed = ex;
+        throw ex;
+      }
+    });
+    if (ok) onDone();
+    else if (problemCode(failed) === 'consent_required') {
+      consents.reload();
+      setF((cur) => ({ ...cur, consentId: '' }));
+      setErrors([{ field: 'pa-consent', message: 'The chosen insurer-sharing consent is no longer active – choose another or ask the employee to grant it in the employee app' }]);
+      action.reset();
+    }
   }
 
   return (
@@ -109,9 +122,7 @@ function PreauthForm({ props, onDone }: { props: PanelProps; onDone: () => void 
           {(db) => <textarea id="pa-justification" rows={3} maxLength={4000} aria-describedby={db} aria-invalid={!!err('pa-justification')} value={f.justification} onChange={(e) => setF({ ...f, justification: e.target.value })} />}
         </IdField>
       )}
-      <IdField id="pa-consent" label="Insurer-sharing consent reference" required error={err('pa-consent')}>
-        {(db) => <input id="pa-consent" aria-describedby={db} aria-invalid={!!err('pa-consent')} value={f.consentId} onChange={(e) => setF({ ...f, consentId: e.target.value })} />}
-      </IdField>
+      <ConsentPicker id="pa-consent" legend="Insurer-sharing consent" consents={consents} value={f.consentId} onChange={(consentId) => setF({ ...f, consentId })} error={err('pa-consent')} />
       <div className="actions">
         <button type="submit" disabled={action.busy}>Create draft</button>
         <button type="button" className="secondary" onClick={onDone}>Cancel</button>
@@ -301,7 +312,7 @@ export function CaseCostsPanel(props: PanelProps) {
                 return (
                   <tr key={p.id}>
                     <th scope="row">{p.ref}{p.documentId && <> <a className="small" href={documentContentUrl(p.documentId)} target="_blank" rel="noopener">request</a></>}</th>
-                    <td>{p.serviceCode} · {p.providerCode}</td>
+                    <td>{p.serviceName ?? p.serviceCode} · {p.providerName ?? p.providerCode}</td>
                     <td>{p.payerName ?? p.payerCode ?? '–'}</td>
                     <td className="num">{formatMoney(p.estimate)}</td>
                     <td><StatusBadge status={p.status} /></td>
