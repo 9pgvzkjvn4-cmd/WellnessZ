@@ -134,6 +134,10 @@ describe('Referral wizard', () => {
       'POST /cases/c1/referrals': referral({ status: 'DRAFT' }),
       'PUT /referrals/r1': referral({ status: 'DRAFT' }),
       'POST /referrals/r1/send': () => (++sends === 1 ? reply(422, { status: 422, code: 'consent_required', detail: 'No active consent' }) : referral()),
+      'GET /cases/c1/consents?purpose=TREATMENT_SHARING_PARTNER': () =>
+        sends === 0
+          ? [{ id: 'CONS-1', purpose: 'TREATMENT_SHARING_PARTNER', grantedAt: '2026-10-01T09:00:00Z' }, { id: 'CONS-2', purpose: 'TREATMENT_SHARING_PARTNER', grantedAt: '2026-09-01T09:00:00Z', scope: 'All partners' }]
+          : [{ id: 'CONS-2', purpose: 'TREATMENT_SHARING_PARTNER', grantedAt: '2026-09-01T09:00:00Z', scope: 'All partners' }],
     });
     render(<ReferralsTab {...tabProps(api)} />);
     await user.click(await screen.findByRole('button', { name: 'New referral' }));
@@ -158,26 +162,86 @@ describe('Referral wizard', () => {
     await user.type(screen.getByLabelText(/Body region/), 'Lumbar');
     await user.type(screen.getByLabelText(/Injury date/), '2026-10-01');
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    await user.type(screen.getByLabelText(/Consent reference/), 'CONS-1');
+    const picker = screen.getByRole('group', { name: /Treatment-sharing consent/ });
+    expect(screen.queryByRole('textbox', { name: /Consent/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('link', { name: /Choose the employee's treatment-sharing consent/ })).toBeTruthy();
+    const radios = await within(picker).findAllByRole('radio');
+    expect(radios).toHaveLength(2);
+    expect(radios[1]?.closest('label')?.textContent).toContain('All partners');
+    await user.click(radios[0]!);
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.click(screen.getByRole('radio', { name: /Fhir/ }));
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.click(await screen.findByRole('checkbox', { name: /X-ray report/ }));
     await user.click(screen.getByRole('button', { name: 'Save & send' }));
 
-    expect(await screen.findByRole('link', { name: /No active treatment-sharing consent/ })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: /The chosen treatment-sharing consent is not active/ })).toBeTruthy();
     expect(api.find('POST', '/cases/c1/referrals')[0]?.body).toEqual({
       serviceCode: 'PHYSIOTHERAPY', urgency: 'ROUTINE', providerCode: 'PHYSIOPLUS', reason: 'Persistent low back pain after lifting', question: 'Assess and treat; advise on lifting',
       dataSet: { bodyRegion: 'Lumbar', injuryDate: '2026-10-01' }, consentId: 'CONS-1', channel: 'FHIR', attachDocumentIds: ['doc1'],
     });
-    await user.clear(screen.getByLabelText(/Consent reference/));
-    await user.type(screen.getByLabelText(/Consent reference/), 'CONS-2');
+    expect(await screen.findByText(/no longer active – choose one of the active consents/)).toBeTruthy();
+    const remaining = within(screen.getByRole('group', { name: /Treatment-sharing consent/ })).getAllByRole('radio');
+    expect(remaining).toHaveLength(1);
+    await user.click(remaining[0]!);
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.click(screen.getByRole('button', { name: 'Save & send' }));
     expect(await screen.findByText(/Referral RFL-2026-000001 sent to Physio Plus/)).toBeTruthy();
     expect(api.find('POST', '/cases/c1/referrals')).toHaveLength(1);
     expect(api.find('PUT', '/referrals/r1')[0]?.body).toMatchObject({ consentId: 'CONS-2' });
+  });
+
+  const wizardApi = (consents: unknown[]) =>
+    mockApi({
+      'GET /cases/c1/referrals': [],
+      'GET /referrals/services': services,
+      'GET /providers': providers,
+      'GET /documents': [],
+      'GET /cases/c1/consents?purpose=TREATMENT_SHARING_PARTNER': consents,
+      'POST /cases/c1/referrals': referral({ status: 'DRAFT' }),
+      'POST /referrals/r1/send': reply(422, { status: 422, code: 'data_set_incomplete', field: 'injuryDate', detail: 'Required referral information missing: Injury date' }),
+    });
+  const toConsentStep = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(await screen.findByRole('button', { name: 'New referral' }));
+    await user.selectOptions(screen.getByLabelText(/^Service/), 'PHYSIOTHERAPY');
+    await user.type(screen.getByLabelText(/Reason for referral/), 'Back pain');
+    await user.type(screen.getByLabelText(/Question for the provider/), 'Assess');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('radio', { name: /Physio Plus/ }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByLabelText(/Body region/), 'Lumbar');
+    await user.type(screen.getByLabelText(/Injury date/), '2026-10-01');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+  };
+
+  it('shows the empty consent state without a free-text fallback', async () => {
+    const user = userEvent.setup();
+    const api = wizardApi([]);
+    render(<ReferralsTab {...tabProps(api)} />);
+    await toConsentStep(user);
+    expect(await screen.findByText('No active consent – ask the employee to grant it in the employee app')).toBeTruthy();
+    expect(within(screen.getByRole('group', { name: /Treatment-sharing consent/ })).queryAllByRole('radio')).toHaveLength(0);
+    expect(screen.queryByRole('textbox', { name: /Consent/ })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('link', { name: /Choose the employee's treatment-sharing consent/ })).toBeTruthy();
+    expect(api.find('GET', '/cases/c1/consents')[0]?.path).toBe('/cases/c1/consents?purpose=TREATMENT_SHARING_PARTNER');
+  });
+
+  it('data_set_incomplete returns to the data step and highlights the field the server named', async () => {
+    const user = userEvent.setup();
+    const api = wizardApi([{ id: 'CONS-1', purpose: 'TREATMENT_SHARING_PARTNER', grantedAt: '2026-10-01T09:00:00Z' }]);
+    render(<ReferralsTab {...tabProps(api)} />);
+    await toConsentStep(user);
+    await user.click(await screen.findByRole('radio', { name: /Treatment sharing partner/ }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText(/Treatment sharing partner – granted/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Save & send' }));
+    expect(await screen.findByRole('link', { name: 'Required referral information missing: Injury date' })).toBeTruthy();
+    expect(screen.getByLabelText(/Injury date/).getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByLabelText(/Body region/).getAttribute('aria-invalid')).toBe('false');
   });
 });
 
@@ -209,6 +273,7 @@ describe('CostsTab', () => {
       'GET /cases/c1/invoices': [{ id: 'i1', providerCode: 'LDN_IMAGING', invoiceNumber: 'INV-77', amount: { amount: '448.00', currency: 'GBP' }, status: 'DISPUTED', matchedPreauthId: 'pa1', serviceDate: '2026-10-10' }],
       'GET /referrals/services': services,
       'POST /cases/c1/preauthorisations': { id: 'pa2', ref: 'PA-2026-000002', status: 'DRAFT' },
+      'GET /cases/c1/consents?purpose=INSURER_SHARING': [{ id: 'INS-1', purpose: 'INSURER_SHARING', grantedAt: '2026-10-02T08:00:00Z', scope: 'GULFTPA' }],
     });
     render(<CostsTab {...tabProps(api, 'OH_PHYSICIAN')} />);
     expect(await screen.findByText('£48.00 (12.0 %) over approval')).toBeTruthy();
@@ -219,10 +284,45 @@ describe('CostsTab', () => {
     await user.type(screen.getByLabelText(/^Estimate/), '1,200');
     await user.click(screen.getByRole('button', { name: 'Create draft' }));
     expect(screen.getByRole('link', { name: 'Clinical justification is required' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: "Choose the employee's insurer-sharing consent" })).toBeTruthy();
     await user.type(screen.getByLabelText(/Clinical justification/), 'Six sessions for lumbar strain');
-    await user.type(screen.getByLabelText(/Insurer-sharing consent/), 'INS-1');
+    const consent = await within(screen.getByRole('group', { name: /Insurer-sharing consent/ })).findByRole('radio');
+    expect(consent.closest('label')?.textContent).toMatch(/Insurer sharing.*granted.*GULFTPA/);
+    await user.click(consent);
     await user.click(screen.getByRole('button', { name: 'Create draft' }));
     await waitFor(() => expect(api.find('POST', '/cases/c1/preauthorisations')[0]?.body).toEqual({ serviceCode: 'PHYSIOTHERAPY', providerCode: 'PHYSIOPLUS', estimate: { amount: '1200.00', currency: 'GBP' }, justification: 'Six sessions for lumbar strain', consentId: 'INS-1' }));
+  });
+});
+
+describe('pre-authorisation consent picker', () => {
+  it('claims coordinators see the empty state and cannot type a consent id; consent_required clears the choice', async () => {
+    const user = userEvent.setup();
+    let consents: unknown[] = [];
+    const api = mockApi({
+      'GET /cases/c1/preauthorisations': [],
+      'GET /cases/c1/invoices': [],
+      'GET /referrals/services': services,
+      'GET /cases/c1/consents?purpose=INSURER_SHARING': () => consents,
+      'POST /cases/c1/preauthorisations': reply(422, { status: 422, code: 'consent_required', detail: 'Consent withdrawn' }),
+    });
+    const { unmount } = render(<CostsTab {...tabProps(api, 'CLAIMS_COORDINATOR')} />);
+    await user.click(await screen.findByRole('button', { name: 'New pre-authorisation' }));
+    expect(await screen.findByText('No active consent – ask the employee to grant it in the employee app')).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: /consent/i })).toBeNull();
+    unmount();
+
+    consents = [{ id: 'INS-9', purpose: 'INSURER_SHARING', grantedAt: '2026-10-02T08:00:00Z' }];
+    render(<CostsTab {...tabProps(api, 'CLAIMS_COORDINATOR')} />);
+    await user.click(await screen.findByRole('button', { name: 'New pre-authorisation' }));
+    await user.selectOptions(screen.getByLabelText(/^Service/), 'PHYSIOTHERAPY');
+    await user.type(screen.getByLabelText(/Provider code/), 'PHYSIOPLUS');
+    await user.type(screen.getByLabelText(/^Estimate/), '300');
+    await user.click(await screen.findByRole('radio', { name: /Insurer sharing/ }));
+    consents = [];
+    await user.click(screen.getByRole('button', { name: 'Create draft' }));
+    expect(await screen.findByRole('link', { name: /no longer active/ })).toBeTruthy();
+    expect(api.find('POST', '/cases/c1/preauthorisations')[0]?.body).toMatchObject({ consentId: 'INS-9' });
+    expect(await screen.findByText('No active consent – ask the employee to grant it in the employee app')).toBeTruthy();
   });
 });
 

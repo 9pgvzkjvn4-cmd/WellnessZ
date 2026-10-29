@@ -64,7 +64,7 @@ export function LegalRequestList({ rows, props, onChanged, showClaim = true }: {
             </h3>
             {showClaim && r.claimId && <p className="small"><a href={claimLink(r.claimId, 'legal')}>{r.claimRef ?? 'Claim'}</a></p>}
             {r.providerCode && <p className="small">Provider: {r.providerCode}{r.referralId ? ' · IME referral created for OH to complete' : ''}</p>}
-            <p className="pre-wrap">{r.questions}</p>
+            {r.questions && <p className="pre-wrap">{r.questions}</p>}
             {r.reports.length > 0 && (
               <ul className="plain-list">
                 {r.reports.map((v) => (

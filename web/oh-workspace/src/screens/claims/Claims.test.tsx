@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mockApi, reply, sessionFor } from '../../testing/mockApi';
 import { ClaimCostsScreen } from './ClaimCosts';
 import { ClaimDetailScreen } from './ClaimDetail';
-import { ClaimList, ClaimReportsDashboard, NurseAssignment } from './ClaimScreens';
+import { ClaimDisclosureReport, ClaimList, ClaimReportsDashboard, NurseAssignment } from './ClaimScreens';
 import { PhysicianLegalRequests } from './LegalRequests';
 
 afterEach(cleanup);
@@ -39,7 +39,9 @@ describe('ClaimDetailScreen', () => {
     const user = userEvent.setup();
     let puts = 0;
     const api = mockApi({
-      'GET /claims/cl1': claim({ reports: [report] }),
+      // the claim detail carries a summary only – the tab loads the full reports
+      'GET /claims/cl1': claim({ reports: [{ id: 'rep1', ref: 'FROI-2026-000001', formCode: 'INSURER_FNOL', recipientCode: 'GULFTPA', status: 'DRAFT', dueAt: '2099-01-01T00:00:00Z' }] }),
+      'GET /claims/cl1/reports': [report],
       'GET /claims/report-forms': [{ code: 'INSURER_FNOL', jurisdiction: 'GB', recipientType: 'INSURER', recipientCode: 'GULFTPA', title: 'Insurer first notice of loss', deadlineHours: 72, trigger: 'ANY_CLAIM', fields: [{ code: 'incidentDate', label: 'Incident date', source: 'INCIDENT' }, { code: 'description', label: 'Description of injury', source: 'CASE' }] }],
       'PUT /claims/reports/rep1': () => (++puts === 1 ? reply(422, { status: 422, code: 'clinical_content_not_allowed', field: 'fields.description' }) : report),
       'POST /claims/reports/rep1/submit': { ...report, status: 'SUBMITTED' },
@@ -48,6 +50,7 @@ describe('ClaimDetailScreen', () => {
     expect(await screen.findByRole('heading', { name: /FROI-2026-000001 – Insurer first notice of loss/ })).toBeTruthy();
     expect(screen.getByText(/ left$/)).toBeTruthy();
     const desc = screen.getByLabelText(/Description of injury/);
+    expect((desc as HTMLTextAreaElement).value).toBe('Strain');
     await user.clear(desc);
     await user.type(desc, 'L4/L5 disc herniation');
     await user.click(screen.getByRole('button', { name: 'Submit report' }));
@@ -60,17 +63,18 @@ describe('ClaimDetailScreen', () => {
     expect(api.find('PUT', '/claims/reports/rep1')[1]?.body).toEqual({ fields: { incidentDate: '2026-10-01', description: 'Back strain while lifting' } });
   });
 
-  it('disclosures: OH role builds a set from disclosable documents, redacts and sends with consent', async () => {
+  it('disclosures: OH role builds a set from the server candidates, redacts and sends under a picked consent', async () => {
     const user = userEvent.setup();
-    const set = { id: 's1', recipientCode: 'GULFTPA', purpose: 'CLAIM', status: 'DRAFT', documents: [{ documentId: 'd2', title: 'Physio report', type: 'PROVIDER_REPORT' }] };
+    const set = { id: 's1', claimId: 'cl1', recipientCode: 'GULFTPA', recipientName: 'Gulf TPA', purpose: 'CLAIM', status: 'DRAFT', documents: [{ documentId: 'd2', title: 'Physio report', type: 'PROVIDER_REPORT' }] };
     const api = mockApi({
       'GET /claims/cl1': claim(),
       'GET /claims/cl1/disclosure-sets': [set],
-      'GET /documents': [
-        { id: 'd1', title: 'Fitness certificate', type: 'FITNESS_CERTIFICATE', employeeId: 'E1004', status: 'SIGNED' },
-        { id: 'd2', title: 'Physio report', type: 'PROVIDER_REPORT', employeeId: 'E1004', status: 'SIGNED' },
-        { id: 'd3', title: 'Wound photo', type: 'PHOTO', employeeId: 'E1004', status: 'SIGNED' },
+      'GET /claims/cl1/documents': [
+        { documentId: 'd1', documentNumber: 'DOC-1', title: 'Fitness certificate', type: 'FITNESS_CERTIFICATE', createdAt: '2026-10-03T09:00:00Z', disclosable: true },
+        { documentId: 'd2', title: 'Physio report', type: 'PROVIDER_REPORT', createdAt: '2026-10-04T09:00:00Z', disclosable: true },
+        { documentId: 'd3', title: 'Wound photo', type: 'PHOTO', createdAt: '2026-10-05T09:00:00Z', disclosable: false, reason: 'photos are never disclosed' },
       ],
+      'GET /claims/cl1/consents': [{ id: 'INS-77', purpose: 'INSURER_SHARING', grantedAt: '2026-10-02T08:00:00Z', scope: 'GULFTPA' }],
       'POST /claims/cl1/disclosure-sets': set,
       'POST /claims/disclosure-sets/s1/redactions': { ...set, documents: [{ documentId: 'd9', title: 'Physio report (redacted)', type: 'REDACTED_COPY', redactedFromId: 'd2' }] },
       'POST /claims/disclosure-sets/s1/send': { ...set, status: 'SENT' },
@@ -78,7 +82,10 @@ describe('ClaimDetailScreen', () => {
     render(<ClaimDetailScreen client={api.client} session={sessionFor('NURSING_HEAD')} onSessionExpired={noop} claimId="cl1" tab="disclosures" />);
     await user.click(await screen.findByRole('button', { name: 'New disclosure set' }));
     expect(await screen.findByRole('checkbox', { name: /Physio report/ })).toBeTruthy();
-    expect(screen.queryByRole('checkbox', { name: /Wound photo/ })).toBeNull();
+    const photo = screen.getByRole('checkbox', { name: /Wound photo/ }) as HTMLInputElement;
+    expect(photo.disabled).toBe(true);
+    expect(screen.getByText(/not disclosable: photos are never disclosed/)).toBeTruthy();
+    expect(screen.queryByLabelText(/Other document ids/)).toBeNull();
     await user.click(screen.getByRole('checkbox', { name: /Fitness certificate/ }));
     await user.click(screen.getByRole('button', { name: 'Create draft set' }));
     await waitFor(() => expect(api.find('POST', '/claims/cl1/disclosure-sets')[0]?.body).toEqual({ recipientCode: 'GULFTPA', purpose: 'CLAIM', documentIds: ['d1'] }));
@@ -88,14 +95,60 @@ describe('ClaimDetailScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Create redacted copy' }));
     await waitFor(() => expect(api.find('POST', '/claims/disclosure-sets/s1/redactions')[0]?.body).toEqual({ documentId: 'd2', phrases: ['sertraline', 'anxiety'] }));
 
-    await user.type(screen.getByLabelText(/Insurer-sharing consent reference/), 'INS-77');
-    await user.click(screen.getByRole('button', { name: 'Send' }));
+    await user.click(screen.getByRole('button', { name: 'Send set to GULFTPA' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).queryByRole('textbox')).toBeNull();
+    expect((within(dialog).getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(true);
+    const radio = await within(dialog).findByRole('radio', { name: /Insurer sharing/ });
+    expect(radio.closest('label')?.textContent).toContain('GULFTPA');
+    await user.click(radio);
+    await user.click(within(dialog).getByRole('button', { name: 'Send' }));
     await waitFor(() => expect(api.find('POST', '/claims/disclosure-sets/s1/send')[0]?.body).toEqual({ consentId: 'INS-77' }));
+    expect(await screen.findByText('Disclosure set sent to Gulf TPA and logged.')).toBeTruthy();
+  });
+
+  it('disclosures: claims coordinator chooser uses the claim documents; no consent → empty state, no free text', async () => {
+    const user = userEvent.setup();
+    const set = { id: 's1', recipientCode: 'GULFTPA', purpose: 'CLAIM', status: 'DRAFT', documents: [{ documentId: 'd1', title: 'Fitness certificate', type: 'FITNESS_CERTIFICATE' }] };
+    const api = mockApi({
+      'GET /claims/cl1': claim(),
+      'GET /claims/cl1/disclosure-sets': [set],
+      'GET /claims/cl1/documents': [
+        { id: 'd1', title: 'Fitness certificate', type: 'FITNESS_CERTIFICATE', disclosable: true },
+        { id: 'd2', title: 'Physio report', type: 'PROVIDER_REPORT', disclosable: false, reason: 'provider reports are disclosed by OH only' },
+      ],
+      'GET /claims/cl1/consents': [],
+    });
+    render(<ClaimDetailScreen client={api.client} session={sessionFor('CLAIMS_COORDINATOR')} onSessionExpired={noop} claimId="cl1" tab="disclosures" />);
+    await user.click(await screen.findByRole('button', { name: 'New disclosure set' }));
+    expect(((await screen.findByRole('checkbox', { name: /Physio report/ })) as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByText(/provider reports are disclosed by OH only/)).toBeTruthy();
+    expect((screen.getByRole('checkbox', { name: /Fitness certificate/ }) as HTMLInputElement).disabled).toBe(false);
+    expect(api.find('GET', '/documents')).toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: 'Send set to GULFTPA' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText('No active consent – ask the employee to grant it in the employee app')).toBeTruthy();
+    expect(within(dialog).queryByRole('textbox')).toBeNull();
+    expect((within(dialog).getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('legal tab: claims coordinators see the request summaries from the claim', async () => {
+    const api = mockApi({ 'GET /claims/cl1': claim({ legalRequests: [{ id: 'l1', ref: 'LEG-2026-000001', type: 'IME', status: 'OPEN', dueDate: '2099-01-01' }] }) });
+    render(<ClaimDetailScreen client={api.client} session={sessionFor('CLAIMS_COORDINATOR')} onSessionExpired={noop} claimId="cl1" tab="legal" />);
+    expect(await screen.findByRole('heading', { name: /LEG-2026-000001 – Ime/ })).toBeTruthy();
+    expect(api.find('GET', '/legal-requests')).toHaveLength(0);
   });
 
   it('legal counsel: hold and privilege, no reports / costs tabs', async () => {
     const user = userEvent.setup();
-    const api = mockApi({ 'GET /claims/cl1': claim({ status: 'LITIGATED', legalRequests: [] }), 'POST /claims/cl1/legal-hold': claim({ litigationHold: true }) });
+    const api = mockApi({
+      'GET /claims/cl1': claim({ status: 'LITIGATED', legalRequests: [{ id: 'l1', ref: 'LEG-2026-000001', type: 'MEDICO_LEGAL_REPORT', status: 'REPORT_READY', dueDate: '2099-01-01' }] }),
+      'GET /legal-requests': [
+        { id: 'l1', ref: 'LEG-2026-000001', claimId: 'cl1', type: 'MEDICO_LEGAL_REPORT', status: 'REPORT_READY', questions: 'Is the injury work-related?', dueDate: '2099-01-01', reports: [{ version: 1, documentId: 'd5', createdAt: '2026-10-20T10:00:00Z' }] },
+        { id: 'l2', ref: 'LEG-2026-000002', claimId: 'other', type: 'IME', status: 'OPEN', questions: 'Other claim', dueDate: '2099-01-01', reports: [] },
+      ],
+      'POST /claims/cl1/legal-hold': { claimId: 'cl1', claimRef: 'CLM-2026-000001', litigationHold: true, documentsAffected: 4, privileged: false },
+    });
     render(<ClaimDetailScreen client={api.client} session={sessionFor('LEGAL_COUNSEL')} onSessionExpired={noop} claimId="cl1" tab="legal" />);
     const tabs = within(await screen.findByRole('navigation', { name: 'Claim sections' })).getAllByRole('link').map((a) => a.textContent);
     expect(tabs).toEqual(['Overview', 'Legal']);
@@ -103,6 +156,9 @@ describe('ClaimDetailScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Place hold' }));
     await waitFor(() => expect(api.find('POST', '/claims/cl1/legal-hold')[0]?.body).toEqual({ reason: 'Pre-action letter received' }));
     expect(screen.queryByText('£5,000.00')).toBeNull();
+    expect(await screen.findByText('Is the injury work-related?')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Report v1' })).toBeTruthy();
+    expect(screen.queryByText('Other claim')).toBeNull();
   });
 });
 
@@ -129,6 +185,22 @@ describe('claims lists', () => {
     const rows = within(table).getAllByRole('row').slice(1);
     expect(rows[0]?.textContent).toContain('FROI-A');
     expect(rows[0]?.textContent).toMatch(/Overdue by/);
+  });
+
+  it('DPO disclosure report renders the disclosure-log rows', async () => {
+    const api = mockApi({
+      'GET /claims/disclosure-report': [
+        { id: 'x1', at: '2026-10-20T10:00:00Z', employeeId: 'E1004', recipientType: 'INSURER', recipientName: 'Gulf TPA', resourceType: 'DOCUMENT', resourceId: 'd1', document: 'Fitness certificate', purpose: 'CLAIM', consentId: 'INS-77', by: 'claims1', status: 'ACTIVE' },
+        { id: 'x2', at: '2026-10-19T10:00:00Z', employeeId: 'E1004', recipientType: 'AUTHORITY', recipientName: 'HSE', resourceType: 'DOCUMENT', resourceId: 'd2', document: 'F2508', purpose: 'LEGAL_OBLIGATION', by: 'claims1', status: 'REVOKED', revokedAt: '2026-10-21T10:00:00Z' },
+      ],
+    });
+    render(<ClaimDisclosureReport client={api.client} session={sessionFor('DPO')} onSessionExpired={noop} />);
+    const rows = within(await screen.findByRole('table')).getAllByRole('row').slice(1);
+    expect(rows[0]?.textContent).toContain('Gulf TPA');
+    expect(rows[0]?.textContent).toContain('Fitness certificate');
+    expect(rows[0]?.textContent).toContain('INS-77');
+    expect(rows[1]?.textContent).toContain('Legal obligation');
+    expect(rows[1]?.textContent).toContain('Revoked');
   });
 
   it('nurse assignment KPI', async () => {

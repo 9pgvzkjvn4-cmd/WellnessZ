@@ -302,16 +302,17 @@ export function ClaimDisclosureReport({ client, onSessionExpired }: ScreenProps)
         <div className="table-wrap">
           <table>
             <caption>{rows.length} disclosure{rows.length === 1 ? '' : 's'}</caption>
-            <thead><tr><th scope="col">When</th><th scope="col">Claim</th><th scope="col">Recipient</th><th scope="col">Documents</th><th scope="col">Consent / basis</th><th scope="col">By</th></tr></thead>
+            <thead><tr><th scope="col">When</th><th scope="col">Employee</th><th scope="col">Recipient</th><th scope="col">Document</th><th scope="col">Consent / basis</th><th scope="col">By</th><th scope="col">Status</th></tr></thead>
             <tbody>
               {rows.map((r, i) => (
-                <tr key={`${r.at ?? ''}-${i}`}>
+                <tr key={r.id ?? `${r.at}-${i}`}>
                   <th scope="row" className="small">{formatDate(r.at)}</th>
-                  <td>{r.claimRef ?? '–'}</td>
-                  <td>{r.recipientCode ?? r.recipient ?? '–'}</td>
-                  <td className="small">{(r.documents ?? []).map((d) => (typeof d === 'string' ? d : `${d.title ?? d.documentId}${d.type ? ` (${humanise(d.type)})` : ''}`)).join('; ') || '–'}</td>
-                  <td className="mono small">{r.consentId ?? (r.purpose ? humanise(r.purpose) : '–')}</td>
+                  <td>{r.employeeId ?? '–'}</td>
+                  <td>{r.recipientName ?? '–'}{r.recipientType && <span className="small muted"> {humanise(r.recipientType)}</span>}</td>
+                  <td className="small">{r.document ?? r.resourceId ?? '–'}{r.resourceType && <span className="muted"> ({humanise(r.resourceType)})</span>}</td>
+                  <td className="small">{r.consentId ? <span className="mono">{r.consentId}</span> : r.purpose ? humanise(r.purpose) : '–'}</td>
                   <td>{r.by ?? '–'}</td>
+                  <td>{r.status === 'REVOKED' ? <ToneBadge tone="muted">Revoked {formatDay(r.revokedAt)}</ToneBadge> : humanise(r.status ?? 'ACTIVE')}</td>
                 </tr>
               ))}
             </tbody>

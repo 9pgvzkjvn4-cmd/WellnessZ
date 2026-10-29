@@ -1,29 +1,32 @@
 import { useState, type FormEvent } from 'react';
 import {
   claimsApi,
+  legalSummaryRow,
   COST_CATEGORIES,
   COST_KINDS,
   SUBMISSION_CHANNELS,
   THIRD_PARTY_TYPES,
   type ClaimDetail as Claim,
+  type ActiveConsent,
   type ClaimStatus,
   type CostCategory,
   type DisclosureSet,
   type FirstReport,
   type ReportForm,
 } from '../../api/claims';
-import { documentContentUrl, platformApi } from '../../api/platform';
-import { treatmentApi } from '../../api/treatment';
+import { documentContentUrl } from '../../api/platform';
 import { can, hasAnyRole, OH_ROLES } from '../../auth/roles';
+import { ConsentPicker } from '../../components/ConsentPicker';
 import { Dialog } from '../../components/Dialog';
 import { ErrorSummary, IdField, type FieldError } from '../../components/forms';
 import { formatDate, formatDay, humanise, localToIso, toLocalInput } from '../../components/format';
 import { ToneBadge } from '../../components/Tone';
 import { ActionFeedback, Alert, Dl, Empty, ErrorAlert, Field, Loading, PageTitle, SelectOptions, StatusBadge, TabNav, type TabDef } from '../../components/ui';
-import { useAction, useAsync } from '../../components/useAsync';
+import { useAction, useAsync, type AsyncState } from '../../components/useAsync';
 import { clinicalContentField, isClinicalContentError, todayIso } from '../../domain/absence';
-import { claimTone, deadlineCountdown, isDisclosable, nextClaimStatuses, parseRedactionPhrases, statusReasonRequired } from '../../domain/claims';
+import { claimTone, deadlineCountdown, nextClaimStatuses, parseRedactionPhrases, statusReasonRequired } from '../../domain/claims';
 import { asMoney, CURRENCIES, formatMoney, parseAmount } from '../../domain/money';
+import { problemCode } from '../../domain/treatment';
 import type { ScreenProps } from '../types';
 import { CaseCostsPanel } from '../treatment/CostsTab';
 import { ClaimCollaboration } from './Collaboration';
@@ -227,7 +230,7 @@ function OverviewTab({ claim, reload, ...props }: TabProps) {
               ['Incident', formatDay(claim.incidentDate)],
               ['Notified / opened', `${formatDate(claim.notifiedAt)} / ${formatDate(claim.openedAt)}`],
               ['Settled / closed', `${formatDate(claim.settledAt)} / ${formatDate(claim.closedAt)}`],
-              ['Nurse case manager', claim.nurseCaseManager ? `${claim.nurseCaseManager} (since ${formatDate(claim.nurseAssignedAt)})` : claim.lostTime ? <ToneBadge tone="amber">Not yet assigned</ToneBadge> : '–'],
+              ['Nurse case manager', claim.nurseCaseManager ? `${claim.nurseCaseManagerName ?? claim.nurseCaseManager} (since ${formatDate(claim.nurseAssignedAt)})` : claim.lostTime ? <ToneBadge tone="amber">Not yet assigned</ToneBadge> : '–'],
               ['Open tasks', claim.openTasks ?? 0],
             ]}
           />
@@ -382,9 +385,15 @@ function ReportCard({ report, form, props, reload }: { report: FirstReport; form
 function ReportsTab({ claim, reload, ...props }: TabProps) {
   const api = claimsApi(props.client);
   const forms = useAsync(() => api.reportForms(), props.onSessionExpired);
+  // The claim detail carries summaries only (no fields / document) – the cards need the full reports.
+  const full = useAsync(() => api.claimReports(claim.id), props.onSessionExpired, [claim.id]);
   const [formCode, setFormCode] = useState('');
   const action = useAction(props.onSessionExpired);
-  const reports = claim.reports ?? [];
+  const reports = full.data ?? [];
+  const reloadAll = () => {
+    reload();
+    full.reload();
+  };
   return (
     <div>
       {can(props.session.roles, 'claimWrite') && (
@@ -397,29 +406,72 @@ function ReportsTab({ claim, reload, ...props }: TabProps) {
               </select>
             )}
           </Field>
-          <button type="button" disabled={!formCode || action.busy} onClick={() => void action.run(async () => { const r = await api.createReport(claim.id, formCode); setFormCode(''); reload(); return `${r.ref} created – due ${formatDate(r.dueAt)}.`; })}>Create report</button>
+          <button type="button" disabled={!formCode || action.busy} onClick={() => void action.run(async () => { const r = await api.createReport(claim.id, formCode); setFormCode(''); reloadAll(); return `${r.ref} created – due ${formatDate(r.dueAt)}.`; })}>Create report</button>
         </div>
       )}
       <Alert kind="info">Statutory and insurer report forms are pending Legal / HSE sign-off – check deadlines with the claims mailbox if in doubt.</Alert>
       <ActionFeedback error={action.error} message={action.message} />
-      {reports.length === 0 && <Empty>No reports on this claim.</Empty>}
-      {reports.map((r) => <ReportCard key={`${r.id}-${r.status}`} report={r} form={forms.data?.find((f) => f.code === r.formCode)} props={props} reload={reload} />)}
+      {full.loading && !full.data && <Loading />}
+      {!!full.error && <ErrorAlert error={full.error} />}
+      {full.data && reports.length === 0 && <Empty>No reports on this claim.</Empty>}
+      {reports.map((r) => <ReportCard key={`${r.id}-${r.status}`} report={r} form={forms.data?.find((f) => f.code === r.formCode)} props={props} reload={reloadAll} />)}
     </div>
   );
 }
 
 // ---------------------------------------------------------------- disclosures
-interface CandidateDoc {
-  id: string;
-  title: string;
-  type?: string;
+/** Send dialog: the set goes out under one of the employee's active INSURER_SHARING consents (picked, never typed). */
+function SendSetDialog({ set, claimId, props, onClose, onSent }: { set: DisclosureSet; claimId: string; props: ScreenProps; onClose: () => void; onSent: (message: string) => void }) {
+  const api = claimsApi(props.client);
+  const consents: AsyncState<ActiveConsent[]> = useAsync(() => api.claimConsents(claimId), props.onSessionExpired, [claimId]);
+  const [consentId, setConsentId] = useState(set.consentId ?? '');
+  const [error, setError] = useState<string>();
+  const action = useAction(props.onSessionExpired);
+  const recipient = set.recipientName ?? set.recipientCode;
+
+  async function send(e: FormEvent) {
+    e.preventDefault();
+    if (!consentId) return setError("Choose the employee's insurer-sharing consent");
+    let failed: unknown;
+    const ok = await action.run(async () => {
+      try {
+        await api.sendSet(set.id, consentId);
+      } catch (ex) {
+        failed = ex;
+        throw ex;
+      }
+    });
+    if (ok) onSent(`Disclosure set sent to ${recipient} and logged.`);
+    else if (problemCode(failed) === 'consent_required') {
+      consents.reload();
+      setConsentId('');
+      setError('The chosen consent is no longer active – choose another or ask the employee to grant it in the employee app');
+      action.reset();
+    }
+  }
+
+  return (
+    <Dialog title={`Send disclosure set to ${recipient}`} onClose={onClose}>
+      <form className="form" onSubmit={send} noValidate aria-label={`Send set to ${set.recipientCode}`}>
+        <p className="small">
+          {set.documents.length} document{set.documents.length === 1 ? '' : 's'} · purpose {set.purpose}. Each document is shared with the recipient and recorded in the disclosure log.
+        </p>
+        <ConsentPicker id={`send-consent-${set.id}`} legend="Insurer-sharing consent" consents={consents} value={consentId} onChange={(v) => { setConsentId(v); setError(undefined); }} error={error} />
+        <div className="actions">
+          <button type="submit" disabled={action.busy || !consentId}>Send</button>
+          <button type="button" className="secondary" onClick={onClose}>Cancel</button>
+        </div>
+      </form>
+      <ActionFeedback error={action.error} />
+    </Dialog>
+  );
 }
 
-function DisclosureSetCard({ set, props, reload }: { set: DisclosureSet; props: ScreenProps; reload: () => void }) {
+function DisclosureSetCard({ set, claimId, props, reload, onSent }: { set: DisclosureSet; claimId: string; props: ScreenProps; reload: () => void; onSent: (message: string) => void }) {
   const api = claimsApi(props.client);
   const oh = hasAnyRole(props.session.roles, OH_ROLES);
   const action = useAction(props.onSessionExpired);
-  const [consentId, setConsentId] = useState(set.consentId ?? '');
+  const [sending, setSending] = useState(false);
   const [redact, setRedact] = useState<{ documentId: string; text: string; error?: string }>();
   const canSend = can(props.session.roles, 'disclosureSetWrite');
 
@@ -438,7 +490,7 @@ function DisclosureSetCard({ set, props, reload }: { set: DisclosureSet; props: 
   return (
     <section className="tile" aria-labelledby={`ds-${set.id}`}>
       <h3 id={`ds-${set.id}`}>
-        To {set.recipientCode} – {set.purpose} <ToneBadge tone={set.status === 'SENT' ? 'green' : set.status === 'REVOKED' ? 'muted' : 'amber'}>{humanise(set.status)}</ToneBadge>
+        To {set.recipientName ?? set.recipientCode} – {set.purpose} <ToneBadge tone={set.status === 'SENT' ? 'green' : set.status === 'REVOKED' ? 'muted' : 'amber'}>{humanise(set.status)}</ToneBadge>
       </h3>
       {set.sentAt && <p className="small">Sent {formatDate(set.sentAt)}{set.sentBy ? ` by ${set.sentBy}` : ''}{set.consentId ? ` · consent ${set.consentId}` : ''}{set.revokedAt ? ` · revoked ${formatDate(set.revokedAt)}` : ''}</p>}
       <ul className="plain-list">
@@ -464,19 +516,9 @@ function DisclosureSetCard({ set, props, reload }: { set: DisclosureSet; props: 
         </form>
       )}
       {set.status === 'DRAFT' && canSend && (
-        <form
-          className="form inline-form"
-          aria-label={`Send set to ${set.recipientCode}`}
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!consentId.trim()) return;
-            void action.run(async () => { await api.sendSet(set.id, consentId.trim()); reload(); return `Disclosure set sent to ${set.recipientCode} and logged.`; });
-          }}
-        >
-          <Field label="Insurer-sharing consent reference" required>{(id) => <input id={id} required value={consentId} onChange={(e) => setConsentId(e.target.value)} />}</Field>
-          <button type="submit" disabled={!consentId.trim() || action.busy}>Send</button>
-        </form>
+        <button type="button" onClick={() => setSending(true)} aria-label={`Send set to ${set.recipientCode}`}>Send…</button>
       )}
+      {sending && <SendSetDialog set={set} claimId={claimId} props={props} onClose={() => setSending(false)} onSent={(m) => { setSending(false); onSent(m); }} />}
       {set.status === 'SENT' && can(props.session.roles, 'disclosureRevoke') && (
         <button type="button" className="secondary" disabled={action.busy} onClick={() => void action.run(async () => { await api.revokeSet(set.id); reload(); return 'Shares revoked.'; })}>Revoke</button>
       )}
@@ -487,35 +529,23 @@ function DisclosureSetCard({ set, props, reload }: { set: DisclosureSet; props: 
 
 function DisclosuresTab({ claim, ...props }: TabProps) {
   const api = claimsApi(props.client);
-  const oh = hasAnyRole(props.session.roles, OH_ROLES);
   const sets = useAsync(() => api.disclosureSets(claim.id), props.onSessionExpired, [claim.id]);
-  const candidates = useAsync(async (): Promise<CandidateDoc[]> => {
-    if (oh) {
-      const docs = await platformApi(props.client).documents({ employeeId: claim.employeeId }).catch(() => []);
-      return docs.map((d) => ({ id: d.id, title: d.title, type: d.type }));
-    }
-    const t = treatmentApi(props.client);
-    const [pas, invs] = await Promise.all([t.casePreauths(claim.caseId).catch(() => []), t.caseInvoices(claim.caseId).catch(() => [])]);
-    return [
-      ...(claim.reports ?? []).filter((r) => r.documentId).map((r) => ({ id: r.documentId!, title: `${r.ref} ${r.formCode}`, type: 'FIRST_REPORT_OF_INJURY' })),
-      ...pas.filter((p) => p.documentId).map((p) => ({ id: p.documentId!, title: `Pre-authorisation request ${p.ref}`, type: 'PREAUTH_REQUEST' })),
-      ...invs.filter((i) => i.documentId).map((i) => ({ id: i.documentId!, title: `Invoice ${i.invoiceNumber}`, type: 'PROVIDER_INVOICE' })),
-    ];
-  }, props.onSessionExpired, [claim.id]);
+  // Server-side candidate list: every document of the claim's employee with `disclosable` and, if not, the reason.
+  const candidates = useAsync(() => api.claimDocuments(claim.id), props.onSessionExpired, [claim.id]);
   const [creating, setCreating] = useState(false);
-  const [f, setF] = useState({ recipientCode: claim.payerCode ?? '', purpose: 'CLAIM', documentIds: [] as string[], manual: '' });
+  const [notice, setNotice] = useState<string>();
+  const [f, setF] = useState({ recipientCode: claim.payerCode ?? '', purpose: 'CLAIM', documentIds: [] as string[] });
   const action = useAction(props.onSessionExpired);
-  const allowed = (candidates.data ?? []).filter((d) => isDisclosable(d.type, oh));
-  const blocked = (candidates.data ?? []).filter((d) => !isDisclosable(d.type, oh));
+  const docs = candidates.data ?? [];
 
   async function create(e: FormEvent) {
     e.preventDefault();
-    const ids = [...new Set([...f.documentIds, ...f.manual.split(/[\s,]+/).filter(Boolean)])];
-    if (!f.recipientCode.trim() || ids.length === 0) return;
-    const ok = await action.run(async () => { await api.createDisclosureSet(claim.id, { recipientCode: f.recipientCode.trim().toUpperCase(), purpose: f.purpose.trim() || 'CLAIM', documentIds: ids }); return 'Disclosure set created as draft.'; });
+    if (!f.recipientCode.trim() || f.documentIds.length === 0) return;
+    setNotice(undefined);
+    const ok = await action.run(async () => { await api.createDisclosureSet(claim.id, { recipientCode: f.recipientCode.trim().toUpperCase(), purpose: f.purpose.trim() || 'CLAIM', documentIds: f.documentIds }); return 'Disclosure set created as draft.'; });
     if (ok) {
       setCreating(false);
-      setF({ ...f, documentIds: [], manual: '' });
+      setF({ ...f, documentIds: [] });
       sets.reload();
     }
   }
@@ -533,27 +563,40 @@ function DisclosuresTab({ claim, ...props }: TabProps) {
           </div>
           <fieldset>
             <legend>Documents</legend>
-            {candidates.loading && <Loading />}
-            {candidates.data && allowed.length === 0 && <p className="muted small">No disclosable documents found – enter document ids below.</p>}
-            {allowed.map((d) => (
-              <label key={d.id} className="inline-row">
-                <input type="checkbox" checked={f.documentIds.includes(d.id)} onChange={(e) => setF({ ...f, documentIds: e.target.checked ? [...f.documentIds, d.id] : f.documentIds.filter((x) => x !== d.id) })} /> {d.title} <span className="small muted">{humanise(d.type)}</span>
-              </label>
-            ))}
-            {blocked.length > 0 && <p className="small muted">{blocked.length} document{blocked.length === 1 ? '' : 's'} not disclosable to a payer {oh ? '' : '(or OH-only) '}hidden.</p>}
-            <Field label="Other document ids" hint="Comma or space separated">{(id) => <input id={id} value={f.manual} onChange={(e) => setF({ ...f, manual: e.target.value })} />}</Field>
+            {candidates.loading && !candidates.data && <Loading />}
+            {!!candidates.error && <ErrorAlert error={candidates.error} />}
+            {candidates.data && docs.length === 0 && <p className="muted small">The employee has no documents that could be disclosed.</p>}
+            {candidates.data && docs.length > 0 && !docs.some((d) => d.disclosable) && <p className="muted small">None of the employee&apos;s documents may be disclosed to a payer.</p>}
+            {docs.map((d) => {
+              const reasonId = `dc-${d.documentId}-reason`;
+              return (
+                <label key={d.documentId} className={`inline-row${d.disclosable ? '' : ' muted'}`}>
+                  <input
+                    type="checkbox"
+                    disabled={!d.disclosable}
+                    aria-describedby={d.disclosable ? undefined : reasonId}
+                    checked={f.documentIds.includes(d.documentId)}
+                    onChange={(e) => setF({ ...f, documentIds: e.target.checked ? [...f.documentIds, d.documentId] : f.documentIds.filter((x) => x !== d.documentId) })}
+                  />{' '}
+                  {d.title} <span className="small muted">{humanise(d.type)}{d.createdAt ? ` · ${formatDay(d.createdAt)}` : ''}</span>
+                  {!d.disclosable && <span id={reasonId} className="small"> – not disclosable: {d.reason ?? 'excluded by the disclosure rules'}</span>}
+                </label>
+              );
+            })}
           </fieldset>
           <div className="actions">
-            <button type="submit" disabled={action.busy || !f.recipientCode.trim() || (f.documentIds.length === 0 && !f.manual.trim())}>Create draft set</button>
+            <button type="submit" disabled={action.busy || !f.recipientCode.trim() || f.documentIds.length === 0}>Create draft set</button>
             <button type="button" className="secondary" onClick={() => setCreating(false)}>Cancel</button>
           </div>
         </form>
       )}
-      <ActionFeedback error={action.error} message={action.message} />
+      <ActionFeedback error={action.error} message={notice ?? action.message} />
       {sets.loading && !sets.data && <Loading />}
       {!!sets.error && <ErrorAlert error={sets.error} />}
       {sets.data && sets.data.length === 0 && <Empty>No disclosure sets.</Empty>}
-      {(sets.data ?? []).map((s) => <DisclosureSetCard key={`${s.id}-${s.status}-${s.documents.length}`} set={s} props={props} reload={sets.reload} />)}
+      {(sets.data ?? []).map((s) => (
+        <DisclosureSetCard key={`${s.id}-${s.status}-${s.documents.length}`} set={s} claimId={claim.id} props={props} reload={sets.reload} onSent={(m) => { setNotice(m); sets.reload(); }} />
+      ))}
     </div>
   );
 }
@@ -655,7 +698,12 @@ function LegalTab({ claim, reload, ...props }: TabProps) {
   const action = useAction(props.onSessionExpired);
   const [hold, setHold] = useState({ reason: '' });
   const [priv, setPriv] = useState({ basis: '' });
-  const requests = useAsync(() => (claim.legalRequests ? Promise.resolve(claim.legalRequests) : api.legalRequests().then((l) => l.filter((r) => r.claimId === claim.id))), props.onSessionExpired, [claim.id, claim.legalRequests?.length]);
+  // The claim detail carries summaries (no questions / report versions); readers of legal requests load the full ones.
+  const requests = useAsync(
+    () => (can(props.session.roles, 'legalRequestRead') ? api.legalRequests().then((l) => l.filter((r) => r.claimId === claim.id)) : Promise.resolve((claim.legalRequests ?? []).map((r) => legalSummaryRow(r, claim)))),
+    props.onSessionExpired,
+    [claim.id, claim.legalRequests?.length],
+  );
 
   return (
     <div>

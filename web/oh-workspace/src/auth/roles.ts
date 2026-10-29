@@ -224,6 +224,8 @@ export const FEATURES = {
   legalRequestCreate: ['LEGAL_COUNSEL', 'CLAIMS_COORDINATOR'],
   legalReportWrite: PHYSICIANS,
   legalRequestsPhysician: PHYSICIANS,
+  /** GET /legal-requests[/{id}] – full questions and report versions (claims coordinators see summaries only). */
+  legalRequestRead: ['LEGAL_COUNSEL', ...PHYSICIANS],
   claimDisclosureReport: ['DPO'],
 } satisfies Record<string, readonly string[]>;
 
