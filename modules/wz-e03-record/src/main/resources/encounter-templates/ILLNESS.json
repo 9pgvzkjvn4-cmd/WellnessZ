@@ -1,0 +1,161 @@
+{
+  "type": "ILLNESS",
+  "version": 1,
+  "bodyMapRequired": false,
+  "title": "Illness consultation",
+  "bodyMap": false,
+  "requiresDiagnosis": true,
+  "fitnessStandardPrompt": false,
+  "protocolPrompts": [
+    "For food handlers with gastrointestinal symptoms apply the food-handler exclusion procedure",
+    "Consider communicable-disease notification (WHO IHR / local rules)"
+  ],
+  "sections": [
+    {
+      "key": "presentation",
+      "title": "Presentation",
+      "fields": [
+        {
+          "key": "onsetDate",
+          "label": "Onset date",
+          "type": "DATE",
+          "required": true
+        },
+        {
+          "key": "workRelated",
+          "label": "Possibly work-related",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "YES",
+              "label": "Yes"
+            },
+            {
+              "value": "NO",
+              "label": "No"
+            },
+            {
+              "value": "UNDER_REVIEW",
+              "label": "Under review"
+            }
+          ]
+        },
+        {
+          "key": "symptoms",
+          "label": "Symptoms",
+          "type": "MULTISELECT",
+          "required": false,
+          "options": [
+            {
+              "value": "FEVER",
+              "label": "Fever"
+            },
+            {
+              "value": "COUGH",
+              "label": "Cough"
+            },
+            {
+              "value": "DIARRHOEA",
+              "label": "Diarrhoea"
+            },
+            {
+              "value": "VOMITING",
+              "label": "Vomiting"
+            },
+            {
+              "value": "RASH",
+              "label": "Rash"
+            },
+            {
+              "value": "HEADACHE",
+              "label": "Headache"
+            },
+            {
+              "value": "FATIGUE",
+              "label": "Fatigue"
+            }
+          ]
+        },
+        {
+          "key": "absenceExpectedDays",
+          "label": "Expected absence",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "days"
+        }
+      ]
+    },
+    {
+      "key": "vitals",
+      "title": "Observations",
+      "fields": [
+        {
+          "key": "systolic",
+          "label": "Systolic BP",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "mmHg"
+        },
+        {
+          "key": "diastolic",
+          "label": "Diastolic BP",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "mmHg"
+        },
+        {
+          "key": "heartRate",
+          "label": "Heart rate",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "/min"
+        },
+        {
+          "key": "temperature",
+          "label": "Temperature",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "°C"
+        },
+        {
+          "key": "spo2",
+          "label": "SpO2",
+          "type": "NUMBER",
+          "required": false,
+          "unit": "%"
+        }
+      ]
+    },
+    {
+      "key": "soap",
+      "title": "Clinical note (SOAP)",
+      "fields": [
+        {
+          "key": "subjective",
+          "label": "Subjective – history and symptoms",
+          "type": "TEXTAREA",
+          "required": true
+        },
+        {
+          "key": "objective",
+          "label": "Objective – examination findings",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "assessment",
+          "label": "Assessment",
+          "type": "TEXTAREA",
+          "required": true
+        },
+        {
+          "key": "plan",
+          "label": "Plan",
+          "type": "TEXTAREA",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "type": "INJURY",
+  "version": 1,
+  "bodyMapRequired": true,
+  "title": "Work injury consultation",
+  "bodyMap": true,
+  "requiresDiagnosis": true,
+  "fitnessStandardPrompt": false,
+  "protocolPrompts": [
+    "Mark every injured site and the mechanism on the body map",
+    "Check whether the injury is recordable / reportable (lost time, medical treatment beyond first aid)",
+    "Consider fitness for safety-critical duties (airside driving, working at height) before return to task"
+  ],
+  "sections": [
+    {
+      "key": "incident",
+      "title": "Incident",
+      "fields": [
+        {
+          "key": "incidentDate",
+          "label": "Date of injury",
+          "type": "DATE",
+          "required": true
+        },
+        {
+          "key": "workRelated",
+          "label": "Work-related",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "YES",
+              "label": "Yes"
+            },
+            {
+              "value": "NO",
+              "label": "No"
+            },
+            {
+              "value": "UNDER_REVIEW",
+              "label": "Under review"
+            }
+          ]
+        },
+        {
+          "key": "activity",
+          "label": "Task at the time of injury",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "key": "firstAidGiven",
+          "label": "First aid given on site",
+          "type": "BOOLEAN",
+          "required": false
+        },
+        {
+          "key": "ppeWorn",
+          "label": "PPE worn",
+          "type": "SELECT",
+          "required": false,
+          "options": [
+            {
+              "value": "YES",
+              "label": "Yes"
+            },
+            {
+              "value": "NO",
+              "label": "No"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "assessment",
+      "title": "Injury assessment",
+      "fields": [
+        {
+          "key": "painScore",
+          "label": "Pain score (0–10)",
+          "type": "NUMBER",
+          "required": false
+        },
+        {
+          "key": "rangeOfMovement",
+          "label": "Range of movement",
+          "type": "SELECT",
+          "required": false,
+          "options": [
+            {
+              "value": "FULL",
+              "label": "Full"
+            },
+            {
+              "value": "REDUCED",
+              "label": "Reduced"
+            },
+            {
+              "value": "UNABLE",
+              "label": "Unable"
+            }
+          ]
+        },
+        {
+          "key": "neurovascularIntact",
+          "label": "Neurovascular status intact",
+          "type": "BOOLEAN",
+          "required": false
+        },
+        {
+          "key": "treatment",
+          "label": "Treatment given",
+          "type": "MULTISELECT",
+          "required": false,
+          "options": [
+            {
+              "value": "COLD_COMPRESS",
+              "label": "Cold compress"
+            },
+            {
+              "value": "DRESSING",
+              "label": "Dressing"
+            },
+            {
+              "value": "SUPPORT_BANDAGE",
+              "label": "Support bandage"
+            },
+            {
+              "value": "ANALGESIA",
+              "label": "Analgesia"
+            },
+            {
+              "value": "WOUND_CLOSURE",
+              "label": "Wound closure"
+            },
+            {
+              "value": "REFERRAL_ED",
+              "label": "Referred to emergency department"
+            }
+          ]
+        },
+        {
+          "key": "workStatus",
+          "label": "Work status after consultation",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "RETURN_FULL",
+              "label": "Return to full duties"
+            },
+            {
+              "value": "RETURN_MODIFIED",
+              "label": "Return with modified duties"
+            },
+            {
+              "value": "OFF_WORK",
+              "label": "Off work"
+            },
+            {
+              "value": "REFERRED",
+              "label": "Referred"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "soap",
+      "title": "Clinical note (SOAP)",
+      "fields": [
+        {
+          "key": "subjective",
+          "label": "Subjective – history and symptoms",
+          "type": "TEXTAREA",
+          "required": true
+        },
+        {
+          "key": "objective",
+          "label": "Objective – examination findings",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "assessment",
+          "label": "Assessment",
+          "type": "TEXTAREA",
+          "required": true
+        },
+        {
+          "key": "plan",
+          "label": "Plan",
+          "type": "TEXTAREA",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

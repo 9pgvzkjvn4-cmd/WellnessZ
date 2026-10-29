@@ -1,0 +1,101 @@
+{
+  "type": "FOOD_HANDLER",
+  "version": 1,
+  "bodyMapRequired": false,
+  "title": "Food-handler fitness assessment",
+  "bodyMap": false,
+  "requiresDiagnosis": false,
+  "fitnessStandardPrompt": true,
+  "protocolPrompts": [
+    "Exclude from food handling until 48 h symptom-free after diarrhoea / vomiting",
+    "Typhoid / paratyphoid, hepatitis A, STEC: follow the local clearance-sample rules before return"
+  ],
+  "sections": [
+    {
+      "key": "screen",
+      "title": "Exclusion screen",
+      "fields": [
+        {
+          "key": "giSymptoms",
+          "label": "Diarrhoea or vomiting in the last 48 h",
+          "type": "BOOLEAN",
+          "required": true
+        },
+        {
+          "key": "skinLesions",
+          "label": "Infected skin lesions on hands / arms / face",
+          "type": "BOOLEAN",
+          "required": true
+        },
+        {
+          "key": "householdContact",
+          "label": "Household contact with enteric infection",
+          "type": "BOOLEAN",
+          "required": false
+        },
+        {
+          "key": "recentTravel",
+          "label": "Recent travel with GI illness",
+          "type": "BOOLEAN",
+          "required": false
+        },
+        {
+          "key": "clearanceSamples",
+          "label": "Clearance samples required",
+          "type": "BOOLEAN",
+          "required": false
+        },
+        {
+          "key": "decision",
+          "label": "Decision",
+          "type": "SELECT",
+          "required": true,
+          "options": [
+            {
+              "value": "FIT_TO_HANDLE_FOOD",
+              "label": "Fit to handle food"
+            },
+            {
+              "value": "EXCLUDED",
+              "label": "Excluded"
+            },
+            {
+              "value": "RETURN_PENDING_CLEARANCE",
+              "label": "Return pending clearance"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "soap",
+      "title": "Clinical note (SOAP)",
+      "fields": [
+        {
+          "key": "subjective",
+          "label": "Subjective – history and symptoms",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "objective",
+          "label": "Objective – examination findings",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "key": "assessment",
+          "label": "Assessment",
+          "type": "TEXTAREA",
+          "required": true
+        },
+        {
+          "key": "plan",
+          "label": "Plan",
+          "type": "TEXTAREA",
+          "required": true
+        }
+      ]
+    }
+  ]
+}
