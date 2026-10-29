@@ -124,10 +124,22 @@ wellnessz:
     email:
       from: ${WZ_NOTIFY_FROM:no-reply@wellnessz.local}
     oh-workspace-url: ${WZ_OH_WORKSPACE_URL:https://oh.wellnessz.local}
+    employee-portal-url: ${WZ_EMPLOYEE_PORTAL_URL:https://employee.wellnessz.local}
+    manager-workspace-url: ${WZ_MANAGER_WORKSPACE_URL:https://manager.wellnessz.local}
+    # break-glass alerts (E03-BL-021)
+    dpo-email: ${WZ_DPO_EMAIL:dpo@wellnessz.local}
     oh-contact: ${WZ_OH_CONTACT:Occupational Health service desk}
   triage:
     sla:
       poll-interval: ${WZ_SLA_POLL_INTERVAL:PT60S}
+  documents:
+    # Unicode TrueType font for non-Latin scripts in generated PDFs (e.g. /opt/fonts/NotoSans-Regular.ttf); empty = Helvetica
+    font-path: ${WZ_DOCUMENTS_FONT_PATH:}
+    retention-cron: ${WZ_DOCUMENTS_RETENTION_CRON:0 30 2 * * *}
+    # optional local OCR for scanned images (absent = no OCR; PDFs use their text layer)
+    # ocr.tesseract-path: /usr/bin/tesseract
+  case:
+    diagnosis-required-on-close: ${WZ_DIAGNOSIS_REQUIRED_ON_CLOSE:true}
   ehs:
     source-system: ${WZ_EHS_SOURCE_SYSTEM:EHS}
     timezone: ${WZ_EHS_TIMEZONE:UTC}

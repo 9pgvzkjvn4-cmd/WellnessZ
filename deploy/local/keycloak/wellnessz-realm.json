@@ -217,6 +217,12 @@
         "description": "First aider (emergency encounter capture)",
         "composite": false,
         "clientRole": false
+      },
+      {
+        "name": "DPO",
+        "description": "Data protection officer (break-glass review, disclosure and retention reports; no clinical access)",
+        "composite": false,
+        "clientRole": false
       }
     ]
   },
@@ -971,6 +977,60 @@
       }
     },
     {
+      "username": "dpo1",
+      "enabled": true,
+      "email": "dpo1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Dana",
+      "lastName": "Protection",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "DPO"
+      ],
+      "attributes": {
+        "employee_id": [
+          "X9001"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "partner1",
+      "enabled": true,
+      "email": "partner1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Petra",
+      "lastName": "Partner",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "PARTNER_PROVIDER"
+      ],
+      "attributes": {
+        "employee_id": [
+          "P9101"
+        ],
+        "org_scope": [
+          "/PARTNERS/CITYHOSP"
+        ]
+      }
+    },
+    {
       "username": "service-account-wellnessz-integration",
       "enabled": true,
       "serviceAccountClientId": "wellnessz-integration",
@@ -1005,7 +1065,8 @@
         "CREW_SCHEDULING",
         "HYGIENE_MANAGER",
         "CLINIC_RECEPTION",
-        "FIRST_AIDER"
+        "FIRST_AIDER",
+        "DPO"
       ]
     },
     {
@@ -1029,7 +1090,8 @@
         "CREW_SCHEDULING",
         "HYGIENE_MANAGER",
         "CLINIC_RECEPTION",
-        "FIRST_AIDER"
+        "FIRST_AIDER",
+        "DPO"
       ]
     },
     {
