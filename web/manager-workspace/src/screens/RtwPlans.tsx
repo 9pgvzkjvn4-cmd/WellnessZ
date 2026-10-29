@@ -5,13 +5,12 @@ import { submitAction } from '../api/submit';
 import { canAcknowledgeRtw } from '../auth/roles';
 import { TextAreaField } from '../components/FormFields';
 import { focusFirstError } from '../components/focus';
+import { ackCommentId } from '../components/ids';
 import { describeError, formatDate, formatDay, humanise, idPart } from '../components/format';
 import { NoClinicalInfoNote, RestrictionList } from '../components/Restrictions';
 import { Alert, Loading, PageTitle, StatusBadge } from '../components/ui';
 import { useAsync } from '../components/useAsync';
 import type { ScreenProps } from './types';
-
-export const ackCommentId = (planId: string) => `rtw-${idPart(planId)}-comment`;
 
 export interface RtwPlanCardProps {
   plan: RtwPlan;

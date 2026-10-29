@@ -12,12 +12,50 @@ Authentication is **BFF only** (tokens never reach the browser).
 | `#/cases/{id}` | Case status detail (+ status history if provided) | `GET /bff/api/cases/{id}/status` |
 | `#/refer` | **Manager referral** (E01-BL-007) – `MANAGER` only | `GET /bff/api/intake/employees/lookup?q=`, `POST /bff/api/intake/referrals/manager` |
 | `#/refer/hr` | **HR referral** (E01-BL-008) – `HR` only | `GET /bff/api/intake/employees/lookup?q=`, `POST /bff/api/intake/referrals/hr` |
+| `#/restrictions` | **Team restrictions** (E05-BL-017) – `MANAGER`, `HR`: per employee fitness status + functional restrictions with *valid until* and **Expiring** / **Lapsed** badges; filters (employee, fitness status, restriction status); note *"No clinical information is shown"* | `GET /bff/api/workspace/team-restrictions` |
+| `#/duty-proposals` | **Modified duty requests** (E05-BL-006) – `MANAGER` only: pending proposals (role, duties, hours/day, dates, restrictions to respect) with **Accept** / **Decline** (reason code required to decline, optional note); history of decided proposals | `GET /bff/api/workspace/duty-proposals?status=PROPOSED` (+ one call per `ACCEPTED, DECLINED, ESCALATED_TO_HR, WITHDRAWN`), `POST /bff/api/duty-proposals/{id}/decision` |
+| `#/rtw-plans` | **Return-to-work plans** (E05-BL-007) – phases, reviews, employee acknowledgement status; `MANAGER` acknowledges with an optional comment, `HR` read-only | `GET /bff/api/workspace/rtw-plans`, `POST /bff/api/rtw-plans/{id}/manager-acknowledge` |
+| `#/documents` | **Documents** shared to me (certificates, restriction notes, RTW plans, job offers, IHR decision letters) – `MANAGER`, `HR`; type filter; *Download PDF* | `GET /bff/api/workspace/documents`, `GET /bff/api/documents/{id}/content` |
+| `#/cases/{id}/job-offers` | **Alternative-duty job offers** (E05-BL-008) – `HR` only, opened from a case row (*HR actions*): offers + status, two-step **withdraw**, new-offer form (`JobOfferRequest`) | `GET/POST /bff/api/cases/{id}/job-offers`, `POST /bff/api/job-offers/{id}/withdraw`, `GET /bff/api/masterdata/restrictions`, `GET /bff/api/masterdata/job-demands`, `GET /bff/api/cases/{id}/status` |
+| `#/cases/{id}/ihr` | **Ill-health retirement / redeployment** (E05-F07) – `HR` only, from a case row: type, status, functional decision text, dates; **appeal** form (grounds, optional second-opinion name) while a `DECIDED` assessment is inside the 28-day window | `GET /bff/api/cases/{id}/ihr-assessments`, `POST /bff/api/ihr-assessments/{id}/appeal` |
 | `#/analytics` | Analytics tile: cases by status per org unit; k-anonymity-suppressed groups render as **"<5 – suppressed"** | `GET /bff/api/analytics/kpis/cases-by-status?groupBy=orgUnit` |
 | any | **Access restricted** page when the session has none of `MANAGER`, `HR`, `OH_CLINICIAN`, `OH_ADMIN`, `CASE_MANAGER`, `PSYCH_CLINICIAN`, `PLATFORM_ADMIN` | `GET /bff/session` |
 
 The navigation shows *Refer to OH* only to `MANAGER` and *HR referral* only to `HR` (`referralNav()` /
 `resolveReferralRoute()` in `src/auth/roles.ts`); opening a referral route without the role shows *Referral not
 available*. Other workspace roles (OH, admin) get no referral entries.
+
+### Increment 2 – fitness for duty, restrictions, RTW, documents (`docs/increment-02/API-Contract-E03-E05.md`)
+Role gating (`canUse()` / `resolveFeatureRoute()` / `workspaceNav()` in `src/auth/roles.ts`, UX guard only):
+
+| Feature | MANAGER | HR |
+|---|---|---|
+| Team restrictions | ✓ | ✓ |
+| Modified duty requests | ✓ | – |
+| Return-to-work plans | ✓ (acknowledge) | read-only |
+| Documents | ✓ | ✓ |
+| Job offers (per case) | – | ✓ |
+| Ill-health retirement / redeployment (per case) | – | ✓ |
+
+OH and admin roles get no increment-2 entries; opening a feature route without the role shows *Page not available*.
+
+* **Status only (E03-HLR-08).** `src/api/fitness.ts` and `src/api/hr.ts` copy only whitelisted fields. Dropped even if
+  returned: diagnoses, rationale, IHR findings / recommendation / notes / policy reference, RTW review notes, the
+  employee's acknowledgement / offer-response comments, document `shares`/`signedBy`/`sha256`. Documents of any type
+  other than `FITNESS_CERTIFICATE, RESTRICTION_NOTE, FOOD_HANDLER_CLEARANCE, RTW_PLAN, JOB_OFFER, IHR_DECISION_LETTER`
+  are not listed. Every screen shows the note *"No clinical information is shown"*.
+* **Restriction wording** – catalogue labels with a `{value}` placeholder are filled (`No lifting above {value} kg` + 10
+  → *No lifting above 10 kg*).
+* **Free text** (decision note, acknowledgement comment, offer duties / location / shift / pay note / title, appeal
+  grounds / second opinion) is screened server-side. `422 code=clinical_content_not_allowed` with a `field` highlights
+  that control exactly like the referral forms (`src/api/submit.ts` reuses `problemFieldKey`); indexed list fields
+  (`restrictions[1]`) highlight the restriction group.
+* **Job offer validation** – job from the job-demand profiles (sets the title, editable), duties ≤ 1000, location,
+  shift, hours/week 1–60, pay basis `SAME_PAY | PROTECTED_PAY | ADJUSTED_PAY` (pay note required for adjusted pay),
+  restrictions from the active catalogue (value required where the catalogue says so), start date, optional end date ≥
+  start, contact name + e-mail, respond-by not in the past and on or before the start date.
+* **Downloads** are plain same-origin links to `/bff/api/documents/{id}/content` (cookie session, GET needs no CSRF
+  header; the server audits the download).
 
 ### Referral forms (increment 1, `docs/increment-01/API-Contract-E01-E02.md` §4.2)
 * **Employee search** – debounced (300 ms) from 2 characters, `GET /intake/employees/lookup?q=` (own scope, max 20);
@@ -63,7 +101,7 @@ restrictionUntil, updatedAt, disclosure` – anything else in a case response (e
 npm ci
 npm run dev      # http://localhost:5174 – proxies /bff, /oauth2, /login, /logout → http://localhost:8090 (wz-bff)
 npm run lint
-npm test         # Vitest, node environment; hook-free views are tested via react-dom/server + src/test/tree.ts
+npm test         # Vitest, node environment (99 tests); hook-free views are tested via react-dom/server + src/test/tree.ts
 npm run build    # tsc -b + vite build → dist/
 ```
 

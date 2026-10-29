@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SIGNED_OUT, type AuthClient, type Session } from './auth/AuthClient';
-import { hasWorkspaceAccess, resolveReferralRoute, workspaceNav } from './auth/roles';
+import { hasWorkspaceAccess, resolveFeatureRoute, resolveReferralRoute, workspaceNav } from './auth/roles';
 import { Alert, Loading } from './components/ui';
 import { useHashRoute } from './routing/useHashRoute';
 import { AccessRestricted } from './screens/AccessRestricted';
 import { Analytics } from './screens/Analytics';
 import { CaseStatus } from './screens/CaseStatus';
+import { Documents } from './screens/Documents';
+import { DutyProposals } from './screens/DutyProposals';
+import { FeatureNotAvailable } from './screens/FeatureNotAvailable';
 import { HrReferral } from './screens/HrReferral';
+import { IhrAssessments } from './screens/IhrAssessments';
+import { JobOffers } from './screens/JobOffers';
 import { ManagerReferral } from './screens/ManagerReferral';
 import { ReferralNotAvailable } from './screens/Referral';
+import { RtwPlans } from './screens/RtwPlans';
 import { TeamCases } from './screens/TeamCases';
+import { TeamRestrictions } from './screens/TeamRestrictions';
 import { startIdleTimer } from './security/idleTimeout';
 import { errorName, log } from './security/log';
-
-
 
 type Notice = 'idle' | 'expired' | undefined;
 
@@ -78,8 +83,16 @@ export function App({ client }: { client: AuthClient }) {
   const props = { client, session, onSessionExpired };
   const caseMatch = /^\/cases\/([^/]+)$/.exec(route);
   const referral = resolveReferralRoute(route, session.roles);
+  const feature = resolveFeatureRoute(route, session.roles);
   let screen;
   if (route === '/') screen = <TeamCases {...props} />;
+  else if (feature && !feature.allowed) screen = <FeatureNotAvailable feature={feature.feature} />;
+  else if (feature?.feature === 'restrictions') screen = <TeamRestrictions {...props} />;
+  else if (feature?.feature === 'dutyProposals') screen = <DutyProposals {...props} />;
+  else if (feature?.feature === 'rtwPlans') screen = <RtwPlans {...props} />;
+  else if (feature?.feature === 'documents') screen = <Documents {...props} />;
+  else if (feature?.feature === 'jobOffers' && feature.caseId) screen = <JobOffers {...props} caseId={feature.caseId} />;
+  else if (feature?.feature === 'ihr' && feature.caseId) screen = <IhrAssessments {...props} caseId={feature.caseId} />;
   else if (caseMatch?.[1]) screen = <CaseStatus {...props} caseId={decodeURIComponent(caseMatch[1])} />;
   else if (referral === 'manager') screen = <ManagerReferral {...props} />;
   else if (referral === 'hr') screen = <HrReferral {...props} />;
@@ -93,7 +106,7 @@ export function App({ client }: { client: AuthClient }) {
       </section>
     );
 
-  const current = caseMatch ? '/' : route;
+  const current = caseMatch || feature?.caseId ? '/' : route;
   return (
     <>
       <a className="skip-link" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }}>

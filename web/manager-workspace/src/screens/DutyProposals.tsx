@@ -17,16 +17,12 @@ import { GUIDANCE, type FieldErrors } from '../api/referrals';
 import { submitAction } from '../api/submit';
 import { FieldError, TextAreaField } from '../components/FormFields';
 import { focusFirstError } from '../components/focus';
+import { decisionIds } from '../components/ids';
 import { describeError, formatDate, formatDay, humanise, idPart } from '../components/format';
 import { NoClinicalInfoNote, RestrictionList } from '../components/Restrictions';
 import { Alert, Loading, PageTitle, StatusBadge } from '../components/ui';
 import { useAsync } from '../components/useAsync';
 import type { ScreenProps } from './types';
-
-export const decisionIds = (proposalId: string) => {
-  const p = `dp-${idPart(proposalId)}`;
-  return { reasonCode: `${p}-reasonCode`, note: `${p}-note` };
-};
 
 const period = (from?: string, to?: string) => (from ? `${formatDay(from)} – ${to ? formatDay(to) : 'open-ended'}` : '–');
 
