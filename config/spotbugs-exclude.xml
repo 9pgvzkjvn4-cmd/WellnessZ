@@ -24,4 +24,11 @@
     <Class name="com.wellnessz.e02.queue.QueueService"/>
     <Bug pattern="SQL_INJECTION_SPRING_JDBC,POTENTIAL_XML_INJECTION"/>
   </Match>
+  <!-- Optional local OCR: the executable is one of three fixed install paths and the language list one of six fixed
+       values (switch allow-lists in TesseractOcrProvider); the only other argument is a JVM-created temporary file.
+       No user-controlled value reaches the command line. -->
+  <Match>
+    <Class name="com.wellnessz.documents.TesseractOcrProvider"/>
+    <Bug pattern="COMMAND_INJECTION"/>
+  </Match>
 </FindBugsFilter>

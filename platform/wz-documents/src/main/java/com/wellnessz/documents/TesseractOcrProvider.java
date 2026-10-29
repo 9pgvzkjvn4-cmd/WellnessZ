@@ -29,11 +29,31 @@ public class TesseractOcrProvider implements OcrProvider {
 
     public TesseractOcrProvider(@Value("${wellnessz.documents.ocr.tesseract-path}") String binary,
                                 @Value("${wellnessz.documents.ocr.languages:eng}") String languages) {
-        if (!languages.matches("[a-z_+]{3,40}")) {
-            throw new IllegalArgumentException("Invalid OCR language list");
-        }
-        this.binary = binary;
-        this.languages = languages;
+        this.binary = binaryFor(binary);
+        this.languages = languagesFor(languages);
+    }
+
+    /** Only well-known install locations are accepted, so configuration can never select an arbitrary executable. */
+    static String binaryFor(String configured) {
+        return switch (configured) {
+            case "/usr/bin/tesseract" -> "/usr/bin/tesseract";
+            case "/usr/local/bin/tesseract" -> "/usr/local/bin/tesseract";
+            case "/opt/homebrew/bin/tesseract" -> "/opt/homebrew/bin/tesseract";
+            default -> throw new IllegalArgumentException("Unsupported OCR binary location");
+        };
+    }
+
+    /** Tesseract language packs supported for the group's languages (English, Arabic, French). */
+    static String languagesFor(String configured) {
+        return switch (configured) {
+            case "eng" -> "eng";
+            case "ara" -> "ara";
+            case "fra" -> "fra";
+            case "eng+ara" -> "eng+ara";
+            case "eng+fra" -> "eng+fra";
+            case "eng+ara+fra" -> "eng+ara+fra";
+            default -> throw new IllegalArgumentException("Unsupported OCR language list");
+        };
     }
 
     @Override
