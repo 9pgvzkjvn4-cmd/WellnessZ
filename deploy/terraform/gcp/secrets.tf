@@ -13,6 +13,7 @@ locals {
     "wz-bff-client-secret"    = ["bff"]
     "wz-bff-db-password"      = ["bff"]
     "wz-bff-session-key"      = ["bff"]
+    "wz-graph-client-secret"  = ["core"]
     "wz-cloudsql-server-ca"   = ["core", "bff", "migrations"]
   }
   generated_secret_values = {
@@ -20,7 +21,7 @@ locals {
     "wz-migrator-db-password" = ephemeral.random_password.wz_migrator.result
     "wz-bff-db-password"      = ephemeral.random_password.wz_bff.result
   }
-  placeholder_secrets = toset(["wz-master-key", "wz-pseudonym-key", "wz-bff-client-secret", "wz-bff-session-key"])
+  placeholder_secrets = toset(["wz-master-key", "wz-pseudonym-key", "wz-bff-client-secret", "wz-bff-session-key", "wz-graph-client-secret"])
 
   secret_access = merge([
     for s, owners in local.secrets : { for o in owners : "${s}/${o}" => { secret = s, owner = o } }

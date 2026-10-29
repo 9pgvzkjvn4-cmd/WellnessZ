@@ -13,7 +13,10 @@ locals {
     compliance          = "soc2-type2"
   }, var.tags)
 
-  sa_prefix = "system:serviceaccount:${var.k8s_namespace}:${var.helm_release_name}-wellnessz"
+  # Mirrors the chart's "wellnessz.fullname" helper: a release name that already
+  # contains "wellnessz" is used as-is (release "wellnessz" -> SA "wellnessz-core").
+  helm_fullname = strcontains(var.helm_release_name, "wellnessz") ? var.helm_release_name : "${var.helm_release_name}-wellnessz"
+  sa_prefix     = "system:serviceaccount:${var.k8s_namespace}:${local.helm_fullname}"
 }
 
 resource "random_string" "suffix" {

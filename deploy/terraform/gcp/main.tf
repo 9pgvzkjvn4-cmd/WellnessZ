@@ -6,7 +6,8 @@ locals {
   name           = "${var.name_prefix}-${var.environment}"
   project_number = data.google_project.this.number
   wi_pool        = "${var.project_id}.svc.id.goog"
-  ksa_prefix     = "${var.helm_release_name}-wellnessz"
+  # Mirrors the chart's "wellnessz.fullname" helper (release "wellnessz" -> KSA "wellnessz-core")
+  ksa_prefix = strcontains(var.helm_release_name, "wellnessz") ? var.helm_release_name : "${var.helm_release_name}-wellnessz"
 }
 
 resource "google_project_service" "apis" {

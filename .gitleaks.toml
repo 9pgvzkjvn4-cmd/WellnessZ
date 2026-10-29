@@ -6,7 +6,7 @@ title = "WellnessZ gitleaks config"
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Documented local-only placeholders"
 regexTarget = "match"
 regexes = [
@@ -23,4 +23,17 @@ paths = [
   '''(^|/)terraform\.tfvars\.example$''',
   '''(^|/)backend\.hcl\.example$''',
   '''(^|/)package-lock\.json$''',
+]
+
+# Historical exception (risk accepted, security review required to extend):
+# commit 2a679ab64738fd82f8f64264fc1cf38cc50776d5 contained random, test-only AES keys in two test fixtures.
+# They were never used in any environment and were removed in 3f43941
+# (keys are now generated at test runtime). Scoped to that commit AND those files.
+[[allowlists]]
+description = "Removed test-only keys in initial commit"
+condition = "AND"
+commits = ["2a679ab64738fd82f8f64264fc1cf38cc50776d5"]
+paths = [
+  '''apps/wz-core-app/src/test/resources/application-test\.yml''',
+  '''apps/wz-bff/src/test/resources/application-test\.yml''',
 ]

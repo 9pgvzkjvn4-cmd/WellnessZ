@@ -90,6 +90,7 @@ locals {
     "wz-bff-client-secret"    = { owner = "bff" }
     "wz-bff-db-password"      = { owner = "bff" }
     "wz-bff-session-key"      = { owner = "bff" }
+    "wz-graph-client-secret"  = { owner = "core" }
   }
   generated_secrets = toset(["wz-pg-admin-password", "wz-db-password", "wz-bff-db-password", "wz-migrator-db-password"])
   kv_secret_values = {
@@ -98,6 +99,7 @@ locals {
     "wz-migrator-db-password" = ephemeral.random_password.wz_migrator.result
     "wz-bff-db-password"      = ephemeral.random_password.wz_bff.result
     "wz-bff-session-key"      = "REPLACE-ME-openssl-rand-base64-32"
+    "wz-graph-client-secret"  = "REPLACE-ME-from-EHS-mailbox-app-registration"
     "wz-master-key"           = "REPLACE-ME-openssl-rand-base64-32"
     "wz-pseudonym-key"        = "REPLACE-ME-openssl-rand-base64-32"
     "wz-bff-client-secret"    = "REPLACE-ME-from-IdP-app-registration"

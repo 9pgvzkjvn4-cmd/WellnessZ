@@ -1,18 +1,19 @@
 # WellnessZ OHCM – Documentation Pack
 
-Reading order for review with Cyber GRC, the CIO and the project sponsor.
+Reading order for review with Cyber GRC, the CIO and the project sponsor. Rendered PDF/DOCX copies are
+generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
 
 | # | Document | Audience | Source | Rendered |
 |---|---|---|---|---|
-| 1 | Technology Architecture & Technology Selection | CIO, architects, GRC | `architecture/01-Technology-Architecture-and-Technology-Selection.md` | `dist/*.pdf`, `dist/*.docx` |
-| 2 | Security & SOC 2 Control Mapping (incl. STRIDE threat model) | Cyber GRC, auditors | `architecture/02-Security-and-SOC2-Control-Mapping.md` | `dist/` |
-| 3 | Developer Guide – adding modules incrementally | Engineering | `architecture/03-Developer-Guide.md` | `dist/` |
-| 4 | Deployment Architecture (MacBook, Azure, GCP, Hybrid) | CIO, infrastructure, GRC | `deployment/Deployment-Architecture.md` | `dist/` |
-| 5 | Setup guide – Local MacBook Pro | Developers | `setup/01-Local-MacBook-Pro.md` | `dist/` |
-| 6 | Setup guide – Microsoft Azure | Platform / cloud team | `setup/02-Azure.md` | `dist/` |
-| 7 | Setup guide – Google Cloud | Platform / cloud team | `setup/03-GCP.md` | `dist/` |
-| 8 | Setup guide – Hybrid cloud | Platform / infrastructure | `setup/04-Hybrid-Cloud.md` | `dist/` |
-| 9 | CI/CD Guide | Developers, DevSecOps | `cicd/CI-CD-Guide.md` | `dist/` |
+| 1 | Technology Architecture & Technology Selection | CIO, architects, GRC | `architecture/01-Technology-Architecture-and-Technology-Selection.md` | PDF + DOCX |
+| 2 | Security & SOC 2 Control Mapping (incl. STRIDE threat model) | Cyber GRC, auditors | `architecture/02-Security-and-SOC2-Control-Mapping.md` | PDF + DOCX |
+| 3 | Developer Guide – adding modules incrementally | Engineering | `architecture/03-Developer-Guide.md` | PDF + DOCX |
+| 4 | Deployment Architecture (MacBook, Azure, GCP, Hybrid) | CIO, infrastructure, GRC | `deployment/Deployment-Architecture.md` | PDF + DOCX |
+| 5 | Setup guide – Local MacBook Pro | Developers | `setup/01-Local-MacBook-Pro.md` | PDF + DOCX |
+| 6 | Setup guide – Microsoft Azure | Platform / cloud team | `setup/02-Azure.md` | PDF + DOCX |
+| 7 | Setup guide – Google Cloud | Platform / cloud team | `setup/03-GCP.md` | PDF + DOCX |
+| 8 | Setup guide – Hybrid cloud | Platform / infrastructure | `setup/04-Hybrid-Cloud.md` | PDF + DOCX |
+| 9 | CI/CD Guide | Developers, DevSecOps | `cicd/CI-CD-Guide.md` | PDF + DOCX |
 | – | Design brief (contract between components) | Engineering | `00-design-brief.md` | – |
 | – | OpenAPI 3 contract of the core API | Integrators | `api/openapi.json` | – |
 

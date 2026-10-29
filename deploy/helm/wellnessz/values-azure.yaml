@@ -28,6 +28,26 @@ secrets:
 
 # Prod: Flyway runs in a pre-upgrade Job with its own identity; core never
 # receives the schema-owner credential.
+  core:
+    files:
+      - fileName: wz-db-password
+        remoteName: wz-db-password
+        env: WZ_DB_PASSWORD
+        format: fileRef
+      - fileName: wz-master-key
+        remoteName: wz-master-key
+        env: WZ_MASTER_KEY_FILE
+        format: path
+      - fileName: wz-pseudonym-key
+        remoteName: wz-pseudonym-key
+        env: WZ_PSEUDONYM_KEY
+        format: fileRef
+      # EHS mailbox via Microsoft Graph (prefer certificate credential where supported)
+      - fileName: wz-graph-client-secret
+        remoteName: wz-graph-client-secret
+        env: WZ_GRAPH_CLIENT_SECRET
+        format: fileRef
+
 migrations:
   mode: job
 
@@ -43,15 +63,22 @@ core:
     WZ_DB_SSLMODE: verify-full
     # Entra ID v2 issuer of the airline tenant (add Keycloak/Okta issuers comma-separated if federated)
     WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<tenant-id>/v2.0"
-    WZ_OIDC_AUDIENCE: "api://wellnessz-api"
+    # Entra ID v2 access tokens carry the API's Application (client) ID as "aud"
+    WZ_OIDC_AUDIENCE: "<wellnessz-api-client-id>"
     WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com"
     WZ_EHS_MAILBOX_MODE: graph
+    WZ_GRAPH_TENANT_ID: <tenant-id>
+    WZ_GRAPH_CLIENT_ID: <ehs-mailbox-app-client-id>
+    WZ_GRAPH_MAILBOX: ehs-feed@airline.example.com
+    WZ_EHS_ALLOWED_SENDERS: "@ehs.airline.example.com"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
 
 bff:
   env:
     WZ_BFF_ISSUER_URI: "https://login.microsoftonline.com/<tenant-id>/v2.0"
     WZ_BFF_CLIENT_ID: <bff-app-registration-client-id>
+    # Request an access token for the core API (Entra exposes it as a delegated scope)
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_WELLNESSZ_SCOPE: "openid,profile,email,offline_access,api://wellnessz-api/access_as_user"
     WZ_BFF_POST_LOGOUT_URI: "https://employee.wellnessz.example.com/"
     # Session store: same server, schema bff, role wz_bff (WZ_BFF_DB_URL defaults to core URL)
     WZ_BFF_DB_USERNAME: wz_bff

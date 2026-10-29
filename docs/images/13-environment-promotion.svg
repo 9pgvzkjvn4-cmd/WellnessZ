@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="450" viewBox="0 0 1700 450" role="img" aria-label="Environment promotion">
+<title>Environment promotion</title>
+<defs><marker id="eg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="sg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="eb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="egr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="sgr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="en" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="sn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="ea" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker></defs>
+<rect width="100%" height="100%" fill="#FFFFFF"/>
+<rect x="0" y="0" width="1700" height="54" fill="#1B365D"/>
+<text x="24" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="21" font-weight="bold" fill="#FFFFFF" text-anchor="start">Release &amp; environment promotion</text>
+<text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">.github/workflows/container.yml · cd.yml · deploy-env.yml</text>
+<rect x="40" y="100" width="245" height="120" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="162.5" y="149.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="bold" fill="#2E7D4F" text-anchor="middle">PR</text>
+<text x="162.5" y="168.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ci.yml, codeql.yml</text>
+<text x="162.5" y="184.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">2 approvals + CODEOWNERS</text>
+<rect x="315" y="100" width="245" height="120" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="437.5" y="149.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="bold" fill="#2E7D4F" text-anchor="middle">merge to main</text>
+<text x="437.5" y="168.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">container.yml: build,</text>
+<text x="437.5" y="184.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">Trivy gate, push sha-&lt;12&gt;</text>
+<path d="M 287 160 L 313 160" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="590" y="100" width="245" height="120" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="712.5" y="149.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="bold" fill="#2E7D4F" text-anchor="middle">tag vX.Y.Z</text>
+<text x="712.5" y="168.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">images signed (cosign)</text>
+<text x="712.5" y="184.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">SBOM + SLSA attestations</text>
+<path d="M 562 160 L 588 160" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="865" y="100" width="245" height="120" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="987.5" y="149.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="bold" fill="#2E6DA4" text-anchor="middle">dev</text>
+<text x="987.5" y="168.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">auto deploy</text>
+<text x="987.5" y="184.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">smoke tests</text>
+<path d="M 837 160 L 863 160" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="1140" y="100" width="245" height="120" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1262.5" y="149.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="bold" fill="#2E6DA4" text-anchor="middle">test</text>
+<text x="1262.5" y="168.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">required reviewers</text>
+<text x="1262.5" y="184.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">UAT, DAST, perf</text>
+<path d="M 1112 160 L 1138 160" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="1415" y="100" width="245" height="120" rx="8" ry="8" fill="#FDF2E2" stroke="#B45309" stroke-width="1.6"/>
+<text x="1537.5" y="149.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="bold" fill="#B45309" text-anchor="middle">prod</text>
+<text x="1537.5" y="168.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">CAB approval</text>
+<text x="1537.5" y="184.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">tags v* only</text>
+<path d="M 1387 160 L 1413 160" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="40" y="255" width="800" height="165" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="50" y="300.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">Every deployment job</text>
+<text x="50" y="318.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">• OIDC federation (azure/login or google-github-actions/auth) - no stored cloud keys</text>
+<text x="50" y="335.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">• cosign verify of all 4 images against the container.yml identity</text>
+<text x="50" y="352.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">• helm upgrade --install --atomic --wait (automatic rollback on failure)</text>
+<text x="50" y="369.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">• Flyway pre-upgrade Job (expand/contract migrations only)</text>
+<text x="50" y="386.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">• deployment record in the job summary (actor, tag, run URL)</text>
+<rect x="870" y="255" width="790" height="165" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="880" y="300.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">Environment isolation</text>
+<text x="880" y="318.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">• separate subscription / project, Terraform state and Key Vault per environment</text>
+<text x="880" y="335.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">• same immutable image digest promoted - never rebuilt between stages</text>
+<text x="880" y="352.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">• prod: private API server, migrations.mode=job, DoNotSchedule zone spread</text>
+<text x="880" y="369.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">• test data synthetic only; production PHI never copied to lower environments</text>
+<text x="880" y="386.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">• GitHub Environment protection rules = change-approval evidence</text>
+</svg>

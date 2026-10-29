@@ -63,7 +63,8 @@ core:
     WZ_DB_USERNAME: wz_app
     WZ_DB_SSLMODE: verify-full
     WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<tenant-id>/v2.0"
-    WZ_OIDC_AUDIENCE: "api://wellnessz-api"
+    # Entra ID v2 access tokens carry the API's Application (client) ID as "aud"
+    WZ_OIDC_AUDIENCE: "<wellnessz-api-client-id>"
     WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com"
     WZ_EHS_MAILBOX_MODE: imap
     WZ_IMAP_HOST: mail.onprem.example.internal

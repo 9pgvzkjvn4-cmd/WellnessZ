@@ -159,7 +159,7 @@ variable "k8s_namespace" {
 }
 
 variable "helm_release_name" {
-  description = "Helm release name (service accounts are <release>-wellnessz-<component>)."
+  description = "Helm release name. Service accounts are <release>-<component> when the release name contains \"wellnessz\", otherwise <release>-wellnessz-<component> (chart fullname rule)."
   type        = string
   default     = "wellnessz"
 }

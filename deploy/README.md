@@ -4,6 +4,10 @@ Everything needed to run WellnessZ locally, package it, provision Azure / GCP /
 hybrid infrastructure and deliver it through a gated pipeline. Contract:
 [`docs/00-design-brief.md`](../docs/00-design-brief.md).
 
+Step-by-step guides: [`docs/deployment/Deployment-Architecture.md`](../docs/deployment/Deployment-Architecture.md),
+[`docs/setup/`](../docs/setup/) (Local MacBook Pro, Azure, GCP, Hybrid) and
+[`docs/cicd/CI-CD-Guide.md`](../docs/cicd/CI-CD-Guide.md); rendered PDF/DOCX in `docs/dist/`.
+
 | Path | What it is |
 |---|---|
 | [`local/`](local/) | Docker Compose dev stack: PostgreSQL 16, Keycloak 26 (realm import), Mailpit, GreenMail IMAP, OTel collector, optional core + bff |
@@ -158,6 +162,7 @@ GitHub Workload Identity Federation.
    for s in wz-master-key wz-pseudonym-key wz-bff-session-key; do
      openssl rand -base64 32 | tr -d '\n' | az keyvault secret set --vault-name <kv> -n $s --file /dev/stdin >/dev/null; done
    az keyvault secret set --vault-name <kv> -n wz-bff-client-secret --value '<from IdP app registration>'
+   # wz-graph-client-secret likewise when WZ_EHS_MAILBOX_MODE=graph
    # GCP
    for s in wz-master-key wz-pseudonym-key wz-bff-session-key; do
      openssl rand -base64 32 | tr -d '\n' | gcloud secrets versions add $s --data-file=-; done
@@ -176,7 +181,7 @@ the CSI driver picks up the new file (Azure rotation every 2 min).
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `ci.yml` | PR, push `main` | Java 21 `./mvnw verify` (JaCoCo, Surefire reports, CycloneDX SBOM); web lint/test/build/`npm audit`/CycloneDX for both apps; gitleaks (full history); OWASP dependency-check (fail CVSS ≥ 7, `NVD_API_KEY`, SARIF to code scanning); dependency review on PRs; Helm lint/template, `terraform fmt`, Trivy IaC scan |
+| `ci.yml` | PR, push `main` | Java 21 `./mvnw verify` (JaCoCo, Surefire reports, CycloneDX SBOM) + SpotBugs/FindSecBugs (`-Psecurity`); web lint/test/build/`npm audit`/CycloneDX for both apps; gitleaks (full history); OWASP dependency-check (fail CVSS ≥ 7, `NVD_API_KEY`, SARIF to code scanning); dependency review on PRs; Helm lint/template, `terraform fmt`, Trivy IaC scan |
 | `codeql.yml` | PR, push, weekly | CodeQL `java-kotlin` + `javascript-typescript`, `security-extended` |
 | `container.yml` | push `main`/tags, dispatch, `workflow_call` | Build 4 images → Trivy gate (CRITICAL/HIGH, fixed) → push to GHCR / ACR / Artifact Registry (OIDC) → SBOM + SLSA provenance attestations → cosign keyless signature → Binary Authorization attestation (GAR) |
 | `cd.yml` (+ `deploy-env.yml`) | tag `v*`, dispatch | dev → test → prod through GitHub Environments; cosign verification of every image before deploy; Azure (`azure/login` OIDC + kubelogin + AKS context or `az aks command invoke` for private clusters) or GCP (WIF + `get-gke-credentials`); `helm upgrade --install --atomic --wait` |

@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="930" viewBox="0 0 1700 930" role="img" aria-label="Setup 3 - Google Cloud (GKE)">
+<title>Setup 3 - Google Cloud (GKE)</title>
+<defs><marker id="eg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="sg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="eb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="egr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="sgr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="en" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="sn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="ea" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker></defs>
+<rect width="100%" height="100%" fill="#FFFFFF"/>
+<rect x="0" y="0" width="1700" height="54" fill="#1B365D"/>
+<text x="24" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="21" font-weight="bold" fill="#FFFFFF" text-anchor="start">Setup 3 - Google Cloud (GKE)</text>
+<text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">deploy/terraform/gcp · values-gcp.yaml</text>
+<rect x="40" y="80" width="280" height="90" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="180.0" y="114.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Users</text>
+<text x="180.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">employees, managers, HR, OH</text>
+<text x="180.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">browsers / managed mobiles</text>
+<rect x="360" y="80" width="560" height="90" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="640.0" y="114.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Global external Application Load Balancer</text>
+<text x="640.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">GKE Ingress + Google-managed certificates</text>
+<text x="640.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">FrontendConfig: HTTPS redirect, SSL policy RESTRICTED</text>
+<rect x="960" y="80" width="330" height="90" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1125.0" y="114.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Identity provider</text>
+<text x="1125.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">Microsoft Entra ID (or Keycloak / Okta)</text>
+<text x="1125.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">multi-issuer JWT validation in core</text>
+<rect x="1330" y="80" width="330" height="90" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="1495.0" y="114.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">M2M / integrations</text>
+<text x="1495.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">FHIR, HL7 v2, HRIS, labs</text>
+<text x="1495.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">client-credentials via edge (api host)</text>
+<rect x="40" y="200" width="1620" height="520" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
+<text x="54" y="222" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start"></text>
+<text x="54" y="712" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Project &lt;project-id&gt; · VPC vpc-wz-&lt;env&gt; (custom mode) · Cloud NAT · Private Service Access</text>
+<rect x="70" y="245" width="330" height="450" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
+<text x="84" y="267" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Google front end (global)</text>
+<rect x="90" y="290" width="290" height="120" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="235.0" y="332.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Cloud Armor policy</text>
+<text x="235.0" y="350.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">preconfigured CRS 3.3 rules</text>
+<text x="235.0" y="365.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">adaptive L7 DDoS protection</text>
+<text x="235.0" y="380.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">rate-based ban on login paths</text>
+<rect x="90" y="440" width="290" height="230" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="100" y="507.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">Edge controls</text>
+<text x="100" y="525.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">BackendConfig per service</text>
+<text x="100" y="540.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">health checks on :8081</text>
+<text x="100" y="555.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">LB request logging 100 %</text>
+<text x="100" y="570.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">NEG (container-native LB)</text>
+<text x="100" y="585.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">allow 35.191.0.0/16 and</text>
+<text x="100" y="600.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">130.211.0.0/22 in NetPol</text>
+<text x="100" y="615.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">static global IP</text>
+<rect x="430" y="245" width="790" height="450" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
+<text x="444" y="267" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">GKE Autopilot (or Standard) - private nodes, Dataplane V2</text>
+<rect x="450" y="290" width="175" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="537.5" y="319.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">employee-portal</text>
+<text x="537.5" y="336.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080</text>
+<text x="537.5" y="351.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
+<rect x="640" y="290" width="175" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="727.5" y="319.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">manager-workspace</text>
+<text x="727.5" y="336.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080</text>
+<text x="727.5" y="351.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
+<rect x="830" y="290" width="175" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="917.5" y="319.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-bff</text>
+<text x="917.5" y="336.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">:8090 / 8081</text>
+<text x="917.5" y="351.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
+<rect x="1020" y="290" width="175" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1107.5" y="319.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-core-app</text>
+<text x="1107.5" y="336.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">:8080 / 8081</text>
+<text x="1107.5" y="351.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
+<rect x="450" y="395" width="365" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="632.5" y="425.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">Flyway Job (pre-upgrade)</text>
+<text x="632.5" y="443.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">identity: migrations</text>
+<text x="632.5" y="458.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">role wz_migrator</text>
+<rect x="830" y="395" width="365" height="80" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1012.5" y="425.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Secrets Store CSI</text>
+<text x="1012.5" y="443.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Secret Manager add-on (provider gke)</text>
+<text x="1012.5" y="458.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">files /mnt/secrets/&lt;component&gt;</text>
+<rect x="450" y="500" width="745" height="85" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="822.5" y="532.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Namespace wellnessz</text>
+<text x="822.5" y="550.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">NetworkPolicy default-deny · PSS restricted-compatible pods</text>
+<text x="822.5" y="565.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">one ServiceAccount + workload identity per component</text>
+<rect x="450" y="605" width="745" height="70" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="822.5" y="639.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Workload Identity (KSA -&gt; GSA) · Binary Authorization (KMS attestor) · Shielded nodes</text>
+<text x="822.5" y="654.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">CMEK for etcd secrets · security posture (vuln. enterprise) · release channel REGULAR</text>
+<rect x="1250" y="245" width="390" height="450" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
+<text x="1264" y="267" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Private Service Access 10.60.64.0/20</text>
+<rect x="1270" y="290" width="350" height="135" rx="8" ry="8" fill="#EEF3F8" stroke="#1B365D" stroke-width="1.6"/>
+<text x="1445.0" y="332.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Cloud SQL for PostgreSQL 16</text>
+<text x="1445.0" y="350.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">private IP only, REGIONAL HA</text>
+<text x="1445.0" y="365.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">PITR 7 d, 30 backups</text>
+<text x="1445.0" y="380.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ENCRYPTED_ONLY, IAM auth</text>
+<text x="1445.0" y="395.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">pgaudit, CMEK (Cloud KMS HSM)</text>
+<rect x="1270" y="440" width="350" height="115" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1445.0" y="480.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Secret Manager</text>
+<text x="1445.0" y="498.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">user-managed replication + CMEK</text>
+<text x="1445.0" y="513.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">per-secret accessor IAM</text>
+<text x="1445.0" y="528.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Cloud KMS key ring (90 d rotation)</text>
+<rect x="1270" y="570" width="350" height="105" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1445.0" y="612.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Artifact Registry</text>
+<text x="1445.0" y="630.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">CMEK, immutable tags, cleanup</text>
+<text x="1445.0" y="645.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">vulnerability scanning</text>
+<rect x="40" y="750" width="800" height="160" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="50" y="803.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">Observability &amp; audit</text>
+<text x="50" y="821.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">Cloud Logging _Default bucket 365 days · Data Access audit logs for Secret Manager, KMS,</text>
+<text x="50" y="837.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">Cloud SQL, GKE, IAM · VPC flow logs · Cloud NAT logs · LB / Cloud Armor logs</text>
+<text x="50" y="853.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">Managed Service for Prometheus · OTLP -&gt; Cloud Trace · export to Chronicle / Splunk</text>
+<text x="50" y="869.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">Application audit trail: hash-chained platform.audit_event (append-only grants)</text>
+<rect x="860" y="750" width="800" height="160" rx="8" ry="8" fill="#FDF2E2" stroke="#B45309" stroke-width="1.6"/>
+<text x="870" y="795.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#B45309" text-anchor="start">Resilience (proposed targets)</text>
+<text x="870" y="813.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">RPO: 0 within region (Cloud SQL REGIONAL synchronous standby);</text>
+<text x="870" y="829.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">      &lt;= 5 min point-in-time (PITR, transaction logs 7 d)</text>
+<text x="870" y="845.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">RTO: &lt; 5 min zone failure (automatic failover; regional GKE control plane)</text>
+<text x="870" y="861.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">      &lt; 4 h regional disaster (cross-region backup restore + Terraform/Helm)</text>
+<text x="870" y="877.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">Quarterly restore test recorded as SOC 2 A1.3 evidence</text>
+<path d="M 320 125 L 358 125" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<path d="M 380 172 L 380 190 L 345 190 L 345 288" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="268.28" y="228" width="63.440000000000005" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="300" y="240" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#2E7D4F" text-anchor="middle">HTTPS 443</text>
+<path d="M 382 330 L 448 330" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<path d="M 1197 330 L 1268 350" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
+<rect x="1219.6" y="314" width="24.8" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="1232" y="325" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1B365D" text-anchor="middle">TLS</text>
+<path d="M 1197 435 L 1268 495" fill="none" stroke="#2E6DA4" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eb)"/>
+<path d="M 1125 172 L 1035 288" fill="none" stroke="#2E6DA4" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eb)"/>
+<rect x="1075.2" y="219" width="69.60000000000001" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="1110" y="230" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#2E6DA4" text-anchor="middle">OIDC / JWKS</text>
+</svg>

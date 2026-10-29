@@ -5,7 +5,7 @@
 #   vault write auth/kubernetes-wellnessz/config kubernetes_host=https://<api>:6443
 #   vault policy write wellnessz-core       - <<< "$(sed -n '/^# core/,/^# end core/p' vault-policies.hcl)"
 #   vault write auth/kubernetes-wellnessz/role/wellnessz-core \
-#       bound_service_account_names=wellnessz-wellnessz-core \
+#       bound_service_account_names=wellnessz-core \
 #       bound_service_account_namespaces=wellnessz \
 #       audience=vault policies=wellnessz-core ttl=15m
 #   (repeat for wellnessz-migrations, wellnessz-db-operator)

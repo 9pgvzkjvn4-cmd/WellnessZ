@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="820" viewBox="0 0 1700 820" role="img" aria-label="Local MacBook Pro setup">
+<title>Local MacBook Pro setup</title>
+<defs><marker id="eg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="sg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="eb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="egr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="sgr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="en" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="sn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="ea" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker></defs>
+<rect width="100%" height="100%" fill="#FFFFFF"/>
+<rect x="0" y="0" width="1700" height="54" fill="#1B365D"/>
+<text x="24" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="21" font-weight="bold" fill="#FFFFFF" text-anchor="start">Setup 1 - Local MacBook Pro (Apple Silicon)</text>
+<text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">deploy/local/docker-compose.yml · IDE · Vite dev servers</text>
+<rect x="40" y="80" width="300" height="90" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="190.0" y="114.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Developer browser</text>
+<text x="190.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">http://localhost:5173 employee</text>
+<text x="190.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">http://localhost:5174 workspace</text>
+<rect x="40" y="200" width="620" height="420" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
+<text x="54" y="222" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">macOS host (IDE / terminal)</text>
+<rect x="70" y="245" width="270" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="205.0" y="284.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">Vite dev server :5173</text>
+<text x="205.0" y="302.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">web/employee-app</text>
+<text x="205.0" y="318.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">proxy /bff /oauth2 /login /logout</text>
+<rect x="360" y="245" width="270" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="495.0" y="284.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">Vite dev server :5174</text>
+<text x="495.0" y="302.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">web/manager-workspace</text>
+<text x="495.0" y="318.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">WZ_BFF_TARGET (default :8090)</text>
+<rect x="70" y="375" width="270" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="205.0" y="414.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-bff :8090 / mgmt 8091</text>
+<text x="205.0" y="432.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">IDE run, profile local</text>
+<text x="205.0" y="448.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">or compose profile apps</text>
+<rect x="360" y="375" width="270" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="495.0" y="414.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-core-app :8080 / 8081</text>
+<text x="495.0" y="432.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">IDE run, profile local</text>
+<text x="495.0" y="448.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">Flyway as wz_migrator</text>
+<rect x="70" y="505" width="560" height="90" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="350.0" y="539.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Tests</text>
+<text x="350.0" y="557.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">./mvnw verify - Testcontainers (postgres:16-alpine) or WZ_TEST_DB_URL</text>
+<text x="350.0" y="573.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">npm test (Vitest) · tools/e2e/e2e.js (Playwright)</text>
+<rect x="700" y="200" width="960" height="420" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
+<text x="714" y="222" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Docker Desktop / Colima - compose project 'wellnessz' (ports bound to 127.0.0.1)</text>
+<rect x="730" y="245" width="280" height="110" rx="8" ry="8" fill="#EEF3F8" stroke="#1B365D" stroke-width="1.6"/>
+<text x="870.0" y="290.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">PostgreSQL 16.15 :5432</text>
+<text x="870.0" y="308.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">db wellnessz: wz_migrator / wz_app / wz_bff</text>
+<text x="870.0" y="323.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">db keycloak · SCRAM · DDL logging</text>
+<rect x="1040" y="245" width="280" height="110" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1180.0" y="282.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Keycloak 26.8 :8180</text>
+<text x="1180.0" y="300.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">realm wellnessz (import)</text>
+<text x="1180.0" y="315.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">clients bff / mobile / api /</text>
+<text x="1180.0" y="330.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">integration · test users</text>
+<rect x="1350" y="245" width="280" height="110" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1490.0" y="290.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">OTel collector</text>
+<text x="1490.0" y="308.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">OTLP :4317 / :4318</text>
+<text x="1490.0" y="323.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">debug exporter, health :13133</text>
+<rect x="730" y="385" width="280" height="100" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="870.0" y="425.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Mailpit</text>
+<text x="870.0" y="443.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">SMTP :1025 · UI :8025</text>
+<text x="870.0" y="458.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">notification sink</text>
+<rect x="1040" y="385" width="280" height="100" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1180.0" y="425.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">GreenMail</text>
+<text x="1180.0" y="443.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">IMAP :3143 · SMTP :3025</text>
+<text x="1180.0" y="458.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ehs-feed@wellnessz.local</text>
+<rect x="1350" y="385" width="280" height="100" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1490.0" y="425.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">apps-net (socat)</text>
+<text x="1490.0" y="443.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">profile apps: shared netns,</text>
+<text x="1490.0" y="458.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">loopback :8180 -&gt; keycloak</text>
+<rect x="730" y="515" width="900" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1180.0" y="552.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">Profile 'apps' (./up.sh --apps)</text>
+<text x="1180.0" y="570.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">wz-core-app + wz-bff images from deploy/docker - read-only root FS, cap_drop ALL, uid 10001, tmpfs /tmp</text>
+<rect x="40" y="650" width="1620" height="140" rx="8" ry="8" fill="#FDF2E2" stroke="#B45309" stroke-width="1.6"/>
+<text x="850.0" y="691.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#B45309" text-anchor="middle">Secrets on the laptop</text>
+<text x="850.0" y="709.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">./up.sh generates deploy/local/.env (mode 600, git-ignored) with random DB passwords, WZ_MASTER_KEY,</text>
+<text x="850.0" y="726.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">WZ_PSEUDONYM_KEY and a separate WZ_BFF_MASTER_KEY (openssl rand).  Keycloak test users have temporary</text>
+<text x="850.0" y="743.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">passwords (forced change).  Local-only placeholders (change-me-local-only) are allow-listed in gitleaks.</text>
+<text x="850.0" y="760.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">Nothing from this setup is ever reused in a shared environment.</text>
+<path d="M 310 172 L 310 243" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="321.68" y="200" width="32.64" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="338" y="212" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#2E7D4F" text-anchor="middle">HTTP</text>
+<path d="M 205 347 L 205 373" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<path d="M 495 347 L 230 373" fill="none" stroke="#2E7D4F" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#egr)"/>
+<path d="M 342 425 L 358 425" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="315.2" y="399" width="69.60000000000001" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="350" y="410" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#2E7D4F" text-anchor="middle">token relay</text>
+<path d="M 632 450 L 715 450 L 715 300 L 728 300" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
+<rect x="663.68" y="478" width="32.64" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="680" y="490" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1B365D" text-anchor="middle">JDBC</text>
+<path d="M 632 400 L 690 400 L 690 370 L 1180 370 L 1180 357" fill="none" stroke="#2E6DA4" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eb)"/>
+<rect x="1084.8" y="363" width="30.400000000000002" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="1100" y="374" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#2E6DA4" text-anchor="middle">OIDC</text>
+</svg>

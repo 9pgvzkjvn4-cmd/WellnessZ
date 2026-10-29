@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="900" viewBox="0 0 1700 900" role="img" aria-label="Hybrid cloud setup">
+<title>Hybrid cloud setup</title>
+<defs><marker id="eg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="sg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="eb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="egr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="sgr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="en" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="sn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="ea" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker></defs>
+<rect width="100%" height="100%" fill="#FFFFFF"/>
+<rect x="0" y="0" width="1700" height="54" fill="#1B365D"/>
+<text x="24" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="21" font-weight="bold" fill="#FFFFFF" text-anchor="start">Setup 4 - Hybrid cloud (PHI on-premises, web tier in cloud)</text>
+<text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">deploy/hybrid · values-hybrid*.yaml</text>
+<rect x="40" y="80" width="300" height="90" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="190.0" y="122.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Internet users</text>
+<text x="190.0" y="140.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">employees, managers, HR</text>
+<rect x="380" y="80" width="420" height="90" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="590.0" y="114.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Cloud WAF / LB</text>
+<text x="590.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">App Gateway WAF v2 / Front Door  or</text>
+<text x="590.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">Cloud Armor + global LB</text>
+<rect x="840" y="80" width="360" height="90" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1020.0" y="122.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Microsoft Entra ID</text>
+<text x="1020.0" y="140.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">OIDC for BFF, mobile, core</text>
+<rect x="1240" y="80" width="420" height="90" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1450.0" y="114.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Fleet management</text>
+<text x="1450.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">Azure Arc  or  GKE Enterprise (Anthos)</text>
+<text x="1450.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">policy, Defender, GitOps, monitoring</text>
+<rect x="40" y="200" width="760" height="360" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
+<text x="54" y="222" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">CLOUD - AKS or GKE (values-hybrid-cloud-edge.yaml)</text>
+<rect x="70" y="245" width="220" height="90" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="180.0" y="287.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">employee-portal</text>
+<text x="180.0" y="305.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">static SPA</text>
+<rect x="310" y="245" width="220" height="90" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="420.0" y="287.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">manager-workspace</text>
+<text x="420.0" y="305.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">static SPA</text>
+<rect x="550" y="245" width="220" height="90" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="660.0" y="279.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-bff</text>
+<text x="660.0" y="297.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">OIDC client, CSRF</text>
+<text x="660.0" y="313.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">token relay</text>
+<rect x="70" y="360" width="700" height="80" rx="8" ry="8" fill="#EEF3F8" stroke="#1B365D" stroke-width="1.6"/>
+<text x="420.0" y="397.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Small managed PostgreSQL (session store only)</text>
+<text x="420.0" y="415.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">schema bff, role wz_bff - AES-GCM encrypted session attributes, no PHI</text>
+<rect x="70" y="460" width="700" height="75" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="420.0" y="494.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Cloud Key Vault / Secret Manager</text>
+<text x="420.0" y="512.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">BFF client secret, session key, wz_bff password</text>
+<rect x="900" y="200" width="760" height="520" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
+<text x="914" y="222" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">ON-PREMISES - RKE2 or OpenShift (values-hybrid.yaml)</text>
+<rect x="930" y="245" width="340" height="90" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1100.0" y="279.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Internal API ingress</text>
+<text x="1100.0" y="297.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">api.wellnessz.onprem...</text>
+<text x="1100.0" y="313.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">internal PKI TLS, optional mTLS</text>
+<rect x="1290" y="245" width="340" height="90" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1460.0" y="279.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-core-app + Flyway Job</text>
+<text x="1460.0" y="297.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">integrations, EHS mailbox</text>
+<text x="1460.0" y="313.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HL7 / FHIR to OH systems</text>
+<rect x="930" y="360" width="700" height="120" rx="8" ry="8" fill="#EEF3F8" stroke="#1B365D" stroke-width="1.6"/>
+<text x="1280.0" y="401.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">CloudNativePG cluster wellnessz-db (3 instances)</text>
+<text x="1280.0" y="419.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">PostgreSQL 16.15 · synchronous replica (RPO 0) · TLS 1.3 via cert-manager / internal PKI</text>
+<text x="1280.0" y="435.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">hostssl + scram only · pgaudit · encrypted StorageClass</text>
+<text x="1280.0" y="451.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">roles wz_migrator / wz_app / wz_bff</text>
+<rect x="930" y="500" width="340" height="95" rx="8" ry="8" fill="#EEF3F8" stroke="#1B365D" stroke-width="1.6"/>
+<text x="1100.0" y="536.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Barman Cloud plugin</text>
+<text x="1100.0" y="554.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">WAL + daily base backups</text>
+<text x="1100.0" y="570.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">S3-compatible store, 35 d PITR</text>
+<rect x="1290" y="500" width="340" height="95" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1460.0" y="536.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">HashiCorp Vault</text>
+<text x="1460.0" y="554.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">CSI provider (pods)</text>
+<text x="1460.0" y="570.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">External Secrets (CNPG roles)</text>
+<rect x="930" y="615" width="700" height="80" rx="8" ry="8" fill="#FDF2E2" stroke="#B45309" stroke-width="1.6"/>
+<text x="1280.0" y="652.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#B45309" text-anchor="middle">Clinical data at rest never leaves the data centre</text>
+<text x="1280.0" y="670.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">only status-only projections and encrypted transport cross the link</text>
+<rect x="40" y="600" width="760" height="120" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
+<text x="54" y="622" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Private connectivity</text>
+<rect x="70" y="640" width="700" height="60" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="420.0" y="668.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ExpressRoute private peering / Cloud Interconnect / IPsec VPN (IKEv2, AES-256-GCM)</text>
+<text x="420.0" y="684.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">only 443 from the BFF egress range to the internal API ingress</text>
+<rect x="40" y="750" width="1620" height="125" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="50" y="783.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">Why this split</text>
+<text x="50" y="801.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">Data residency: PHI (cases, consents, audit) stays in the airline data centre under existing physical controls.</text>
+<text x="50" y="818.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">Elastic, internet-facing tier stays in the cloud behind a managed WAF; it stores only encrypted session tokens.</text>
+<text x="50" y="835.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">Same Helm chart and images everywhere; Arc / GKE Enterprise apply the same policies (PSS, Defender, GitOps).</text>
+<text x="50" y="852.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="start">Proposed targets: RPO 0 (sync replica) / RTO &lt; 15 min on-prem node loss; DR site restore from object store &lt; 8 h.</text>
+<path d="M 340 125 L 378 125" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<path d="M 600 172 L 600 243" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="610.6" y="200" width="38.800000000000004" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="630" y="212" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#2E7D4F" text-anchor="middle">HTTPS</text>
+<path d="M 772 290 L 928 290" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="781.6" y="269" width="136.8" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="850" y="280" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#2E7D4F" text-anchor="middle">HTTPS over private link</text>
+<path d="M 1272 290 L 1288 290" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<path d="M 1460 337 L 1460 358" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
+<path d="M 1100 482 L 1100 498" fill="none" stroke="#1B365D" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#en)"/>
+<path d="M 660 337 L 660 358" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
+<path d="M 1450 172 L 1450 243" fill="none" stroke="#2E6DA4" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eb)"/>
+</svg>
