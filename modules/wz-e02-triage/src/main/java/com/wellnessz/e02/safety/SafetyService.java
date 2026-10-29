@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.wellnessz.casekernel.FitnessFeed;
 import com.wellnessz.casekernel.model.CaseStatus;
 import com.wellnessz.casekernel.model.FitnessStatus;
 import com.wellnessz.casekernel.model.OhCase;
@@ -57,9 +58,10 @@ public class SafetyService implements CaseTransitionGuard {
     private final AuditService audit;
     private final JsonMapper json;
     private final Clock clock;
+    private final List<CrewStatusEnricher> enrichers;
 
     public SafetyService(CaseChecklistRepository checklists, OhCaseRepository cases, EmployeeRepository employees, CaseAccess access,
-                         CaseTimeline timeline, AuditService audit, JsonMapper json, Clock clock) {
+                         CaseTimeline timeline, AuditService audit, JsonMapper json, Clock clock, List<CrewStatusEnricher> enrichers) {
         this.checklists = checklists;
         this.cases = cases;
         this.employees = employees;
@@ -68,6 +70,7 @@ public class SafetyService implements CaseTransitionGuard {
         this.audit = audit;
         this.json = json;
         this.clock = clock;
+        this.enrichers = enrichers;
     }
 
     public static String checklistFor(SafetyCategory sc) {
@@ -150,7 +153,12 @@ public class SafetyService implements CaseTransitionGuard {
         }
     }
 
-    public record StatusRow(String employeeId, String displayName, String fitnessStatus, LocalDate restrictionUntil, Instant updatedAt) {
+    /**
+     * Status-only row. {@code rosterStatus} (FIT / LIMITED / UNFIT / PENDING), validity dates and operational limitation
+     * codes come from the roster-status feed when a module provides it ({@link CrewStatusEnricher}, contract §5.4).
+     */
+    public record StatusRow(String employeeId, String displayName, String fitnessStatus, LocalDate restrictionUntil, Instant updatedAt,
+                            String rosterStatus, LocalDate validFrom, LocalDate validUntil, List<String> operationalLimitations) {
     }
 
     /** fit / unfit / fit-with-limitations / pending only – latest case per employee (E02-BL-017). */
@@ -159,7 +167,7 @@ public class SafetyService implements CaseTransitionGuard {
         if (employeeIds.size() > 500) {
             throw ApiException.badRequest("too_many", "At most 500 employees per request");
         }
-        List<StatusRow> rows = latest(cases.findByEmployeeIds(employeeIds));
+        List<StatusRow> rows = enrich(latest(cases.findByEmployeeIds(employeeIds)));
         audit.record("CREW_STATUS_READ", "EMPLOYEE", null, AuditService.Outcome.SUCCESS, "employees=" + employeeIds.size());
         return rows;
     }
@@ -176,9 +184,23 @@ public class SafetyService implements CaseTransitionGuard {
         for (OhCase c : ordered) {
             byEmployee.computeIfAbsent(c.getEmployeeId(), id -> new StatusRow(id,
                     employees.findById(id).map(Employee::getDisplayName).orElse(c.getEmployeeDisplayName()), simple(c.getFitnessStatus()),
-                    c.getRestrictionUntil(), c.getUpdatedAt()));
+                    c.getRestrictionUntil(), c.getUpdatedAt(), FitnessFeed.rosterStatus(c.getFitnessStatus()), null, null, List.of()));
         }
         return List.copyOf(byEmployee.values());
+    }
+
+    private List<StatusRow> enrich(List<StatusRow> rows) {
+        if (enrichers.isEmpty() || rows.isEmpty()) {
+            return rows;
+        }
+        Map<String, CrewStatusEnricher.RosterInfo> info = new LinkedHashMap<>();
+        List<String> ids = rows.stream().map(StatusRow::employeeId).toList();
+        enrichers.forEach(e -> info.putAll(e.rosterInfo(ids)));
+        return rows.stream().map(r -> {
+            CrewStatusEnricher.RosterInfo i = info.get(r.employeeId());
+            return i == null ? r : new StatusRow(r.employeeId(), r.displayName(), r.fitnessStatus(), r.restrictionUntil(), r.updatedAt(),
+                    i.rosterStatus(), i.validFrom(), i.validUntil(), i.operationalLimitations());
+        }).toList();
     }
 
     static String simple(FitnessStatus f) {

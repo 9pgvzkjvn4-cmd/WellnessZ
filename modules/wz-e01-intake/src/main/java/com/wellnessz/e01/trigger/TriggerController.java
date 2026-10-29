@@ -72,7 +72,7 @@ public class TriggerController {
 
     @PostMapping("/triggers/fitness-declaration")
     @PreAuthorize("hasRole('EMPLOYEE')")
-    public TriggerService.TriggerResult declaration(@Valid @RequestBody DeclarationRequest r) {
+    public TriggerService.DeclarationResult declaration(@Valid @RequestBody DeclarationRequest r) {
         return service.fitnessDeclaration(users.require(), r.reason(), r.unfitFrom(), r.expectedUntil(), r.details());
     }
 
