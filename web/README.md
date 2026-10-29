@@ -31,7 +31,7 @@ npm run dev               # proxies /bff /oauth2 /login /logout → http://local
 * **Containers:** multi-stage Dockerfiles → `nginxinc/nginx-unprivileged` (non-root, port 8080, `/healthz`), strict
   security headers, SPA fallback, `index.html` never cached. Run with a read-only root FS plus a writable `/tmp`.
 * **Ingress contract:** each app's host must route `/bff`, `/oauth2`, `/login`, `/logout` to `wz-bff:8090`
-  (the BFF session cookie is SameSite=Strict and the apps use relative URLs).
+  (the BFF session cookie is SameSite=Lax and the apps use relative URLs).
 
 | Image | Build context |
 |---|---|

@@ -19,6 +19,7 @@ import com.wellnessz.casekernel.model.CaseViews;
 import com.wellnessz.casekernel.model.FitnessStatus;
 import com.wellnessz.casekernel.model.OhCase;
 import com.wellnessz.casekernel.model.OhCaseRepository;
+import com.wellnessz.casekernel.module.ModuleRegistry;
 import com.wellnessz.common.error.ApiException;
 import com.wellnessz.common.model.DisclosureLevel;
 import com.wellnessz.common.model.Roles;
@@ -47,9 +48,11 @@ public class CaseService {
     private final AuditService audit;
     private final EventBus bus;
     private final Clock clock;
+    private final ModuleRegistry modules;
 
     public CaseService(OhCaseRepository cases, OrgUnitRepository orgUnits, PolicyEngine policy, AuditService audit,
-                       EventBus bus, Clock clock) {
+                       EventBus bus, Clock clock, ModuleRegistry modules) {
+        this.modules = modules;
         this.cases = cases;
         this.orgUnits = orgUnits;
         this.policy = policy;
@@ -108,6 +111,7 @@ public class CaseService {
         if (user.employeeId() == null || !user.hasRole(Roles.EMPLOYEE)) {
             throw ApiException.forbidden("Self-referral is available to employees only");
         }
+        modules.requireEnabled("E13");
         OhCase c = open(user.employeeId(), user.displayName(), user.orgScope() == null ? null : lastSegment(user.orgScope()),
                 category, CaseSource.SELF_REFERRAL, null, description);
         audit.record("CASE_SELF_REFERRAL", "CASE", c.getId().toString(), AuditService.Outcome.SUCCESS, category.name());

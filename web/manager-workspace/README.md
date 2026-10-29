@@ -48,7 +48,7 @@ Sign in as `manager1` or `hr1` (password `ChangeMe!123`); `employee1` sees the *
 * Session: `GET /bff/session` → `{authenticated, name, roles}`; roles normalised (`ROLE_` stripped, upper-case).
 * Login: redirect to `/oauth2/authorization/wellnessz`. Logout: `POST /logout` with `X-XSRF-TOKEN` from the
   `XSRF-TOKEN` cookie. All mutating API calls send the same header.
-* Session cookie `WZSESSION` (HttpOnly, Secure, SameSite=Strict) – therefore the app and the BFF must share an origin
+* Session cookie `WZSESSION` (HttpOnly, Secure, SameSite=Lax) – therefore the app and the BFF must share an origin
   (Vite proxy in dev, ingress path routing in Kubernetes).
 * 15-minute idle timeout → automatic logout. No `console.*` (ESLint) – `src/security/log.ts` logs event codes only.
 

@@ -69,6 +69,11 @@ ephemeral "random_password" "wz_app" {
   special = false
 }
 
+ephemeral "random_password" "wz_bff" {
+  length  = 32
+  special = false
+}
+
 ephemeral "random_password" "wz_migrator" {
   length  = 32
   special = false
@@ -83,12 +88,16 @@ locals {
     "wz-pseudonym-key"        = { owner = "core" }
     "wz-migrator-db-password" = { owner = "migrations" }
     "wz-bff-client-secret"    = { owner = "bff" }
+    "wz-bff-db-password"      = { owner = "bff" }
+    "wz-bff-session-key"      = { owner = "bff" }
   }
-  generated_secrets = toset(["wz-pg-admin-password", "wz-db-password", "wz-migrator-db-password"])
+  generated_secrets = toset(["wz-pg-admin-password", "wz-db-password", "wz-bff-db-password", "wz-migrator-db-password"])
   kv_secret_values = {
     "wz-pg-admin-password"    = ephemeral.random_password.pg_admin.result
     "wz-db-password"          = ephemeral.random_password.wz_app.result
     "wz-migrator-db-password" = ephemeral.random_password.wz_migrator.result
+    "wz-bff-db-password"      = ephemeral.random_password.wz_bff.result
+    "wz-bff-session-key"      = "REPLACE-ME-openssl-rand-base64-32"
     "wz-master-key"           = "REPLACE-ME-openssl-rand-base64-32"
     "wz-pseudonym-key"        = "REPLACE-ME-openssl-rand-base64-32"
     "wz-bff-client-secret"    = "REPLACE-ME-from-IdP-app-registration"
@@ -124,12 +133,14 @@ resource "azurerm_role_assignment" "workload_secret_read" {
   principal_id         = azurerm_user_assigned_identity.workload[each.value.owner].principal_id
 }
 
-# In migrations.mode=app the core identity also reads the migrator password
-resource "azurerm_role_assignment" "core_migrator_read" {
+# In migrations.mode=app core and bff run Flyway themselves and need the
+# migrator password; in job mode (prod default) only the migrations identity does.
+resource "azurerm_role_assignment" "app_mode_migrator_read" {
+  for_each             = var.migrations_mode == "app" ? toset(["core", "bff"]) : toset([])
   scope                = azurerm_key_vault_secret.app["wz-migrator-db-password"].resource_versionless_id
   role_definition_name = "Key Vault Secrets User"
-  principal_id         = azurerm_user_assigned_identity.workload["core"].principal_id
-  description          = "Only required when Helm migrations.mode=app; remove for job mode."
+  principal_id         = azurerm_user_assigned_identity.workload[each.key].principal_id
+  description          = "Helm migrations.mode=app only."
 }
 
 # ---------------------------------------------------------------------------

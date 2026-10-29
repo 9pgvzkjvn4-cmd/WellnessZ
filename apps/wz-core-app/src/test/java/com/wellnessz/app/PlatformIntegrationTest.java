@@ -44,6 +44,8 @@ class PlatformIntegrationTest extends IntegrationTestBase {
     OutboxRelay relay;
     @Autowired
     JsonMapper json;
+    @Autowired
+    com.wellnessz.integration.outbox.OutboxRepository outbox;
 
     static JwtRequestPostProcessor user(String username, String employeeId, String orgScope, String... roles) {
         return jwt().jwt(j -> {
@@ -215,9 +217,12 @@ class PlatformIntegrationTest extends IntegrationTestBase {
                         .content("{\"fitnessStatus\":\"FIT_WITH_RESTRICTIONS\",\"restrictionUntil\":\"2026-12-31\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fitnessStatus").value("FIT_WITH_RESTRICTIONS"));
-        String payload = jdbc.queryForObject("""
+        String raw = jdbc.queryForObject("""
                 select payload from platform.outbox_event where destination = 'crew-rostering'
                  order by created_at desc limit 1""", String.class);
+        assertThat(raw).startsWith("v1:").doesNotContain("FIT_WITH_RESTRICTIONS"); // encrypted at rest
+        String payload = outbox.findAllByOrderByCreatedAtDesc(org.springframework.data.domain.PageRequest.of(0, 50)).stream()
+                .filter(e -> e.getDestination().equals("crew-rostering")).findFirst().orElseThrow().getPayload();
         JsonNode node = json.readTree(payload);
         assertThat(node.get("fitnessStatus").asString()).isEqualTo("FIT_WITH_RESTRICTIONS");
         assertThat(payload).doesNotContain("Confidential").doesNotContain("ILLNESS");
@@ -264,6 +269,18 @@ class PlatformIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isBadRequest());
         mvc.perform(get("/api/v1/analytics/kpis/cases-by-status").with(user("crew", "E1", null, "EMPLOYEE")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void disabledModuleIsRefused() throws Exception {
+        jdbc.update("insert into masterdata.config_entry(config_key, config_value, updated_by, updated_at) values ('modules.e13.enabled','false','test',now())");
+        try {
+            mvc.perform(post("/api/v1/cases/self-referral").with(user("crew", uniqueEmp(), null, "EMPLOYEE"))
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"INJURY\",\"description\":\"x\"}"))
+                    .andExpect(status().isServiceUnavailable());
+        } finally {
+            jdbc.update("update masterdata.config_entry set config_value = 'true' where config_key = 'modules.e13.enabled'");
+        }
     }
 
     @Test

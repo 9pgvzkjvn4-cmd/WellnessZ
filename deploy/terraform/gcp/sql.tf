@@ -127,6 +127,11 @@ ephemeral "random_password" "wz_app" {
   special = false
 }
 
+ephemeral "random_password" "wz_bff" {
+  length  = 32
+  special = false
+}
+
 ephemeral "random_password" "wz_migrator" {
   length  = 32
   special = false
@@ -136,6 +141,13 @@ resource "google_sql_user" "wz_app" {
   name                = "wz_app"
   instance            = google_sql_database_instance.main.name
   password_wo         = ephemeral.random_password.wz_app.result
+  password_wo_version = var.db_password_version
+}
+
+resource "google_sql_user" "wz_bff" {
+  name                = "wz_bff"
+  instance            = google_sql_database_instance.main.name
+  password_wo         = ephemeral.random_password.wz_bff.result
   password_wo_version = var.db_password_version
 }
 

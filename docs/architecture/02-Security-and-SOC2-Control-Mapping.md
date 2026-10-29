@@ -264,6 +264,25 @@ the listed controls.
 | F11 | Pods → secrets (CSI, workload identity) and master key |
 | F12 | Developer → Git → CI/CD → registry → cluster (supply chain) |
 
+The diagrams below show the trust boundaries for the main flows (system context, EHS-to-status-only data flow, browser
+identity flow, mobile flow); they are the same views as in document 01.
+
+![C4 system context](../images/01-c4-context.png)
+
+*Figure 1 – System context and trust boundary (F1, F6, F7).*
+
+![Data flow EHS intake to status-only outputs](../images/04-dataflow-ehs-intake.png)
+
+*Figure 2 – Data flow F1, F2, F5, F6, F8 with processing order.*
+
+![Identity and BFF flow](../images/05-identity-bff-flow.png)
+
+*Figure 3 – Browser identity flow F3.*
+
+![Mobile PKCE and MDM flow](../images/06-mobile-pkce-mdm-flow.png)
+
+*Figure 4 – Native app flow F4.*
+
 ### 7.2 STRIDE analysis
 
 | Flow | Threat (STRIDE) | Scenario | Controls | Residual |

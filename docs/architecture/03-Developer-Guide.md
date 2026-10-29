@@ -26,6 +26,13 @@ immunisation**; replace names as appropriate. Everything referenced exists in th
 | `deploy/local` | Docker Compose: PostgreSQL, Keycloak (realm import), Mailpit, GreenMail, OpenTelemetry collector |
 | `config/` | SpotBugs exclusions and dependency-check suppressions (justification required) |
 
+Where a new business module fits:
+
+![Component view](../images/03-component-view.png)
+
+*Figure 1 – Components of the core API. New business modules sit in the business layer next to the case kernel and
+depend only on platform modules; they talk to other business modules through events.*
+
 ### 1.2 Local environment
 
 ```bash

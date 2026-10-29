@@ -45,6 +45,7 @@ public class BffSecurityConfig {
 
     @Bean
     SecurityFilterChain bffSecurityFilterChain(HttpSecurity http, ClientRegistrationRepository registrations,
+                                               OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService,
                                                @Value("${wellnessz.bff.post-logout-redirect-uri:{baseUrl}/}") String postLogout)
             throws Exception {
         http
@@ -53,7 +54,7 @@ public class BffSecurityConfig {
                 .requestMatchers("/bff/api/workspace/**").hasAnyRole(WORKSPACE_ROLES.toArray(String[]::new))
                 .requestMatchers("/bff/api/**").authenticated()
                 .anyRequest().denyAll())
-            .oauth2Login(o -> o.userInfoEndpoint(u -> u.oidcUserService(oidcUserService())))
+            .oauth2Login(o -> o.userInfoEndpoint(u -> u.oidcUserService(oidcUserService)))
             // XHR callers get 401 instead of a redirect to the IdP
             .exceptionHandling(e -> e.defaultAuthenticationEntryPointFor(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                     PathPatternRequestMatcher.pathPattern("/bff/**")))
@@ -73,15 +74,22 @@ public class BffSecurityConfig {
      * Maps roles from the ID token and from the access token (Keycloak puts realm roles in the access token,
      * Entra ID app roles appear in both) onto {@code ROLE_*} authorities of the session principal.
      */
+    /** Entra ID security-group object ids → application roles, mirroring the core API's group-role-mapping. */
     @Bean
-    OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService() {
+    @org.springframework.boot.context.properties.ConfigurationProperties(prefix = "wellnessz.bff.group-role-mapping")
+    Map<String, String> groupRoleMapping() {
+        return new HashMap<>();
+    }
+
+    @Bean
+    OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService(Map<String, String> groupRoleMapping) {
         OidcUserService delegate = new OidcUserService();
         JsonMapper json = JsonMapper.builder().build();
         List<String> claimPaths = List.of("realm_access.roles", "roles", "groups");
         return request -> {
             OidcUser user = java.util.Objects.requireNonNull(delegate.loadUser(request), "OIDC user");
             Map<String, Object> claims = new HashMap<>(user.getClaims());
-            Set<String> roles = new HashSet<>(RoleClaims.extract(claims, claimPaths, Map.of()));
+            Set<String> roles = new HashSet<>(RoleClaims.extract(claims, claimPaths, groupRoleMapping));
             String token = request.getAccessToken().getTokenValue();
             String[] parts = token.split("\\.");
             if (parts.length == 3) {
@@ -89,7 +97,7 @@ public class BffSecurityConfig {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> at = json.readValue(java.util.Base64.getUrlDecoder().decode(parts[1]), Map.class);
                 if (at != null) {
-                    roles.addAll(RoleClaims.extract(at, claimPaths, Map.of()));
+                    roles.addAll(RoleClaims.extract(at, claimPaths, groupRoleMapping));
                 }
             }
             Collection<GrantedAuthority> authorities = new HashSet<>(user.getAuthorities());

@@ -38,8 +38,9 @@ core:
   env:
     # Azure Database for PostgreSQL Flexible Server - TLS 1.2+ enforced server-side,
     # certificate chain (DigiCert / Microsoft RSA Root) validated by the JVM trust store.
-    WZ_DB_URL: "jdbc:postgresql://<pg-server-name>.postgres.database.azure.com:5432/wellnessz?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+    WZ_DB_URL: "jdbc:postgresql://<pg-server-name>.postgres.database.azure.com:5432/wellnessz?sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
     WZ_DB_USERNAME: wz_app
+    WZ_DB_SSLMODE: verify-full
     # Entra ID v2 issuer of the airline tenant (add Keycloak/Okta issuers comma-separated if federated)
     WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<tenant-id>/v2.0"
     WZ_OIDC_AUDIENCE: "api://wellnessz-api"
@@ -52,6 +53,9 @@ bff:
     WZ_BFF_ISSUER_URI: "https://login.microsoftonline.com/<tenant-id>/v2.0"
     WZ_BFF_CLIENT_ID: <bff-app-registration-client-id>
     WZ_BFF_POST_LOGOUT_URI: "https://employee.wellnessz.example.com/"
+    # Session store: same server, schema bff, role wz_bff (WZ_BFF_DB_URL defaults to core URL)
+    WZ_BFF_DB_USERNAME: wz_bff
+    WZ_DB_SSLMODE: verify-full
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
 
 # Graph client secret for the EHS mailbox is mounted with the other core secrets

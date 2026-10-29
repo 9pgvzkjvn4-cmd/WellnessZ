@@ -35,19 +35,40 @@ secrets:
         remoteName: wz-pseudonym-key
         env: WZ_PSEUDONYM_KEY
         format: fileRef
-      # Cloud SQL per-instance server CA (stored by Terraform in Secret Manager)
+      # Cloud SQL per-instance server CA (public cert, stored by Terraform in Secret Manager)
+      - fileName: cloudsql-server-ca.pem
+        remoteName: wz-cloudsql-server-ca
+  bff:
+    files:
+      - fileName: wz-bff-client-secret
+        remoteName: wz-bff-client-secret
+        env: WZ_BFF_CLIENT_SECRET
+        format: fileRef
+      - fileName: wz-bff-db-password
+        remoteName: wz-bff-db-password
+        env: WZ_BFF_DB_PASSWORD
+        format: fileRef
+      - fileName: wz-bff-session-key
+        remoteName: wz-bff-session-key
+        env: WZ_MASTER_KEY_FILE
+        format: path
       - fileName: cloudsql-server-ca.pem
         remoteName: wz-cloudsql-server-ca
   migrations:
     files:
-      - fileName: spring.flyway.password
+      - fileName: wz-migrator-db-password
         remoteName: wz-migrator-db-password
+        env: WZ_DB_MIGRATOR_PASSWORD
+        format: fileRef
       - fileName: cloudsql-server-ca.pem
         remoteName: wz-cloudsql-server-ca
 
 migrations:
   mode: job
   job:
+    # Mirror of flyway/flyway in Artifact Registry (allow-listed in Binary Authorization)
+    image:
+      fullName: <region>-docker.pkg.dev/<project-id>/wellnessz/flyway/flyway:11.20.3-alpine
     dbUrl: "jdbc:postgresql://<cloudsql-private-ip>:5432/wellnessz?sslmode=verify-ca&sslrootcert=/mnt/secrets/migrations/cloudsql-server-ca.pem"
 
 topologySpread:
@@ -57,8 +78,9 @@ core:
   env:
     # Cloud SQL private IP; SSL required (ENCRYPTED_ONLY). Cloud SQL server
     # certificates carry no IP SAN, therefore verify-ca against the instance CA.
-    WZ_DB_URL: "jdbc:postgresql://<cloudsql-private-ip>:5432/wellnessz?sslmode=verify-ca&sslrootcert=/mnt/secrets/core/cloudsql-server-ca.pem"
+    WZ_DB_URL: "jdbc:postgresql://<cloudsql-private-ip>:5432/wellnessz?sslrootcert=/mnt/secrets/core/cloudsql-server-ca.pem"
     WZ_DB_USERNAME: wz_app
+    WZ_DB_SSLMODE: verify-ca
     WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<tenant-id>/v2.0"
     WZ_OIDC_AUDIENCE: "api://wellnessz-api"
     WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com"
@@ -70,6 +92,9 @@ bff:
     WZ_BFF_ISSUER_URI: "https://login.microsoftonline.com/<tenant-id>/v2.0"
     WZ_BFF_CLIENT_ID: <bff-client-id>
     WZ_BFF_POST_LOGOUT_URI: "https://employee.wellnessz.example.com/"
+    WZ_BFF_DB_URL: "jdbc:postgresql://<cloudsql-private-ip>:5432/wellnessz?sslrootcert=/mnt/secrets/bff/cloudsql-server-ca.pem"
+    WZ_BFF_DB_USERNAME: wz_bff
+    WZ_DB_SSLMODE: verify-ca
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
 
 # GKE Ingress (external Application Load Balancer) + Cloud Armor + managed certs

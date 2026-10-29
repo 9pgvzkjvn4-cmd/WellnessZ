@@ -43,8 +43,10 @@ secrets:
         remoteName: kv/data/wellnessz/core#db-ca-crt
   migrations:
     files:
-      - fileName: spring.flyway.password
+      - fileName: wz-migrator-db-password
         remoteName: kv/data/wellnessz/migrations#password
+        env: WZ_DB_MIGRATOR_PASSWORD
+        format: fileRef
       - fileName: wellnessz-db-ca.crt
         remoteName: kv/data/wellnessz/core#db-ca-crt
 
@@ -57,8 +59,9 @@ core:
   enabled: true
   env:
     # CloudNativePG read-write service (cluster.yaml in deploy/hybrid/cnpg)
-    WZ_DB_URL: "jdbc:postgresql://wellnessz-db-rw.wellnessz-db.svc:5432/wellnessz?sslmode=verify-full&sslrootcert=/mnt/secrets/core/wellnessz-db-ca.crt"
+    WZ_DB_URL: "jdbc:postgresql://wellnessz-db-rw.wellnessz-db.svc:5432/wellnessz?sslrootcert=/mnt/secrets/core/wellnessz-db-ca.crt"
     WZ_DB_USERNAME: wz_app
+    WZ_DB_SSLMODE: verify-full
     WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<tenant-id>/v2.0"
     WZ_OIDC_AUDIENCE: "api://wellnessz-api"
     WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com"

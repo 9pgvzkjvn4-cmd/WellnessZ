@@ -479,7 +479,7 @@ This section summarises the technical controls; document 02 maps them to SOC 2 c
 
 | Hop | Control |
 |---|---|
-| Client → edge | TLS 1.2+ (Azure Front Door/App Gateway policy, GCP `ssl_policy` "modern"), HSTS (1 year, includeSubDomains) sent by APIs, BFF and nginx. |
+| Client → edge | TLS 1.2+ (Azure Front Door/App Gateway policy, GCP SSL policy, profile `RESTRICTED`, minimum TLS 1.2); WAF rate limits on login endpoints (App Gateway `RateLimitLogin`, Cloud Armor `rate_based_ban`), HSTS (1 year, includeSubDomains) sent by APIs, BFF and nginx. |
 | Ingress → pods | TLS at ingress (`wellnessz-tls`); in-cluster traffic restricted by NetworkPolicies. A service mesh for in-cluster mTLS is optional (open item O6). |
 | Apps → PostgreSQL | `sslmode=verify-full` by default (local profile relaxes to `prefer`); Azure `ssl_min_protocol_version TLSv1.2`; CNPG `TLSv1.3`, `hostssl` + SCRAM-SHA-256 only. |
 | Mailbox | IMAPS with server-identity check; Graph over HTTPS. |

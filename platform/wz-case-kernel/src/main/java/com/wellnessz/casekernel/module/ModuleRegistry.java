@@ -67,4 +67,12 @@ public class ModuleRegistry {
     public boolean isEnabled(String code) {
         return all().stream().anyMatch(m -> m.code().equals(code) && m.enabled());
     }
+
+    /** Guard for module entry points: a disabled module (E18 config {@code modules.eXX.enabled=false}) answers 503. */
+    public void requireEnabled(String code) {
+        if (!isEnabled(code)) {
+            throw new com.wellnessz.common.error.ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                    "module_disabled", "Module " + code + " is not enabled");
+        }
+    }
 }

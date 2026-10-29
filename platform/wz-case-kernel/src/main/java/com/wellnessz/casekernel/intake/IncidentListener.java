@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import com.wellnessz.casekernel.CaseService;
 import com.wellnessz.casekernel.model.CaseCategory;
 import com.wellnessz.casekernel.model.CaseSource;
+import com.wellnessz.casekernel.module.ModuleRegistry;
 import com.wellnessz.common.events.IntegrationEnvelope;
 import com.wellnessz.integration.idempotency.IdempotentConsumer;
 
@@ -28,8 +29,11 @@ public class IncidentListener {
     private final CaseService cases;
     private final IdempotentConsumer consumer;
     private final JsonMapper json;
+    private final ModuleRegistry modules;
 
-    public IncidentListener(List<IncidentToCaseRule> rules, CaseService cases, IdempotentConsumer consumer, JsonMapper json) {
+    public IncidentListener(List<IncidentToCaseRule> rules, CaseService cases, IdempotentConsumer consumer, JsonMapper json,
+                            ModuleRegistry modules) {
+        this.modules = modules;
         this.rules = rules;
         this.cases = cases;
         this.consumer = consumer;
@@ -38,6 +42,10 @@ public class IncidentListener {
 
     @EventListener(condition = "#envelope.eventType() == '" + EVENT_TYPE + "'")
     public void onIncident(IntegrationEnvelope envelope) {
+        if (!modules.isEnabled("E01")) {
+            log.info("E01 disabled – incident {} kept in intake only", envelope.aggregateId());
+            return;
+        }
         consumer.handleOnce("case-kernel.incident-to-case", envelope, () -> {
             IncidentToCaseRule.IncidentPayload incident = json.readValue(envelope.payload(), IncidentToCaseRule.IncidentPayload.class);
             Optional<CaseCategory> category = rules.stream().map(r -> r.evaluate(incident)).flatMap(Optional::stream).findFirst();

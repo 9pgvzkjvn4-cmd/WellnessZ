@@ -23,4 +23,8 @@ public interface OutboxRepository extends JpaRepository<OutboxEvent, UUID> {
     List<OutboxEvent> findByStatusOrderByCreatedAtDesc(OutboxEvent.Status status, Pageable pageable);
 
     List<OutboxEvent> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("delete from OutboxEvent e where e.status = com.wellnessz.integration.outbox.OutboxEvent.Status.PUBLISHED and e.publishedAt < ?1")
+    int purgePublishedBefore(Instant cutoff);
 }

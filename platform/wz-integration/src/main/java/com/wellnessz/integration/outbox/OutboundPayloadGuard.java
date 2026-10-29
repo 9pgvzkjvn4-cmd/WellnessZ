@@ -48,6 +48,11 @@ public class OutboundPayloadGuard {
         Iterator<String> names = node.propertyNames().iterator();
         while (names.hasNext()) {
             String field = names.next();
+            JsonNode value = node.get(field);
+            if (value != null && (value.isObject() || value.isArray())) {
+                throw new ApiException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "disclosure_violation",
+                        "Outbound payloads to enterprise destinations must be flat (no nested objects or arrays)");
+            }
             if (!allowedSet.contains(field) && !Set.of("eventType", "aggregateType", "aggregateId", "occurredAt").contains(field)) {
                 throw new ApiException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "disclosure_violation",
                         "Outbound payload contains a field that is not permitted for this destination");

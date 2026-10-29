@@ -4,8 +4,10 @@
 #   * 3 instances (1 primary + 2 synchronous-capable replicas), spread across
 #     nodes/zones, automated failover
 #   * TLS with internal-PKI certificates, hostssl + scram-sha-256 only
-#   * Roles: wz_migrator (owner) / wz_app (least privilege), passwords from
-#     Vault via External Secrets
+#   * Roles: wz_migrator (owner) / wz_app / wz_bff (least privilege), passwords
+#     from Vault via External Secrets. Table grants come from the Flyway
+#     migrations (${app_role}), e.g. append-only audit trail - no broad
+#     default privileges are created here.
 #   * Continuous WAL archiving + base backups to object storage (PITR)
 # =============================================================================
 apiVersion: postgresql.cnpg.io/v1
@@ -44,6 +46,7 @@ spec:
       # CNPG prepends its own rules (local + streaming_replica with certs).
       - hostssl wellnessz wz_app      all scram-sha-256
       - hostssl wellnessz wz_migrator all scram-sha-256
+      - hostssl wellnessz wz_bff      all scram-sha-256
       - host    all       all         all reject
     enableAlterSystem: false
 
@@ -93,6 +96,19 @@ spec:
         connectionLimit: 200
         passwordSecret:
           name: wellnessz-db-app       # kubernetes.io/basic-auth (from Vault)
+      # Optional: BFF session store when the BFF runs on-prem as well
+      - name: wz_bff
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        inherit: false
+        replication: false
+        bypassrls: false
+        connectionLimit: 50
+        passwordSecret:
+          name: wellnessz-db-bff
 
   storage:
     size: 200Gi
@@ -138,21 +154,26 @@ metadata:
   namespace: wellnessz-db
 data:
   grants.sql: |
+    -- Connection + schema usage only; table-level privileges are granted by
+    -- the application's Flyway migrations (least privilege per table).
     DO $$
     DECLARE s text;
     BEGIN
       IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'wz_app') THEN
         CREATE ROLE wz_app LOGIN NOINHERIT;
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'wz_bff') THEN
+        CREATE ROLE wz_bff LOGIN NOINHERIT;
+      END IF;
       GRANT CONNECT, TEMPORARY ON DATABASE wellnessz TO wz_app;
+      GRANT CONNECT ON DATABASE wellnessz TO wz_bff;
       GRANT USAGE ON SCHEMA public TO wz_app;
       FOREACH s IN ARRAY ARRAY['platform','masterdata','intake','casemgmt','analytics'] LOOP
         EXECUTE format('REVOKE ALL ON SCHEMA %I FROM PUBLIC', s);
         EXECUTE format('GRANT USAGE ON SCHEMA %I TO wz_app', s);
-        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE wz_migrator IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO wz_app', s);
-        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE wz_migrator IN SCHEMA %I GRANT USAGE, SELECT ON SEQUENCES TO wz_app', s);
-        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE wz_migrator IN SCHEMA %I GRANT EXECUTE ON FUNCTIONS TO wz_app', s);
       END LOOP;
+      ALTER DEFAULT PRIVILEGES FOR ROLE wz_migrator REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
       ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, analytics;
       ALTER ROLE wz_app SET statement_timeout = '30s';
+      ALTER ROLE wz_bff SET search_path = bff;
     END $$;

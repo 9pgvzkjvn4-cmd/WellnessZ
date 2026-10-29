@@ -147,6 +147,16 @@ variable "sql_iam_admin_group" {
   type        = string
 }
 
+variable "migrations_mode" {
+  description = "Must match Helm migrations.mode (app|job). Controls which identities may read the migrator secret."
+  type        = string
+  default     = "job"
+  validation {
+    condition     = contains(["app", "job"], var.migrations_mode)
+    error_message = "migrations_mode must be app or job."
+  }
+}
+
 variable "db_password_version" {
   description = "Increment to regenerate wz_app / wz_migrator passwords (write-only; follow rotation runbook)."
   type        = number

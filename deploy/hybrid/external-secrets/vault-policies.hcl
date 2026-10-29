@@ -19,6 +19,12 @@ path "kv/data/wellnessz/core" {
 }
 # end core
 
+# bff (only when the BFF also runs on-prem)
+path "kv/data/wellnessz/bff" {
+  capabilities = ["read"]
+}
+# end bff
+
 # migrations
 path "kv/data/wellnessz/migrations" {
   capabilities = ["read"]
@@ -34,6 +40,9 @@ path "kv/data/wellnessz/migrations" {
   capabilities = ["read"]
 }
 path "kv/data/wellnessz/core" {
+  capabilities = ["read"]
+}
+path "kv/data/wellnessz/bff" {
   capabilities = ["read"]
 }
 path "kv/data/wellnessz/backup" {

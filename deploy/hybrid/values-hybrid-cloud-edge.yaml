@@ -23,6 +23,11 @@ bff:
   env:
     # mTLS-terminating internal ingress of the on-prem cluster
     WZ_CORE_API_URL: "https://api.wellnessz.onprem.example.internal"
+    # Session store (encrypted OAuth tokens, no PHI) in a small cloud PostgreSQL;
+    # the BFF runs its own Flyway (schema bff) as wz_migrator in mode=app.
+    WZ_BFF_DB_URL: "jdbc:postgresql://<edge-pg>.postgres.database.azure.com:5432/wellnessz_edge?sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+    WZ_BFF_DB_USERNAME: wz_bff
+    WZ_DB_SSLMODE: verify-full
 
 ingress:
   api:

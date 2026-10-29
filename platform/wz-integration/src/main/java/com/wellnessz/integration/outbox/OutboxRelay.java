@@ -28,10 +28,13 @@ public class OutboxRelay {
     private final Clock clock;
     private final int batchSize;
     private final int maxAttempts;
+    private final java.time.Duration retention;
 
     public OutboxRelay(OutboxRepository repository, List<EventPublisher> publishers, TransactionTemplate tx, Clock clock,
                        @Value("${wellnessz.integration.outbox.batch-size:50}") int batchSize,
-                       @Value("${wellnessz.integration.outbox.max-attempts:10}") int maxAttempts) {
+                       @Value("${wellnessz.integration.outbox.max-attempts:10}") int maxAttempts,
+                       @Value("${wellnessz.integration.outbox.retention:P30D}") java.time.Duration retention) {
+        this.retention = retention;
         this.repository = repository;
         this.publishers = publishers;
         this.tx = tx;
@@ -46,6 +49,12 @@ public class OutboxRelay {
         do {
             processed = tx.execute(status -> relayBatch());
         } while (processed != null && processed == batchSize);
+    }
+
+    /** Retention: delivered events are deleted after {@code wellnessz.integration.outbox.retention} (default 30 days). */
+    @Scheduled(cron = "${wellnessz.integration.outbox.purge-cron:0 30 2 * * *}")
+    public void purgeDelivered() {
+        tx.executeWithoutResult(s -> repository.purgePublishedBefore(clock.instant().minus(retention)));
     }
 
     /** Package-visible for tests. Must run inside a transaction (row locks held until commit). */

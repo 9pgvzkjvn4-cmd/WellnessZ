@@ -72,7 +72,7 @@ Claim sources: Keycloak `realm_access.roles`, Entra ID `roles` (app roles), fall
 - `/oauth2/authorization/wellnessz` login, `/login/oauth2/code/wellnessz` callback, `POST /logout`
 - `GET /bff/session` → `{authenticated, name, roles}`; `/bff/api/**` → proxied to core `/api/v1/**` with access token relay
 - `/bff/api/workspace/**` restricted to MANAGER/HR/OH roles. CSRF: cookie `XSRF-TOKEN`, header `X-XSRF-TOKEN`
-- Session cookie `WZSESSION` HttpOnly, Secure, SameSite=Strict
+- Session cookie `WZSESSION` HttpOnly, Secure, SameSite=Lax (Lax is required for the OIDC redirect back from the IdP; CSRF tokens protect state-changing calls)
 
 ## Environment variables
 Core: `WZ_DB_URL`, `WZ_DB_USERNAME`, `WZ_DB_PASSWORD` (plain, `ENC(...)`, or `file:/path`), `WZ_MASTER_KEY` or `WZ_MASTER_KEY_FILE`,

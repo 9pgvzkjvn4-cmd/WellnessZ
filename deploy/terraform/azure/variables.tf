@@ -142,6 +142,16 @@ variable "aks_outbound_type" {
   default     = "loadBalancer"
 }
 
+variable "migrations_mode" {
+  description = "Must match Helm migrations.mode (app|job). Controls which identities may read the migrator secret."
+  type        = string
+  default     = "job"
+  validation {
+    condition     = contains(["app", "job"], var.migrations_mode)
+    error_message = "migrations_mode must be app or job."
+  }
+}
+
 variable "k8s_namespace" {
   description = "Namespace the Helm release is installed into."
   type        = string

@@ -192,7 +192,7 @@ Behind a TLS-intercepting corporate proxy pass its CA to `npm ci` as a BuildKit 
 
 Multi-stage: `node:24.22.2-alpine3.24` build → `nginxinc/nginx-unprivileged:1.30.6-alpine3.24` (uid 101, port 8080,
 `/healthz` probe). The container serves static files only: the ingress/gateway **must route `/bff`, `/oauth2`,
-`/login`, `/logout` on the same host to `wz-bff:8090`** (SameSite=Strict session cookie + relative URLs). nginx returns
+`/login`, `/logout` on the same host to `wz-bff:8090`** (SameSite=Lax session cookie + relative URLs). nginx returns
 404 for those paths if they ever reach it, so misrouting never falls back to `index.html`.
 
 ## Layout

@@ -4,11 +4,14 @@ import java.time.Instant;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
+import com.wellnessz.secrets.EncryptedStringConverter;
 
 /** Row of the transactional outbox: written in the same transaction as the business change, relayed afterwards. */
 @Entity
@@ -27,6 +30,8 @@ public class OutboxEvent {
     private String aggregateId;
     @Column(nullable = false, length = 100)
     private String destination;
+    /** Encrypted at field level: event payloads can carry personal data (e.g. employee ids, injury flags). */
+    @Convert(converter = EncryptedStringConverter.class)
     @Column(nullable = false, columnDefinition = "text")
     private String payload;
     @Enumerated(EnumType.STRING)
