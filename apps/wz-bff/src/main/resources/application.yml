@@ -15,6 +15,7 @@ spring:
         sslmode: ${WZ_DB_SSLMODE:verify-full}
         ApplicationName: wellnessz-bff
   flyway:
+    enabled: ${WZ_FLYWAY_ENABLED:true}
     locations: classpath:db/bff
     schemas: bff
     default-schema: bff

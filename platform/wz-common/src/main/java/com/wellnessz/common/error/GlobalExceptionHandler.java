@@ -47,6 +47,34 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "bad_request", "Request could not be processed");
     }
 
+    /** Last resort: never leak exception details; the correlation id links the client error to the server log. */
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleUnexpected(Exception ex) throws Exception {
+        if (isSecurityException(ex)) {
+            throw ex; // let Spring Security translate these to 403 / 401 (wz-common stays free of a security dependency)
+        }
+        if (ex instanceof org.springframework.web.ErrorResponse er) {
+            // Spring MVC's own exceptions (404, 405, 415 …) keep their status
+            HttpStatus status = HttpStatus.resolve(er.getStatusCode().value());
+            if (status != null && status.is4xxClientError()) {
+                return problem(status, "http_" + status.value(), status.getReasonPhrase());
+            }
+        }
+        log.error("Unhandled exception correlationId={}", MDC.get(CorrelationIdFilter.MDC_KEY), ex);
+        return problem(HttpStatus.INTERNAL_SERVER_ERROR, "internal_error", "An unexpected error occurred");
+    }
+
+    private static boolean isSecurityException(Throwable ex) {
+        for (Class<?> c = ex.getClass(); c != null; c = c.getSuperclass()) {
+            String n = c.getName();
+            if (n.equals("org.springframework.security.access.AccessDeniedException")
+                    || n.equals("org.springframework.security.core.AuthenticationException")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static ProblemDetail problem(HttpStatus status, String code, String detail) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
         pd.setType(URI.create("urn:wellnessz:problem:" + code));

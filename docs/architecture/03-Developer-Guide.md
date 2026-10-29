@@ -152,18 +152,28 @@ public class SurveillanceModule implements CaseModule {
 
 The flag lives in E18 configuration (`masterdata.config_entry`). Defaults: `true` for implemented/kernel modules,
 `false` for planned ones. It can be changed with `PUT /api/v1/masterdata/config/modules.e07.enabled` (OH_ADMIN /
-PLATFORM_ADMIN, audited). **The framework does not enforce the flag automatically** – every module must guard its
-entry points:
+PLATFORM_ADMIN, audited). The guard is `ModuleRegistry.requireEnabled(code)`: when the module is disabled it throws an
+`ApiException` that the global handler turns into **HTTP 503** with problem code `module_disabled` (fail closed). Every
+module must call it on its entry points:
 
 ```java
-private void requireEnabled() {
-    if (!modules.isEnabled(SurveillanceModule.CODE)) {
-        throw ApiException.notFound("Resource");        // disabled modules are invisible
+@Service
+class SurveillanceService {
+    private final ModuleRegistry modules;
+    ...
+    @Transactional
+    public EnrolmentView enrol(CurrentUser user, String employeeId, String hazardCode) {
+        modules.requireEnabled(SurveillanceModule.CODE);      // 503 module_disabled when switched off
+        ...
     }
 }
 ```
 
-Call it at the start of each controller method, scheduled job and event listener. Seed the default in your first
+Call it at the start of each use case (controller-facing service method) and scheduled job. In **event listeners**
+do not throw – a disabled module would otherwise send the event to retry and eventually to `DEAD`. Follow the
+pattern of `IncidentListener`, which checks `modules.isEnabled("E01")`, logs and leaves the source record in place so
+it can be processed after re-enablement. The reference guard in the kernel is `CaseService.selfReferral` (E13); the
+integration test `disabledModuleIsRefused` shows how to test it. Seed the default in your first
 migration if the module should start disabled in production:
 
 ```sql
@@ -336,7 +346,8 @@ public record RecallDue(String enrolmentId, String employeeId, String hazardCode
 ```
 
 * Type names: `<module>.<aggregate>.<fact>.v<n>`; create `v2` for breaking changes and publish both during migration.
-* **Flat records** of simple values – the outbound guard inspects top-level fields only.
+* **Flat records** of simple values. For enterprise destinations this is enforced: `OutboundPayloadGuard` rejects
+  nested objects and arrays as well as any field not on the destination's allow-list (`disclosure_violation`).
 * Payloads carry identifiers and status, not narratives. Consumers that need clinical data load it by id under ABAC.
 
 ### 6.2 Publishing
@@ -350,7 +361,9 @@ public void scheduleRecall(...) {
 ```
 
 `EventBus.publish` requires an active transaction (`Propagation.MANDATORY`): the outbox row commits atomically with your
-change and is delivered at least once by `OutboxRelay`.
+change and is delivered at least once by `OutboxRelay`. Payloads are field-encrypted at rest in
+`platform.outbox_event`; delivered rows are purged after `wellnessz.integration.outbox.retention` (default `P30D`), so a
+replay is only possible within that window.
 
 ### 6.3 Publishing to an enterprise destination (status-only)
 
@@ -449,7 +462,6 @@ class SurveillanceController {
     @PreAuthorize("hasAnyRole('OH_CLINICIAN','OH_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     EnrolmentView enrol(@Valid @RequestBody EnrolRequest r) {
-        requireEnabled();
         return service.enrol(users.require(), r.employeeId(), r.hazardCode());
     }
 }
@@ -503,6 +515,7 @@ Mandatory integration cases for any module handling OH data:
 5. Outbound payloads to each destination contain only allow-listed fields.
 6. Audit rows written for success and denial; `GET /api/v1/audit/verify` still `intact`.
 7. Event consumers are idempotent (deliver the same envelope twice → one effect).
+8. Module disabled (`modules.eXX.enabled=false`) → 503 `module_disabled`; listeners skip without dead-lettering.
 
 ### 9.3 ArchUnit rules for a new module
 
@@ -521,9 +534,16 @@ static final ArchRule surveillanceIsIsolated = noClasses()
 
 ### 9.4 Quality gates
 
-`mvn verify` (tests, JaCoCo, CycloneDX SBOM) and `mvn -Psecurity verify` (SpotBugs + FindSecBugs, OWASP
-dependency-check failing at CVSS ≥ 7; needs `NVD_API_KEY`). Suppressions in `config/` require justification, owner and
-expiry date. Web: `npm run lint && npm test && npm run build` with `--max-warnings 0`.
+Locally: `mvn verify` (tests, JaCoCo, CycloneDX SBOM) and `mvn -Psecurity verify` (SpotBugs + FindSecBugs at effort
+Max, OWASP dependency-check failing at CVSS ≥ 7; needs `NVD_API_KEY`). Web: `npm run lint && npm test && npm run build`
+with `--max-warnings 0`. Suppressions in `config/` require justification, owner and expiry date.
+
+In CI every pull request runs `.github/workflows/ci.yml` (Java build and tests with SBOM, web lint/test/build with
+`npm audit` and SBOM, gitleaks, OWASP dependency-check, dependency review, Helm/Terraform/Trivy config checks) and
+`codeql.yml` (Java and TypeScript). Images are built, Trivy-gated, signed and attested by `container.yml`; releases are
+deployed by `cd.yml` through `deploy-env.yml`. SpotBugs is not yet a CI job – run the `security` profile before
+requesting review of changes to security-relevant code. The baseline is 42 Java tests and 0 SpotBugs findings; keep it
+that way.
 
 ## 10. Web and mobile feature additions
 
@@ -590,14 +610,14 @@ cloud secret store via Terraform/External Secrets.
 
 | # | Criterion |
 |---|---|
-| 1 | `CaseModule` bean registered; `GET /api/v1/modules` shows `IMPLEMENTED`; enablement flag guarded on all entry points. |
+| 1 | `CaseModule` bean registered; `GET /api/v1/modules` shows `IMPLEMENTED`; `ModuleRegistry.requireEnabled` on all use cases and jobs (listeners skip instead of throwing); a disabled-module test. |
 | 2 | Data classification documented for each table/column; clinical free text encrypted; migration with least-privilege grants; schema added to Flyway and Helm migration settings. |
 | 3 | `AccessPolicy` beans with unit tests; every read goes through `PolicyEngine`; projections per disclosure level; status-only record without clinical fields. |
 | 4 | Audit events for reads, writes, exports and denials; no PHI in reasons. |
 | 5 | Events versioned, flat, documented; consumers idempotent; outbound destinations allow-listed, catalogued in `ConnectorRegistry` and approved by the DPO. |
 | 6 | API follows Section 8; OpenAPI reviewed; RFC 9457 errors. |
-| 7 | Integration tests for the seven mandatory cases (Section 9.2); ArchUnit rules extended; all tests green. |
-| 8 | `mvn -Psecurity verify` clean or exceptions recorded with owner and expiry; SBOM generated; web lint/tests/build green. |
+| 7 | Integration tests for the eight mandatory cases (Section 9.2); ArchUnit rules extended; all tests green. |
+| 8 | CI green (`ci.yml`, `codeql.yml`); `mvn -Psecurity verify` clean or exceptions recorded with owner and expiry; no new Trivy/dependency-check findings. |
 | 9 | Threat model (doc 02, Section 7) extended for new flows; DPIA screening done; retention period for new data defined. |
 | 10 | Operational readiness: metrics/alerts for new jobs, runbook entries (dead letters, replay), configuration documented, MDM keys documented if any. |
 | 11 | Documentation updated: module status in doc 01, control mapping in doc 02 if controls change. |

@@ -199,6 +199,8 @@
       "rootUrl": "http://localhost:8090",
       "baseUrl": "/",
       "redirectUris": [
+        "http://localhost:5173/login/oauth2/code/wellnessz",
+        "http://localhost:5174/login/oauth2/code/wellnessz",
         "http://localhost:8090/login/oauth2/code/wellnessz"
       ],
       "webOrigins": [
@@ -237,6 +239,36 @@
           "config": {
             "multivalued": "true",
             "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "employee_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "employee_id",
+            "claim.name": "employee_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "org_scope",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "org_scope",
+            "claim.name": "org_scope",
             "jsonType.label": "String",
             "id.token.claim": "true",
             "access.token.claim": "true",
@@ -297,6 +329,36 @@
             "access.token.claim": "true",
             "introspection.token.claim": "true",
             "lightweight.claim": "false"
+          }
+        },
+        {
+          "name": "employee_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "employee_id",
+            "claim.name": "employee_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "org_scope",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "org_scope",
+            "claim.name": "org_scope",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
           }
         }
       ],
@@ -372,7 +434,15 @@
       "realmRoles": [
         "default-roles-wellnessz",
         "EMPLOYEE"
-      ]
+      ],
+      "attributes": {
+        "employee_id": [
+          "E1001"
+        ],
+        "org_scope": [
+          "/AIRLINE/OPS/CABIN"
+        ]
+      }
     },
     {
       "username": "manager1",
@@ -391,7 +461,15 @@
       "realmRoles": [
         "default-roles-wellnessz",
         "MANAGER"
-      ]
+      ],
+      "attributes": {
+        "employee_id": [
+          "M2001"
+        ],
+        "org_scope": [
+          "/AIRLINE/OPS"
+        ]
+      }
     },
     {
       "username": "hr1",
@@ -410,7 +488,15 @@
       "realmRoles": [
         "default-roles-wellnessz",
         "HR"
-      ]
+      ],
+      "attributes": {
+        "employee_id": [
+          "H3001"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
     },
     {
       "username": "clinician1",
@@ -430,7 +516,15 @@
         "default-roles-wellnessz",
         "OH_CLINICIAN",
         "CASE_MANAGER"
-      ]
+      ],
+      "attributes": {
+        "employee_id": [
+          "C4001"
+        ],
+        "org_scope": [
+          "/AIRLINE/OH"
+        ]
+      }
     },
     {
       "username": "psych1",
@@ -449,7 +543,15 @@
       "realmRoles": [
         "default-roles-wellnessz",
         "PSYCH_CLINICIAN"
-      ]
+      ],
+      "attributes": {
+        "employee_id": [
+          "P5001"
+        ],
+        "org_scope": [
+          "/AIRLINE/OH"
+        ]
+      }
     },
     {
       "username": "auditor1",
@@ -468,7 +570,15 @@
       "realmRoles": [
         "default-roles-wellnessz",
         "AUDITOR"
-      ]
+      ],
+      "attributes": {
+        "employee_id": [
+          "A6001"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
     },
     {
       "username": "admin1",
@@ -488,7 +598,15 @@
         "default-roles-wellnessz",
         "PLATFORM_ADMIN",
         "OH_ADMIN"
-      ]
+      ],
+      "attributes": {
+        "employee_id": [
+          "X7001"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
     },
     {
       "username": "service-account-wellnessz-integration",
@@ -540,5 +658,18 @@
         "INTEGRATION"
       ]
     }
-  ]
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"unmanagedAttributePolicy\": \"ADMIN_VIEW\", \"attributes\": [{\"name\": \"username\", \"displayName\": \"${username}\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"email\", \"displayName\": \"${email}\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"displayName\": \"${firstName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"displayName\": \"${lastName}\", \"validations\": {\"length\": {\"max\": 255}, \"person-name-prohibited-characters\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"employee_id\", \"displayName\": \"Employee number (HRIS)\", \"validations\": {\"pattern\": {\"pattern\": \"^[A-Za-z0-9-]{1,64}$\", \"error-message\": \"invalid\"}}, \"permissions\": {\"view\": [\"admin\"], \"edit\": [\"admin\"]}, \"multivalued\": false}, {\"name\": \"org_scope\", \"displayName\": \"Org-unit scope path\", \"validations\": {\"pattern\": {\"pattern\": \"^(/[A-Z0-9_-]+)+$\", \"error-message\": \"invalid\"}}, \"permissions\": {\"view\": [\"admin\"], \"edit\": [\"admin\"]}, \"multivalued\": false}], \"groups\": [{\"name\": \"user-metadata\", \"displayHeader\": \"User metadata\", \"displayDescription\": \"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
+      }
+    ]
+  }
 }

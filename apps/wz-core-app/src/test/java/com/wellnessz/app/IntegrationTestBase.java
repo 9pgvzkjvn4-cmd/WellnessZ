@@ -19,8 +19,20 @@ public abstract class IntegrationTestBase {
 
     private static PostgreSQLContainer container;
 
+    /** Key material is generated per test run – no keys are committed to the repository. */
+    static final String MASTER_KEY = randomKey(32);
+    static final String PSEUDONYM_KEY = randomKey(32);
+
+    static String randomKey(int bytes) {
+        byte[] k = new byte[bytes];
+        new java.security.SecureRandom().nextBytes(k);
+        return java.util.Base64.getEncoder().encodeToString(k);
+    }
+
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
+        registry.add("WZ_MASTER_KEY", () -> MASTER_KEY);
+        registry.add("WZ_PSEUDONYM_KEY", () -> PSEUDONYM_KEY);
         String url = System.getenv("WZ_TEST_DB_URL");
         if (url != null && !url.isBlank()) {
             String user = env("WZ_TEST_DB_USERNAME", "wz_app");

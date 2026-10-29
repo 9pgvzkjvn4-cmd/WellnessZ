@@ -8,6 +8,7 @@ import ca.uhn.hl7v2.HL7Exception;
 import ca.uhn.hl7v2.HapiContext;
 import ca.uhn.hl7v2.model.Message;
 import ca.uhn.hl7v2.parser.PipeParser;
+import ca.uhn.hl7v2.util.idgenerator.InMemoryIDGenerator;
 import ca.uhn.hl7v2.util.Terser;
 import ca.uhn.hl7v2.validation.impl.ValidationContextFactory;
 
@@ -20,6 +21,8 @@ public class Hl7v2Service {
     public Hl7v2Service() {
         this.context = new DefaultHapiContext();
         this.context.setValidationContext(ValidationContextFactory.defaultValidation());
+        // HAPI's default ACK control-id generator persists to ./id_file – not allowed on a read-only root filesystem
+        this.context.getParserConfiguration().setIdGenerator(new InMemoryIDGenerator());
     }
 
     public ParsedMessage parse(String er7) throws HL7Exception {

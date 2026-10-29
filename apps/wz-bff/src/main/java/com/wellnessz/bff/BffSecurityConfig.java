@@ -43,7 +43,23 @@ public class BffSecurityConfig {
     static final List<String> WORKSPACE_ROLES = List.of("MANAGER", "HR", "OH_CLINICIAN", "OH_ADMIN", "CASE_MANAGER",
             "PSYCH_CLINICIAN", "PLATFORM_ADMIN");
 
+    /** Management port (internal only, never exposed by the ingress): probes and metrics are unauthenticated. */
     @Bean
+    @org.springframework.core.annotation.Order(1)
+    SecurityFilterChain managementSecurityFilterChain(HttpSecurity http,
+                                                      @Value("${management.server.port:8091}") int managementPort) throws Exception {
+        http
+            .securityMatcher(request -> request.getLocalPort() == managementPort)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/actuator/health/**", "/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
+                .anyRequest().denyAll())
+            .csrf(csrf -> csrf.disable()) // read-only GET endpoints, no session
+            .sessionManagement(s -> s.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS));
+        return http.build();
+    }
+
+    @Bean
+    @org.springframework.core.annotation.Order(2)
     SecurityFilterChain bffSecurityFilterChain(HttpSecurity http, ClientRegistrationRepository registrations,
                                                OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService,
                                                @Value("${wellnessz.bff.post-logout-redirect-uri:{baseUrl}/}") String postLogout)

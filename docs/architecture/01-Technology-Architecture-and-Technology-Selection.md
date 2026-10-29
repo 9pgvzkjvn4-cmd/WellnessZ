@@ -54,13 +54,15 @@ are added incrementally on top of this framework through a defined module SPI.
 **What is deliberately not yet built:** the clinical business modules E02–E04, E06–E12 and E14 (E01, E05 and E13 exist
 only as kernel seeds), production broker adapters (Kafka / Azure Service Bus / Google Pub/Sub), enterprise connector
 mappings (HRIS, rostering transport, ERP, insurers), the partner provider portal, the data-warehouse feed and predictive
-models, data-retention jobs, break-glass access and maker-checker approval of configuration changes. Section 17 lists
-the increments; Section 16 lists the decisions the steering committee is asked to take.
+models, retention/deletion jobs for OH records (only outbox, idempotency and session purges exist), the master-key
+re-encryption job, break-glass access and maker-checker approval of configuration changes. Section 18 lists
+the increments; Section 17 lists the decisions the steering committee is asked to take.
 
 **Assessment for the CIO.** The framework establishes the controls that are hardest to retrofit – identity federation,
 ABAC with disclosure levels, tamper-evident audit, encryption and key derivation, the outbox/idempotency backbone and the
 status-only boundary – before any clinical module is written. The principal residual risks are operational (key
-management and rotation procedure, retention, broker selection, CI/CD pipeline completion) rather than structural. The
+management and rotation procedure, retention of OH records, broker selection) rather than structural. Section 15
+summarises the verification evidence available today. The
 technology choices are mainstream, long-term-supported and portable across Azure, Google Cloud and on-premises
 Kubernetes.
 
@@ -70,7 +72,7 @@ Kubernetes.
 the CI/CD design. **Out of scope:** the clinical content of modules E01–E14 (forms, pathways, rules), organisational
 policies, and the operating model of the airline's IT organisation, which are referenced where they are a dependency.
 
-**Assumptions** (to be confirmed – see Section 16):
+**Assumptions** (to be confirmed – see Section 17):
 
 | # | Assumption |
 |---|---|
@@ -142,9 +144,11 @@ at `GET /api/v1/modules`. `KERNEL` means a minimal seed exists in the case kerne
 | E13 | Employee & manager self-service | KERNEL | Self-referral, my cases, consents, profile (employee app); status-only team view (workspace). |
 | E14 | Scheduling & clinic operations | PLANNED | Notification templates `appointment.reminder`; quiet hours. |
 
-> Note: the module enablement flag `modules.eXX.enabled` is stored in E18 configuration and reported by
-> `GET /modules`, but in the current code no endpoint consults it (`ModuleRegistry.isEnabled` has no callers). New
-> modules must check it (see the Developer Guide).
+> Module enablement: the flag `modules.eXX.enabled` (E18 configuration) is enforced by
+> `ModuleRegistry.requireEnabled(code)`, which answers **503** with problem code `module_disabled`. Today
+> `CaseService.selfReferral` requires E13, and `IncidentListener` skips case creation when E01 is disabled (the incident
+> stays in intake and can be processed later). The integration test `disabledModuleIsRefused` covers the guard. New
+> modules must call it on every entry point (see the Developer Guide).
 
 ### 4.3 Platform services
 
@@ -237,7 +241,7 @@ All schemas live in one PostgreSQL 16 database; the BFF uses its own schema and 
 
 | Schema | Tables / views (migration) | Content | Classification (highest) |
 |---|---|---|---|
-| `platform` | `audit_event`, `consent`, `outbox_event`, `processed_message`, `idempotency_record`, `inbound_message`, `code_concept`, `notification` (V1) | Cross-cutting platform state | CLINICAL (inbound payloads – encrypted; outbox payloads – see 6.4) |
+| `platform` | `audit_event`, `consent`, `outbox_event`, `processed_message`, `idempotency_record`, `inbound_message`, `code_concept`, `notification` (V1) | Cross-cutting platform state | CLINICAL (inbound and outbox payloads field-encrypted) |
 | `masterdata` | `org_unit`, `job_code`, `hazard`, `config_entry` (V2) | Organisation, job/hazard catalogue, configuration | INTERNAL |
 | `intake` | `import_batch`, `ehs_incident` (V2) | EHS incidents and import provenance | CONFIDENTIAL; `description` CLINICAL (encrypted) |
 | `casemgmt` | `oh_case`, sequence `case_ref_seq` (V2) | Case aggregate | CLINICAL / RESTRICTED_CLINICAL (`clinical_summary` encrypted) |
@@ -277,7 +281,7 @@ encryption), so that database dumps, replicas, backups or DBA access do not reve
 | Master key | 256-bit, from `WZ_MASTER_KEY` (base64) or `WZ_MASTER_KEY_FILE` (CSI-mounted file); the application refuses to start without it. |
 | Key derivation | HKDF-SHA256 (RFC 5869) with purpose labels: `wellnessz/field/<version>`, `wellnessz/config/v1`, `wellnessz/bff-session/v1`, `wellnessz/blind-index/v1`. |
 | Versioning | Stored values are prefixed with the key version (`v1:...`). New writes use `wellnessz.crypto.active-key-version` (`WZ_FIELD_KEY_VERSION`); old versions remain readable. |
-| JPA integration | `@Convert(converter = EncryptedStringConverter.class)` – used today on `oh_case.clinical_summary`, `ehs_incident.description`, `inbound_message.payload`; verified by the integration test (`stored value starts with v1: and does not contain the plaintext`). |
+| JPA integration | `@Convert(converter = EncryptedStringConverter.class)` – used today on `oh_case.clinical_summary`, `ehs_incident.description`, `inbound_message.payload`, `outbox_event.payload`; verified by integration tests (raw column starts with `v1:` and does not contain the plaintext, for case summaries and outbox payloads). |
 | Blind index | `FieldEncryptor.blindIndex()` – keyed HMAC-SHA256 for equality search over encrypted columns. Available; no column uses it yet. |
 
 **Key-rotation properties (important for GRC).** Changing the *active version* rotates the data-encryption sub-key for
@@ -290,12 +294,12 @@ Vault / Cloud KMS / Vault Transit, and deliver the re-encryption job before go-l
 ### 6.4 Data that is not field-encrypted
 
 To set expectations precisely: the following columns rely on storage encryption and access control only.
+(`outbox_event.payload` is field-encrypted and delivered rows are purged – see 7.1.)
 
 | Column(s) | Content | Mitigation / recommendation |
 |---|---|---|
 | `oh_case.employee_id`, `employee_display_name`, `org_unit_*`, `category`, `status`, `fitness_status` | Identifiers and status needed for queries and status-only views | ABAC on every read; `category` reveals the restricted class – consider encrypting category for RESTRICTED rows in E09/E10 |
 | `ehs_incident.employee_name`, `location`, `incident_type`, `severity`, `injury` | Incident metadata | Description (free text) is encrypted and not exposed in list API |
-| `outbox_event.payload` | Event payloads (e.g. incident employee name, fitness status) | **Not encrypted, no retention purge.** Recommend encrypting payloads or purging `PUBLISHED` rows after N days (decision D7) |
 | `idempotency_record.response_body` | Stored API responses | Purged after 7 days by `IdempotencyService.purge()` |
 | `notification.address`, `body` | Recipient address and content-free message | Body is content-free by construction |
 | `audit_event` | Actor, action, resource id, reason, client IP | Reasons are sanitised; must not contain PHI by coding standard |
@@ -307,10 +311,12 @@ opening; it has no identifiers, names or free text and excludes `RESTRICTED_CLIN
 has `SELECT` on the view only within the `analytics` schema (it still has table access in `casemgmt`, so a separate
 read-only reporting role is recommended for warehouse extraction).
 
-### 6.6 Retention and deletion – to be defined
+### 6.6 Retention and deletion – to be defined for OH records
 
-The code currently implements **no retention or deletion jobs** other than the 7-day purge of idempotency records and
-Spring Session expiry. Retention periods for OH records are governed by national occupational-health and
+The code implements purges only for technical data: delivered outbox events after `wellnessz.integration.outbox.retention`
+(default `P30D`, `OutboxRelay.purgeDelivered`, cron `wellnessz.integration.outbox.purge-cron`, default 02:30 daily),
+idempotency records after 7 days, and Spring Session expiry. There are **no retention or deletion jobs for OH records**
+(cases, incidents, consents, audit) yet. Retention periods for OH records are governed by national occupational-health and
 aviation-medicine rules (often decades for exposure records) and must be set by the Data Protection Officer and OH
 governance. Proposed approach (decision D6): a retention schedule per `DataClassification` and record type in E18
 configuration, a scheduled purge/anonymisation job per module, legal-hold flags, and audit events for every purge.
@@ -332,6 +338,7 @@ Audit records must be retained at least as long as the records they describe.
 | Delivery semantics | At-least-once. Failures increment `attempts`, back-off `2^attempts` seconds capped at one hour; after `max-attempts` (10) the row becomes `DEAD`. |
 | Destinations | `internal` → `InProcessEventPublisher` (Spring application event); any other destination → an `EventPublisher` adapter. Today `LoggingExternalPublisher` (metadata only) stands in. Kafka / Azure Service Bus / Google Pub/Sub adapters are **extension points**. |
 | Idempotent consumers | `IdempotentConsumer.handleOnce(consumer, envelope, handler)` inserts `(consumer, messageId)` into `platform.processed_message` in a new transaction together with the handler's effects; duplicates are skipped. |
+| Protection at rest & retention | `payload` is field-encrypted with `EncryptedStringConverter` (AES-256-GCM); `PUBLISHED` rows are deleted after `wellnessz.integration.outbox.retention` (default 30 days) by `OutboxRelay.purgeDelivered`; `FAILED`/`DEAD` rows are kept for diagnosis and replay. |
 | Monitoring & replay | `GET /api/v1/integration/events?status=DEAD` (metadata only, never payloads); `POST /api/v1/integration/events/{id}/replay` (PLATFORM_ADMIN/OH_ADMIN, audited `EVENT_REPLAY`). Replay re-sends the same `messageId`, so consumers that already processed the message ignore it – replay is intended for `FAILED`/`DEAD` events. |
 
 ### 7.2 Inbound APIs
@@ -360,9 +367,10 @@ wellnessz.integration.outbound-allowlist:
 ```
 
 The integration test `fitnessOutcomeIsPublishedToRosteringAsStatusOnly` verifies that a fitness decision produces a
-rostering payload without the clinical narrative or case category. **Limitation:** the guard checks top-level field
-names, not nested structures or values; status-only events must therefore be flat records (coding standard in the
-Developer Guide), and each new destination's allow-list is a change subject to privacy review.
+rostering payload without the clinical narrative or case category. The guard also **rejects nested objects and
+arrays**: payloads to enterprise destinations must be flat records, so every transmitted field is visible to the
+allow-list check. Values are not content-inspected – the allow-list defines *which* fields may leave, and each new
+destination's allow-list is a change subject to privacy review.
 
 ### 7.4 EHS mailbox and Excel intake hardening
 
@@ -384,7 +392,7 @@ because of the unique constraint, but a scheduler lock (e.g. ShedLock) is recomm
 
 See Section 4.4. Each connector, when implemented, follows the same pattern: inbound through an idempotent endpoint or
 a scheduled reader → encrypted inbound store → event → idempotent consumer; outbound through `EventBus.publish(event,
-destination)` → allow-list → outbox → broker adapter. The broker choice is decision D3 (Section 15.4).
+destination)` → allow-list → outbox → broker adapter. The broker choice is decision D3 (Section 14.4).
 
 ## 8. Identity and access management
 
@@ -418,9 +426,9 @@ policy fed from HRIS).
 Canonical roles (`wz-common Roles`): `EMPLOYEE`, `MANAGER`, `HR`, `OH_CLINICIAN`, `OH_ADMIN`, `CASE_MANAGER`,
 `PSYCH_CLINICIAN`, `AUDITOR`, `PLATFORM_ADMIN`, `INTEGRATION`, `PARTNER_PROVIDER`.
 
-> The BFF maps roles from the ID and access token for **UI gating only** using fixed claim paths and without group
-> mapping; authoritative decisions are always taken by the core API. If Entra group GUIDs are used instead of app roles,
-> the workspace role gate in the BFF needs the same mapping (open item O4).
+> The BFF maps roles from the ID and access token for **UI gating** (session roles and the `/bff/api/workspace/**`
+> gate), applying the same group mapping as the core API through `wellnessz.bff.group-role-mapping` (Entra group object
+> ids → roles). Authoritative decisions are always taken by the core API.
 
 ### 8.3 ABAC policy engine and disclosure levels
 
@@ -489,9 +497,12 @@ This section summarises the technical controls; document 02 maps them to SOC 2 c
 ### 9.3 BFF pattern, CSRF and security headers
 
 The BFF implements the *OAuth 2.0 for Browser-Based Apps* recommendation: the BFF is a confidential client; the browser
-holds only the session cookie `WZSESSION` (`HttpOnly`, `Secure`, **`SameSite=Lax`** – required for the top-level
-redirect back from the IdP; note that `web/*/README.md` and the design brief state `Strict`, which is inconsistent with
-`apps/wz-bff/src/main/resources/application.yml` – open item O3). Session attributes, including access and refresh
+holds only the session cookie `WZSESSION` (`HttpOnly`, `Secure`, **`SameSite=Lax`**). `Lax` is a deliberate choice:
+after authentication the IdP returns the browser to the BFF callback with a cross-site top-level navigation; with
+`Strict` the browser would not send the session cookie on that navigation, so the BFF could not correlate the
+authorization response with the session (state/nonce) and the login would fail. `Lax` still withholds the cookie from
+cross-site sub-requests and cross-site `POST`s, and every state-changing call additionally requires the CSRF token
+described below. The design brief and the web READMEs state the same. Session attributes, including access and refresh
 tokens, are AES-256-GCM-encrypted before Spring Session writes them to PostgreSQL. Sessions expire after 15 minutes of
 inactivity; at most three concurrent sessions per user; session id rotated on login.
 
@@ -571,17 +582,18 @@ Binary Authorization (enforced), shielded nodes, Cloud Armor WAF.
 |---|---|---|---|
 | Unit, integration, architecture tests | JUnit 5, Spring Boot test, Testcontainers (PostgreSQL 16) or CI service DB, ArchUnit 1.5.1; Vitest 5.0.5 | Maven / npm | Implemented |
 | Coverage | JaCoCo 0.8.16 | root `pom.xml` | Implemented |
-| SAST | SpotBugs 4.10.5.0 + FindSecBugs 1.14.0 (`-Psecurity`); CodeQL | `pom.xml`; workflows | Maven: implemented; CodeQL: per design brief |
-| SCA | OWASP dependency-check 13.0.0, fail on CVSS ≥ 7, suppressions need justification/owner/expiry; npm lockfiles with exact pins | `pom.xml`, `config/dependency-check-suppressions.xml` | Implemented |
-| SBOM | CycloneDX Maven plugin 2.9.3 (`makeAggregateBom` at `package`) | `pom.xml` | Implemented |
-| Secret scanning | gitleaks | `.github/workflows/` | Per design brief |
-| Image scan | Trivy | `.github/workflows/` | Per design brief |
-| Signing / admission | cosign signing; GKE Binary Authorization attestor (Terraform `binauthz.tf`) | workflows, Terraform | Terraform implemented; signing per design brief |
+| SAST | CodeQL (`java-kotlin`, `javascript-typescript`) on push, PR and weekly; SpotBugs 4.10.5.0 + FindSecBugs 1.14.0, effort Max (`mvn -Psecurity verify`) | `.github/workflows/codeql.yml`; `pom.xml` | Implemented (SpotBugs runs via the Maven profile, not yet as a CI job) |
+| SCA | OWASP dependency-check 13.0.0 aggregate (fail CVSS ≥ 7, SARIF to code scanning); GitHub dependency review on PRs (fail on high); `npm audit --omit=dev --audit-level=high`; exact pins and lockfiles | `ci.yml`, `pom.xml`, `config/dependency-check-suppressions.xml` | Implemented |
+| SBOM | CycloneDX Maven plugin 2.9.3 (Java), `@cyclonedx/cyclonedx-npm` 6.0.1 (web), Syft image SBOMs; uploaded as CI artefacts and attested to images | `pom.xml`, `ci.yml`, `container.yml` | Implemented |
+| Secret scanning | gitleaks v8.30.1 (full history, SARIF) | `ci.yml` | Implemented |
+| Image & IaC scan | Trivy image gate (CRITICAL/HIGH with fix → build fails) + SARIF; Trivy config scan of Dockerfiles, Helm, Terraform; `helm lint`/template for all values files; `terraform fmt` | `container.yml`, `ci.yml` | Implemented |
+| Signing / admission | cosign keyless signing (GitHub OIDC, Fulcio/Rekor), SBOM and SLSA build-provenance attestations, Binary Authorization attestation for Artifact Registry; deploy job verifies cosign signatures before `helm upgrade` | `container.yml`, `deploy-env.yml`, Terraform `binauthz.tf` | Implemented (cluster-side admission enforced on GKE; AKS/on-prem admission policy recommended) |
 | DAST | OWASP ZAP baseline against a test deployment | – | Recommended (not yet defined) |
-| Deployment | Helm with GitHub environments and approvals; GitHub OIDC federation to Azure/GCP | workflows, Terraform | Federation implemented; workflows per design brief |
+| Deployment | `cd.yml` on version tags: build/scan/sign → dev → test → prod via `deploy-env.yml` (GitHub Environments, `helm upgrade --atomic`, deployment record); OIDC federation to Azure/GCP, AKS private-cluster `command invoke` path | `cd.yml`, `deploy-env.yml`, Terraform | Implemented; **required reviewers** for `test`/`prod` must be configured in GitHub Environment settings (organisation control) |
 
-> The workflow files under `.github/workflows/` are being completed by another engineer at the time of writing; GRC
-> should verify the final pipeline content before using it as SOC 2 evidence.
+> All third-party actions are pinned to full commit SHAs. CI artefacts (test and coverage reports, SBOMs,
+> dependency-check and gitleaks reports, SARIF in GitHub code scanning, attestations) are the evidence sources listed in
+> document 02. Not yet in the pipeline: SpotBugs as a CI job and DAST.
 
 ## 10. Analytics and reporting architecture
 
@@ -811,40 +823,62 @@ Helm chart `0.1.0` requires Kubernetes `>= 1.30`.
 | Terraform / azurerm / google | `>= 1.11` / `~> 4.81` / `~> 8.9` | `deploy/terraform/*/versions.tf` |
 | Helm chart / Kubernetes | 0.1.0 / `>= 1.30` | `deploy/helm/wellnessz/Chart.yaml` |
 
-## 15. Risks, assumptions and open items
+## 15. Verification evidence
 
-### 15.1 Architecture risks
+The following results were produced against the baseline described on the cover and can be reproduced from the
+repository.
+
+| Check | Result | How to reproduce |
+|---|---|---|
+| Java tests | **42 tests, all passing**: unit tests in the platform modules, integration tests on a real PostgreSQL 16 (Testcontainers or `WZ_TEST_DB_URL`), 4 ArchUnit rules, BFF security tests | `mvn verify` (CI job *Java build & test*) |
+| SAST – SpotBugs + FindSecBugs (effort Max, threshold Medium) | **0 findings**; 4 justified exclusions in `config/spotbugs-exclude.xml` (entity/record representation exposure, constructor fail-fast, CSRF disabled on the stateless bearer API, validated SPA logout redirect) | `mvn -Psecurity verify` |
+| Web unit tests (Vitest) | employee-app **30**, manager-workspace **35**, all passing | `npm test` in each app (CI job *Web*) |
+| End-to-end (Playwright, real Keycloak 26.8.1) | Login through the BFF; session cookie `WZSESSION` is `HttpOnly`; no tokens in `localStorage`; employee self-referral → manager sees a status-only row without clinical text | `tools/e2e/e2e.js` with the local stack; screenshots in `docs/images/screens/` |
+
+Integration tests covering security properties include: status-only projection for managers and 404 outside org scope,
+restricted class hidden from general clinicians, clinical text and outbox payloads encrypted at rest, status-only
+rostering payload, append-only audit table and intact hash chain, Idempotency-Key replay/conflict, FHIR/HL7 validation,
+Excel import hardening and de-duplication, small-cell suppression, notification content rules and the disabled-module
+guard (`disabledModuleIsRefused`).
+
+![Employee self-referral](../images/screens/employee-03-referral.png)
+
+*Figure 8 – Employee app (BFF session): self-referral to Occupational Health (E2E run).*
+
+![Manager status-only team view](../images/screens/manager-02-team.png)
+
+*Figure 9 – Manager workspace after the self-referral: status-only row – case reference, name, status, fitness status,
+restriction date – with no clinical text (E2E run).*
+
+## 16. Risks, assumptions and open items
+
+### 16.1 Architecture risks
 
 | ID | Risk | Likelihood | Impact | Mitigation / owner |
 |---|---|---|---|---|
 | R1 | Master-key compromise exposes all field-encrypted data (single key, HKDF-derived versions) | Low | High | Envelope encryption with KMS/HSM, strict Key Vault RBAC, re-encryption job, rotation runbook (D5) |
-| R2 | Outbox payloads unencrypted and never purged; accumulate personal data | High | Medium | Payload encryption or purge of `PUBLISHED` rows; retention policy (D7) |
 | R3 | No retention/deletion jobs → GDPR storage-limitation non-compliance | High | High | Retention schedule and purge jobs before go-live (D6) |
 | R4 | DB owner could rewrite audit chain | Low | High | External hash anchoring, SIEM streaming, separation of duties for DB owner role (O2) |
-| R5 | Outbound guard checks top-level fields only | Medium | High | Flat event records rule, code review, contract tests per destination |
+| R5 | Outbound guard checks field names, not values | Low | High | Flat payloads enforced (nested objects/arrays rejected), allow-list review by DPO, contract tests per destination |
 | R6 | Mobile refresh token in memory only until secure-storage plugin registered; MAM SDK not integrated | Medium (functional) | Medium | Register Keychain/Keystore plugin and MAM SDK in native projects before store release |
-| R7 | CI/CD pipeline not yet complete → supply-chain controls not evidenced | Medium | High | Complete `.github/workflows/`, include signing and admission control |
+| R7 | Supply-chain gaps: SpotBugs not a CI job, no DAST, admission enforcement only on GKE | Medium | Medium | Add SpotBugs job and ZAP baseline; Kyverno/Ratify or Azure policy for signature verification on AKS/on-prem |
 | R8 | Single-region deployment | Low | High | Cross-region replica and DR runbook (D9) |
 | R9 | Audit advisory lock serialises writers – throughput ceiling | Low | Medium | Load test; partitioned chains per shard if needed |
 | R10 | Authentication-failure audit writes per invalid token could be abused to amplify load | Medium | Low | WAF rate limiting; sampling or aggregation of failure events |
-| R11 | Module enablement flags not enforced at runtime | Medium | Low | Enforce in module guard (Developer Guide) |
-| R12 | SameSite documentation inconsistency (Lax vs Strict) | – | Low | Align documentation (O3) |
 | R13 | Terminology licensing (SNOMED CT) in non-member countries | Medium | Medium | Licence assessment per operating country (D10) |
 
-### 15.2 Open items
+### 16.2 Open items
 
 | ID | Item |
 |---|---|
 | O1 | Confirm IdP claims for `employee_id` and `org_scope` (Entra directory extensions or claims-mapping policy fed from HRIS). |
 | O2 | Implement audit-hash anchoring and audit export to SIEM; scheduled `/audit/verify` with alerting. |
-| O3 | Align `SameSite` documentation with the BFF configuration (`Lax`). |
-| O4 | Apply Entra group-GUID mapping in the BFF role gate if app roles are not used. |
 | O5 | Add a scheduler lock (e.g. ShedLock) for mailbox polling. |
 | O6 | Decide on in-cluster mTLS (service mesh) vs NetworkPolicies only. |
 | O7 | Add a read-only reporting DB role for warehouse extraction. |
-| O8 | Define DAST in the pipeline (ZAP baseline). |
+| O8 | Define DAST in the pipeline (ZAP baseline) and add SpotBugs as a CI job. |
 
-## 16. Decisions requested from the steering committee
+## 17. Decisions requested from the steering committee
 
 | ID | Decision | Options | Recommendation |
 |---|---|---|---|
@@ -854,18 +888,18 @@ Helm chart `0.1.0` requires Kubernetes `>= 1.30`.
 | D4 | Mobile distribution | Public stores + MAM · managed (MDM-only) distribution | MDM-managed distribution with Intune APP for crew devices |
 | D5 | Key management | Master key in secret store (today) · envelope encryption with KMS/HSM | Envelope encryption + re-encryption job before go-live |
 | D6 | Retention schedule | per classification and record type | DPO + OH governance to define; purge jobs in increment 2 |
-| D7 | Outbox payload protection | encrypt · purge after N days · both | Both (purge after 30 days, encrypt payloads) |
+| D7 | Outbox retention period | default 30 days (implemented) · other | Confirm 30 days with DPO and operations (replay window) |
 | D8 | Policy engine | in-code ABAC (today) · OPA/Cedar externalised | Keep in-code until policy count/complexity justifies externalisation |
 | D9 | RPO/RTO targets | as proposed in Section 12 | Approve proposals; fund cross-region replica |
 | D10 | Terminology | local tables · terminology server (Snowstorm/Ontoserver) · national service | Terminology server with licensed national editions |
 | D11 | CI/CD platform | GitHub Actions · Azure DevOps | GitHub Actions with GitHub Advanced Security |
 
-## 17. Roadmap of increments
+## 18. Roadmap of increments
 
 | Increment | Scope | Key platform work |
 |---|---|---|
-| **0 – Base framework** (this repository) | Platform services, EHS intake, case kernel, BFF, employee app, workspace, deployment assets | – |
-| **1 – Production readiness** | CI/CD completion, envelope encryption + re-encryption job, outbox purge/encryption, audit anchoring, secure-storage & MAM plugins, enforcement of module flags, broker adapter (D3), rostering transport, HRIS sync, DR runbook | pen test, SOC 2 readiness assessment |
+| **0 – Base framework** (this repository) | Platform services, EHS intake, case kernel, BFF, employee app, workspace, deployment assets, CI/CD workflows | outbox encryption & purge, module flag enforcement, flat-payload guard, BFF group mapping (done) |
+| **1 – Production readiness** | SpotBugs CI job + DAST, envelope encryption + re-encryption job, versioned blind-index key, audit anchoring, secure-storage & MAM plugins, broker adapter (D3), rostering transport, HRIS sync, DR runbook | pen test, SOC 2 readiness assessment |
 | **2 – Core pathway** | E01 configurable rule engine and management referral, E02 triage/queues/SLAs, E03 OH record & encounters (FHIR mapping), E05 full fitness/RTW, retention jobs | terminology server, notification triggers from events |
 | **3 – Prevention & absence** | E06 absence (T&A feed), E07 surveillance/medicals/immunisation (hazard-driven recall), E11 travel health | scheduled system triggers, regulatory reports |
 | **4 – Restricted class & external parties** | E09 psychological health & peer support, E10 substance testing, E04 referrals & partner portal (consent gate), E08 claims & insurers | partner IdP, consent enforcement, break-glass |

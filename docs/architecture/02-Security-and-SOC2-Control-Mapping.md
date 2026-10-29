@@ -44,7 +44,7 @@ depend on them.
 | Encryption & keys | AES-256-GCM field encryption, HKDF key separation, `ENC()` secrets, TLS `verify-full` to DB, encrypted BFF sessions | Storage encryption, KMS/HSM, Key Vault / Secret Manager durability | Key generation ceremony, **key rotation**, key-access reviews, envelope-encryption decision, certificate lifecycle |
 | Logging & monitoring | Hash-chained append-only audit, audit verification API, JSON logs without PHI, correlation ids, metrics, traces | Log storage, platform audit logs (Activity Log / Cloud Audit Logs) | SIEM onboarding, alert rules, **24×7 or business-hours monitoring**, log review, retention settings, incident response |
 | Change & SDLC | Tests (unit, integration, architecture), SAST, SCA, SBOM tooling in the build, pinned versions, migration discipline | GitHub/ADO platform security | Branch protection, mandatory PR review, CAB/approval records, release evidence retention, pipeline completion |
-| Vulnerability management | dependency-check fail ≥ CVSS 7, FindSecBugs, Trivy/CodeQL (pipeline), patched base images | Managed-service patching (DB, AKS/GKE control plane) | Patch SLAs, **annual penetration test**, vulnerability triage, exception register |
+| Vulnerability management | dependency-check fail ≥ CVSS 7, dependency review, npm audit, CodeQL, Trivy image gate, FindSecBugs (Maven profile), patched base images | Managed-service patching (DB, AKS/GKE control plane) | Patch SLAs, **annual penetration test**, vulnerability triage, exception register |
 | Network | NetworkPolicies default deny, private endpoints (IaC), WAF (IaC), strict headers, CORS closed by default | DDoS protection, network fabric | Firewall rule reviews, WAF tuning, exposure reviews |
 | Availability & DR | Stateless replicas, HPA, PDB, zone spread, outbox replay, idempotency | Zone-redundant DB HA, backups, region services | **BCP/DR tests**, backup-restore tests, capacity planning, RPO/RTO approval |
 | Physical | – | Data-centre security | Office/endpoint security, on-prem DC for hybrid option |
@@ -61,7 +61,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Criterion | Framework contribution | Evidence source | Resp. | Status |
 |---|---|---|---|---|
 | CC1.1 Integrity and ethical values | – | Code of conduct, HR records | O | Org |
-| CC1.2 Board oversight | Steering-committee decisions (doc 01, Section 16) | Committee minutes | O | Org |
+| CC1.2 Board oversight | Steering-committee decisions (doc 01, Section 17) | Committee minutes | O | Org |
 | CC1.3 Structures, reporting lines, authorities | Canonical roles (`Roles`) map to job functions; module ownership by Maven module | RACI, CODEOWNERS (recommended) | O/F | Partial |
 | CC1.4 Competence | Developer Guide with secure-coding standards | Training records | O | Org |
 | CC1.5 Accountability | Every action attributed to an authenticated subject in the audit trail | `/api/v1/audit` | F/O | Implemented |
@@ -79,7 +79,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Criterion | Framework contribution | Evidence source | Resp. | Status |
 |---|---|---|---|---|
 | CC3.1 Objectives specified | Principles P1–P10 (doc 01) | doc 01 | O | Implemented (docs) |
-| CC3.2 Risks identified and analysed | STRIDE threat model (Section 7), risk register in doc 01 Section 15 | this document | O | Partial (formal register: Org) |
+| CC3.2 Risks identified and analysed | STRIDE threat model (Section 7), risk register in doc 01 Section 16 | this document | O | Partial (formal register: Org) |
 | CC3.3 Fraud risk | Segregation: clinicians record fitness, managers cannot; replay/config changes audited | audit trail, tests | F/O | Implemented |
 | CC3.4 Changes affecting controls | ArchUnit rules fail the build if boundaries erode; migration review | CI test reports | F/O | Implemented |
 
@@ -106,10 +106,10 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | CC6.2 Registration and authorisation of users | No local accounts; users provisioned in IdP; role claims mapped (`RoleClaims`, Entra group GUID mapping) | IdP provisioning logs, access requests | O/C | Org (IdP) |
 | CC6.3 Role-based access, least privilege, segregation of duties | 11 canonical roles; disclosure levels; clinicians vs managers; AUDITOR read-only to audit; INTEGRATION limited to `/integration/**` | role matrix (doc 01 App. A), **quarterly access review** | F/O | Implemented / Org |
 | CC6.4 Physical access | – | cloud provider SOC 2 | C | Carve-out |
-| CC6.5 Disposal of data and assets | Consent withdrawal preserves evidence; idempotency purge 7 days; **no retention/deletion jobs yet** | – | F/O | Planned |
+| CC6.5 Disposal of data and assets | Consent withdrawal preserves evidence; delivered outbox events purged after 30 days (configurable), idempotency records after 7 days; **no retention/deletion jobs for OH records yet** | purge configuration, DB counts | F/O | Partial |
 | CC6.6 Protection against threats from outside the boundary | WAF (Front Door / App Gateway WAF_v2 / Cloud Armor) in Terraform; TLS 1.2+; CSP, HSTS, X-Frame-Options; CORS closed; EHS sender allow-list; hardened Excel parser; FHIR JSON-only (no XXE) | Terraform, response headers (scan), tests | F/C | Implemented |
 | CC6.7 Restriction of transmission and movement of information | TLS everywhere incl. DB `verify-full`; **OutboundPayloadGuard** allow-list per destination (default deny); notification content rules; BFF header allow-list; mobile no-store, no localStorage | config `outbound-allowlist`, test `fitnessOutcomeIsPublishedToRosteringAsStatusOnly` | F | Implemented |
-| CC6.8 Prevention/detection of unauthorised or malicious software | Signed images & Binary Authorization (GKE, Terraform); Trivy/CodeQL/gitleaks (pipeline); read-only root FS, non-root, dropped capabilities; no formula evaluation in Excel | Terraform `binauthz.tf`, pipeline artefacts | F/O | Partial (pipeline in progress) |
+| CC6.8 Prevention/detection of unauthorised or malicious software | Trivy image gate (CRITICAL/HIGH with fix fails the build), cosign keyless signatures with SBOM and SLSA provenance attestations, signature verification in the deploy job, Binary Authorization (GKE); CodeQL, gitleaks; read-only root FS, non-root, dropped capabilities; no formula evaluation in Excel | `container.yml`, `deploy-env.yml`, Terraform `binauthz.tf`, code-scanning alerts | F/O | Implemented (cluster admission enforcement on AKS/on-prem: recommended) |
 
 ### 3.7 CC7 – System operations
 
@@ -125,7 +125,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 
 | Criterion | Framework control | Evidence source | Resp. | Status |
 |---|---|---|---|---|
-| CC8.1 Changes authorised, designed, developed, tested, approved, implemented | Git history; Flyway versioned, immutable migrations (owner role separate from runtime role); `ddl-auto: validate`; automated tests incl. architecture tests; SBOM per build; Helm deploy with environment approvals (pipeline); suppression files require justification/owner/expiry | PRs with approvals, CI logs, `flyway_schema_history`, release tags, Terraform plans | F/O | Implemented (pipeline approvals: in progress) |
+| CC8.1 Changes authorised, designed, developed, tested, approved, implemented | Git history; Flyway versioned, immutable migrations (owner role separate from runtime role); `ddl-auto: validate`; CI on every PR and push (`ci.yml`: tests incl. architecture tests, SCA, dependency review, secret scan, IaC checks); SBOM per build; CD (`cd.yml`) promotes signed images dev → test → prod through GitHub Environments with atomic Helm deploys; suppression files require justification/owner/expiry | PRs with approvals, CI run logs and artefacts, deployment records, `flyway_schema_history`, release tags, Terraform plans | F/O | Implemented (branch protection and Environment required reviewers: Org settings) |
 
 ### 3.9 CC9 – Risk mitigation
 
@@ -159,7 +159,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | PI1.2 Input completeness and accuracy | Bean Validation, regex validation of ids, strict FHIR parser, HL7 validation, Excel row-level error reporting, import batch counts and SHA-256 | `intake.import_batch`, tests | F | Implemented |
 | PI1.3 Processing | Case state machine (`CaseStatus` allowed transitions), optimistic locking (`@Version`), idempotent consumers and incident/case de-duplication | tests (`CaseStatusTest`, integration tests) | F | Implemented |
 | PI1.4 Output completeness and accuracy | Outbox at-least-once delivery, dead-letter and replay, receiver de-duplication on `messageId` | `/integration/events` | F/O | Implemented (adapter: extension point) |
-| PI1.5 Storage of inputs and outputs | Encrypted inbound store; outbox history (retention to be defined) | DB | F/O | Partial |
+| PI1.5 Storage of inputs and outputs | Encrypted inbound store; encrypted outbox history (delivered events kept 30 days by default; failed/dead kept for replay) | DB | F/O | Implemented (OH-record retention: planned) |
 
 ### 4.4 Privacy (P-series)
 
@@ -174,7 +174,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | P5.1 Data-subject access | `GET /cases` (own), `/consents/me`, `/me` in the employee app | DSAR process for full export | Partial (no export endpoint) |
 | P5.2 Correction | – | Correction process via OH | Planned |
 | P6.1 Disclosure to third parties with consent | Outbound allow-list (default deny); consent purposes `TREATMENT_SHARING_PARTNER`, `INSURER_SHARING` | Processor/controller agreements | Partial |
-| P6.2–P6.3 Record of disclosures | Outbox records every external disclosure with destination and time; audit trail | Records of processing (Art. 30) | Implemented (retention TBD) |
+| P6.2–P6.3 Record of disclosures | Outbox records every external disclosure with destination and time (encrypted payload, 30-day default retention); audit trail | Records of processing (Art. 30); export to long-term store if disclosures must be kept longer | Implemented (retention to be confirmed) |
 | P6.4–P6.5 Third-party commitments and notification | – | DPAs, breach-notification clauses | Org |
 | P6.6–P6.7 Breach notification; accounting of disclosures | Audit and outbox provide data for the accounting | Breach procedure (GDPR 72 h) | Org |
 | P7.1 Data quality | Validation, master data from HRIS (planned sync) | Data-quality ownership | Partial |
@@ -187,10 +187,12 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Application audit trail | `GET /api/v1/audit?from=...&to=...&limit=5000` as AUDITOR (each read is itself audited) | CC6.1, CC6.3, CC7.2, P6.2 |
 | Audit integrity proof | `GET /api/v1/audit/verify` → `{intact, recordsChecked, firstBrokenId}`; schedule daily, store results and the head hash in WORM storage | CC4.1, CC7.2, PI1.5 |
 | Integration event log | `GET /api/v1/integration/events?status=DEAD\|FAILED\|PUBLISHED` (metadata only) | PI1.4, CC7.4, P6.2 |
-| Test reports | Maven Surefire/Failsafe reports, JaCoCo coverage, Vitest results per build | CC8.1, CC3.4 |
+| Test reports | CI artefact `java-test-reports` (Surefire/Failsafe, JaCoCo), Vitest results per build (`ci.yml`) | CC8.1, CC3.4 |
+| Secret-scan and SCA reports | CI artefacts `gitleaks-report`, `dependency-check-report`; SARIF in GitHub code scanning; dependency-review results on PRs | CC7.1, CC8.1 |
+| Deployment records | `cd.yml` / `deploy-env.yml` run history per GitHub Environment (who approved, which digest, Helm status) | CC8.1 |
 | SAST / SCA reports | SpotBugs + FindSecBugs (`mvn -Psecurity verify`), OWASP dependency-check HTML + SARIF, CodeQL alerts | CC7.1, CC8.1 |
-| SBOM | CycloneDX aggregate BOM (`target/bom.json`/`bom.xml`) attached to each release | CC7.1, CC9.2 |
-| Container scan & signatures | Trivy reports, cosign signatures/attestations, Binary Authorization admission logs (GKE) | CC6.8, CC8.1 |
+| SBOM | CI artefacts `sbom-java` (CycloneDX `target/bom.json`/`.xml`), `sbom-employee-app`, `sbom-manager-workspace`; image SBOMs attested to each image | CC7.1, CC9.2 |
+| Container scan & signatures | Trivy SARIF in code scanning, cosign signatures, SBOM and SLSA provenance attestations (`container.yml`), signature verification step in `deploy-env.yml`, Binary Authorization admission logs (GKE) | CC6.8, CC8.1 |
 | Infrastructure configuration | Terraform plans and state (remote, access-controlled), `terraform show` of security settings; Helm values per environment | CC5.2, CC6.6, A1.2 |
 | Change history | Git history, pull requests with reviewers and approvals, release tags, `flyway_schema_history` / `flyway_schema_history_bff` | CC8.1 |
 | Identity configuration | Entra ID app registrations, app-role assignments, Conditional Access policies, sign-in logs; access-review records | CC6.2, CC6.3 |
@@ -305,7 +307,7 @@ identity flow, mobile flow); they are the same views as in document 01.
 | F5 | **E**levation | Forged role claims | Trusted-issuer allow-list, signature + audience validation, role-name regex | L |
 | F5 | **R**epudiation | User denies access to a record | Every read/list/denial audited with actor, roles, correlation id, IP | L |
 | F5 | **I**nformation disclosure | DB/backup exfiltration | Field-level encryption of clinical text; storage encryption; private endpoints | M – identifiers and categories not field-encrypted |
-| F6 | **I**nformation disclosure | Clinical field leaks to rostering/HR | OutboundPayloadGuard allow-list, default deny; flat payloads | M – top-level check only |
+| F6 | **I**nformation disclosure | Clinical field leaks to rostering/HR | OutboundPayloadGuard: field allow-list per destination, default deny, nested objects/arrays rejected; encrypted outbox payloads | L – values not content-inspected; allow-lists reviewed by DPO |
 | F6 | **T**ampering / **R**epudiation | Message altered or disputed | Outbox history; TLS; broker adapter authentication (to be implemented); messageId | M until adapter + message signing decided |
 | F6 | **D**oS | Downstream outage | Back-off, dead-letter, replay; outbox absorbs backlog | L |
 | F7 | **S**poofing | Unauthorised system posts lab results | Client-credentials token from trusted issuer + INTEGRATION role | L |
@@ -314,12 +316,12 @@ identity flow, mobile flow); they are the same views as in document 01.
 | F8 | **I**nformation disclosure | Re-identification from small groups or differencing | k ≥ 5 (floor 3), complementary suppression, restricted class excluded, allow-listed dimensions | M – no protection against differencing across time windows/dimensions |
 | F9 | **T**ampering | Audit rows altered or deleted | Trigger + grants block UPDATE/DELETE/TRUNCATE; hash chain; verify API | M – DB owner could rewrite chain; external anchoring planned |
 | F9 | **I**nformation disclosure | Audit contains PHI | Reasons sanitised; coding standard forbids PHI in reasons | L |
-| F10 | **E**levation / **T**ampering | Admin changes config (e.g. module flag, min group size) maliciously | Role-restricted, audited `CONFIG_CHANGE`; analytics floor k ≥ 3 enforced in code | M – no maker-checker; old/new values not in audit |
+| F10 | **E**levation / **T**ampering | Admin changes config (e.g. module flag, min group size) maliciously | Role-restricted, audited `CONFIG_CHANGE`; disabled modules answer 503 `module_disabled` (fail closed); analytics floor k ≥ 3 enforced in code | M – no maker-checker; old/new values not in audit |
 | F10 | **T**ampering | Operator replays events to re-send data | Replay restricted to PLATFORM_ADMIN/OH_ADMIN, audited; consumers idempotent | L |
 | F11 | **I**nformation disclosure | Master key theft | Key in vault, CSI file mount, workload identity, never in image or Git | M – single master key; envelope encryption recommended |
 | F11 | **E**levation | Pod identity abused | Per-workload service accounts, least-privilege vault roles (Vault policies in `deploy/hybrid`) | L–M |
-| F12 | **T**ampering | Malicious dependency or image | Pinned versions, lockfiles, SCA, SBOM, signing + Binary Authorization (GKE) | M until pipeline completed and admission enforced on AKS/on-prem |
-| F12 | **I**nformation disclosure | Secrets committed to Git | `ENC()`/`file:` pattern, gitleaks (pipeline), `.env` git-ignored | M – `deploy/local/.env` is git-ignored; `apps/wz-core-app/id_file` is currently not ignored and must be removed or ignored before the first commit |
+| F12 | **T**ampering | Malicious dependency or image | SHA-pinned actions, pinned versions, lockfiles, SCA and dependency review, SBOM, Trivy gate, cosign signing + provenance, signature verification at deploy, Binary Authorization (GKE) | L–M – cluster-side admission not yet enforced on AKS/on-prem |
+| F12 | **I**nformation disclosure | Secrets committed to Git | `ENC()`/`file:` pattern, gitleaks on full history in CI (SARIF), `deploy/local/.env` git-ignored | L |
 
 ## 8. Secure software development lifecycle
 
@@ -328,8 +330,8 @@ identity flow, mobile flow); they are the same views as in document 01.
 | Requirements | Classify data (`DataClassification`), decide disclosure level and outbound contract per module; DPIA screening | Module design note, ConnectorRegistry entry |
 | Design | Threat-model new flows (extend Section 7); define `AccessPolicy` beans; events as flat records | design review |
 | Implementation | Developer Guide standards: no PHI in logs/errors/audit reasons, validation, RFC 9457, parameterised SQL / allow-listed dimensions, `EncryptedStringConverter` for clinical text | IDE, code review |
-| Verification | Unit, integration (real PostgreSQL), ArchUnit, web unit tests; SAST (SpotBugs/FindSecBugs, CodeQL); SCA (dependency-check, npm lockfile audit); secret scan; DAST (recommended) | CI reports |
-| Release | SBOM, image build from pinned bases, Trivy scan, cosign signing, Helm deploy with approvals | `.github/workflows/` (in progress), Helm |
+| Verification | Unit, integration (real PostgreSQL), ArchUnit, web unit tests, Playwright E2E; SAST (CodeQL in CI; SpotBugs/FindSecBugs via `mvn -Psecurity`); SCA (dependency-check, dependency review, npm audit); gitleaks; IaC scan (Trivy config, helm lint); DAST (recommended) | `ci.yml`, `codeql.yml` reports |
+| Release | SBOM, image build from pinned bases, Trivy gate, cosign keyless signing + attestations, signature verification, atomic Helm deploy per GitHub Environment | `container.yml`, `cd.yml`, `deploy-env.yml`, Helm |
 | Operations | Patch base images (Dependabot), monitor, audit verification, incident response | SIEM, runbooks |
 | Exceptions | Suppression/exclusion files require justification, owner, expiry; reviewed each release | `config/dependency-check-suppressions.xml`, `config/spotbugs-exclude.xml` |
 
@@ -338,17 +340,17 @@ identity flow, mobile flow); they are the same views as in document 01.
 | ID | Residual risk | Compensating control (now) | Target remediation |
 |---|---|---|---|
 | RR1 | Single master key; master-key rotation requires re-encryption tooling not yet built | Vault RBAC, purge protection, access logging on Key Vault/Secret Manager | Envelope encryption via KMS/HSM; re-encryption job (increment 1) |
-| RR2 | Outbox payloads unencrypted, retained indefinitely | Storage encryption; DB access restricted; payloads minimal | Encrypt payloads; purge PUBLISHED after 30 days |
+| RR2 | Delivered outbox events kept 30 days (needed for replay window) | Payloads field-encrypted; metadata-only operations API | Confirm retention with DPO |
 | RR3 | No retention/deletion jobs | Data volume small at start; manual deletion procedure via DPO | Retention schedule and purge jobs (increment 2) |
 | RR4 | Audit chain rewritable by DB owner | Separate owner role used only by migration Job; pgaudit DDL/role logging; cloud audit logs | External hash anchoring + SIEM streaming |
 | RR5 | No break-glass access | OH_ADMIN escalation via IdP role assignment (audited in IdP) | Break-glass flow with justification and alerting |
 | RR6 | No maker-checker on configuration | Audited changes; limited admin population | Approval workflow in E18 UI |
 | RR7 | Mobile secure storage / MAM not yet integrated | In-memory fallback (re-login), idle logout, no-store | Keychain/Keystore plugin, Intune APP SDK before store release |
 | RR8 | External broker adapter and message authentication not implemented | Only logging publisher; no PHI leaves the system externally yet | Adapter with mTLS/managed identity per D3 |
-| RR9 | Outbound guard top-level only | Flat record convention, code review, integration test | Schema-based contract tests per destination |
+| RR9 | Outbound guard checks field names, not values | Flat payloads enforced; allow-list per destination; integration test | Schema-based contract tests per destination |
 | RR10 | Differencing attacks on KPI API | Single KPI, allow-listed dimensions, k ≥ 5 | Query auditing thresholds, row/column suppression, fixed reporting periods |
-| RR11 | CI/CD pipeline not complete | Maven security profile available locally | Complete workflows with gates; evidence retention |
-| RR12 | Local development artefacts with credentials in working tree (`deploy/local/.env`, `apps/wz-core-app/id_file`) | Local-only values; `deploy/local/.gitignore` excludes `.env` | Remove or git-ignore `id_file` before the first commit; rotate any credential that was ever pushed |
+| RR11 | SpotBugs not a CI job; no DAST; admission enforcement only on GKE | SpotBugs run via Maven profile before release (0 findings at baseline); deploy job verifies cosign signatures | Add SpotBugs CI job, ZAP baseline, Kyverno/Ratify or Azure Policy image verification |
+| RR12 | Branch protection and Environment required reviewers are repository settings, not code | Workflows designed for approvals (`test`, `prod` environments) | Configure and evidence settings; review quarterly |
 
 ## 10. Controls the organisation must operate
 

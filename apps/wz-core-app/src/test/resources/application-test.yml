@@ -1,6 +1,3 @@
-# Test-only key material (random, not used anywhere else). Never reuse in a real environment.
-WZ_MASTER_KEY: "q3x5V2m8yH1cKpT0bN7rJ4sF6dL9wE2aZ5uC8iO1gM0="
-WZ_PSEUDONYM_KEY: "Zm9yLXRlc3RzLW9ubHktbm90LWEtcmVhbC1rZXktMDAwMDAwMDA="
 spring:
   datasource:
     hikari:

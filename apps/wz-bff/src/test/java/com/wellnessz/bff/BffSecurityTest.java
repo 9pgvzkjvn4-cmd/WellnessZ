@@ -28,6 +28,9 @@ class BffSecurityTest {
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
+        byte[] key = new byte[32];
+        new java.security.SecureRandom().nextBytes(key); // generated per run – no committed key material
+        registry.add("WZ_MASTER_KEY", () -> java.util.Base64.getEncoder().encodeToString(key));
         String url = System.getenv("WZ_TEST_DB_URL");
         if (url != null && !url.isBlank()) {
             String user = System.getenv().getOrDefault("WZ_TEST_DB_USERNAME", "wz_app");
@@ -89,6 +92,21 @@ class BffSecurityTest {
         mvc.perform(post("/logout").with(oidcLogin()).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(header().exists("Location"));
+    }
+
+    @Test
+    void managementPortServesHealthWithoutAuthentication() throws Exception {
+        mvc.perform(get("/actuator/health").with(r -> {
+                    r.setLocalPort(8091);
+                    return r;
+                }))
+                // passes security (not 401/403); actuator itself lives in the management child context, hence 404 under MockMvc
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/bff/session").with(r -> {
+                    r.setLocalPort(8091);
+                    return r;
+                }))
+                .andExpect(status().isForbidden()); // nothing but probes/metrics on the management port
     }
 
     @Test
