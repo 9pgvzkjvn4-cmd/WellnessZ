@@ -111,7 +111,9 @@ public class ApiProxyController {
     static final java.util.List<String> CORE_WORKSPACE_RESOURCES = java.util.List.of("/workspace/team-restrictions", "/workspace/duty-proposals",
             "/workspace/rtw-plans", "/workspace/documents",
             // increment 3: E06 absence / advice, E07 surveillance compliance / pre-employment, E14 team appointments
-            "/workspace/absence", "/workspace/advice-requests", "/workspace/surveillance", "/workspace/pre-employment");
+            "/workspace/absence", "/workspace/advice-requests", "/workspace/surveillance", "/workspace/pre-employment",
+            // increment 4: E08 claim status for HR (status only)
+            "/workspace/claims");
 
     static boolean isCoreWorkspaceResource(String path) {
         return CORE_WORKSPACE_RESOURCES.stream().anyMatch(r -> path.equals(r) || path.startsWith(r + "/"));

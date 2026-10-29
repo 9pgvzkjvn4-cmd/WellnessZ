@@ -20,20 +20,22 @@ class ArchitectureTest {
                     "com.wellnessz.analytics..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.casekernel..", "com.wellnessz.ehsintake..",
                     "com.wellnessz.documents..", "com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..", "com.wellnessz.e05..",
-                    "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..");
+                    "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..", "com.wellnessz.e08..");
 
     @ArchTest
     static final ArchRule kernelDoesNotDependOnBusinessModules = noClasses()
             .that().resideInAPackage("com.wellnessz.casekernel..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..",
-                    "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.documents..")
+                    "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..",
+                    "com.wellnessz.e08..", "com.wellnessz.documents..")
             .because("modules plug into the kernel through SPIs (CaseModule, CaseTransitionGuard, ChartContributor, events), never the reverse");
 
     @ArchTest
     static final ArchRule documentServiceIsAPlatformService = noClasses()
             .that().resideInAPackage("com.wellnessz.documents..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..",
-                    "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..")
+                    "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..",
+                    "com.wellnessz.e08..")
             .because("the business modules all use the document service; it must not know about any of them");
 
     @ArchTest
@@ -52,13 +54,34 @@ class ArchitectureTest {
     static final ArchRule earlierModulesDoNotDependOnLaterOnes = noClasses()
             .that().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e03..", "com.wellnessz.e05..", "com.wellnessz.e06..",
-                    "com.wellnessz.e07..", "com.wellnessz.e14..");
+                    "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..", "com.wellnessz.e08..");
 
     @ArchTest
     static final ArchRule increment2ModulesDoNotDependOnIncrement3 = noClasses()
             .that().resideInAnyPackage("com.wellnessz.e03..", "com.wellnessz.e05..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..")
             .because("E03 / E05 call increment-3 behaviour only through kernel SPIs (DeviceCalibrationCheck, ResultFollowUpListener, FitnessClearanceGuard)");
+
+    @ArchTest
+    static final ArchRule earlierIncrementsDoNotDependOnIncrement4 = noClasses()
+            .that().resideInAnyPackage("com.wellnessz.e03..", "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..",
+                    "com.wellnessz.e14..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e04..", "com.wellnessz.e08..")
+            .because("increment-4 modules plug in through kernel SPIs (ExternalReferralGateway, CaseCostRecorder, ClaimContextProvider)");
+
+    @ArchTest
+    static final ArchRule treatmentAndClaimsAreIndependent = noClasses()
+            .that().resideInAPackage("com.wellnessz.e04..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e08..", "com.wellnessz.e06..", "com.wellnessz.e07..",
+                    "com.wellnessz.e14..")
+            .because("E04 posts costs through CaseCostRecorder and reads claim context through ClaimContextProvider");
+
+    @ArchTest
+    static final ArchRule claimsDoesNotDependOnTreatmentOrClinicalRecord = noClasses()
+            .that().resideInAPackage("com.wellnessz.e08..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e04..", "com.wellnessz.e03..", "com.wellnessz.e06..",
+                    "com.wellnessz.e07..", "com.wellnessz.e14..")
+            .because("claims never read the clinical record; IMEs go through ExternalReferralGateway, costs arrive through CaseCostRecorder");
 
     @ArchTest
     static final ArchRule absenceIsIndependentOfSurveillanceAndScheduling = noClasses()

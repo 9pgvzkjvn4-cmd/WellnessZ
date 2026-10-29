@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class NotificationTemplates {
 
     static final Set<String> ALLOWED_PLACEHOLDERS = Set.of("firstName", "appointmentDate", "appointmentTime", "caseRef",
-            "portalLink", "dueDate", "unit", "urgency", "nextStep", "contact", "queue", "level", "documentNumber", "employeeName", "site");
+            "portalLink", "dueDate", "unit", "urgency", "nextStep", "contact", "queue", "level", "documentNumber", "employeeName", "site", "reference");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{([a-zA-Z]+)}}");
 
     private final Map<String, String> templates = Map.ofEntries(
@@ -68,7 +68,22 @@ public class NotificationTemplates {
             Map.entry("appointment.cancelled", "Hi {{firstName}}, your Occupational Health appointment on {{appointmentDate}} at {{appointmentTime}} has been cancelled. {{portalLink}}"),
             Map.entry("appointment.waitlist-offer", "Hi {{firstName}}, an earlier Occupational Health appointment is available on {{appointmentDate}} at {{appointmentTime}} ({{site}}). {{portalLink}}"),
             Map.entry("coldchain.excursion", "Vaccine fridge {{documentNumber}} at {{site}} recorded a temperature excursion ({{level}}). Act now: {{portalLink}}"),
-            Map.entry("equipment.calibration-due", "Equipment {{documentNumber}} at {{site}} is due for calibration on {{dueDate}}. {{portalLink}}"));
+            Map.entry("equipment.calibration-due", "Equipment {{documentNumber}} at {{site}} is due for calibration on {{dueDate}}. {{portalLink}}"),
+            // increment 4 – E04 treatment coordination and partner referrals (never names the service or the condition)
+            Map.entry("referral.sent", "A new referral {{reference}} from WellnessZ Occupational Health is waiting for you in the partner portal: {{portalLink}}"),
+            Map.entry("referral.chase", "The report for referral {{reference}} was due on {{dueDate}}. Please upload it in the partner portal: {{portalLink}}"),
+            Map.entry("referral.overdue-team", "Referral {{reference}} on case {{caseRef}} is still waiting for the provider's report ({{level}}). {{portalLink}}"),
+            Map.entry("referral.appointment", "Hi {{firstName}}, your appointment with an external provider is on {{appointmentDate}} at {{appointmentTime}}. Details: {{portalLink}}"),
+            Map.entry("treatment.follow-up", "Hi {{firstName}}, a follow-up in your treatment plan is due on {{dueDate}}. {{portalLink}}"),
+            Map.entry("treatment.variance", "Case {{caseRef}} has passed its expected recovery duration ({{level}}). Please review the plan: {{portalLink}}"),
+            Map.entry("preauth.status", "Pre-authorisation {{reference}} on case {{caseRef}} is now {{level}}. {{portalLink}}"),
+            Map.entry("telehealth.invite", "Hi {{firstName}}, your video consultation is on {{appointmentDate}} at {{appointmentTime}}. Join from the app: {{portalLink}}"),
+            // increment 4 – E08 claims coordination (no costs, no clinical detail)
+            Map.entry("claim.assigned", "Lost-time claim {{reference}} (case {{caseRef}}) has been assigned to you as nurse case manager. {{portalLink}}"),
+            Map.entry("claim.report-due", "The statutory first report for claim {{reference}} is due by {{dueDate}}. {{portalLink}}"),
+            Map.entry("claim.task", "A shared task on claim {{reference}} is due by {{dueDate}}. {{portalLink}}"),
+            Map.entry("claim.message", "There is a new secure message on claim {{reference}}. Please sign in: {{portalLink}}"),
+            Map.entry("legal.request", "Medico-legal request {{reference}} on case {{caseRef}} is due by {{dueDate}}. {{portalLink}}"));
 
     /** Approved template keys (for governance review and tests). */
     public java.util.Set<String> keys() {

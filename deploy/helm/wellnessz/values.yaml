@@ -145,7 +145,7 @@ migrations:
     # Location of SQL migrations inside the images (Spring Boot layered extraction)
     core:
       locationInImage: /app/BOOT-INF/classes/db/migration
-      schemas: platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,analytics
+      schemas: platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,treatment,claims,analytics
       table: flyway_schema_history
       appRole: wz_app
     bff:
@@ -421,6 +421,46 @@ ohWorkspace:
   tolerations: []
   affinity: {}
 
+# Partner portal (increment 4): external providers and TPA adjusters. Same-origin BFF login; the core API grants
+# PARTNER_PROVIDER / TPA_ADJUSTER only when the token proves MFA (wellnessz.security.mfa-required-roles).
+partnerPortal:
+  enabled: true
+  name: partner-portal
+  image:
+    repository: partner-portal
+    tag: ""
+    digest: ""
+  replicaCount: 2
+  runAsUser: 101
+  ports:
+    http: 8080
+  service:
+    type: ClusterIP
+    annotations: {}
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  tmpSizeLimit: 64Mi
+  probes:
+    path: /healthz
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    minAvailable: 1
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
 # -----------------------------------------------------------------------------
 # Ingress (TLS terminated at the controller / cloud load balancer)
 # Web hosts route /bff, /oauth2, /login, /logout -> bff and / -> static app on
@@ -450,6 +490,7 @@ ingress:
     employeePortal: employee.wellnessz.example.com
     managerWorkspace: manager.wellnessz.example.com
     ohWorkspace: oh.wellnessz.example.com
+    partnerPortal: partners.wellnessz.example.com
   api:
     enabled: true
     host: api.wellnessz.example.com

@@ -1,5 +1,5 @@
 {{- $root := . -}}
-{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" "ohWorkspace" }}
+{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" "ohWorkspace" "partnerPortal" }}
 {{- $comp := index $root.Values $key }}
 {{- if $comp.enabled }}
 {{- $ctx := dict "root" $root "comp" $comp }}

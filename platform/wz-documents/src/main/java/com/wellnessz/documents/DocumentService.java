@@ -249,7 +249,9 @@ public class DocumentService {
 
     /** Document types a business module may store from an upload (E06 sick certificates, E07 candidate / external documents). */
     public static final Set<String> UPLOAD_TYPES = Set.of("SICK_CERTIFICATE", "PRE_EMPLOYMENT_DOCUMENT", "VACCINATION_RECORD",
-            "EXTERNAL_AEROMEDICAL_REPORT", "EXTERNAL_REPORT");
+            "EXTERNAL_AEROMEDICAL_REPORT", "EXTERNAL_REPORT",
+            // increment 4: partner provider reports and invoices (E04), insurer acknowledgements and redacted copies (E08)
+            "PROVIDER_REPORT", "PROVIDER_INVOICE", "INSURER_ACKNOWLEDGEMENT", "REDACTED_COPY");
 
     /** Stored upload with the text extracted from it (PDF text layer or OCR) and its SHA-256 for duplicate detection. */
     public record Stored(DocumentView document, String extractedText, String sha256) {
@@ -318,14 +320,27 @@ public class DocumentService {
      */
     @Transactional
     public ShareView shareAsSystem(String actor, UUID id, DocumentShare.Target target) {
-        if (target == DocumentShare.Target.PARTNER) {
-            throw ApiException.badRequest("invalid_target", "Partner shares need the employee's consent and an OH user");
+        if (target == DocumentShare.Target.PARTNER || target == DocumentShare.Target.INSURER) {
+            throw ApiException.badRequest("invalid_target", "Partner and insurer shares need an organisation and the employee's consent");
         }
+        return shareAsSystem(actor, id, target, null, null);
+    }
+
+    /**
+     * Workflow share to a partner provider (E04 referral, consent TREATMENT_SHARING_PARTNER) or an insurer / TPA (E08
+     * claim disclosure set, consent INSURER_SHARING). The consent check and the disclosure log apply exactly as for
+     * {@link #share}.
+     */
+    @Transactional
+    public ShareView shareAsSystem(String actor, UUID id, DocumentShare.Target target, String organisation, UUID consentId) {
         Document d = documents.findById(id).orElseThrow(() -> ApiException.notFound("Document"));
         if (d.getStatus() != Document.Status.SIGNED) {
             throw ApiException.conflict("not_signed", "Sign the document before sharing it");
         }
-        return doShare(actor, d, target, null, null);
+        if ("PHOTO".equals(d.getType()) && target != DocumentShare.Target.EMPLOYEE) {
+            throw ApiException.forbidden("Clinical photographs are not shared outside Occupational Health");
+        }
+        return doShare(actor, d, target, organisation, consentId);
     }
 
     /** Raw content for a module endpoint that has already authorised the reader (e.g. a candidate's own upload). */
@@ -392,14 +407,29 @@ public class DocumentService {
                 recipient = partnerOrg;
                 recipientName = "Partner " + partnerOrg;
             }
+            case INSURER -> {
+                if (partnerOrg == null || !partnerOrg.matches("[A-Z0-9_]{2,40}")) {
+                    throw ApiException.badRequest("insurer_required", "Insurer / TPA organisation code required");
+                }
+                if (!consents.isActive(consentId, e.getEmployeeId(), ConsentPurpose.INSURER_SHARING)) {
+                    throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "consent_required",
+                            "Sharing with an insurer or TPA requires the employee's active consent to insurer sharing");
+                }
+                recipient = partnerOrg;
+                recipientName = "Insurer / TPA " + partnerOrg;
+            }
             default -> throw ApiException.badRequest("invalid_target", "Unknown share target");
         }
         Instant now = clock.instant();
-        DocumentShare s = shares.save(new DocumentShare(d.getId(), target, recipient, target == DocumentShare.Target.PARTNER ? consentId : null,
-                actor, now));
+        boolean consented = target == DocumentShare.Target.PARTNER || target == DocumentShare.Target.INSURER;
+        DocumentShare s = shares.save(new DocumentShare(d.getId(), target, recipient, consented ? consentId : null, actor, now));
         if (target != DocumentShare.Target.EMPLOYEE) {
             disclosures.record(e.getEmployeeId(), target.name(), recipientName, "DOCUMENT_SHARE", s.getId().toString(),
-                    d.getTitle() + " (" + d.getDocumentNumber() + ")", target == DocumentShare.Target.PARTNER ? "TREATMENT" : "FITNESS_FOR_WORK",
+                    d.getTitle() + " (" + d.getDocumentNumber() + ")", switch (target) {
+                        case PARTNER -> "TREATMENT";
+                        case INSURER -> "CLAIM";
+                        default -> "FITNESS_FOR_WORK";
+                    },
                     s.getConsentId(), actor);
         }
         notifyShare(d, e, target);
@@ -505,7 +535,9 @@ public class DocumentService {
         if (org == null) {
             return List.of();
         }
-        List<DocumentView> out = sharedDocuments(shares.findByTargetAndRecipientAndRevokedAtIsNull(DocumentShare.Target.PARTNER, org),
+        DocumentShare.Target target = user.hasRole(Roles.TPA_ADJUSTER) && !user.hasRole(Roles.PARTNER_PROVIDER)
+                ? DocumentShare.Target.INSURER : DocumentShare.Target.PARTNER;
+        List<DocumentView> out = sharedDocuments(shares.findByTargetAndRecipientAndRevokedAtIsNull(target, org),
                 d -> sharedWith(user, d));
         audit.record("PARTNER_DOCUMENTS_READ", "DOCUMENT", null, AuditService.Outcome.SUCCESS, "partner=" + org + " rows=" + out.size());
         return out;
@@ -561,6 +593,23 @@ public class DocumentService {
         }
         audit.record(hold ? "LEGAL_HOLD_SET" : "LEGAL_HOLD_RELEASED", "DOCUMENT", id.toString(), AuditService.Outcome.SUCCESS, null);
         return view(d, false);
+    }
+
+    /**
+     * Case-level litigation hold (E08-F06): every document of the case (all versions) is put on – or released from – legal
+     * hold, which suspends retention. Called by the claims module once legal counsel has been authorised; returns the
+     * number of documents affected.
+     */
+    @Transactional
+    public int legalHoldForCase(String actor, UUID caseId, boolean hold, String reason) {
+        int n = 0;
+        for (Document d : documents.findByCaseIdOrderByCreatedAtDesc(caseId)) {
+            d.setLegalHold(hold, hold ? reason : null);
+            n++;
+        }
+        audit.recordAs(actor, "MODULE", hold ? "LEGAL_HOLD_SET" : "LEGAL_HOLD_RELEASED", "CASE", caseId.toString(), AuditService.Outcome.SUCCESS,
+                "documents=" + n);
+        return n;
     }
 
     // ------------------------------------------------------------------ helpers
@@ -753,6 +802,8 @@ public class DocumentService {
                 case HR -> user.hasRole(Roles.HR) && inScope(user, d.getEmployeeId());
                 case PARTNER -> user.hasRole(Roles.PARTNER_PROVIDER) && s.getRecipient().equals(partnerOrg(user))
                         && consents.isActive(s.getConsentId(), d.getEmployeeId(), ConsentPurpose.TREATMENT_SHARING_PARTNER);
+                case INSURER -> user.hasRole(Roles.TPA_ADJUSTER) && s.getRecipient().equals(partnerOrg(user))
+                        && consents.isActive(s.getConsentId(), d.getEmployeeId(), ConsentPurpose.INSURER_SHARING);
             };
             if (ok) {
                 return true;
@@ -771,7 +822,7 @@ public class DocumentService {
     }
 
     static String partnerOrg(CurrentUser user) {
-        if (!user.hasRole(Roles.PARTNER_PROVIDER) || user.orgScope() == null) {
+        if (!user.hasAnyRole(Roles.PARTNER_PROVIDER, Roles.TPA_ADJUSTER) || user.orgScope() == null) {
             return null;
         }
         String s = user.orgScope();

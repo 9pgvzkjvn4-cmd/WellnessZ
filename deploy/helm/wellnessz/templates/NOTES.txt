@@ -1,7 +1,7 @@
 WellnessZ {{ .Chart.AppVersion }} deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
 
 Components:
-{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" "ohWorkspace" }}
+{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" "ohWorkspace" "partnerPortal" }}
 {{- $c := index $.Values $key }}
   - {{ $c.name }}: {{ ternary "enabled" "disabled" $c.enabled }}
 {{- end }}
@@ -12,7 +12,7 @@ NetworkPolicies  : {{ ternary "enabled (default deny)" "DISABLED" .Values.networ
 {{- if .Values.ingress.enabled }}
 
 Endpoints:
-{{- range $key := list "employeePortal" "managerWorkspace" "ohWorkspace" }}
+{{- range $key := list "employeePortal" "managerWorkspace" "ohWorkspace" "partnerPortal" }}
 {{- if (index $.Values $key).enabled }}
   https://{{ index $.Values.ingress.hosts $key }}/
 {{- end }}

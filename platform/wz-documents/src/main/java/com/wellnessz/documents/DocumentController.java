@@ -177,7 +177,7 @@ public class DocumentController {
     }
 
     @GetMapping("/partner/documents")
-    @PreAuthorize("hasRole('PARTNER_PROVIDER')")
+    @PreAuthorize("hasAnyRole('PARTNER_PROVIDER','TPA_ADJUSTER')")
     public List<DocumentService.DocumentView> partner() {
         return documents.sharedWithPartner(users.require());
     }

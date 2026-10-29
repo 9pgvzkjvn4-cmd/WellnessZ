@@ -115,7 +115,7 @@ jobs:
           IDENTITY_REGEXP: ^https://github.com/${{ github.repository }}/\.github/workflows/container\.yml@
         run: |
           set -euo pipefail
-          for img in wz-core-app wz-bff employee-app manager-workspace oh-workspace; do
+          for img in wz-core-app wz-bff employee-app manager-workspace oh-workspace partner-portal; do
             cosign verify "${IMAGE_REGISTRY}/${img}:${IMAGE_TAG}" \
               --certificate-identity-regexp "$IDENTITY_REGEXP" \
               --certificate-oidc-issuer https://token.actions.githubusercontent.com \

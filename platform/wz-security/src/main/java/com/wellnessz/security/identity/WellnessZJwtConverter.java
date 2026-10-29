@@ -25,11 +25,32 @@ public class WellnessZJwtConverter implements Converter<Jwt, AbstractAuthenticat
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
-        Set<String> roles = RoleClaims.extract(jwt.getClaims(), properties.getRoleClaims(), properties.getGroupRoleMapping());
+        Set<String> roles = withoutUnprovenMfaRoles(jwt,
+                RoleClaims.extract(jwt.getClaims(), properties.getRoleClaims(), properties.getGroupRoleMapping()));
         Collection<GrantedAuthority> authorities = roles.stream()
                 .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
                 .collect(Collectors.toUnmodifiableSet());
         String name = jwt.getClaimAsString("preferred_username");
         return new JwtAuthenticationToken(jwt, authorities, name != null ? name : jwt.getSubject());
+    }
+
+    /**
+     * External roles (partner providers, TPA adjusters) are granted only when the token proves multi-factor
+     * authentication through {@code amr} or {@code acr}; without that proof the role is dropped and the portal is denied.
+     */
+    Set<String> withoutUnprovenMfaRoles(Jwt jwt, Set<String> roles) {
+        if (properties.getMfaRequiredRoles().stream().noneMatch(roles::contains) || hasMfa(jwt)) {
+            return roles;
+        }
+        return roles.stream().filter(r -> !properties.getMfaRequiredRoles().contains(r)).collect(Collectors.toUnmodifiableSet());
+    }
+
+    private boolean hasMfa(Jwt jwt) {
+        Object amr = jwt.getClaims().get("amr");
+        if (amr instanceof Collection<?> values && values.stream().map(String::valueOf).anyMatch(properties.getMfaAmrValues()::contains)) {
+            return true;
+        }
+        String acr = jwt.getClaimAsString("acr");
+        return acr != null && properties.getMfaAcrValues().contains(acr);
     }
 }

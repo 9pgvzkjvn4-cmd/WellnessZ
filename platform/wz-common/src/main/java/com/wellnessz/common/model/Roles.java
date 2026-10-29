@@ -36,6 +36,17 @@ public final class Roles {
     public static final String CREW_LICENSING = "CREW_LICENSING";
     /** Pre-employment candidate (not yet an employee): own questionnaire, consent, documents and booking only. */
     public static final String CANDIDATE = "CANDIDATE";
+    // increment 4 (E04 / E08)
+    /** Insurance / claims coordinator: claim records, e-reporting, costs, consent-gated disclosure sets; no clinical notes. */
+    public static final String CLAIMS_COORDINATOR = "CLAIMS_COORDINATOR";
+    /** External TPA / insurer adjuster (partner portal, MFA): consented documents, RTW milestones, shared tasks of own claims only. */
+    public static final String TPA_ADJUSTER = "TPA_ADJUSTER";
+    /** Legal counsel: litigation hold, privilege marking, medico-legal requests and released reports of litigated claims. */
+    public static final String LEGAL_COUNSEL = "LEGAL_COUNSEL";
+    /** Finance partner: cost roll-ups by unit / cost centre and ERP export; no person-level clinical data. */
+    public static final String FINANCE = "FINANCE";
+    /** Procurement: provider network directory, contracts, rate cards and SLAs. */
+    public static final String PROCUREMENT = "PROCUREMENT";
     /** Roles of the Occupational Health clinical team (clinical disclosure). */
     public static final String[] OH_TEAM = {OH_CLINICIAN, OH_PHYSICIAN, AME, CMO, NURSING_HEAD, CASE_MANAGER, PSYCH_CLINICIAN};
     /** Roles that may record a fitness-for-duty decision. */

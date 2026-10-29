@@ -57,6 +57,7 @@ class NotificationRulesTest {
         sample.put("site", "HQ Medical Centre");
         sample.put("documentNumber", "DOC-2026-000001");
         sample.put("level", "30 days");
+        sample.put("reference", "REF-2026-000001");
         for (String key : templates.keys()) {
             assertThat(templates.render(key, sample)).as(key).isNotBlank();
         }

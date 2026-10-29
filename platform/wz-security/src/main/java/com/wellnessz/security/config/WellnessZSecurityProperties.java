@@ -35,6 +35,15 @@ public class WellnessZSecurityProperties {
     /** Allowed CORS origins (only needed for native/mobile clients calling the API directly). */
     private List<String> corsOrigins = new ArrayList<>();
 
+    /** Roles granted only when the token proves multi-factor authentication (external partner and adjuster portals). */
+    private List<String> mfaRequiredRoles = new ArrayList<>(List.of("PARTNER_PROVIDER", "TPA_ADJUSTER"));
+
+    /** {@code amr} values accepted as proof of MFA (RFC 8176 plus common IdP values). */
+    private List<String> mfaAmrValues = new ArrayList<>(List.of("mfa", "otp", "totp", "hwk", "swk", "sms", "webauthn", "fido"));
+
+    /** {@code acr} values accepted as proof of MFA (e.g. Keycloak step-up level "2", Entra ID "c1" authentication context). */
+    private List<String> mfaAcrValues = new ArrayList<>(List.of("2", "3", "mfa", "c1"));
+
     public List<String> getIssuers() {
         return issuers;
     }
@@ -89,5 +98,29 @@ public class WellnessZSecurityProperties {
 
     public void setCorsOrigins(List<String> corsOrigins) {
         this.corsOrigins = corsOrigins;
+    }
+
+    public List<String> getMfaRequiredRoles() {
+        return mfaRequiredRoles;
+    }
+
+    public void setMfaRequiredRoles(List<String> mfaRequiredRoles) {
+        this.mfaRequiredRoles = mfaRequiredRoles;
+    }
+
+    public List<String> getMfaAmrValues() {
+        return mfaAmrValues;
+    }
+
+    public void setMfaAmrValues(List<String> mfaAmrValues) {
+        this.mfaAmrValues = mfaAmrValues;
+    }
+
+    public List<String> getMfaAcrValues() {
+        return mfaAcrValues;
+    }
+
+    public void setMfaAcrValues(List<String> mfaAcrValues) {
+        this.mfaAcrValues = mfaAcrValues;
     }
 }

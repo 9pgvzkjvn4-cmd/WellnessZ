@@ -23,7 +23,7 @@ spring:
     # migrations run with a separate owner role; the runtime role has DML-only grants
     user: ${WZ_DB_MIGRATOR_USERNAME:${WZ_DB_USERNAME:wz_app}}
     password: ${WZ_DB_MIGRATOR_PASSWORD:${WZ_DB_PASSWORD:}}
-    schemas: platform,masterdata,intake,casemgmt,analytics,triage,docs,ohrecord,fitness,absence,surveillance,scheduling
+    schemas: platform,masterdata,intake,casemgmt,analytics,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,treatment,claims
     locations: ${WZ_FLYWAY_LOCATIONS:classpath:db/migration}
     default-schema: platform
     create-schemas: true
@@ -98,6 +98,8 @@ wellnessz:
     issuers: ${WZ_OIDC_ISSUERS:http://localhost:8180/realms/wellnessz}
     audience: ${WZ_OIDC_AUDIENCE:wellnessz-api}
     cors-origins: ${WZ_CORS_ORIGINS:}
+    # external portal roles are granted only with MFA proof in the token (amr / acr) – increment 4
+    mfa-required-roles: ${WZ_MFA_REQUIRED_ROLES:PARTNER_PROVIDER,TPA_ADJUSTER}
     role-claims: realm_access.roles,roles,groups
     employee-id-claim: employee_id
     org-scope-claim: org_scope
@@ -117,6 +119,10 @@ wellnessz:
       crew-rostering: [messageId, employeeId, fitnessStatus, rosterStatus, restrictionUntil, validFrom, validUntil, operationalLimitations, effectiveFrom]
       hr-systems: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom, messageId, offerId, accepted, respondedAt, offerRef, candidateId, preEmploymentStatus, ohEngaged, certificateValidity]
       catering-hygiene: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom, foodHandlerStatus, excludedFrom, expectedReturn]
+      # increment 4 (E08): references only – documents travel through consent-checked shares
+      insurer-gateway: [messageId, claimRef, reportRef, formCode, payerCode, employeeId, incidentDate, submittedAt, deadlineAt]
+      authority-gateway: [messageId, reportRef, formCode, jurisdiction, employerRef, incidentDate, submittedAt, deadlineAt]
+      erp-finance: [messageId, batchId, month, costCentre, subsidiaryCode, category, amount, currency, entryCount, checksum]
   notification:
     quiet-hours:
       start: "21:00"
@@ -126,6 +132,7 @@ wellnessz:
     oh-workspace-url: ${WZ_OH_WORKSPACE_URL:https://oh.wellnessz.local}
     employee-portal-url: ${WZ_EMPLOYEE_PORTAL_URL:https://employee.wellnessz.local}
     manager-workspace-url: ${WZ_MANAGER_WORKSPACE_URL:https://manager.wellnessz.local}
+    partner-portal-url: ${WZ_PARTNER_PORTAL_URL:https://partners.wellnessz.local}
     # break-glass alerts (E03-BL-021)
     dpo-email: ${WZ_DPO_EMAIL:dpo@wellnessz.local}
     oh-contact: ${WZ_OH_CONTACT:Occupational Health service desk}
@@ -191,7 +198,9 @@ management:
       probability: 1.0
 wellnessz:
   security:
-    cors-origins: http://localhost:5173,http://localhost:5174,http://localhost:5175
+    cors-origins: http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176
+    # local demo realm has no OTP enrolment; set WZ_MFA_REQUIRED_ROLES=PARTNER_PROVIDER,TPA_ADJUSTER to rehearse MFA
+    mfa-required-roles: ${WZ_MFA_REQUIRED_ROLES:}
   ehs:
     mailbox:
       allowed-senders: ${WZ_EHS_ALLOWED_SENDERS:@wellnessz.local}

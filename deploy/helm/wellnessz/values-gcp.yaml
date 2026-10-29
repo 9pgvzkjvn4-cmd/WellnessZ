@@ -122,6 +122,7 @@ ingress:
     employeePortal: employee.wellnessz.example.com
     managerWorkspace: manager.wellnessz.example.com
     ohWorkspace: oh.wellnessz.example.com
+    partnerPortal: partners.wellnessz.example.com
   api:
     enabled: true
     host: api.wellnessz.example.com

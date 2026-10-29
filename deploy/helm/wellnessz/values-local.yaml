@@ -8,6 +8,7 @@
 #   docker build -t wellnessz/employee-app:local web/employee-app
 #   docker build -t wellnessz/manager-workspace:local web/manager-workspace
 #   docker build -t wellnessz/oh-workspace:local web/oh-workspace
+#   docker build -t wellnessz/partner-portal:local web/partner-portal
 #   kind load docker-image wellnessz/wz-core-app:local wellnessz/wz-bff:local ...   # kind only
 #   kubectl create namespace wellnessz
 #   kubectl -n wellnessz create secret generic wellnessz-core-secrets \
@@ -94,6 +95,11 @@ ohWorkspace:
   autoscaling: { enabled: false }
   pdb: { enabled: false }
 
+partnerPortal:
+  replicaCount: 1
+  autoscaling: { enabled: false }
+  pdb: { enabled: false }
+
 # *.localtest.me resolves to 127.0.0.1 (public DNS)
 ingress:
   className: nginx
@@ -106,6 +112,7 @@ ingress:
     employeePortal: employee.localtest.me
     managerWorkspace: manager.localtest.me
     ohWorkspace: oh.localtest.me
+    partnerPortal: partners.localtest.me
   api:
     enabled: true
     host: api.localtest.me

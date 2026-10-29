@@ -3,7 +3,7 @@
 {{- $ing := .Values.ingress -}}
 {{- $bff := .Values.bff -}}
 {{- $webHosts := list }}
-{{- range $key := list "employeePortal" "managerWorkspace" "ohWorkspace" }}
+{{- range $key := list "employeePortal" "managerWorkspace" "ohWorkspace" "partnerPortal" }}
 {{- $comp := index $root.Values $key }}
 {{- if and $comp.enabled (index $ing.hosts $key) }}
 {{- $webHosts = append $webHosts (dict "host" (index $ing.hosts $key) "comp" $comp) }}

@@ -18,10 +18,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.wellnessz.common.error.ApiException;
+import com.wellnessz.common.model.Roles;
 import com.wellnessz.security.audit.AuditService;
 import com.wellnessz.security.identity.CurrentUserProvider;
 
@@ -36,17 +38,19 @@ public class MasterDataController {
     private final JobCodeRepository jobCodes;
     private final HazardRepository hazards;
     private final ClinicSiteRepository sites;
+    private final PartnerOrganisationRepository partners;
     private final ConfigService config;
     private final CurrentUserProvider users;
     private final AuditService audit;
     private final Clock clock;
 
     public MasterDataController(OrgUnitRepository orgUnits, JobCodeRepository jobCodes, HazardRepository hazards,
-                                ClinicSiteRepository sites, ConfigService config, CurrentUserProvider users, AuditService audit, Clock clock) {
+                                ClinicSiteRepository sites, PartnerOrganisationRepository partners, ConfigService config, CurrentUserProvider users, AuditService audit, Clock clock) {
         this.orgUnits = orgUnits;
         this.jobCodes = jobCodes;
         this.hazards = hazards;
         this.sites = sites;
+        this.partners = partners;
         this.config = config;
         this.users = users;
         this.audit = audit;
@@ -72,6 +76,15 @@ public class MasterDataController {
                                     @NotBlank @Pattern(regexp = "[A-Z0-9_\\-]{1,40}") String locationCode,
                                     @NotBlank @Pattern(regexp = "[A-Za-z_]{1,30}(/[A-Za-z_\\-]{1,30}){0,2}") String timeZone,
                                     @Size(max = 500) String address, Boolean active) {
+    }
+
+    static final String PARTNER_TYPES = "HOSPITAL|CLINIC|SPECIALIST|PHYSIOTHERAPY|IMAGING|LABORATORY|MENTAL_HEALTH|TELEHEALTH|ASSISTANCE|INSURER|TPA|AUTHORITY";
+
+    public record PartnerOrganisationRequest(@NotBlank @Pattern(regexp = "[A-Z0-9_]{2,40}") String code, @NotBlank @Size(max = 200) String name,
+                                             @NotBlank @Pattern(regexp = PARTNER_TYPES) String orgType,
+                                             @NotBlank @Pattern(regexp = "[A-Z]{2}") String countryCode, @Size(max = 100) String city,
+                                             @Size(max = 320) @jakarta.validation.constraints.Email String contactEmail,
+                                             @Pattern(regexp = "[+0-9 ()\\-]{0,40}") String phone, boolean portalEnabled, Boolean active) {
     }
 
     public record ConfigRequest(@NotBlank @Size(max = 100_000) String value, @Size(max = 500) String description) {
@@ -150,6 +163,25 @@ public class MasterDataController {
         return ClinicSiteView.of(saved);
     }
 
+    /** Partner network (providers, insurers, TPAs, authorities) – internal roles only; partners never enumerate the network. */
+    @GetMapping("/partner-organisations")
+    @PreAuthorize(Roles.OH_TEAM_SPEL + " or hasAnyRole('OH_ADMIN','CLAIMS_COORDINATOR','PROCUREMENT','FINANCE','LEGAL_COUNSEL','HSE_OFFICER','CLINIC_SCHEDULER')")
+    public List<PartnerOrganisationView> partnerOrganisations(@RequestParam(required = false) @Pattern(regexp = "(" + PARTNER_TYPES + ")(,(" + PARTNER_TYPES + ")){0,11}") String types) {
+        List<PartnerOrganisation> list = types == null ? partners.findByActiveTrueOrderByName()
+                : partners.findByOrgTypeInAndActiveTrueOrderByName(List.of(types.split(",")));
+        return list.stream().map(PartnerOrganisationView::of).toList();
+    }
+
+    @PostMapping("/partner-organisations")
+    @PreAuthorize("hasAnyRole('PROCUREMENT','OH_ADMIN','PLATFORM_ADMIN','INTEGRATION')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PartnerOrganisationView upsertPartnerOrganisation(@Valid @RequestBody PartnerOrganisationRequest r) {
+        PartnerOrganisation saved = partners.save(new PartnerOrganisation(r.code(), r.name(), r.orgType(), r.countryCode(), r.city(),
+                r.contactEmail(), r.phone(), r.portalEnabled(), r.active() == null || r.active(), clock.instant()));
+        audit.record("MASTERDATA_UPSERT", "PARTNER_ORGANISATION", r.code(), AuditService.Outcome.SUCCESS, null);
+        return PartnerOrganisationView.of(saved);
+    }
+
     @GetMapping("/config/{key}")
     @PreAuthorize("hasAnyRole('OH_ADMIN','PLATFORM_ADMIN')")
     public ConfigEntryView getConfig(@PathVariable @Pattern(regexp = "[a-z0-9._\\-]{1,200}") String key) {
@@ -180,6 +212,14 @@ public class MasterDataController {
         static ClinicSiteView of(ClinicSite s) {
             return new ClinicSiteView(s.getCode(), s.getName(), s.getSiteType(), s.getLocationCode(), s.getTimeZone(), s.getAddress(),
                     s.isActive());
+        }
+    }
+
+    public record PartnerOrganisationView(String code, String name, String orgType, String countryCode, String city, String contactEmail,
+                                          String phone, boolean portalEnabled, boolean active) {
+        static PartnerOrganisationView of(PartnerOrganisation p) {
+            return new PartnerOrganisationView(p.getCode(), p.getName(), p.getOrgType(), p.getCountryCode(), p.getCity(), p.getContactEmail(),
+                    p.getPhone(), p.isPortalEnabled(), p.isActive());
         }
     }
 

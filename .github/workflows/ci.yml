@@ -81,7 +81,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [employee-app, manager-workspace, oh-workspace]
+        app: [employee-app, manager-workspace, oh-workspace, partner-portal]
     defaults:
       run:
         working-directory: web/${{ matrix.app }}

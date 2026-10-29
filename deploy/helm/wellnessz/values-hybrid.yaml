@@ -82,6 +82,8 @@ managerWorkspace:
   enabled: false
 ohWorkspace:
   enabled: false
+partnerPortal:
+  enabled: false
 
 # Internal-only API ingress reachable from the cloud BFF over
 # ExpressRoute / Interconnect / site-to-site VPN (internal load balancer).
@@ -97,6 +99,7 @@ ingress:
     employeePortal: ""
     managerWorkspace: ""
     ohWorkspace: ""
+    partnerPortal: ""
   api:
     enabled: true
     host: api.wellnessz.onprem.example.internal

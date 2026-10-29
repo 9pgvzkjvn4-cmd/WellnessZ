@@ -15,7 +15,8 @@ import jakarta.persistence.Table;
 @Table(name = "document_share", schema = "docs")
 public class DocumentShare {
 
-    public enum Target { EMPLOYEE, MANAGER, HR, PARTNER }
+    /** INSURER = insurer / TPA organisation (increment 4, E08), gated by the employee's INSURER_SHARING consent. */
+    public enum Target { EMPLOYEE, MANAGER, HR, PARTNER, INSURER }
 
     @Id
     private UUID id;

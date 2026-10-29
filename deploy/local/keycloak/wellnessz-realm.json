@@ -247,6 +247,36 @@
         "description": "Pre-employment candidate – own questionnaire, consent and booking only",
         "composite": false,
         "clientRole": false
+      },
+      {
+        "name": "CLAIMS_COORDINATOR",
+        "description": "Insurance / claims coordinator – claims, e-reporting, costs, consent-gated disclosure (no clinical notes)",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "TPA_ADJUSTER",
+        "description": "External TPA / insurer adjuster – partner portal (MFA), consented documents and RTW milestones of own claims",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "LEGAL_COUNSEL",
+        "description": "Legal counsel – litigation hold, privilege, medico-legal requests",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "FINANCE",
+        "description": "Finance partner – case cost roll-ups and ERP export (no clinical data)",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "PROCUREMENT",
+        "description": "Procurement – provider network directory, contracts, rates and SLAs",
+        "composite": false,
+        "clientRole": false
       }
     ]
   },
@@ -286,17 +316,19 @@
         "http://localhost:5173/login/oauth2/code/wellnessz",
         "http://localhost:5174/login/oauth2/code/wellnessz",
         "http://localhost:5175/login/oauth2/code/wellnessz",
+        "http://localhost:5176/login/oauth2/code/wellnessz",
         "http://localhost:8090/login/oauth2/code/wellnessz"
       ],
       "webOrigins": [
         "http://localhost:8090",
         "http://localhost:5173",
         "http://localhost:5174",
-        "http://localhost:5175"
+        "http://localhost:5175",
+        "http://localhost:5176"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:5173/*##http://localhost:5174/*##http://localhost:5175/*##http://localhost:8090/*",
+        "post.logout.redirect.uris": "http://localhost:5173/*##http://localhost:5174/*##http://localhost:5175/*##http://localhost:5176/*##http://localhost:8090/*",
         "backchannel.logout.session.required": "true",
         "use.refresh.tokens": "true",
         "client_credentials.use_refresh_token": "false",
@@ -1170,6 +1202,168 @@
           "/CANDIDATES"
         ]
       }
+    },
+    {
+      "username": "claims1",
+      "enabled": true,
+      "email": "claims1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Clare",
+      "lastName": "Claims",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "CLAIMS_COORDINATOR"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8701"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "adjuster1",
+      "enabled": true,
+      "email": "adjuster1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Adam",
+      "lastName": "Adjuster",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "TPA_ADJUSTER"
+      ],
+      "attributes": {
+        "employee_id": [
+          "X8702"
+        ],
+        "org_scope": [
+          "/PARTNERS/GULFTPA"
+        ]
+      }
+    },
+    {
+      "username": "legal1",
+      "enabled": true,
+      "email": "legal1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Leo",
+      "lastName": "Legal",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "LEGAL_COUNSEL"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8703"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "finance1",
+      "enabled": true,
+      "email": "finance1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Fay",
+      "lastName": "Finance",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "FINANCE"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8704"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "procurement1",
+      "enabled": true,
+      "email": "procurement1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Priya",
+      "lastName": "Procurement",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "PROCUREMENT"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8705"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "physio1",
+      "enabled": true,
+      "email": "physio1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Pat",
+      "lastName": "Physio",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "PARTNER_PROVIDER"
+      ],
+      "attributes": {
+        "employee_id": [
+          "X8706"
+        ],
+        "org_scope": [
+          "/PARTNERS/PHYSIOPLUS"
+        ]
+      }
     }
   ],
   "attributes": {
@@ -1202,7 +1396,12 @@
         "CLINIC_SCHEDULER",
         "BIOMEDICAL",
         "CREW_LICENSING",
-        "CANDIDATE"
+        "CANDIDATE",
+        "CLAIMS_COORDINATOR",
+        "TPA_ADJUSTER",
+        "LEGAL_COUNSEL",
+        "FINANCE",
+        "PROCUREMENT"
       ]
     },
     {
@@ -1231,7 +1430,12 @@
         "CLINIC_SCHEDULER",
         "BIOMEDICAL",
         "CREW_LICENSING",
-        "CANDIDATE"
+        "CANDIDATE",
+        "CLAIMS_COORDINATOR",
+        "TPA_ADJUSTER",
+        "LEGAL_COUNSEL",
+        "FINANCE",
+        "PROCUREMENT"
       ]
     },
     {

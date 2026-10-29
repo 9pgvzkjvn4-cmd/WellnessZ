@@ -156,6 +156,41 @@ public class DocumentTemplates {
                     List.of("Pre-employment health clearance for {{candidateName}}, offer {{offerRef}}, role {{jobTitle}}.",
                             "Clearance status: {{outcome}}.", "Workplace adjustments for onboarding: {{conditions}}",
                             "Issued by {{issuedBy}}, Occupational Health. Status only – the health questionnaire and examination stay with OH.")),
+            // increment 4 – E04 treatment plan for the employee (printable)
+            new Template("TREATMENT_PLAN", "TREATMENT_PLAN", "Treatment plan", "EMPLOYEE", true, "OH_RECORD", OH, CLINICIANS,
+                    List.of(f("employeeName", "Employee"), f("caseRef", "Case"), t("goals", "Goals", true), t("interventions", "Interventions", true),
+                            t("followUps", "Follow-up appointments", false), o("expectedRecovery", "Expected recovery"), f("clinician", "Responsible clinician")),
+                    List.of("Treatment plan for {{employeeName}} – case {{caseRef}}.", "Goals: {{goals}}", "Interventions: {{interventions}}",
+                            "Follow-up appointments: {{followUps}}", "Expected recovery: {{expectedRecovery}}",
+                            "Responsible clinician: {{clinician}}, Occupational Health. Please contact OH if you cannot attend an appointment.")),
+            // increment 4 – E04 pre-authorisation / guarantee of payment request to an insurer or TPA (shared with consent)
+            new Template("PREAUTH_REQUEST", "PREAUTH_REQUEST", "Pre-authorisation request", "INSURER", true, "CLAIM_RECORD", OH, CLINICIANS,
+                    List.of(f("employeeName", "Patient"), f("employeeId", "Employee number"), f("payer", "Insurer / TPA"), f("requestRef", "Request reference"),
+                            f("service", "Requested service"), f("provider", "Provider"), f("estimate", "Cost estimate"),
+                            t("justification", "Clinical justification", true), f("requestedBy", "Requested by")),
+                    List.of("To: {{payer}} – pre-authorisation / guarantee of payment {{requestRef}}.",
+                            "Patient: {{employeeName}} ({{employeeId}})", "Requested service: {{service}} at {{provider}}; estimate {{estimate}}.",
+                            "Clinical justification: {{justification}}", "Requested by {{requestedBy}}, Occupational Health. "
+                                    + "Shared with the employee's recorded consent to insurer sharing.")),
+            // increment 4 – E08 statutory / insurer first report of injury (facts of the event, minimum clinical data)
+            new Template("FIRST_REPORT_OF_INJURY", "FIRST_REPORT_OF_INJURY", "First report of injury", "INSURER", true, "CLAIM_RECORD",
+                    Set.of(Roles.CLAIMS_COORDINATOR, Roles.OH_CLINICIAN, Roles.OH_PHYSICIAN, Roles.CMO, Roles.CASE_MANAGER),
+                    Set.of(Roles.CLAIMS_COORDINATOR, Roles.OH_CLINICIAN, Roles.OH_PHYSICIAN, Roles.CMO, Roles.CASE_MANAGER),
+                    List.of(f("employer", "Employer"), f("employeeName", "Injured employee"), f("employeeId", "Employee number"), f("jobTitle", "Occupation"),
+                            f("occurredAt", "Date and time of injury"), f("location", "Place of injury"), t("description", "How the injury happened", true),
+                            f("bodyPart", "Part of body"), f("injuryNature", "Nature of injury"), o("lostTime", "Time lost from work"),
+                            f("reportRef", "Report reference"), f("reportedBy", "Reported by")),
+                    List.of("First report of injury {{reportRef}} – {{employer}}.", "Injured employee: {{employeeName}} ({{employeeId}}), {{jobTitle}}.",
+                            "Date and time: {{occurredAt}}. Place: {{location}}.", "How it happened: {{description}}",
+                            "Part of body: {{bodyPart}}. Nature of injury: {{injuryNature}}. Time lost: {{lostTime}}.",
+                            "Reported by {{reportedBy}}. Statutory notification – contains the minimum injury information required by law.")),
+            // increment 4 – E08 medico-legal report (legal access set, privilege marking)
+            new Template("MEDICO_LEGAL_REPORT", "MEDICO_LEGAL_REPORT", "Medico-legal report", "LEGAL", true, "CLAIM_RECORD", OH, CLINICIANS,
+                    List.of(f("employeeName", "Employee"), f("caseRef", "Case"), f("requestRef", "Legal request"), t("questions", "Questions from counsel", true),
+                            t("opinion", "Medical opinion", true), o("privilege", "Privilege"), f("author", "Author")),
+                    List.of("Medico-legal report for {{employeeName}} – case {{caseRef}}, request {{requestRef}}.", "Questions: {{questions}}",
+                            "Opinion: {{opinion}}", "Privilege: {{privilege}}", "Author: {{author}}. Prepared at the request of legal counsel – "
+                                    + "confidential, not for disclosure outside the legal access set.")),
             new Template("RESULT_LETTER", "RESULT_LETTER", "Result letter", "EMPLOYEE", true, "OH_RECORD", OH, CLINICIANS,
                     List.of(f("employeeName", "Employee"), f("testName", "Test"), f("performedOn", "Date"), t("resultSummary", "Result", true),
                             t("interpretation", "What this means", true), t("action", "Next steps", false), f("clinician", "Clinician")),
@@ -179,6 +214,8 @@ public class DocumentTemplates {
             case "RESULT_LETTER", "VACCINATION_CERTIFICATE", "VACCINATION_RECORD" -> "OH_RECORD";
             case "SICK_CERTIFICATE", "OH_ADVICE_REPORT" -> "ABSENCE_RECORD";
             case "PRE_EMPLOYMENT_DOCUMENT", "PRE_EMPLOYMENT_OUTCOME" -> "PRE_EMPLOYMENT";
+            case "PREAUTH_REQUEST", "FIRST_REPORT_OF_INJURY", "MEDICO_LEGAL_REPORT", "PROVIDER_REPORT", "PROVIDER_INVOICE" -> "CLAIM_RECORD";
+            case "TREATMENT_PLAN" -> "OH_RECORD";
             case "EXTERNAL_AEROMEDICAL_REPORT" -> "AEROMEDICAL_RECORD";
             case "PHOTO" -> "PHOTO";
             case "EXTERNAL_REPORT" -> "EXTERNAL_REPORT";

@@ -15,5 +15,7 @@ public enum ConsentPurpose {
     /** Use of de-identified data for research / predictive models. */
     RESEARCH_DEIDENTIFIED,
     /** AI-assisted documentation of a consultation (ambient capture / dictation), E03-HLR-07. */
-    AI_DOCUMENTATION
+    AI_DOCUMENTATION,
+    /** Video / secure-chat consultation with an OH clinician or partner specialist (E04-F07). */
+    TELEHEALTH_CONSULTATION
 }

@@ -49,6 +49,17 @@ updates:
       npm-minor-patch:
         update-types: [minor, patch]
 
+  - package-ecosystem: npm
+    directory: /web/partner-portal
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels: [dependencies, web]
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -64,6 +75,7 @@ updates:
       - /web/employee-app
       - /web/manager-workspace
       - /web/oh-workspace
+      - /web/partner-portal
     schedule:
       interval: weekly
     labels: [dependencies, docker]

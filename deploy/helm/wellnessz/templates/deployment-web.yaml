@@ -2,7 +2,7 @@
 Static web apps (employee portal, manager workspace, OH workspace) served by nginx-unprivileged.
 */ -}}
 {{- $root := . -}}
-{{- range $key := list "employeePortal" "managerWorkspace" "ohWorkspace" }}
+{{- range $key := list "employeePortal" "managerWorkspace" "ohWorkspace" "partnerPortal" }}
 {{- $comp := index $root.Values $key }}
 {{- if $comp.enabled }}
 {{- $ctx := dict "root" $root "comp" $comp }}
