@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ApiError, normaliseRoles } from './AuthClient';
+import { ApiError, normaliseRoles, SessionExpiredError } from './AuthClient';
 import { BffAuthClient, readXsrfToken } from './bffAuthClient';
 
 const json = (body: unknown, status = 200) =>
@@ -54,5 +54,14 @@ describe('problem details', () => {
     const err = await new BffAuthClient((async () => res) as unknown as typeof fetch, () => {}).api('/x').catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect((err as ApiError).problem).toMatchObject({ code: 'clinical_content_not_allowed', field: 'description', title: 'Unprocessable' });
+  });
+});
+
+describe('binary download', () => {
+  it('maps 401 to SessionExpiredError and other errors to ApiError', async () => {
+    const c401 = new BffAuthClient((async () => new Response(null, { status: 401 })) as unknown as typeof fetch, () => {});
+    await expect(c401.download('/documents/d1/content')).rejects.toBeInstanceOf(SessionExpiredError);
+    const c404 = new BffAuthClient((async () => new Response(null, { status: 404 })) as unknown as typeof fetch, () => {});
+    await expect(c404.download('/documents/d1/content')).rejects.toMatchObject({ status: 404 });
   });
 });

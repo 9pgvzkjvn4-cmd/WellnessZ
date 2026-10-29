@@ -152,7 +152,7 @@ describe('job offers (GET /me/job-offers, POST respond)', () => {
   });
 
   it('accepts and declines with {accept, comment?}', async () => {
-    const { client, calls } = bffWithFetch((url, init) => {
+    const { client, calls } = bffWithFetch((_url, init) => {
       const body = JSON.parse(String(init.body)) as { accept: boolean };
       return json({ ...JOB_OFFERS[0], status: body.accept ? 'ACCEPTED' : 'DECLINED', respondedAt: '2026-10-29T12:00:00Z' });
     });

@@ -36,7 +36,7 @@ describe('My documents', () => {
     expect(html).toContain('download="DOC-2026-000101.pdf"');
     expect(html).toContain('href="#/rtw"');
     expect(html).toContain('href="#/job-offers"');
-    expect(html).not.toContain('Old certificate</h2><span class="badge badge-doc-action');
+    expect(html).toMatch(/Old certificate<\/h2><span class="badge badge-doc-superseded">/);
     expect(html).not.toContain('d7'); // revoked document never listed
   });
 
