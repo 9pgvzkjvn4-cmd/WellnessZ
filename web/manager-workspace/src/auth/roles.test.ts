@@ -38,7 +38,18 @@ describe('increment 2 role gating (E05 / E03)', () => {
     expect((['restrictions', 'dutyProposals', 'rtwPlans', 'documents'] as const).every((f) => canUse(f, ['MANAGER']))).toBe(true);
     expect(canUse('jobOffers', ['MANAGER'])).toBe(false);
     expect(canUse('ihr', ['ROLE_manager'])).toBe(false);
-    expect(workspaceNav(['MANAGER']).map((n) => n.path)).toEqual(['/', '/refer', '/restrictions', '/duty-proposals', '/rtw-plans', '/documents', '/analytics']);
+    expect(workspaceNav(['MANAGER']).map((n) => n.path)).toEqual([
+      '/',
+      '/refer',
+      '/restrictions',
+      '/duty-proposals',
+      '/rtw-plans',
+      '/documents',
+      '/absence',
+      '/advice-requests',
+      '/compliance',
+      '/analytics',
+    ]);
   });
 
   it('gives HR restrictions, RTW plans (read-only), documents, job offers and IHR – not modified duty', async () => {
@@ -47,7 +58,18 @@ describe('increment 2 role gating (E05 / E03)', () => {
     expect(canUse('dutyProposals', ['HR'])).toBe(false);
     expect(canAcknowledgeRtw(['HR'])).toBe(false);
     expect(canAcknowledgeRtw(['MANAGER'])).toBe(true);
-    expect(workspaceNav(['HR']).map((n) => n.path)).toEqual(['/', '/refer/hr', '/restrictions', '/rtw-plans', '/documents', '/analytics']);
+    expect(workspaceNav(['HR']).map((n) => n.path)).toEqual([
+      '/',
+      '/refer/hr',
+      '/restrictions',
+      '/rtw-plans',
+      '/documents',
+      '/absence',
+      '/advice-requests',
+      '/compliance',
+      '/pre-employment',
+      '/analytics',
+    ]);
   });
 
   it('shows no increment-2 entries to OH or admin roles', async () => {
@@ -66,5 +88,55 @@ describe('increment 2 role gating (E05 / E03)', () => {
     expect(resolveFeatureRoute('/cases/c1/ihr', ['MANAGER'])).toMatchObject({ allowed: false });
     expect(resolveFeatureRoute('/cases/c1', ['HR'])).toBeUndefined();
     expect(resolveFeatureRoute('/analytics', ['HR'])).toBeUndefined();
+  });
+});
+
+describe('increment 3 role gating (E06 / E07)', () => {
+  it('gives managers absence, OH advice and compliance – not pre-employment', async () => {
+    const { canUse, workspaceNav } = await import('./roles');
+    expect((['absence', 'adviceRequests', 'compliance'] as const).every((f) => canUse(f, ['MANAGER']))).toBe(true);
+    expect(canUse('preEmployment', ['MANAGER'])).toBe(false);
+    const nav = workspaceNav(['ROLE_manager']);
+    expect(nav).toContainEqual({ path: '/absence', label: 'Absence' });
+    expect(nav).toContainEqual({ path: '/advice-requests', label: 'OH advice' });
+    expect(nav).toContainEqual({ path: '/compliance', label: 'Health surveillance' });
+    expect(nav.map((n) => n.path)).not.toContain('/pre-employment');
+  });
+
+  it('gives HR all four increment-3 screens', async () => {
+    const { canUse } = await import('./roles');
+    expect((['absence', 'adviceRequests', 'compliance', 'preEmployment'] as const).every((f) => canUse(f, ['hr']))).toBe(true);
+  });
+
+  it('a manager who is also HR gets the union, each entry once', async () => {
+    const { workspaceNav } = await import('./roles');
+    const paths = workspaceNav(['MANAGER', 'HR']).map((n) => n.path);
+    expect(paths.filter((p) => p === '/absence')).toHaveLength(1);
+    expect(paths).toEqual(expect.arrayContaining(['/refer', '/refer/hr', '/duty-proposals', '/pre-employment', '/compliance']));
+  });
+
+  it('hides increment-3 entries from OH, admin and other roles', async () => {
+    const { canUse } = await import('./roles');
+    for (const roles of [['OH_CLINICIAN'], ['PLATFORM_ADMIN'], ['CASE_MANAGER'], [] as string[]]) {
+      expect((['absence', 'adviceRequests', 'compliance', 'preEmployment'] as const).some((f) => canUse(f, roles))).toBe(false);
+    }
+  });
+
+  it('resolves the routes and blocks direct navigation without the role', async () => {
+    const { resolveFeatureRoute } = await import('./roles');
+    expect(resolveFeatureRoute('/absence', ['MANAGER'])).toEqual({ feature: 'absence', allowed: true });
+    expect(resolveFeatureRoute('/advice-requests', ['HR'])).toEqual({ feature: 'adviceRequests', allowed: true });
+    expect(resolveFeatureRoute('/compliance', ['MANAGER'])).toEqual({ feature: 'compliance', allowed: true });
+    expect(resolveFeatureRoute('/pre-employment', ['HR'])).toEqual({ feature: 'preEmployment', allowed: true });
+    expect(resolveFeatureRoute('/pre-employment', ['MANAGER'])).toEqual({ feature: 'preEmployment', allowed: false });
+    expect(resolveFeatureRoute('/absence', ['OH_CLINICIAN'])).toEqual({ feature: 'absence', allowed: false });
+    expect(resolveFeatureRoute('/absence/lta', ['HR'])).toBeUndefined();
+  });
+
+  it('shows the HR-only absence sections to HR only', async () => {
+    const { absenceSections } = await import('./roles');
+    expect(absenceSections(['MANAGER'])).toEqual({ team: true, lta: false, hrStage: false, certificates: false, analytics: false });
+    expect(absenceSections(['HR'])).toEqual({ team: true, lta: true, hrStage: true, certificates: true, analytics: true });
+    expect(absenceSections(['OH_ADMIN'])).toMatchObject({ team: false, lta: false });
   });
 });

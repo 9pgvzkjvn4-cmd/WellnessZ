@@ -30,7 +30,7 @@ export function Loading({ label = 'Loading…' }: { label?: string }) {
   );
 }
 
-export function StatusBadge({ status }: { status: string }) {
-  return <span className={`badge badge-${status.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>{humanise(status)}</span>;
+export function StatusBadge({ status, label }: { status: string; label?: string }) {
+  return <span className={`badge badge-${status.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>{label ?? humanise(status)}</span>;
 }
 

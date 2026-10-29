@@ -679,3 +679,100 @@ td.suppressed {
   max-width: 7rem;
   margin-left: 0.5rem;
 }
+
+/* ---------- increment 3: absence / advice / surveillance / pre-employment ---------- */
+.badge-cert-pending,
+.badge-compliance-due,
+.badge-clearance-pending,
+.badge-advice-submitted,
+.badge-advice-accepted,
+.badge-advice-report-drafted,
+.badge-advice-awaiting-employee,
+.badge-stage-informal-review,
+.badge-stage-formal-review-1,
+.badge-stage-formal-review-2,
+.badge-start-at-risk {
+  background: #fff4d6;
+  color: #6b4a00;
+  border-color: #e0b84a;
+}
+.badge-cert-invalid,
+.badge-compliance-overdue,
+.badge-clearance-unfit,
+.badge-advice-withheld,
+.badge-escalated,
+.badge-sla-overdue,
+.badge-stage-capability-hearing {
+  background: var(--c-error-bg);
+  color: var(--c-error);
+}
+.badge-cert-valid,
+.badge-compliance-current,
+.badge-clearance-fit,
+.badge-advice-released,
+.badge-oh-engaged {
+  background: var(--c-success-bg);
+  color: var(--c-success);
+}
+.badge-advice-withdrawn,
+.badge-stage-closed,
+.badge-stage-none {
+  opacity: 0.75;
+}
+@media (prefers-color-scheme: dark) {
+  .badge-cert-pending,
+  .badge-compliance-due,
+  .badge-clearance-pending,
+  .badge-advice-submitted,
+  .badge-advice-accepted,
+  .badge-advice-report-drafted,
+  .badge-advice-awaiting-employee,
+  .badge-stage-informal-review,
+  .badge-stage-formal-review-1,
+  .badge-stage-formal-review-2,
+  .badge-start-at-risk {
+    background: #3a2f10;
+    color: #ffd98a;
+    border-color: #7a6020;
+  }
+}
+.badge + .badge,
+dd .badge {
+  margin-left: 0.35rem;
+}
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+.stat-row > div {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+}
+.stat-row dt {
+  font-size: 0.85rem;
+  color: var(--c-muted);
+}
+.stat-row dd {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.report h4 {
+  margin: 1rem 0 0.5rem;
+}
+.quote {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  border-left: 4px solid var(--c-border);
+  background: var(--c-surface);
+  white-space: pre-wrap;
+}
+.filters > .button,
+.filters > button {
+  align-self: flex-end;
+}

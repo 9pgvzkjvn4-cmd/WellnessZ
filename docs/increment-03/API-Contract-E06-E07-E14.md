@@ -10,7 +10,7 @@ violations (with `code`), `409` for conflicts. `/api/v1/integration/**` is reser
 **Confidentiality rule (all three epics).** Managers, HR, crew scheduling / licensing, catering hygiene, clinic schedulers,
 reception and biomedical staff see **status, dates and functional advice only** – never absence reasons, diagnoses,
 certificate content, questionnaire answers, results, exposures or encounter content. Free text that will be shown to
-non-OH roles is screened with `ClinicalContentException.screen(field, value)` (422 `clinical_content`). Every notification
+non-OH roles is screened with `ClinicalContentException.screen(field, value)` (422 `clinical_content_not_allowed`). Every notification
 uses an approved content-free template (`NotificationTemplates`, see §7). Small-group aggregates are suppressed below
 `analytics.min-group-size` (default 5) – a suppressed row carries `suppressed:true` and no counts.
 

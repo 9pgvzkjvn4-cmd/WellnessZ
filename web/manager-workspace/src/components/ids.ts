@@ -11,3 +11,10 @@ export const appealIds = (assessmentId: string) => {
   const p = `ihr-${idPart(assessmentId)}`;
   return { grounds: `${p}-grounds`, secondOpinionBy: `${p}-secondOpinionBy` };
 };
+
+/* increment 3 */
+export const hrStageIds = (caseId: string) => {
+  const p = `lta-${idPart(caseId)}`;
+  return { stage: `${p}-stage`, note: `${p}-note` };
+};
+export const adviceQuestionId = (code: string) => `adv-q-${idPart(code)}`;
