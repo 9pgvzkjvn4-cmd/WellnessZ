@@ -65,11 +65,9 @@ import com.wellnessz.security.identity.CurrentUser;
 @Service
 public class ResultService {
 
-    /**
-     * Content-free staff template. The platform's {@code result.abnormal} / {@code result.overdue} templates cannot be
-     * rendered because the notification content rule rejects the word "result"; the generic escalation template is used.
-     */
-    static final String STAFF_TEMPLATE = "escalation.raised";
+    /** Content-free staff templates (the wording never names the test or its outcome). */
+    static final String ABNORMAL_TEMPLATE = "result.abnormal";
+    static final String OVERDUE_TEMPLATE = "result.overdue";
 
     private final ResultRepository results;
     private final LabOrderRepository orders;
@@ -261,7 +259,7 @@ public class ResultService {
             return;
         }
         String ref = caseId == null ? fallbackRef : cases.findById(caseId).map(OhCase::getCaseRef).orElse(fallbackRef);
-        notifications.enqueue(s.getUsername(), s.getEmail(), Channel.EMAIL, Priority.URGENT, STAFF_TEMPLATE,
+        notifications.enqueue(s.getUsername(), s.getEmail(), Channel.EMAIL, Priority.URGENT, ABNORMAL_TEMPLATE,
                 Map.of("caseRef", ref, "level", "ordering clinician review", "portalLink", portalLink), ZoneOffset.UTC);
     }
 
@@ -416,8 +414,8 @@ public class ResultService {
             }
             String caseRef = ref == null ? "RES-" + r.getId().toString().substring(0, 8) : ref;
             for (StaffMember cmo : cmos) {
-                notifications.enqueue(cmo.getUsername(), cmo.getEmail(), Channel.EMAIL, Priority.URGENT, STAFF_TEMPLATE,
-                        Map.of("caseRef", caseRef, "level", "CMO (72-hour review overdue)", "portalLink", portalLink), ZoneOffset.UTC);
+                notifications.enqueue(cmo.getUsername(), cmo.getEmail(), Channel.EMAIL, Priority.URGENT, OVERDUE_TEMPLATE,
+                        Map.of("caseRef", caseRef, "level", "CMO review", "portalLink", portalLink), ZoneOffset.UTC);
             }
             audit.recordAs("system", "", "RESULT_OVERDUE_ESCALATED", "RESULT", r.getId().toString(), AuditService.Outcome.SUCCESS,
                     "notified=" + cmos.size());

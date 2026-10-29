@@ -470,7 +470,7 @@ class Increment2RecordIntegrationTest extends IntegrationTestBase {
         assertThat(first.path("status").asString()).isEqualTo("PARTIAL");
         assertThat(first.path("resultCount").asInt()).isEqualTo(2);
         assertThat(jdbc.queryForObject("""
-                select count(*) from platform.notification where recipient_id = 'physician1' and template_key = 'escalation.raised'
+                select count(*) from platform.notification where recipient_id = 'physician1' and template_key = 'result.abnormal'
                    and body like ?""", Integer.class, "%" + placer + "%")).isGreaterThanOrEqualTo(1);
 
         JsonNode worklist = ok(get("/api/v1/results/worklist"), PHYSICIAN, null);
@@ -514,7 +514,7 @@ class Increment2RecordIntegrationTest extends IntegrationTestBase {
         jdbc.update("update ohrecord.result set received_at = now() - interval '80 hours' where id = ?::uuid", critical.get("id").asString());
         assertThat(resultService.escalateOverdue()).isGreaterThanOrEqualTo(1);
         assertThat(jdbc.queryForObject("""
-                select count(*) from platform.notification where recipient_id = 'cmo1' and template_key = 'escalation.raised' and body like ?""",
+                select count(*) from platform.notification where recipient_id = 'cmo1' and template_key = 'result.overdue' and body like ?""",
                 Integer.class, "%" + placer2 + "%")).isEqualTo(1);
         assertThat(texts(ok(get("/api/v1/results/worklist?overdue=true"), CMO, null), "id")).contains(critical.get("id").asString());
         assertThat(resultService.escalateOverdue()).isZero(); // escalated once only
