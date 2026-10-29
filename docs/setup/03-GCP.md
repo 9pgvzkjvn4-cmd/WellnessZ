@@ -20,6 +20,12 @@
 > **Increment 2** (E03 OH record, E05 fitness for duty) needs no new GCP resource. It adds the `DPO` role, partner
 > `org_scope` claims and gateway clients in Entra ID (section 5), three Flyway-created schemas (section 8), new core
 > settings with optional font and OCR (section 12) and increment-2 smoke checks (section 14).
+>
+> **Increment 3** (E06 absence & sickness, E07 medical surveillance, E14 scheduling & clinic operations) needs no new
+> GCP resource. It adds four app roles and groups and a candidate identity decision (section 5), gateway clients for
+> absence feeds, industrial hygiene, dosimetry, recruiting and the IoT fridge gateway (section 5), three Flyway-created
+> schemas (section 8), E18 business configuration after deployment (section 12) and increment-3 smoke checks
+> (section 14).
 
 ## 1. Overview of the steps
 
@@ -110,7 +116,7 @@ GKE does not change the identity model. Users still authenticate with **Microsof
 
 * the groups (including the nine increment-1 groups for OH_PHYSICIAN, AME, CMO, NURSING_HEAD, HSE_OFFICER,
   CREW_SCHEDULING, HYGIENE_MANAGER, CLINIC_RECEPTION and FIRST_AIDER);
-* `wellnessz-api` with app roles (20, including the nine increment-1 roles; 21 with the increment-2 role `DPO`), the `access_as_user` scope and v2 tokens;
+* `wellnessz-api` with app roles (20, including the nine increment-1 roles; 21 with the increment-2 role `DPO`; 25 with the increment-3 roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE`), the `access_as_user` scope and v2 tokens;
 * the `employee_id` / `org_scope` claims;
 * `wellnessz-bff`, with redirect URIs `https://employee.<domain>/login/oauth2/code/wellnessz`,
   `https://manager.<domain>/login/oauth2/code/wellnessz` and (increment 1) `https://oh.<domain>/login/oauth2/code/wellnessz`;
@@ -118,10 +124,14 @@ GKE does not change the identity model. Users still authenticate with **Microsof
 * M2M apps, including the **EHS webhook client** with the `INTEGRATION` application role (Azure guide, section 5.6);
 * (increment 2) the `DPO` app role and group `sg-wellnessz-dpo`, `org_scope=/PARTNERS/<ORG>` for partner users
   (Azure guide, sections 5.1–5.3), and one `INTEGRATION` client per gateway – laboratory, device middleware, crew
-  rostering (Azure guide, section 5.6).
+  rostering (Azure guide, section 5.6);
+* (increment 3) groups `sg-wellnessz-clinic-schedulers`, `sg-wellnessz-biomedical`, `sg-wellnessz-crew-licensing`
+  with their app roles, a candidate identity source with `CANDIDATE`, `employee_id` = candidate id and
+  `org_scope=/CANDIDATES` (Azure guide, sections 5.1–5.3), and one `INTEGRATION` client per new gateway – absence
+  feed per source system, industrial hygiene, dosimetry, recruiting, IoT fridge gateway (Azure guide, section 5.6).
 
 Those steps need only Entra ID, not an Azure subscription. If the airline uses **Keycloak**, follow section 5.7 of
-the Azure guide; keep the nine increment-1 roles and the increment-2 role `DPO` in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`
+the Azure guide; keep the nine increment-1 roles, the increment-2 role `DPO` and the four increment-3 roles in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`
 (`fullScopeAllowed=false`). On GKE, run Keycloak with the Keycloak Operator and a separate Cloud SQL database, behind its own
 Ingress and Cloud Armor policy.
 
@@ -267,9 +277,11 @@ On GCP no password variables are passed: Terraform already set them. The script:
 * makes `wz_migrator` the owner of the database and schemas;
 * grants `CONNECT` to the runtime roles.
 
-The schema list includes `triage` (increment 1) and `docs`, `ohrecord`, `fitness` (increment 2). For an instance
-bootstrapped earlier, Flyway V5 (and V6–V8) create the schemas and grant `USAGE` to `wz_app` during the next
-deployment; re-run the idempotent script to align the roles' `search_path`.
+The schema list is `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance,
+scheduling, analytics` – `triage` since increment 1, `docs`, `ohrecord`, `fitness` since increment 2 and `absence`,
+`surveillance`, `scheduling` since increment 3. For an instance bootstrapped earlier, Flyway V5, V6–V8 and V10–V12
+create the schemas and grant `USAGE` to `wz_app` during the next deployment; re-run the idempotent script to align
+the roles' `search_path`.
 
 ```bash
 kubectl delete namespace wz-admin
@@ -361,6 +373,15 @@ Copy `values-gcp.yaml` placeholders into an overrides file, for example `deploy/
 | `core.env.WZ_OH_WORKSPACE_URL`, `WZ_OH_CONTACT` (increment 1) | `https://oh.<domain>`; the OH service-desk contact line for notifications |
 | `core.env.WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL`, `WZ_DPO_EMAIL` (increment 2) | `https://employee.<domain>`, `https://manager.<domain>`; the DPO mailbox for break-glass alerts |
 | `core.env.WZ_DOCUMENTS_FONT_PATH`, `WZ_DOCUMENTS_RETENTION_CRON`, `WZ_DIAGNOSIS_REQUIRED_ON_CLOSE` (increment 2, optional) | Font path inside a derived core image (Arabic PDFs); default `0 30 2 * * *`; default `true` |
+
+**Increment 3** adds no required value. Optional `core.extraEnv`: `WELLNESSZ_RECORD_REQUIREREGISTEREDDEVICES=true`
+once every result-producing device is in the equipment register, and job schedule overrides
+(`WELLNESSZ_ABSENCE_FEEDCRON` etc., Azure guide section 11). After the first deployment set the E18 business keys
+through `PUT /api/v1/masterdata/config/{key}` as an OH_ADMIN – `absence.hr-email`, `notifications.hr-onboarding.email`,
+`notifications.crew-licensing.email`, `notifications.biomedical.email`, `scheduling.telehealth-base-url` and
+`absence.public-holidays` (Azure guide, section 11, *Business configuration*). The IoT fridge gateway and the absence
+feeds call the API host; if a future `AbsenceFeedConnector` pulls from a source system, add a
+`networkPolicy.extraEgress.core` rule and route it through Cloud NAT or Private Service Connect.
 
 **Optional OCR (increment 2).** Off by default. Either a derived core image with Tesseract
 (`core.extraEnv`: `WELLNESSZ_DOCUMENTS_OCR_TESSERACTPATH=/usr/bin/tesseract`,
@@ -454,6 +475,12 @@ Run the same checklist as the Azure guide, section 14, with these GCP specifics:
   Armor must accept HL7 v2 ER7 bodies (`text/plain`) on `/api/v1/integration/hl7v2` and multipart uploads of up to
   10 MB on `/api/v1/documents/scan`; check `jsonPayload.enforcedSecurityPolicy` for false positives on the
   preconfigured CRS rules.
+* **Increment 3:** run checks 25–32 of the Azure guide, section 14: new schemas, E06 / E07 / E14 `IMPLEMENTED`, new
+  roles in tokens, scheduler segregation (`403` on `/api/v1/absence/queue`), certificate upload through the BFF,
+  calibration block, cold-chain gateway call and `tools/e2e/e2e-increment3.js` (32 `PASS` lines) in dev/test. Cloud
+  Armor must accept multipart uploads of up to 10 MB on `/bff/api/me/absence/certificates` and
+  `/bff/api/me/pre-employment/documents`, and JSON batches of up to 5,000 rows on `/api/v1/integration/absence/episodes`
+  and `/api/v1/integration/cold-chain/readings`; check `jsonPayload.enforcedSecurityPolicy` for false positives.
 
 ## 15. EHS mailbox and MDM
 
@@ -478,6 +505,9 @@ private ranges are excluded.
 | CD cannot reach the control plane | Private endpoint | Use `use_dns_based_endpoint` (default in `deploy-env.yml`) and authorised networks, or a runner in the VPC |
 | Lab gateway `403` on `/integration/hl7v2` with a valid token | Cloud Armor CRS rule matched the pipe-delimited body | Add a scoped exclusion for that path and rule id; keep the `INTEGRATION` role check |
 | DPO or partner sees no data | `DPO` app role / partner `org_scope` missing | Azure guide, sections 5.2–5.3 |
+| Scheduler, biomedical, crew-licensing or candidate account sees *Access restricted* | Increment-3 app role missing or not assigned; candidate without `org_scope=/CANDIDATES` | Azure guide, sections 5.2–5.3 |
+| Certificate upload `403` at the load balancer | Cloud Armor rule matched the multipart body | Scoped exclusion for the upload paths; the core still checks type and size |
+| Certificate upload `400` from the BFF | BFF multipart parsing re-enabled by an override | Keep the shipped `spring.servlet.multipart.enabled=false` |
 
 ## 17. Teardown (dev/test only)
 

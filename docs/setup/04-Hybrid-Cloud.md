@@ -24,6 +24,12 @@
 > **Increment 2** (E03 OH record, E05 fitness for duty) adds schemas `docs`, `ohrecord`, `fitness` to the on-prem
 > database, the `DPO` role, and gateway connectivity from the laboratory, device middleware and crew rostering to the
 > on-prem API. All clinical data, documents and the search index stay on-premises. Changes are in sections 4, 8 and 10.
+>
+> **Increment 3** (E06 absence & sickness, E07 medical surveillance, E14 scheduling & clinic operations) adds schemas
+> `absence`, `surveillance`, `scheduling` to the on-prem database, four roles, nine scheduled jobs in the on-prem core
+> and gateway connectivity from HRIS / time & attendance / crew systems, industrial hygiene, dosimetry, recruiting and
+> IoT fridge gateways to the on-prem API. Absence episodes, certificates, surveillance results and cold-chain readings
+> stay on-premises. Changes are in sections 4, 8, 10 and 12.
 
 ## 1. Target state
 
@@ -113,7 +119,11 @@ gcloud container fleet policycontroller enable --memberships=wz-onprem-prod
    `EHS system → on-prem API ingress VIP : 443/TCP` as a separate, documented rule rather than routing it through
    the cloud edge (`ingress.api.enabled` is `false` there). Increment 2 adds the same kind of rule for each gateway
    (laboratory / LIS integration engine, device middleware, crew-rostering gateway → on-prem API ingress VIP :
-   443/TCP). All three **pull** from or post to the API; the core opens no connections towards them.
+   443/TCP). All three **pull** from or post to the API; the core opens no connections towards them. Increment 3 adds
+   one rule per new gateway → on-prem API ingress VIP : 443/TCP: absence feeds (HRIS, time & attendance, crew
+   management), industrial hygiene / dosimetry, recruiting and the **IoT fridge gateway** on the site networks (clinic
+   VLANs). If an `AbsenceFeedConnector` is later added to pull from a source system, that is the first outbound
+   connection of the core: add a `networkPolicy.extraEgress.core` entry and a firewall rule for exactly that system.
 4. **DNS.** A conditional forwarder for `onprem.example.internal`: Azure Private DNS Resolver, Cloud DNS
    forwarding zone or on-prem DNS.
 5. **TLS.** The API ingress certificate comes from the internal PKI. Add the internal root CA to the BFF JVM
@@ -327,6 +337,23 @@ The pre-upgrade Flyway Job migrates `wellnessz` as `wz_migrator` and grants the 
   `/api/v1/employees/{id}/results/device`.
 * Add `DPO` to the IdP (Entra app role or Keycloak realm role plus BFF / mobile scope mappings).
 
+**Increment 3 on-prem.**
+
+* Schemas `absence`, `surveillance`, `scheduling` are in `migrations.job.core.schemas` and in the CNPG bootstrap
+  (`postInitApplicationSQL` and the grants loop of `deploy/hybrid/cnpg/03-cluster.yaml`). A cluster initialised
+  earlier gets them from Flyway V10–V12; then align `search_path` as `postgres`:
+  `ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, analytics;`
+  (and the same for `wz_migrator`).
+* Add `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING` and `CANDIDATE` to the IdP (Entra app roles or Keycloak realm
+  roles plus BFF / mobile scope mappings); decide the candidate identity source (guide 06, section 5.3).
+* Register one `INTEGRATION` client per new gateway (guide 06, section 5.6); their calls go to
+  `https://api.wellnessz.onprem.example.internal/api/v1/integration/{absence/episodes,absence/certificates,ih-measurements,cosmic-dose,pre-employment,cold-chain/readings}`.
+* After the first deployment set the E18 business keys (mailboxes, telehealth URL, public holidays) through
+  `PUT /api/v1/masterdata/config/{key}` (guide 06, section 11). Mailboxes must be reachable through the SMTP relay.
+* The jobs run in the on-prem core (UTC cron, once per run across replicas); nothing is scheduled in the cloud edge.
+* The cloud edge BFF ships with multipart parsing disabled, so certificate photos and candidate documents are streamed
+  unchanged across the link to the on-prem core; keep the MTU / MSS settings of section 12 in mind for 10 MB uploads.
+
 Verify:
 
 ```bash
@@ -381,6 +408,12 @@ The Azure workload identity federated credentials expect the release name `welln
 | 14 | Gateway pull queue from the laboratory network: `GET https://api.wellnessz.onprem.example.internal/api/v1/integration/lis/orders?status=QUEUED` with a gateway token | `200`; a user token gets `403` |
 | 15 | DPO test account on `https://oh.<domain>` | Break-glass reviews, disclosures and retention load; a chart is not shown |
 | 16 | `tools/e2e/e2e-increment2.js` with the same `WZ_E2E_*` settings as check 12 (dev/test only) | 25 `PASS` lines |
+| 17 | Increment-3 schema location: `kubectl -n wellnessz-db exec wellnessz-db-1 -c postgres -- psql -U postgres -d wellnessz -c '\dn'` | `absence`, `surveillance`, `scheduling` present on-prem; the cloud session database still holds only `bff` |
+| 18 | `GET /api/v1/modules` through the edge | E06, E07 and E14 `IMPLEMENTED` |
+| 19 | IoT fridge gateway from a clinic network: `POST https://api.wellnessz.onprem.example.internal/api/v1/integration/cold-chain/readings` with the gateway token | `200`; a user token gets `403` |
+| 20 | Certificate upload in the employee portal (cloud edge) | Upload succeeds; the document is stored in the on-prem `docs` schema |
+| 21 | Scheduler test account on `https://oh.<domain>` | *Clinic diary* loads; the absence queue is not available |
+| 22 | `tools/e2e/e2e-increment3.js` with the same `WZ_E2E_*` settings as check 12 (dev/test only, against a dev database with the increment-3 demo data) | 32 `PASS` lines |
 
 ## 11. Backup restore test (quarterly, SOC 2 A1.3)
 
@@ -437,6 +470,10 @@ Then delete the test cluster.
 | Arc extension `Failed` | Outbound proxy not configured | `az connectedk8s connect --proxy-https …` |
 | Lab or rostering gateway times out | Firewall rule for that gateway → on-prem API VIP missing | Section 4, step 3 (one documented rule per gateway) |
 | Break-glass alert e-mail not received | `WZ_DPO_EMAIL` unset or the SMTP relay rejects the recipient | Set the variable; check the notification log in the core |
+| IoT fridge or absence-feed gateway times out | Firewall rule for that gateway → on-prem API VIP missing | Section 4, step 3 |
+| Certificate uploads from the portal fail with `400` | BFF multipart parsing re-enabled by an override on the edge | Keep the shipped `spring.servlet.multipart.enabled=false` |
+| Certificate uploads fail or hang for larger files | MTU / MSS on the VPN | MSS clamp to 1350 (see *Edge BFF 504* above) |
+| HR absence, crew-licensing or calibration e-mails not received | E18 mailbox keys not set or rejected by the SMTP relay | Set the keys (guide 06, section 11); check the notification log |
 
 ## 13. Teardown
 

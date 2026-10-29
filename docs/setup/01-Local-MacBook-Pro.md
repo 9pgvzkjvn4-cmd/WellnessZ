@@ -751,7 +751,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/
 ```
 
 Expected: `200` with `received: 2`, `matched: 1`, `unmatched: 1`; the unknown badge appears in *OH workspace →
-Absence → Feed quality* (as `admin1`). Only the allow-listed absence types (`SICKNESS`, `INJURY_WORK`,
+Absence → Absence feed* (as `admin1`). Only the allow-listed absence types (`SICKNESS`, `INJURY_WORK`,
 `INJURY_NON_WORK`, `MATERNITY_RELATED`, `OTHER_AUTHORISED`) and reason categories are accepted.
 
 Post an IoT fridge reading outside 2–8 °C:
@@ -762,7 +762,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/
 
 Expected: `200` with `accepted: 1`, `excursionsOpened: 1` (or `0` if an excursion for the fridge is already open) and
 `unknownDevices: ["FRIDGE-UNKNOWN"]`. A clinician (for example `nurse1`) acknowledges the excursion in *OH workspace →
-Scheduling → Equipment*; `biomed1` sees it but cannot acknowledge. The other machine endpoints are
+Clinic → Equipment & cold chain*; `biomed1` sees it but cannot acknowledge. The other machine endpoints are
 `POST /api/v1/integration/absence/certificates`, `/integration/ih-measurements`, `/integration/cosmic-dose` and
 `/integration/pre-employment` (contract: `docs/increment-03/API-Contract-E06-E07-E14.md`). A user token through the
 BFF gets `403` on `/integration/**`.
@@ -773,16 +773,16 @@ With the core on the `local` profile, the BFF and the three dev servers running 
 
 | Epic | Sign in as | Do | Expected |
 |---|---|---|---|
-| E06 absence | `nurse1` (OH workspace) | *Absence → Queue* | Early-intervention items raised by trigger rules (for example `E1001`); *Absence → LTA* shows `E1004` with milestones |
+| E06 absence | `nurse1` (OH workspace) | *Absence → Early intervention* | Items raised by trigger rules (for example `E1001`); *Absence → Long-term absence* shows `E1004` with milestones |
 | E06 absence | `manager1` (manager workspace) | *Absence* | Team table with dates and days only – no reason category |
-| E06 advice | `employee1` (employee app) | *Advice reports* | The demo report waits for review; consent releases it to `manager1`, who sees fitness and functional advice only |
-| E06 certificates | `employee1` | *My absence → upload certificate* (photo or PDF) | Upload succeeds through the BFF; `hr1` later sees the certificate **validity** only |
-| E07 surveillance | `nurse1` / `cmo1` | *Surveillance → Programmes*, *Due list*, *Compliance* | 13 programmes; due list with invitations; compliance with groups below 5 shown as suppressed |
-| E07 crew | `crewlicensing1` (OH workspace) | *Crew certificates* | Expiring certificates and `E7001` without a valid medical; no examination content |
+| E06 advice | `employee1` (employee app) | *Advice* | The demo report waits for review; consent releases it to `manager1`, who sees fitness and functional advice only |
+| E06 certificates | `employee1` | *Absence* → upload a certificate (photo or PDF) | Upload succeeds through the BFF; `hr1` later sees the certificate **validity** only |
+| E07 surveillance | `nurse1` / `cmo1` | *Surveillance → Programmes*, *Due list*, *Compliance & audit* | 13 programmes; due list with invitations; compliance with groups below 5 shown as suppressed |
+| E07 crew | `crewlicensing1` (OH workspace) | *Surveillance → Crew medicals* | Expiring certificates and `E7001` without a valid medical; no examination content |
 | E07 pre-employment | `candidate1` (employee app) | Candidate portal | Only the pre-employment questionnaire, consent, documents and booking; no other menu entries |
-| E14 scheduling | `scheduler1` (OH workspace) | *Scheduling → Diary*; book the same clinician twice for the same slot | Second booking answers `409 resource_conflict` |
-| E14 clinic flow | `reception1` | *Reception kiosk* → check in `E1001` by badge `B-1001`; open the *Queue board* | A ticket number, no names; `nurse1` uses *Call next* and lands in the chart |
-| E14 equipment | `biomed1` | *Scheduling → Equipment* | `AUD-LHR-02` overdue; after recording a passing calibration, device results for it are accepted again |
+| E14 scheduling | `scheduler1` (OH workspace) | *Clinic → Clinic diary*; book the same clinician twice for the same slot | Second booking answers `409 resource_conflict` |
+| E14 clinic flow | `reception1` | *Clinic → Check-in kiosk* → check in `E1001` (demo vaccination appointment) by badge `B-1001`; open *Clinic → Queue board* | A ticket number, no names; `nurse1` uses *Call next* and lands in the chart |
+| E14 equipment | `biomed1` | *Clinic → Equipment & cold chain* | `AUD-LHR-02` overdue; after recording a passing calibration, device results for it are accepted again |
 
 ## 9. Secrets in configuration: `ENC(...)`
 

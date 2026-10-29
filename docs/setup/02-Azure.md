@@ -22,6 +22,12 @@
 > group (section 5), an `org_scope` claim for partner users (5.3), gateway clients for laboratory, devices and crew
 > rostering (5.6), three schemas created by Flyway (8), new core settings including optional PDF font and OCR (11)
 > and smoke checks 18–24 (14).
+>
+> **Increment 3** (E06 absence & sickness, E07 medical surveillance, E14 scheduling & clinic operations) needs no new
+> Azure resource either. It adds four app roles and groups (`CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`,
+> `CANDIDATE`, section 5), a separate identity source for candidates (5.3), gateway clients for absence feeds,
+> industrial hygiene, dosimetry, recruiting and the IoT fridge gateway (5.6), three schemas created by Flyway (8),
+> business configuration set through the API after the first deployment (11) and smoke checks 25–32 (14).
 
 ## 1. Overview of the steps
 
@@ -151,6 +157,10 @@ URIs; prod should have its own registrations.
 | `sg-wellnessz-clinic-reception` | CLINIC_RECEPTION | Clinic front desk (increment 1) |
 | `sg-wellnessz-first-aiders` | FIRST_AIDER | Workplace first aiders (increment 1) |
 | `sg-wellnessz-dpo` | DPO | Data protection officer and deputy – break-glass review, disclosure log, retention; no clinical access (increment 2) |
+| `sg-wellnessz-clinic-schedulers` | CLINIC_SCHEDULER | Clinic schedulers – diaries, bookings, campaigns, waitlists; no clinical data (increment 3) |
+| `sg-wellnessz-biomedical` | BIOMEDICAL | Biomedical / equipment technicians – equipment register, calibration, cold chain (increment 3) |
+| `sg-wellnessz-crew-licensing` | CREW_LICENSING | Crew training & licensing – crew medical certificate validity, status only (increment 3) |
+| `sg-wellnessz-candidates` | CANDIDATE | Pre-employment candidates – **only** if candidates are guests in this tenant; preferably a separate candidate identity source (section 5.3, increment 3) |
 | `sg-wellnessz-aks-admins` | – | AKS cluster admins (`aks_admin_group_object_ids`) |
 | `sg-wellnessz-db-admins` | – | PostgreSQL Entra admin (`postgres_entra_admin`) |
 
@@ -189,13 +199,18 @@ cat > /tmp/wz-roles.json <<'EOF'
  {"allowedMemberTypes":["User"],"displayName":"Hygiene manager","value":"HYGIENE_MANAGER","description":"Food-handler status only","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000012"},
  {"allowedMemberTypes":["User"],"displayName":"Clinic reception","value":"CLINIC_RECEPTION","description":"Walk-in registration, no clinical data","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000013"},
  {"allowedMemberTypes":["User"],"displayName":"First aider","value":"FIRST_AIDER","description":"First-aid registration, no clinical data","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000014"},
- {"allowedMemberTypes":["User"],"displayName":"DPO","value":"DPO","description":"Data protection officer - break-glass review, disclosures, retention; no clinical data","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000015"}
+ {"allowedMemberTypes":["User"],"displayName":"DPO","value":"DPO","description":"Data protection officer - break-glass review, disclosures, retention; no clinical data","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000015"},
+ {"allowedMemberTypes":["User"],"displayName":"Clinic scheduler","value":"CLINIC_SCHEDULER","description":"Diaries, bookings, campaigns - no clinical data","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000016"},
+ {"allowedMemberTypes":["User"],"displayName":"Biomedical","value":"BIOMEDICAL","description":"Equipment register, calibration, cold chain","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000017"},
+ {"allowedMemberTypes":["User"],"displayName":"Crew licensing","value":"CREW_LICENSING","description":"Crew medical certificate validity - status only","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000018"},
+ {"allowedMemberTypes":["User"],"displayName":"Candidate","value":"CANDIDATE","description":"Pre-employment candidate - own questionnaire, consent, booking","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000019"}
 ]
 EOF
 ```
 
 Generate your own GUIDs (`uuidgen`) for the `id` fields; the values above are examples. The last nine roles were
-added in increment 1 (E01 intake, E02 triage); `DPO` was added in increment 2 (E03, E05). Then create the API app:
+added in increment 1 (E01 intake, E02 triage); `DPO` was added in increment 2 (E03, E05); `CLINIC_SCHEDULER`,
+`BIOMEDICAL`, `CREW_LICENSING` and `CANDIDATE` in increment 3 (E06, E07, E14). Then create the API app:
 
 ```bash
 API_APP_ID=$(az ad app create --display-name wellnessz-api --identifier-uris api://wellnessz-api --app-roles @/tmp/wz-roles.json --query appId -o tsv) && echo $API_APP_ID
@@ -256,6 +271,12 @@ groups to **both** mappings.
 the registration and assign `sg-wellnessz-dpo` to it. The DPO account needs no other WellnessZ role; do not add DPO
 members to clinical groups.
 
+**Existing tenant (upgrade to increment 3).** Append the four increment-3 entries (`CLINIC_SCHEDULER`, `BIOMEDICAL`,
+`CREW_LICENSING`, `CANDIDATE`) in the same way, update the registration and assign `sg-wellnessz-clinic-schedulers`,
+`sg-wellnessz-biomedical` and `sg-wellnessz-crew-licensing`. None of these roles may be combined with clinical groups
+for the same person unless that person is also an OH clinician. Assign `CANDIDATE` only to candidate identities
+(section 5.3). If you map roles from group object ids, add the new groups to **both** group-role mappings.
+
 **Values to note.** The API's application (client) ID is the **audience** (`WZ_OIDC_AUDIENCE`). The issuer is
 `https://login.microsoftonline.com/<tenant-id>/v2.0`.
 
@@ -303,6 +324,16 @@ with Entra audit logs.
 need `org_scope` set to `/PARTNERS/<ORG>`, where `<ORG>` is the partner code that OH uses when sharing a document
 (`[A-Z0-9_]{2,40}`, for example `/PARTNERS/CITYHOSP`). Without it a partner sees no documents. Set the value only
 after the data-sharing agreement for that partner is signed.
+
+**Candidates (increment 3).** Pre-employment candidates are not employees and must not be in the workforce
+directory. Recommended: a separate Microsoft Entra External ID tenant (or a Keycloak candidate realm). The core can
+trust it as an additional issuer (`WZ_OIDC_ISSUERS`), but the BFF has a single OIDC registration (`wellnessz`), so
+browser sign-in needs either a broker in front of both directories (for example Keycloak brokering Entra ID and the
+candidate directory) or a second BFF registration – a design decision that is still open (doc 01, D17). Each candidate account
+carries the app role `CANDIDATE`, `employee_id` = the candidate id from recruiting (for example `C9001`, the same value
+recruiting sends to `POST /api/v1/integration/pre-employment`) and `org_scope=/CANDIDATES`. Disable the account when
+the offer is closed; non-hired candidates' health data is purged after 12 months by the core. Until a candidate
+identity source is decided (doc 01, D17), use B2B guest accounts in `sg-wellnessz-candidates` only in dev / test.
 
 ### 5.4 BFF app registration `wellnessz-bff` (confidential web client)
 
@@ -391,6 +422,16 @@ partner's service principal as `principalId`). Partners request tokens with the 
 | `wellnessz-lis-gateway` | `GET /integration/lis/orders?status=QUEUED`, `POST /integration/lis/orders/{id}/ack`, `POST /integration/lis/results` or `POST /integration/hl7v2` (`ORU^R01`, `text/plain`) | Pull model: the core never connects to the laboratory; MLLP stays on the integration engine |
 | `wellnessz-device-gateway` | `POST /employees/{id}/results/device` | Device middleware for audiometers, spirometers, vision screeners, ECG; send the calibration id |
 | `wellnessz-roster-gateway` | `GET /integration/roster-feed?since=…`, `POST /integration/roster-feed/{messageId}/ack` | Acknowledge every message within 15 minutes; unacknowledged messages are audited and shown in the reconciliation report |
+
+**Gateway clients (increment 3).** Same pattern – one app registration per source, certificate credential,
+`INTEGRATION` application role:
+
+| App registration (example) | Calls (all on `https://api.<domain>/api/v1`) | Notes |
+|---|---|---|
+| `wellnessz-absence-feed` (one per source: HRIS, time & attendance, crew management) | `POST /integration/absence/episodes` (≤ 5,000 rows, `sourceSystem` `HRIS` / `TNA` / `CREW`), `POST /integration/absence/certificates` | Reason **categories** only, never diagnoses; unknown employees appear in *Absence → Absence feed* for reconciliation |
+| `wellnessz-ih-gateway`, `wellnessz-dosimetry` | `POST /integration/ih-measurements`, `POST /integration/cosmic-dose` | Industrial hygiene measurements per exposure group; annual crew cosmic dose |
+| `wellnessz-recruiting` | `POST /integration/pre-employment` | Opens the pre-employment assessment for a candidate id; HR receives the clearance status only |
+| `wellnessz-iot-coldchain` | `POST /integration/cold-chain/readings` (≤ 5,000 readings per call) | Fridge gateway; device ids must match the E14 equipment register (`deviceId`); unknown devices are listed in the response |
 
 Gateways in the corporate network reach the API through the App Gateway private listener (ExpressRoute / VPN) where
 possible. Smoke test with a gateway token:
@@ -577,13 +618,15 @@ PGPASSWORD="<token>" psql "host=<pghost> dbname=wellnessz user=sg-wellnessz-db-a
 Expected last line:
 `WellnessZ bootstrap complete: wz_migrator owns wellnessz + schemas; wz_app/wz_bff have CONNECT only (table grants via Flyway).`
 
-The script creates the schemas `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics`
-(`triage` since increment 1; `docs`, `ohrecord`, `fitness` since increment 2).
+The script creates the schemas `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence,
+surveillance, scheduling, analytics` (`triage` since increment 1; `docs`, `ohrecord`, `fitness` since increment 2;
+`absence`, `surveillance`, `scheduling` since increment 3).
 **Upgrading an environment bootstrapped before increment 1:** Flyway V5 creates schema `triage` itself (as
 `wz_migrator`, which owns the database) and grants `USAGE` to `wz_app`, so the upgrade works without a manual step.
 Re-run the idempotent bootstrap script anyway to align ownership and the roles' `search_path` with the new schema
 list. The same applies to increment 2: Flyway V6, V7 and V8 create `docs`, `ohrecord` and `fitness` and grant `USAGE`
-to `wz_app`; re-run the bootstrap to update `search_path`.
+to `wz_app`; re-run the bootstrap to update `search_path`. Increment 3 is identical: Flyway V10, V11 and V12 create
+`absence`, `surveillance` and `scheduling` (V9 adds platform rows only); re-run the bootstrap once.
 
 The pod is removed when you exit. Then delete the helper namespace:
 
@@ -718,6 +761,30 @@ Increment 2 adds these core settings:
   resource in the same region with a private endpoint and disabled public access, the core's managed identity with
   *Cognitive Services User*, a `networkPolicy.extraEgress.core` rule to the private endpoint, and a DPIA. Do not
   enable it without DPO approval.
+
+Increment 3 adds **no** environment variable that must be set. Optional core settings (`core.extraEnv`):
+
+| Variable | Value |
+|---|---|
+| `WELLNESSZ_RECORD_REQUIREREGISTEREDDEVICES` | `true` once every audiometer, spirometer, ECG and vision screener that records results is in the equipment register (default `false`: unregistered devices are accepted, registered ones are checked for calibration) |
+| `WELLNESSZ_ABSENCE_FEEDCRON`, `WELLNESSZ_ABSENCE_TRIGGERSCRON`, `WELLNESSZ_ABSENCE_LTACRON`, `WELLNESSZ_SURVEILLANCE_DUEJOBCRON`, `WELLNESSZ_SURVEILLANCE_CREWJOBCRON`, `WELLNESSZ_SURVEILLANCE_PURGEJOBCRON`, `WELLNESSZ_SCHEDULING_REMINDERCRON`, `WELLNESSZ_SCHEDULING_NOSHOWCRON`, `WELLNESSZ_SCHEDULING_CALIBRATIONCRON` | Optional job schedules (UTC); defaults in doc 01, Section 21.3 – keep the absence feed before the trigger run |
+
+**Business configuration after the first deployment (increment 3).** Mailboxes, the telehealth link and the
+holiday calendar are E18 configuration, not Helm values. Set them once per environment as an OH_ADMIN or
+PLATFORM_ADMIN user (each change is audited), for example:
+
+```bash
+curl -s -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' https://api.<domain>/api/v1/masterdata/config/absence.hr-email -d '{"value":"hr-absence@<domain>","description":"HR absence distribution list (status only)"}'
+```
+
+| Key | Set to |
+|---|---|
+| `absence.hr-email` | HR absence mailbox (status-only notifications) |
+| `notifications.hr-onboarding.email` | HR onboarding mailbox (pre-employment status) |
+| `notifications.crew-licensing.email` | Crew training & licensing mailbox (crew medical expiry) |
+| `notifications.biomedical.email` | Biomedical engineering mailbox (calibration-due alerts; cold-chain excursions go to the site's clinicians and the Nursing Head from the OH staff roster) |
+| `scheduling.telehealth-base-url` | Join-URL prefix of the video service approved by the DPO (doc 01, D15); leave the default only if telehealth appointment types are disabled |
+| `absence.public-holidays` | Public holidays of the operating country (comma-separated ISO dates) for the post-holiday absence pattern |
 
 Do not set `WZ_FLYWAY_LOCATIONS` to include `classpath:db/demo` in any shared environment; with `migrations.mode: job`
 the migration Job reads only `db/migration`. The OH staff roster (`masterdata.staff_member`) has no import yet: load it
@@ -866,6 +933,14 @@ section 8.2, through the workspace or `POST /api/v1/intake/ehs/excel`. The respo
 | 22 | Documents | Generate and sign a fitness certificate for a test employee (OH workspace) and download it | PDF opens; Arabic names render if a font is configured |
 | 23 | Gateway pull queue | Section 5.6 smoke call with a gateway token | `200`; the same call with a user token returns `403` |
 | 24 | Increment-2 end-to-end (dev/test only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment2.js` | Requires test accounts with the local user names (including `dpo1`, `ame1`, `cmo1`, `crewsched1`) and an adapted login step for Entra; 25 `PASS` lines |
+| 25 | Increment-3 schemas | Bootstrap pod (section 8): `psql … -c '\dn'` | `absence`, `surveillance`, `scheduling` owned by `wz_migrator` |
+| 26 | Modules (increment 3) | `GET /api/v1/modules` with any user token | E06, E07 and E14 `IMPLEMENTED` |
+| 27 | New roles in tokens | Decode access tokens of scheduler, biomedical and crew-licensing test users | `"roles"` contains `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING` respectively |
+| 28 | Scheduler segregation | Browser login on `https://oh.<domain>` as a scheduler test account | *Clinic diary* and *Due list* load; `GET /api/v1/absence/queue` answers `403` |
+| 29 | Upload through the BFF | Employee test account uploads a sick certificate (photo) in the employee portal | Upload succeeds (a `400` points to a BFF with multipart parsing enabled – keep the shipped default) |
+| 30 | Calibration block | Record a device result (OH workspace or device gateway) with a device that is overdue in *Equipment & cold chain* | `422 device_out_of_calibration`; accepted after a passing calibration is recorded |
+| 31 | Cold-chain gateway | `POST https://api.<domain>/api/v1/integration/cold-chain/readings` with the IoT gateway token and a registered fridge id | `200` with `accepted: 1`; a value outside 2–8 °C opens an excursion and sends the urgent, content-free `coldchain.excursion` notice to the site's clinicians and the Nursing Head |
+| 32 | Increment-3 end-to-end (dev/test only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment3.js` | Requires the increment-3 demo data (dev only – never `db/demo` in shared environments, so run it against a dev database prepared with the demo files), test accounts with the local user names (including `scheduler1`, `biomed1`, `crewlicensing1`, `candidate1`) and an adapted login step; 32 `PASS` lines |
 
 ## 15. Mobile app and MDM onboarding
 
@@ -903,6 +978,11 @@ Details: `web/employee-app/README.md`, section *Runtime configuration & MDM*.
 | OH workspace shows *Access restricted* for a clinician | New app role not defined or group not assigned; or group-based mapping missing the new group | Section 5.2 (existing tenant upgrade); check `GET /bff/session` roles |
 | Webhook `400 idempotency_key_required` / `403` | Missing `Idempotency-Key`; client lacks the `INTEGRATION` application role | Section 5.6 |
 | DPO account sees *Access restricted* | `DPO` app role missing on `wellnessz-api` or group not assigned | Section 5.2 (upgrade to increment 2) |
+| Scheduler, biomedical or crew-licensing account sees *Access restricted* | Increment-3 app role missing on `wellnessz-api` or group not assigned | Section 5.2 (upgrade to increment 3) |
+| Candidate cannot sign in or sees employee menus | Candidate account in the wrong directory, or `CANDIDATE` role / `employee_id` / `org_scope=/CANDIDATES` missing | Section 5.3 (candidates) |
+| Uploads through the portal fail with `400` | BFF multipart parsing re-enabled by an override | Remove the override; the BFF ships with `spring.servlet.multipart.enabled=false` |
+| No calibration-due or HR absence e-mails | E18 mailbox keys still at their `@wellnessz.local` defaults | Section 11, business configuration |
+| No cold-chain excursion e-mails | No clinician with the fridge's site in the OH staff roster (`masterdata.staff_member.site_codes`) and no Nursing Head | Load the staff roster with site codes (doc 01, O9) |
 | Partner sees no shared documents | `org_scope` not `/PARTNERS/<ORG>`, or the employee withdrew consent | Section 5.3; the disclosure log shows the share as `REVOKED` after withdrawal |
 | Core does not start after enabling OCR: `Unsupported OCR binary location` | Path or language list outside the allow-list | Use `/usr/bin/tesseract` and one of `eng`, `ara`, `fra`, `eng+ara`, `eng+fra`, `eng+ara+fra` |
 | App Gateway backend unhealthy | NetworkPolicy blocks health probes on 8081 | `networkPolicy.ingressController.allowHealthChecks=true` and the App Gateway subnet in `ipBlocks` |

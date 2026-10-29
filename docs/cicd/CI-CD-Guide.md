@@ -22,6 +22,11 @@
 >   * `terraform fmt` / `validate`.
 > * **Not yet run:** the workflows themselves have not run on GitHub-hosted runners, and the OIDC federation to a
 >   real Azure or GCP tenant is unexercised. The first pipeline run in your organisation is their acceptance test.
+>
+> **Increment 3** (E06, E07, E14) adds three Maven modules (`modules/wz-e06-absence`, `modules/wz-e07-surveillance`,
+> `modules/wz-e14-scheduling`), three integration test classes, the end-to-end script `tools/e2e/e2e-increment3.js`
+> and no new image, workflow or third-party dependency. Baseline: 210 Java tests, 0 SpotBugs findings (6 exclusions),
+> web tests 463 / 191 / 154, E2E 32/32 (sections 3.1, 3.3).
 
 ## 1. Branching and pull-request flow
 
@@ -61,7 +66,9 @@ The flow:
 **`ci.yml` jobs:**
 
 * **java:** `./mvnw verify` (unit + integration tests on PostgreSQL via Testcontainers, ArchUnit, JaCoCo,
-  CycloneDX), then **SpotBugs + FindSecBugs** (`-Psecurity -DskipTests -Ddependency-check.skip=true verify`; fails
+  CycloneDX) over every Maven module – since increment 3 the reactor builds the ten platform modules, the seven
+  business modules `wz-e01-intake`, `wz-e02-triage`, `wz-e03-record`, `wz-e05-fitness`, `wz-e06-absence`,
+  `wz-e07-surveillance`, `wz-e14-scheduling`, and the two apps – then **SpotBugs + FindSecBugs** (`-Psecurity -DskipTests -Ddependency-check.skip=true verify`; fails
   on any finding).
 * **web (matrix `app: [employee-app, manager-workspace, oh-workspace]`):** `npm ci --ignore-scripts`, lint, test,
   build, `npm audit --omit=dev --audit-level=high`, CycloneDX SBOM. Each matrix entry is a separate check named
@@ -138,8 +145,8 @@ servers or images). Run them as a release gate:
 
 | When | What | Pass criterion |
 |---|---|---|
-| Before opening the release PR (developer laptop, setup guide 05) | `node tools/e2e/e2e.js`, `node tools/e2e/e2e-increment1.js` and `node tools/e2e/e2e-increment2.js` | `e2e.js` ends with the status-only lines; `e2e-increment1.js` prints 18 and `e2e-increment2.js` 25 `PASS` lines, both exit 0 |
-| After `cd.yml` deploys to **dev** or **test** | `e2e-increment1.js` and `e2e-increment2.js` with `WZ_E2E_*` pointing at the environment and dedicated test accounts | Same; attach the logs and screenshots to the release record (CC8.1 evidence) |
+| Before opening the release PR (developer laptop, setup guide 05) | `node tools/e2e/e2e.js`, `node tools/e2e/e2e-increment1.js`, `node tools/e2e/e2e-increment2.js` and `node tools/e2e/e2e-increment3.js` (in this order, on a freshly purged local database) | `e2e.js` ends with the status-only lines; `e2e-increment1.js` prints 18, `e2e-increment2.js` 25 and `e2e-increment3.js` 32 `PASS` lines, all exit 0 |
+| After `cd.yml` deploys to **dev** or **test** | The three increment scripts with `WZ_E2E_*` pointing at the environment and dedicated test accounts (`e2e-increment3.js` needs a dev database with the increment-3 demo data) | Same; attach the logs and screenshots to the release record (CC8.1 evidence) |
 
 Increment 1 baseline: `e2e-increment1.js` 18/18. Screenshots of the reference run are kept in
 `docs/images/screens/increment-01/`.
@@ -149,6 +156,21 @@ scripts are the pre-release gate from increment 2 on**: a release that touches t
 or any business module must pass both, because increment 2 changed shared code that increment 1 relies on (kernel
 fitness publication, consent, notification templates, BFF path handling). The increment-2 script needs the realm user
 `dpo1` (a realm imported before increment 2 must be re-imported) and the `local` profile demo data.
+
+Increment 3 baseline: `e2e-increment3.js` 32/32, 37 screenshots in `docs/images/screens/increment-03/`. **All three
+increment scripts are the pre-release gate from increment 3 on**, because increment 3 changed code that the earlier
+increments use: E03 result capture (calibration check, follow-up listener), E05 fitness decisions (clearance guard),
+the document service (module-level API, new templates), notification templates and the BFF (workspace paths,
+multipart handling). The increment-3 script needs the realm users `scheduler1`, `biomed1`, `crewlicensing1`,
+`candidate1` (re-import a realm from before increment 3), the `local` profile demo data, and a database on which it has
+not run yet – several checks consume demo state (calibration of `AUD-LHR-02`, release of the demo advice report, the
+candidate's consent). Purge and recreate the local stack before a gate run (`./deploy/local/down.sh --purge`,
+`./deploy/local/up.sh`, restart the core).
+
+The run on 2026-10-29 found one defect that unit and integration tests could not see: the BFF parsed browser
+`multipart/form-data` uploads with Spring's servlet multipart support and forwarded an empty body (`400`). It is fixed
+with `spring.servlet.multipart.enabled=false` in `apps/wz-bff/src/main/resources/application.yml`; the certificate
+upload check of `e2e-increment3.js` is the regression test.
 
 To automate the stage later (recommended), add a `workflow_dispatch` / post-deploy job that starts the Docker Compose
 stack with `./deploy/local/up.sh --apps`, serves the three built web apps, installs `playwright@1` with Chromium,
@@ -174,6 +196,28 @@ OCR. If an environment needs them, build a derived image from the signed `wz-cor
 and the font) and run it through the same Trivy gate, SBOM, provenance and cosign signing as the base image; add the
 image to the `cosign verify` loop of `deploy-env.yml`. Never install packages at container start (read-only root
 filesystem).
+
+### 3.3 Integration tests and the test database (increment 3)
+
+| Test class (`apps/wz-core-app/src/test/java/com/wellnessz/app/`) | Tests | Covers |
+|---|---|---|
+| `Increment3AbsenceIntegrationTest` | 10 | Feed reconciliation, trigger queue and notifications, rule versioning and test mode, crew sickness → AME review, certificates (HR validity only), LTA pathway and HR stage, advice report screening / consent / release / decline, analytics suppression, non-OH roles denied |
+| `Increment3SurveillanceIntegrationTest` | 9 | Programme builder and simulation, due list and invitations with no-show escalation, pre-employment candidate portal and HR status, crew certificates and roster status, immunisation fast entry, IH import, device threshold-shift follow-up, return-after-illness clearance guard, compliance and audit packs |
+| `Increment3SchedulingIntegrationTest` | 9 | Booking with conflicts and waitlist, self-booking rules, reminder and no-show jobs with status listeners, campaign of 500 bookings, check-in / queue board / call-next, calibration blocking E03 device capture, cold-chain IoT excursion, capacity, catalogue and role denials |
+| `ArchitectureTest` | 14 rules | Four new rules for increment-3 module independence (doc 01, Section 5.2) |
+
+Module unit tests: E06 18 (`RuleEngineTest`, `AbsencePatternsTest`, `CertificateChecksTest`, `MilestonePlanTest`,
+`UnitAggregatorTest`), E07 13 (`EligibilityTest`, `SurveillanceRulesTest`), E14 18 (`SlotEngineTest`,
+`BookingRulesTest`, `EquipmentRulesTest`, `CampaignAndCapacityTest`); in `wz-notification`,
+`NotificationRulesTest` renders every template through the content rules. Total: **210 tests**.
+
+**Test database per run.** `IntegrationTestBase` generates new `WZ_MASTER_KEY` / `WZ_PSEUDONYM_KEY` values for every
+test JVM, so encrypted columns are keyed per run. In CI the `java` job uses a fresh Testcontainers PostgreSQL per run,
+so nothing needs to be done. A self-hosted runner or Azure DevOps agent that points `WZ_TEST_DB_URL` at a persistent
+database must **drop and recreate that database before every run** (for example a pipeline step with
+`DROP DATABASE IF EXISTS wellnessz_test WITH (FORCE)` / `CREATE DATABASE … OWNER wz_migrator` / `GRANT CONNECT,
+TEMPORARY … TO wz_app`), otherwise the second run fails on data encrypted with the previous run's keys. Keep a
+`_test` suffix in the database name (the E07 demo data relies on it).
 
 ## 4. Supply chain: pinning, signing, SBOM, provenance
 
@@ -449,7 +493,8 @@ repository. This requires the `attribute.environment` mapping shown above.
 ### 10.1 New Maven module (for example a business module `modules/wz-e07-surveillance`)
 
 Increment 1 followed this checklist for `modules/wz-e01-intake` and `modules/wz-e02-triage`; increment 2 for
-`platform/wz-documents`, `modules/wz-e03-record` and `modules/wz-e05-fitness`:
+`platform/wz-documents`, `modules/wz-e03-record` and `modules/wz-e05-fitness`; increment 3 for
+`modules/wz-e06-absence`, `modules/wz-e07-surveillance` and `modules/wz-e14-scheduling`:
 
 1. Add `<module>` and the `<dependencyManagement>` entry to the root `pom.xml` and the dependency in
    `apps/wz-core-app/pom.xml`. CI picks it up automatically through `./mvnw verify`, SpotBugs, dependency-check,
@@ -459,17 +504,25 @@ Increment 1 followed this checklist for `modules/wz-e01-intake` and `modules/wz-
 3. Add migrations for its tables (section 8) and grants to `${app_role}`. A **new schema** must also be added to
    `spring.flyway.schemas`, the Helm value `migrations.job.core.schemas`, `deploy/local/postgres/01-init-wellnessz.sh`,
    `deploy/sql/bootstrap-managed-postgres.sql` and `deploy/hybrid/cnpg/03-cluster.yaml` (increment 1: `triage`;
-   increment 2: `docs`, `ohrecord`, `fitness`). Demo data goes to `db/demo` (`R__demo_*.sql`), never to `db/migration`.
+   increment 2: `docs`, `ohrecord`, `fitness`; increment 3: `absence`, `surveillance`, `scheduling` – the list is now
+   `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling,
+   analytics`). Demo data goes to `db/demo` (`R__demo_*.sql`), never to `db/migration`.
 4. New roles: Keycloak realm roles **and** the scope mappings of `wellnessz-bff` / `wellnessz-mobile`; Entra app roles
-   (setup guide 06, section 5.2). Increment 2 added `DPO` and the test users `dpo1` and `partner1`.
+   (setup guide 06, section 5.2). Increment 2 added `DPO` and the test users `dpo1` and `partner1`; increment 3 added
+   `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE` and the test users `scheduler1`, `biomed1`,
+   `crewlicensing1`, `candidate1`.
 5. SpotBugs exclusions only with a justification in `config/spotbugs-exclude.xml` (increment 1 added one: 5 entries;
-   increment 2 added one for the allow-listed OCR command line: **6 entries**).
+   increment 2 added one for the allow-listed OCR command line: **6 entries**; increment 3 added none).
 6. Add the module path (`/modules/<name>/`) to `CODEOWNERS` – today `/modules/` falls under the default owner `*`.
 7. Nothing else changes in the pipeline: it ships inside the core image. A new third-party library (increment 2:
-   Apache PDFBox) gets a managed version property in the root `pom.xml` and is reviewed for licence and CVE exposure
-   (section 3.2).
+   Apache PDFBox; increment 3: none) gets a managed version property in the root `pom.xml` and is reviewed for licence
+   and CVE exposure (section 3.2).
 8. Add an end-to-end script for the increment (`tools/e2e/e2e-incrementN.js`) with published screenshots in
-   `docs/images/screens/increment-NN/`, and add it to the pre-release gate (section 3.1).
+   `docs/images/screens/increment-NN/`, and add it to the pre-release gate (section 3.1) – increment 3:
+   `e2e-increment3.js`, `docs/images/screens/increment-03/`.
+9. Add an integration test class per module in `apps/wz-core-app/src/test/java/com/wellnessz/app/`
+   (`IncrementNxxxIntegrationTest`, section 3.3) covering the eight mandatory cases of the Developer Guide (Section
+   9.2), and module unit tests for pure rule classes.
 
 ### 10.2 New deployable service (new image)
 
@@ -653,9 +706,10 @@ For each production change, the auditor can obtain the following without extra w
 | 12 | Rollback capability tested (A1.2) | `helm --atomic` behaviour; quarterly rollback drill recorded |
 | 13 | Database changes controlled (CC8.1) | Flyway history table (`platform.flyway_schema_history`, `bff.flyway_schema_history_bff`) + migration PR |
 | 14 | Access to pipelines reviewed (CC6.2) | Quarterly export of repository collaborators, teams, environment reviewers and federated credentials |
-| 15 | Functional acceptance of the increment (CC8.1) | E2E log of `tools/e2e/e2e-increment1.js` (18/18 for increment 1) and screenshots attached to the release record; from increment 2 on also `tools/e2e/e2e-increment2.js` (25/25) – both scripts for every release |
-| 16 | Approval of governed content shipped with the release (CC8.1, PI1.3) | Increment 2: CMO approval of encounter templates and fitness standards, DPO approval of the retention schedule and outbound allow-list changes – audit events `ENCOUNTER_TEMPLATE_APPROVE`, `FITNESS_STANDARD_VERSION`, `RETENTION_SCHEDULE_APPROVED` and the PR review of `application.yml` |
-| 17 | Third-party component review (CC7.1, CC9.2) | SBOM diff between releases; dependency-check result for new libraries (increment 2: Apache PDFBox 3.0.8) |
+| 15 | Functional acceptance of the increment (CC8.1) | E2E log of `tools/e2e/e2e-increment1.js` (18/18 for increment 1) and screenshots attached to the release record; from increment 2 on also `tools/e2e/e2e-increment2.js` (25/25), from increment 3 on also `tools/e2e/e2e-increment3.js` (32/32) – all scripts for every release |
+| 16 | Approval of governed content shipped with the release (CC8.1, PI1.3) | Increment 2: CMO approval of encounter templates and fitness standards, DPO approval of the retention schedule and outbound allow-list changes – audit events `ENCOUNTER_TEMPLATE_APPROVE`, `FITNESS_STANDARD_VERSION`, `RETENTION_SCHEDULE_APPROVED` and the PR review of `application.yml`; increment 3: CMO / Nursing Head approval of the surveillance programmes, evaluation and absence trigger rules, DPO approval of the retention classes `ABSENCE_RECORD` / `PRE_EMPLOYMENT` and of the `hr-systems` allow-list extension, review of the 23 new notification templates (`NotificationRulesTest` green) |
+| 17 | Third-party component review (CC7.1, CC9.2) | SBOM diff between releases; dependency-check result for new libraries (increment 2: Apache PDFBox 3.0.8; increment 3: none) |
+| 18 | Configuration changes with security effect (CC8.1) | PR review of BFF and core `application.yml` (increment 3: `spring.servlet.multipart.enabled=false` in the BFF, new `hr-systems` fields); E18 configuration changes in the audit trail (`CONFIG_CHANGE`) |
 
 Retention: export workflow logs, deployment history and attestations to the evidence store (for example a WORM
 storage container) monthly. The GitHub default log retention (90 days) is shorter than a SOC 2 Type 2 observation

@@ -4,7 +4,7 @@
 |---|---|
 | **Document** | 03 – Developer Guide |
 | **Audience** | Developers and technical leads building business modules E01–E14 and integrations |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increment 2 (E03, E05 – Section 15) and increment 3 (E06, E07, E14 – Section 16) |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increments 1–3 (E01, E02 – Section 14; E03, E05 – Section 15; E06, E07, E14 – Section 16) |
 | **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
 | **Increment 3 documents** | [Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md) · [Requirements Traceability Matrix](../increment-03/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-03/03-Release-Notes-Increment-3.md) · [API Contract](../increment-03/API-Contract-E06-E07-E14.md) |
 | **Companion documents** | 01 – Technology Architecture and Technology Selection · 02 – Security and SOC 2 Control Mapping |
@@ -853,7 +853,7 @@ Increment 2 added a platform service used by two business modules and four kerne
 | Registration | platform service (no `CaseModule`) | `E03Module` (code `E03`) | `E05Module` (code `E05`) |
 | Schema / migration | `docs` (V6) | `ohrecord` (V7) | `fitness` (V8) |
 | Demo data (`db/demo`, local / test only) | – | `R__demo_e03_record.sql` | `R__demo_e05_fitness.sql` |
-| ArchUnit | `documentServiceIsAPlatformService` (no dependency on E01–E05) | `recordAndFitnessModulesAreIndependent` | `fitnessDoesNotDependOnRecord`; both covered by `earlierModulesDoNotDependOnLaterOnes` and the kernel / platform rules |
+| ArchUnit | `documentServiceIsAPlatformService` (no dependency on any business module) | `recordAndFitnessModulesAreIndependent` | `fitnessDoesNotDependOnRecord`; both covered by `earlierModulesDoNotDependOnLaterOnes` and the kernel / platform rules |
 
 E03 and E05 do **not** depend on each other. Anything they share goes through the kernel (coded diagnosis on the
 case, `ChartContributor`, `FitnessPublicationListener`), the document service or master data (fitness standards,
@@ -1045,7 +1045,7 @@ It uses the same environment variables as `e2e-increment1.js` (Section 14.7; scr
 published set is in `docs/images/screens/increment-02/`) and the realm users `employee1`, `manager1`, `hr1`, `nurse1`,
 `physician1`, `ame1`, `cmo1`, `crewsched1`, `dpo1` and `admin1`. It seeds a pilot incident through the EHS webhook
 (client `wellnessz-integration`), so `WZ_E2E_CORE_URL` and `WZ_E2E_INTEGRATION_SECRET` must match the environment.
-Run both increment scripts before a release (CI/CD Guide, Section 3.1).
+Run all increment scripts before a release (CI/CD Guide, Section 3.1).
 
 ## 16. Worked example: E06, E07, E14 and the increment-3 kernel SPIs (increment 3)
 
@@ -1130,8 +1130,8 @@ if (b.isPresent()) {
 ```
 
 `serviceCode` must exist in the E14 service catalogue (`scheduling.appointment_type`, for example `AUDIOMETRY`,
-`ABSENCE_REVIEW`, `VACCINATION`, `TELEHEALTH_CONSULT`); add new types with a migration or *OH workspace → Scheduling →
-Catalogue* (OH_ADMIN, Nursing Head). Bookings made through the SPI follow the same conflict rules as interactive
+`ABSENCE_REVIEW`, `VACCINATION`, `TELEHEALTH_CONSULT`); add new types with a migration or *OH workspace → Clinic →
+Service catalogue* (OH_ADMIN, Nursing Head). Bookings made through the SPI follow the same conflict rules as interactive
 bookings.
 
 ### 16.4 Implementing a listener or a guard
@@ -1265,4 +1265,6 @@ It uses the same environment variables as the earlier scripts (`WZ_E2E_EMPLOYEE_
 `WZ_E2E_NEW_PASSWORD`) and the realm users `employee1`, `manager1`, `hr1`, `nurse1`, `physician1`, `cmo1`, `hse1`,
 `reception1`, `admin1` and the increment-3 users `scheduler1`, `biomed1`, `crewlicensing1` and `candidate1`; the
 integration client feeds absence episodes, IH measurements and fridge readings. The published screenshots are in
-`docs/images/screens/increment-03/`. Run all three increment scripts before a release (CI/CD Guide, Section 3.1).
+`docs/images/screens/increment-03/`. Several checks consume demo state (calibration of `AUD-LHR-02`, release of the
+demo advice report, the candidate's consent), so repeat it on a freshly purged database (setup guide 05, Section 7.3).
+Run all three increment scripts before a release (CI/CD Guide, Section 3.1).

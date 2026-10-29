@@ -354,8 +354,8 @@ profiles; `platform.break_glass_grant`, `platform.disclosure_log`, `platform.sch
 coded diagnosis on `casemgmt.oh_case`), V7 (schema `ohrecord`, terminology starter content and
 `platform.terminology_release`) and V8 (schema `fitness`). Demo data for the `local` and `test` profiles only:
 `db/demo/R__demo_e03_record.sql` (OH chart of demo employee `E1004`) and `db/demo/R__demo_e05_fitness.sql` (crew
-fleet / base). The schema list in all five places named above now reads
-`platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics`. The runtime role receives no
+fleet / base). The schema list in all five places named above then read
+`platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics` (extended by increment 3, below). The runtime role receives no
 `DELETE` on `docs.document`.
 
 Increment 3 adds migrations V9 (platform: `masterdata.clinic_site` with six seeded sites, nine exposure hazards and five

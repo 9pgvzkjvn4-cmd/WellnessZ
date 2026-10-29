@@ -442,7 +442,7 @@ configuration, identity and database bootstrap.
 | Change | What to deploy / configure | Artefact |
 |---|---|---|
 | Schemas `docs`, `ohrecord`, `fitness` | Created by Flyway V6–V8 (owner `wz_migrator`; `USAGE` granted to `wz_app` by the migrations); new environments get them from the bootstrap scripts; `migrations.job.core.schemas` = `platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,analytics`; `spring.flyway.schemas` lists the same set | `deploy/sql/bootstrap-managed-postgres.sql`, `deploy/hybrid/cnpg/03-cluster.yaml`, `deploy/local/postgres/01-init-wellnessz.sh`, `deploy/helm/wellnessz/values.yaml` |
-| Search path | `wz_app` and `wz_migrator`: `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics` (re-run the idempotent bootstrap on existing environments) | same files |
+| Search path | `wz_app` and `wz_migrator`: `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics` (re-run the idempotent bootstrap on existing environments; increment 3 extends the list – Section 19) | same files |
 | Demo data | `R__demo_e03_record.sql` and `R__demo_e05_fitness.sql` in `db/demo` – loaded only by the `local` / `test` profiles; never set `WZ_FLYWAY_LOCATIONS` to include `classpath:db/demo` elsewhere | `apps/wz-core-app/src/main/resources/db/demo` |
 | Role `DPO` | Entra app role `DPO` on `wellnessz-api` assigned to a DPO group; Keycloak realm role and scope mappings of `wellnessz-bff` and `wellnessz-mobile` | setup guide 06 §5.1–5.2, local realm |
 | Partner users | `PARTNER_PROVIDER` with `org_scope=/PARTNERS/<ORG>` (Entra: directory extension or claims mapping for B2B guests) | setup guide 06 §5.3 |
