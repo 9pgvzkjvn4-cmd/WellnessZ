@@ -6,7 +6,9 @@ import {
   type Me,
 } from '../api/types';
 import { SessionExpiredError } from '../auth/AuthClient';
-import { describeError } from '../components/format';
+import { toDeclarationOutcome, type DeclarationOutcome } from '../api/portal';
+import { describeError, formatDate } from '../components/format';
+import { ContactLines, PortalSection } from '../components/portal';
 import { Alert, PageTitle } from '../components/ui';
 import { useAsync } from '../components/useAsync';
 import {
@@ -17,13 +19,57 @@ import {
   validateDeclaration,
   type DeclarationForm,
 } from '../intake/fitnessDeclaration';
-import type { ScreenProps } from './types';
+import { portalStrings, type PortalStrings } from '../i18n/portal';
+import type { PortalScreenProps } from './types';
+
+/**
+ * Hook-free "what happens next" view (E05-BL-010) from the declaration response: server next steps (fallback: the
+ * built-in AME steps), the AME contact and the acknowledgement due time. The scheduling-visibility statement is
+ * always shown.
+ */
+export function DeclarationOutcomeView({ t, lang, outcome }: { t: PortalStrings; lang: string; outcome: DeclarationOutcome }) {
+  const steps = outcome.nextSteps.length ? outcome.nextSteps : t.declDefaultSteps;
+  const c = outcome.ameContact;
+  return (
+    <>
+      <Alert kind="success">
+        {t.declThanks(outcome.caseRef)} <strong>{t.declNoOperate}</strong>
+      </Alert>
+      {outcome.acknowledgementDueBy && (
+        <p className="ack-due">
+          <strong>{t.declAckDue(formatDate(outcome.acknowledgementDueBy, lang))}</strong>
+        </p>
+      )}
+      <h2>{t.declNext}</h2>
+      <ol className="next-steps">
+        {steps.map((s, i) => (
+          <li key={i}>{s}</li>
+        ))}
+        <li>
+          <strong>{t.declSchedulingOnly}</strong>
+        </li>
+      </ol>
+      {c && (
+        <div className="card ame-contact">
+          <h3 className="card-title">{t.declAmeContact}</h3>
+          {c.text ? <p className="advice-text">{c.text}</p> : <ContactLines contact={c} callLabel={t.declCall} emailLabel={t.declEmail} />}
+          {c.hours && <p className="muted small">{c.hours}</p>}
+        </div>
+      )}
+      <p>
+        <a className="button" href="#/">
+          {t.backHome}
+        </a>
+      </p>
+    </>
+  );
+}
 
 /**
  * Crew decrease-in-fitness declaration (E01-BL-016): `POST /intake/triggers/fitness-declaration` opens a FITNESS case
  * with fitness status UNFIT_PENDING; crew scheduling receives the status only, the AME queue is notified.
  */
-export function FitnessDeclaration({ client, onSessionExpired }: ScreenProps) {
+export function FitnessDeclaration({ client, onSessionExpired, lang }: PortalScreenProps) {
   const me = useAsync<Me | undefined>(async () => {
     try {
       return await client.api<Me>('/me');
@@ -36,7 +82,7 @@ export function FitnessDeclaration({ client, onSessionExpired }: ScreenProps) {
   const [errors, setErrors] = useState<ReturnType<typeof validateDeclaration>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const [done, setDone] = useState<FitnessDeclarationResponse>();
+  const [done, setDone] = useState<DeclarationOutcome>();
 
   const set = <K extends keyof DeclarationForm>(k: K, v: DeclarationForm[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -52,7 +98,7 @@ export function FitnessDeclaration({ client, onSessionExpired }: ScreenProps) {
         method: 'POST',
         body: buildDeclaration(form),
       });
-      setDone(res ?? {});
+      setDone(toDeclarationOutcome(res));
     } catch (err) {
       if (err instanceof SessionExpiredError) onSessionExpired();
       setError(describeError(err));
@@ -62,26 +108,12 @@ export function FitnessDeclaration({ client, onSessionExpired }: ScreenProps) {
   }
 
   if (done) {
+    const t = portalStrings(lang);
     return (
-      <section>
-        <PageTitle>Declaration received</PageTitle>
-        <Alert kind="success">
-          Thank you for declaring a decrease in fitness{done.caseRef ? ` – your case reference is ${done.caseRef}` : ''}. Do
-          not operate until you have been assessed.
-        </Alert>
-        <h2>What happens next</h2>
-        <ul>
-          <li>An aeromedical examiner (AME) will contact you.</li>
-          <li>
-            <strong>Crew scheduling only sees “unfit – pending”.</strong> They do not see your reason or anything you
-            wrote.
-          </li>
-          <li>Your status will be updated after the assessment. You can follow it on the home screen.</li>
-        </ul>
-        <a className="button" href="#/">
-          Back to home
-        </a>
-      </section>
+      <PortalSection lang={lang}>
+        <PageTitle>{t.declTitle}</PageTitle>
+        <DeclarationOutcomeView t={t} lang={lang} outcome={done} />
+      </PortalSection>
     );
   }
 

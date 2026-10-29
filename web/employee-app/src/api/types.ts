@@ -110,10 +110,16 @@ export interface FitnessDeclarationRequest {
   details?: string;
 }
 
-/** Response is not pinned by the contract; `caseRef` is shown when present. */
+/**
+ * Response (increment 2, contract §5.4): `caseRef` plus `nextSteps[]`, `ameContact` and `acknowledgementDueBy`
+ * (24-h SLA). Their element types are not pinned – see `toDeclarationOutcome` in `api/portal.ts`.
+ */
 export interface FitnessDeclarationResponse {
   caseId?: string;
   caseRef?: string;
+  nextSteps?: unknown[];
+  ameContact?: unknown;
+  acknowledgementDueBy?: string;
 }
 
 /** `GET /me/advice` (E02 §5.1) */

@@ -1,3 +1,4 @@
+import { ApiError, SessionExpiredError } from '../auth/AuthClient';
 import { humanise } from '../components/format';
 import { baseLang } from './strings';
 
@@ -21,6 +22,7 @@ export interface PortalStrings {
     profile: string;
   };
   loading: string;
+  errors: { session: string; forbidden: string; notFound: string; conflict: string; unavailable: string; failed: string; network: string };
   tilesTitle: string;
   tileDocuments: string;
   tileRtw: string;
@@ -176,6 +178,15 @@ const en: PortalStrings = {
     profile: 'Profile',
   },
   loading: 'Loading…',
+  errors: {
+    session: 'Your session has ended. Please sign in again.',
+    forbidden: 'You do not have permission to do this.',
+    notFound: 'Not found.',
+    conflict: 'This has already been answered or is no longer open. Please reload the page.',
+    unavailable: 'The service is temporarily unavailable. Please try again later.',
+    failed: 'The request could not be completed.',
+    network: 'Something went wrong. Please check your connection and try again.',
+  },
   tilesTitle: 'My documents and plans',
   tileDocuments: 'My documents',
   tileRtw: 'My return to work',
@@ -358,6 +369,15 @@ const fr: PortalStrings = {
     profile: 'Profil',
   },
   loading: 'Chargement…',
+  errors: {
+    session: 'Votre session a expiré. Veuillez vous reconnecter.',
+    forbidden: 'Vous n’avez pas l’autorisation d’effectuer cette action.',
+    notFound: 'Introuvable.',
+    conflict: 'Une réponse a déjà été donnée ou ce n’est plus ouvert. Veuillez recharger la page.',
+    unavailable: 'Le service est temporairement indisponible. Veuillez réessayer plus tard.',
+    failed: 'La demande n’a pas pu aboutir.',
+    network: 'Une erreur est survenue. Vérifiez votre connexion et réessayez.',
+  },
   tilesTitle: 'Mes documents et plans',
   tileDocuments: 'Mes documents',
   tileRtw: 'Ma reprise du travail',
@@ -540,6 +560,15 @@ const ar: PortalStrings = {
     profile: 'الملف الشخصي',
   },
   loading: 'جارٍ التحميل…',
+  errors: {
+    session: 'انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.',
+    forbidden: 'ليس لديك إذن للقيام بذلك.',
+    notFound: 'غير موجود.',
+    conflict: 'تم الرد على هذا مسبقًا أو لم يعد متاحًا. يرجى إعادة تحميل الصفحة.',
+    unavailable: 'الخدمة غير متاحة مؤقتًا. يرجى المحاولة لاحقًا.',
+    failed: 'تعذّر إكمال الطلب.',
+    network: 'حدث خطأ ما. يرجى التحقق من اتصالك والمحاولة مرة أخرى.',
+  },
   tilesTitle: 'مستنداتي وخططي',
   tileDocuments: 'مستنداتي',
   tileRtw: 'عودتي إلى العمل',
@@ -717,4 +746,17 @@ export function labelOf(map: Record<string, string>, code: string | undefined | 
   const hit = map[code] ?? map[code.toUpperCase()];
   if (hit) return hit;
   return /^[A-Z0-9_]+$/.test(code) ? humanise(code) : code;
+}
+
+/** Localised user-facing error text (same rules as `describeError`: never echoes server `detail`). */
+export function errorText(t: PortalStrings, e: unknown): string {
+  if (e instanceof SessionExpiredError) return t.errors.session;
+  if (e instanceof ApiError) {
+    if (e.status === 403) return t.errors.forbidden;
+    if (e.status === 404) return t.errors.notFound;
+    if (e.status === 409) return t.errors.conflict;
+    if (e.status >= 500) return t.errors.unavailable;
+    return e.problem?.title ?? t.errors.failed;
+  }
+  return t.errors.network;
 }

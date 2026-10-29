@@ -64,8 +64,12 @@ export function Consents({ client, onSessionExpired }: ScreenProps) {
   };
 
   const withdraw = (c: Consent) => {
-    if (!window.confirm(`Withdraw consent for "${labelFor(c.purpose)}"?`)) return;
-    void handle(() => client.api(`/consents/${encodeURIComponent(c.id)}`, { method: 'DELETE' }), 'Consent withdrawn.');
+    const msg = `Withdraw consent for "${labelFor(c.purpose)}"?\n\nPartner providers lose access immediately to every document shared under this consent. This is recorded in your disclosure log.`;
+    if (!window.confirm(msg)) return;
+    void handle(
+      () => client.api(`/consents/${encodeURIComponent(c.id)}`, { method: 'DELETE' }),
+      'Consent withdrawn. Partner access has been stopped.',
+    );
   };
 
   return (
@@ -73,7 +77,7 @@ export function Consents({ client, onSessionExpired }: ScreenProps) {
       <PageTitle>My consents</PageTitle>
       <p className="lead">
         You decide what Occupational Health may share. You can withdraw consent at any time; this does not affect
-        processing that is required by law.
+        processing that is required by law. See <a href="#/privacy">who received my information</a>.
       </p>
       {message && <Alert kind={message.kind}>{message.text}</Alert>}
 

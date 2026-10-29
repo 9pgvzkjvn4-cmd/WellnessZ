@@ -360,6 +360,27 @@ export async function respondToOffer(client: Client, offerId: string, accept: bo
   return toJobOffer(await client.api<unknown>(`/me/job-offers/${enc(offerId)}/respond`, { method: 'POST', body }));
 }
 
+/* ---------- Home: pending items ---------- */
+
+export interface PortalCounts {
+  documents: number;
+  rtw: number;
+  offers: number;
+}
+
+/**
+ * Items waiting for the employee: certificates/notes to acknowledge, active RTW plans not yet agreed, open job offers.
+ * Each list is optional – a failing endpoint just shows no count.
+ */
+export async function loadPortalCounts(client: Client): Promise<Partial<PortalCounts>> {
+  const [docs, plans, offers] = await Promise.allSettled([fetchMyDocuments(client), fetchMyRtwPlans(client), fetchMyJobOffers(client)]);
+  const counts: Partial<PortalCounts> = {};
+  if (docs.status === 'fulfilled') counts.documents = docs.value.filter((d) => documentState(d) === 'ACTION').length;
+  if (plans.status === 'fulfilled') counts.rtw = plans.value.filter((p) => p.status === 'ACTIVE' && !p.employeeAck).length;
+  if (offers.status === 'fulfilled') counts.offers = offers.value.filter(canRespond).length;
+  return counts;
+}
+
 /* ---------- Disclosure log & consent withdrawal (§3.3, E03-BL-022) ---------- */
 
 export interface Disclosure {

@@ -1,6 +1,8 @@
 /**
  * UI role gating for the OH workspace. Convenience only – wz-core-app enforces every rule server-side.
- * Role names follow API-Contract-E01-E02 §1 (normalised: upper-case, no ROLE_ prefix).
+ * Role names follow API-Contract-E01-E02 §1 and API-Contract-E03-E05 §1 (normalised: upper-case, no ROLE_ prefix).
+ * Confidentiality: MANAGER, HR, CREW_SCHEDULING, HYGIENE_MANAGER and claims roles never get a screen here; DPO gets the
+ * privacy area only (no clinical read).
  */
 
 /** "OH roles" as defined in the contract. */
@@ -11,7 +13,16 @@ export const SENIOR_CLINICIAN_ROLES = ['OH_PHYSICIAN', 'AME', 'CMO'] as const;
 export const TRIAGE_WRITE_ROLES = ['OH_CLINICIAN', 'OH_PHYSICIAN', 'AME', 'CMO', 'NURSING_HEAD'] as const;
 export const FITNESS_WRITE_ROLES = ['OH_CLINICIAN', 'OH_PHYSICIAN', 'AME', 'CMO', 'PSYCH_CLINICIAN'] as const;
 
+/** "Clinicians" = OH roles minus CASE_MANAGER (E03-E05 §1). */
+export const CLINICIAN_ROLES = ['OH_CLINICIAN', 'OH_PHYSICIAN', 'AME', 'CMO', 'NURSING_HEAD', 'PSYCH_CLINICIAN'] as const;
+/** "Physicians" = OH_PHYSICIAN, AME, CMO. */
+export const PHYSICIAN_ROLES = ['OH_PHYSICIAN', 'AME', 'CMO'] as const;
+
 const OH = [...OH_ROLES];
+const CLINICIANS = [...CLINICIAN_ROLES];
+const PHYSICIANS = [...PHYSICIAN_ROLES];
+/** Physicians + OH_CLINICIAN (orders, result worklist, fitness decisions on non-licensed standards, food-handler clearance). */
+const PHYSICIANS_AND_NURSES = [...PHYSICIANS, 'OH_CLINICIAN'];
 
 /** Every UI capability and the roles that unlock it. */
 export const FEATURES = {
@@ -48,6 +59,51 @@ export const FEATURES = {
   protocolApprove: ['CMO'],
   triageAudit: ['NURSING_HEAD', 'CMO', 'OH_PHYSICIAN'],
   triageAuditSample: ['NURSING_HEAD'],
+  // E03-F01 chart, E03-F02 encounters, E03-F03 terminology
+  employeeChart: OH,
+  chartWrite: CLINICIANS,
+  breakGlass: CLINICIANS,
+  encounters: OH,
+  encounterWrite: CLINICIANS,
+  mentalHealthEncounter: ['PSYCH_CLINICIAN'],
+  encounterEnteredInErrorAny: ['CMO'],
+  unsignedNotes: CLINICIANS,
+  unsignedNotesAll: ['NURSING_HEAD', 'CMO'],
+  // E03-F04 orders & results, E03-F05 CDS
+  orderWrite: PHYSICIANS_AND_NURSES,
+  deviceResults: OH,
+  resultsWorklist: PHYSICIANS_AND_NURSES,
+  cdsStatistics: ['CMO', 'NURSING_HEAD'],
+  // E03-F06 documents
+  documents: OH,
+  documentSign: CLINICIANS,
+  documentScan: [...OH, 'CLINIC_RECEPTION'],
+  // E05-F01 … F07 (case tabs and work screens)
+  fitnessDecide: PHYSICIANS_AND_NURSES,
+  fitnessSignoff: ['AME', 'CMO'],
+  activeRestrictions: OH,
+  restrictionsDashboard: ['NURSING_HEAD', 'CMO'],
+  rtwOverdue: OH,
+  crewAssess: ['AME', 'CMO'],
+  crewDashboard: ['CMO'],
+  rosterReconciliation: ['CMO', 'OH_ADMIN'],
+  foodHandlerClear: PHYSICIANS_AND_NURSES,
+  ihrAssess: PHYSICIANS,
+  ihrCmo: ['CMO'],
+  // E18 master data & E03 configuration
+  fitnessStandardsAdmin: ['OH_ADMIN', 'CMO'],
+  restrictionCatalogue: ['OH_ADMIN', 'NURSING_HEAD'],
+  jobDemandsAdmin: ['OH_ADMIN', 'NURSING_HEAD'],
+  jobDemandsImport: ['OH_ADMIN'],
+  encounterTemplates: OH,
+  templateApprove: ['CMO'],
+  terminologyAdmin: ['OH_ADMIN'],
+  // E03-F08 privacy (DPO area)
+  breakGlassReviews: ['DPO'],
+  breakGlassReport: ['DPO', 'CMO'],
+  disclosureLog: ['DPO'],
+  retention: ['DPO', 'OH_ADMIN'],
+  retentionWrite: ['DPO'],
 } satisfies Record<string, readonly string[]>;
 
 export type Feature = keyof typeof FEATURES;
@@ -83,7 +139,7 @@ export interface NavItem {
   path: string;
   label: string;
   feature: Feature;
-  group: 'Work' | 'Intake' | 'Reception' | 'Team' | 'Configuration';
+  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy';
 }
 
 export const NAV: readonly NavItem[] = [
@@ -98,12 +154,31 @@ export const NAV: readonly NavItem[] = [
   { path: '/intake/dlq', label: 'Dead-letter queue', feature: 'dlq', group: 'Intake' },
   { path: '/caseload', label: 'Caseload', feature: 'caseload', group: 'Team' },
   { path: '/triage-audit', label: 'Triage audit', feature: 'triageAudit', group: 'Team' },
+  { path: '/cds/statistics', label: 'CDS statistics', feature: 'cdsStatistics', group: 'Team' },
+  { path: '/employees', label: 'Employee chart', feature: 'employeeChart', group: 'Record' },
+  { path: '/encounters/unsigned', label: 'Unsigned notes', feature: 'unsignedNotes', group: 'Record' },
+  { path: '/results/worklist', label: 'Results worklist', feature: 'resultsWorklist', group: 'Record' },
+  { path: '/documents/scan', label: 'Scan documents', feature: 'documentScan', group: 'Record' },
+  { path: '/fitness/signoff', label: 'Fitness sign-off', feature: 'fitnessSignoff', group: 'Fitness' },
+  { path: '/restrictions', label: 'Active restrictions', feature: 'activeRestrictions', group: 'Fitness' },
+  { path: '/rtw/overdue', label: 'RTW overdue reviews', feature: 'rtwOverdue', group: 'Fitness' },
+  { path: '/crew/dashboard', label: 'Crew dashboard', feature: 'crewDashboard', group: 'Fitness' },
+  { path: '/crew/roster-feed', label: 'Roster feed', feature: 'rosterReconciliation', group: 'Fitness' },
   { path: '/admin/protocols', label: 'Triage protocols', feature: 'protocols', group: 'Configuration' },
   { path: '/admin/assignment-rules', label: 'Assignment rules', feature: 'admin', group: 'Configuration' },
   { path: '/admin/sla', label: 'SLA policies', feature: 'admin', group: 'Configuration' },
   { path: '/admin/intake-rules', label: 'Intake rules', feature: 'admin', group: 'Configuration' },
   { path: '/admin/notifications', label: 'Notification matrix', feature: 'admin', group: 'Configuration' },
   { path: '/admin/recordability-mapping', label: 'Recordability mapping', feature: 'admin', group: 'Configuration' },
+  { path: '/admin/fitness-standards', label: 'Fitness standards', feature: 'fitnessStandardsAdmin', group: 'Configuration' },
+  { path: '/admin/restrictions', label: 'Restriction catalogue', feature: 'restrictionCatalogue', group: 'Configuration' },
+  { path: '/admin/job-demands', label: 'Job-demand profiles', feature: 'jobDemandsAdmin', group: 'Configuration' },
+  { path: '/admin/encounter-templates', label: 'Encounter templates', feature: 'encounterTemplates', group: 'Configuration' },
+  { path: '/admin/terminology', label: 'Terminology releases', feature: 'terminologyAdmin', group: 'Configuration' },
+  { path: '/dpo/break-glass', label: 'Break-glass reviews', feature: 'breakGlassReviews', group: 'Privacy' },
+  { path: '/dpo/break-glass-report', label: 'Break-glass report', feature: 'breakGlassReport', group: 'Privacy' },
+  { path: '/dpo/disclosures', label: 'Disclosure log', feature: 'disclosureLog', group: 'Privacy' },
+  { path: '/dpo/retention', label: 'Retention & legal hold', feature: 'retention', group: 'Privacy' },
 ];
 
 export function navFor(roles: readonly string[] | undefined): NavItem[] {
@@ -118,7 +193,11 @@ export function homeRoute(roles: readonly string[] | undefined): string {
 
 /** Feature required to open a route (undefined = no such route). */
 export function featureForRoute(route: string): Feature | undefined {
+  const nav = NAV.find((n) => n.path === route);
+  if (nav) return nav.feature;
   if (/^\/cases\/[^/]+(\/[a-z-]+)?$/.test(route)) return 'caseView';
+  if (/^\/employees\/[^/]+\/chart(\/[a-z-]+)?$/.test(route)) return 'employeeChart';
+  if (/^\/encounters\/[^/]+$/.test(route)) return 'encounters';
   if (/^\/employees\/[^/]+\/timeline$/.test(route)) return 'employeeTimeline';
   if (/^\/intake\/incidents(\/[^/]+)?$/.test(route)) return 'incidentCases';
   return NAV.find((n) => n.path === route)?.feature;

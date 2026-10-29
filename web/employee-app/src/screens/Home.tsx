@@ -1,4 +1,5 @@
 import { toMyCases } from '../api/cases';
+import { loadPortalCounts, type PortalCounts } from '../api/portal';
 import {
   CASE_STATUS_LABELS,
   CATEGORY_LABELS,
@@ -12,7 +13,34 @@ import {
 import { describeError, formatDate, formatDay, humanise } from '../components/format';
 import { Alert, Loading, PageTitle, StatusBadge } from '../components/ui';
 import { useAsync } from '../components/useAsync';
-import type { ScreenProps } from './types';
+import { portalStrings, type PortalStrings } from '../i18n/portal';
+import { dirFor } from '../i18n/strings';
+import type { PortalScreenProps } from './types';
+
+/** Hook-free tiles linking to the increment-2 screens, with an "n items need your attention" hint. */
+export function PortalTiles({ t, lang, counts = {} }: { t: PortalStrings; lang: string; counts?: Partial<PortalCounts> }) {
+  const tiles = [
+    { href: '#/documents', label: t.tileDocuments, count: counts.documents },
+    { href: '#/rtw', label: t.tileRtw, count: counts.rtw },
+    { href: '#/job-offers', label: t.tileOffers, count: counts.offers },
+    { href: '#/privacy', label: t.tilePrivacy, count: undefined },
+  ];
+  return (
+    <nav className="tiles" aria-labelledby="tiles-title" dir={dirFor(lang)} lang={lang}>
+      <h2 id="tiles-title">{t.tilesTitle}</h2>
+      <ul>
+        {tiles.map((tile) => (
+          <li key={tile.href}>
+            <a className="tile" href={tile.href}>
+              <span className="tile-label">{tile.label}</span>
+              {!!tile.count && <span className="tile-count badge badge-doc-action">{t.tileActions(tile.count)}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
 
 const statusLabel = (s: string) => CASE_STATUS_LABELS[s as CaseStatus] ?? humanise(s);
 const fitnessLabel = (s: string) => FITNESS_LABELS[s as FitnessStatus] ?? humanise(s);
@@ -57,8 +85,9 @@ export function CaseCard({ c }: { c: MyCase }) {
   );
 }
 
-export function Home({ client, session, onSessionExpired }: ScreenProps) {
+export function Home({ client, session, onSessionExpired, lang }: PortalScreenProps) {
   const cases = useAsync(async () => toMyCases(await client.api<unknown>('/cases')), onSessionExpired);
+  const counts = useAsync(() => loadPortalCounts(client), onSessionExpired);
 
   return (
     <section aria-labelledby="home-title">
@@ -78,6 +107,8 @@ export function Home({ client, session, onSessionExpired }: ScreenProps) {
           Crew: declare decrease in fitness
         </a>
       </div>
+
+      <PortalTiles t={portalStrings(lang)} lang={lang} counts={counts.data} />
 
       <h2 id="home-title">My cases</h2>
       {cases.loading && <Loading />}

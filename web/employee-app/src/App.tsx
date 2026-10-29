@@ -6,26 +6,39 @@ import { useHashRoute } from './routing/useHashRoute';
 import { Consents } from './screens/Consents';
 import { FitnessDeclaration } from './screens/FitnessDeclaration';
 import { Home } from './screens/Home';
+import { JobOffers } from './screens/JobOffers';
 import { MyAdvice } from './screens/MyAdvice';
+import { MyDocuments } from './screens/MyDocuments';
+import { MyReturnToWork } from './screens/MyReturnToWork';
+import { Privacy } from './screens/Privacy';
 import { Profile } from './screens/Profile';
 import { SelfReferral } from './screens/SelfReferral';
 import { startIdleTimer } from './security/idleTimeout';
 import { errorName, log } from './security/log';
+import { portalStrings, type PortalStrings } from './i18n/portal';
+import { DEFAULT_LANGUAGES, dirFor, initialLanguage } from './i18n/strings';
 
-const NAV = [
-  { path: '/', label: 'Home' },
-  { path: '/refer', label: 'Contact OH' },
-  { path: '/advice', label: 'My advice' },
-  { path: '/fitness-declaration', label: 'Crew declaration' },
-  { path: '/consents', label: 'My consents' },
-  { path: '/profile', label: 'Profile' },
-] as const;
+const NAV: readonly { path: string; key: keyof PortalStrings['nav'] }[] = [
+  { path: '/', key: 'home' },
+  { path: '/refer', key: 'refer' },
+  { path: '/advice', key: 'advice' },
+  { path: '/documents', key: 'documents' },
+  { path: '/rtw', key: 'rtw' },
+  { path: '/job-offers', key: 'offers' },
+  { path: '/fitness-declaration', key: 'declaration' },
+  { path: '/privacy', key: 'privacy' },
+  { path: '/consents', key: 'consents' },
+  { path: '/profile', key: 'profile' },
+];
 
 type Notice = 'idle' | 'expired' | 'login-failed' | undefined;
 
 export function App({ client, config }: { client: AuthClient; config: RuntimeConfig }) {
   const [session, setSession] = useState<Session>();
   const [notice, setNotice] = useState<Notice>();
+  // App language for the portal screens (en/ar/fr); in memory only, initial value from the browser languages.
+  const [lang, setLang] = useState(() => initialLanguage(DEFAULT_LANGUAGES, typeof navigator !== 'undefined' ? navigator.languages : []));
+  const t = portalStrings(lang);
   const route = useHashRoute();
 
   useEffect(() => {
@@ -90,7 +103,7 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
     );
   }
 
-  const screenProps = { client, session, onSessionExpired };
+  const screenProps = { client, session, onSessionExpired, lang };
   let screen;
   switch (route) {
     case '/refer':
@@ -98,6 +111,18 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
       break;
     case '/advice':
       screen = <MyAdvice {...screenProps} />;
+      break;
+    case '/documents':
+      screen = <MyDocuments {...screenProps} />;
+      break;
+    case '/rtw':
+      screen = <MyReturnToWork {...screenProps} />;
+      break;
+    case '/job-offers':
+      screen = <JobOffers {...screenProps} />;
+      break;
+    case '/privacy':
+      screen = <Privacy {...screenProps} />;
       break;
     case '/fitness-declaration':
       screen = <FitnessDeclaration {...screenProps} />;
@@ -127,16 +152,26 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
       </a>
       <header className="app-header">
         <span className="brand">WellnessZ</span>
+        <label className="header-lang">
+          <span className="visually-hidden">{t.language}</span>
+          <select value={lang} onChange={(e) => setLang(e.target.value)}>
+            {DEFAULT_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code} lang={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <button type="button" className="link-button" onClick={() => void signOut('user')}>
           Sign out
         </button>
       </header>
-      <nav className="app-nav" aria-label="Main">
+      <nav className="app-nav" aria-label="Main" dir={dirFor(lang)} lang={lang}>
         <ul>
           {NAV.map((n) => (
             <li key={n.path}>
               <a href={`#${n.path}`} aria-current={route === n.path ? 'page' : undefined}>
-                {n.label}
+                {t.nav[n.key]}
               </a>
             </li>
           ))}
