@@ -41,7 +41,74 @@ export function resolveReferralRoute(route: string, roles: readonly string[] | u
   return undefined;
 }
 
-/** Navigation for the session: referral entries only for the roles that may submit them. */
+/* ---------------- increment 2: fitness for duty / RTW / documents ---------------- */
+
+export const isManager = (roles: readonly string[] | undefined) => has(roles, 'MANAGER');
+export const isHr = (roles: readonly string[] | undefined) => has(roles, 'HR');
+
+/**
+ * Increment-2 features and who may use them (UX guard; the API enforces scope and roles):
+ * managers – team restrictions, modified duty, RTW plans (acknowledge), documents;
+ * HR – team restrictions, RTW plans (read-only), documents, job offers, ill-health retirement / redeployment.
+ */
+export type Feature = 'restrictions' | 'dutyProposals' | 'rtwPlans' | 'documents' | 'jobOffers' | 'ihr';
+
+export function canUse(feature: Feature, roles: readonly string[] | undefined): boolean {
+  switch (feature) {
+    case 'restrictions':
+    case 'rtwPlans':
+    case 'documents':
+      return isManager(roles) || isHr(roles);
+    case 'dutyProposals':
+      return isManager(roles);
+    case 'jobOffers':
+    case 'ihr':
+      return isHr(roles);
+  }
+}
+
+/** `POST /rtw-plans/{id}/manager-acknowledge` is MANAGER-only; HR sees RTW plans read-only. */
+export const canAcknowledgeRtw = (roles: readonly string[] | undefined) => isManager(roles);
+
+export const FEATURE_ROUTES = {
+  restrictions: '/restrictions',
+  dutyProposals: '/duty-proposals',
+  rtwPlans: '/rtw-plans',
+  documents: '/documents',
+} as const;
+const FEATURE_LABELS: Record<keyof typeof FEATURE_ROUTES, string> = {
+  restrictions: 'Team restrictions',
+  dutyProposals: 'Modified duty',
+  rtwPlans: 'Return to work',
+  documents: 'Documents',
+};
+
+export const jobOffersRoute = (caseId: string) => `/cases/${encodeURIComponent(caseId)}/job-offers`;
+export const ihrRoute = (caseId: string) => `/cases/${encodeURIComponent(caseId)}/ihr`;
+
+/** Which increment-2 screen a route shows; `allowed=false` → "not available" page. Undefined for other routes. */
+export function resolveFeatureRoute(
+  route: string,
+  roles: readonly string[] | undefined,
+): { feature: Feature; caseId?: string; allowed: boolean } | undefined {
+  const top = (Object.keys(FEATURE_ROUTES) as (keyof typeof FEATURE_ROUTES)[]).find((k) => FEATURE_ROUTES[k] === route);
+  if (top) return { feature: top, allowed: canUse(top, roles) };
+  const m = /^\/cases\/([^/]+)\/(job-offers|ihr)$/.exec(route);
+  if (!m?.[1]) return undefined;
+  const feature: Feature = m[2] === 'ihr' ? 'ihr' : 'jobOffers';
+  let caseId: string;
+  try {
+    caseId = decodeURIComponent(m[1]);
+  } catch {
+    return undefined;
+  }
+  return { feature, caseId, allowed: canUse(feature, roles) };
+}
+
+/** Navigation for the session: referral and increment-2 entries only for the roles that may use them. */
 export function workspaceNav(roles: readonly string[] | undefined): { path: string; label: string }[] {
-  return [{ path: '/', label: 'Team cases' }, ...referralNav(roles), { path: '/analytics', label: 'Analytics' }];
+  const features = (Object.keys(FEATURE_ROUTES) as (keyof typeof FEATURE_ROUTES)[])
+    .filter((k) => canUse(k, roles))
+    .map((k) => ({ path: FEATURE_ROUTES[k], label: FEATURE_LABELS[k] }));
+  return [{ path: '/', label: 'Team cases' }, ...referralNav(roles), ...features, { path: '/analytics', label: 'Analytics' }];
 }

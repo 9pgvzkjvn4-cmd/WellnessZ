@@ -1,4 +1,4 @@
-import { encodeBody, normaliseRoles, parseResponse, SIGNED_OUT, type AuthClient, type Session } from './AuthClient';
+import { encodeBody, normaliseRoles, parseBlob, parseResponse, SIGNED_OUT, type AuthClient, type Session } from './AuthClient';
 
 export const BFF_LOGIN_PATH = '/oauth2/authorization/wellnessz';
 export const BFF_SESSION_PATH = '/bff/session';
@@ -82,5 +82,20 @@ export class BffAuthClient implements AuthClient {
       body: encoded.body,
     });
     return parseResponse<T>(res);
+  }
+
+  async download(path: string): Promise<Blob> {
+    const res = await this.#fetch(`${BFF_API_PREFIX}${path}`, {
+      method: 'GET',
+      headers: { Accept: 'application/pdf, image/*, */*' },
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+    return parseBlob(res);
+  }
+
+  /** The BFF relays `/bff/api/...` with the session cookie, so a plain link works (new tab / download). */
+  directUrl(path: string): string {
+    return `${BFF_API_PREFIX}${path}`;
   }
 }

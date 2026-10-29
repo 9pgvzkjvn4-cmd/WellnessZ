@@ -21,6 +21,15 @@ export interface ProblemDetail {
   detail?: string;
   code?: string;
   correlationId?: string;
+  /** `409 code=cds_alert` (contract E03 §4.5): the alerts that need an override reason. Only known string fields are kept. */
+  alerts?: ProblemAlert[];
+}
+
+export interface ProblemAlert {
+  code: string;
+  severity?: string;
+  message?: string;
+  reference?: string;
 }
 
 /** Non-2xx API response. `problem` is the RFC 9457 body if one was returned. */
@@ -37,6 +46,7 @@ export class ApiError extends Error {
 
 export interface ApiInit {
   method?: string;
+  /** JSON-serialised, except `FormData` which is sent as multipart (browser sets the boundary). */
   body?: unknown;
 }
 
@@ -78,7 +88,20 @@ export function toProblem(body: unknown, headerCorrelationId?: string | null): P
     detail: str(b.detail),
     code: str(b.code),
     correlationId: str(b.correlationId) ?? str(headerCorrelationId ?? undefined),
+    ...(Array.isArray(b.alerts) ? { alerts: toAlerts(b.alerts) } : {}),
   };
+}
+
+function toAlerts(list: unknown[]): ProblemAlert[] {
+  const out: ProblemAlert[] = [];
+  for (const a of list) {
+    if (!a || typeof a !== 'object') continue;
+    const r = a as Record<string, unknown>;
+    const code = str(r.code);
+    if (!code) continue;
+    out.push({ code, severity: str(r.severity), message: str(r.message), reference: str(r.reference) });
+  }
+  return out;
 }
 
 export async function parseResponse<T>(res: Response): Promise<T> {

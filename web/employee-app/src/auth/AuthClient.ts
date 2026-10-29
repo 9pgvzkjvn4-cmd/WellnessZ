@@ -55,6 +55,16 @@ export interface AuthClient {
    * (the browser sets the boundary header). Returns parsed JSON (or undefined for 204).
    */
   api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
+  /**
+   * GET binary content (e.g. a document PDF) relative to `/api/v1`. Errors are mapped like `api` (401 →
+   * SessionExpiredError, other non-2xx → ApiError).
+   */
+  download(path: string): Promise<Blob>;
+  /**
+   * Same-origin URL the browser can open or download directly with the session cookie (BFF mode), or `undefined`
+   * when the request needs a bearer token (native mode – use `download` instead).
+   */
+  directUrl(path: string): string | undefined;
 }
 
 /** Normalise roles: strip Spring `ROLE_` prefix, upper-case, dedupe. */
@@ -96,6 +106,14 @@ export async function parseResponse<T>(res: Response): Promise<T> {
   const ct = res.headers.get('content-type') ?? '';
   if (!ct.includes('json')) return undefined as T;
   return (await res.json()) as T;
+}
+
+/** Binary response (e.g. `application/pdf`); non-2xx responses are mapped by `parseResponse`. */
+export async function parseBlob(res: Response): Promise<Blob> {
+  if (res.status === 401 || !res.ok) {
+    await parseResponse<never>(res);
+  }
+  return res.blob();
 }
 
 /** Encode a request body: FormData stays multipart (no Content-Type header – fetch adds the boundary), anything else JSON. */

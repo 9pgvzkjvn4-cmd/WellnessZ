@@ -68,7 +68,8 @@ export class BffAuthClient implements AuthClient {
   async api<T>(path: string, init: ApiInit = {}): Promise<T> {
     const method = (init.method ?? 'GET').toUpperCase();
     const headers: Record<string, string> = { Accept: 'application/json' };
-    if (init.body !== undefined) headers['Content-Type'] = 'application/json';
+    const multipart = typeof FormData !== 'undefined' && init.body instanceof FormData;
+    if (init.body !== undefined && !multipart) headers['Content-Type'] = 'application/json';
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
       const xsrf = readXsrfToken();
       if (xsrf) headers['X-XSRF-TOKEN'] = xsrf;
@@ -78,7 +79,7 @@ export class BffAuthClient implements AuthClient {
       headers,
       credentials: 'same-origin',
       cache: 'no-store',
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      body: init.body === undefined ? undefined : multipart ? (init.body as FormData) : JSON.stringify(init.body),
     });
     return parseResponse<T>(res);
   }

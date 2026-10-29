@@ -3,7 +3,7 @@ import type { PluginListenerHandle } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import type { RuntimeConfig } from '../config/runtimeConfig';
 import { errorName, log } from '../security/log';
-import { encodeBody, normaliseRoles, parseResponse, SessionExpiredError, SIGNED_OUT, type AuthClient, type Session } from './AuthClient';
+import { encodeBody, normaliseRoles, parseBlob, parseResponse, SessionExpiredError, SIGNED_OUT, type AuthClient, type Session } from './AuthClient';
 import { verifyBiometric } from './biometric';
 import { createPkcePair, randomUrlSafe } from './pkce';
 import { getSecureStorage, type SecureStorage } from './secureStorage';
@@ -214,12 +214,15 @@ export class NativeOidcAuthClient implements AuthClient {
     }
   }
 
-  async api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+  async #send(path: string, init: { method?: string; body?: unknown; accept?: string } = {}): Promise<Response> {
     const send = async () => {
       if (!this.#accessToken || Date.now() > this.#accessTokenExpiresAt - 30_000) {
         if (!(await this.#refresh())) throw new SessionExpiredError();
       }
-      const headers: Record<string, string> = { Accept: 'application/json', Authorization: `Bearer ${this.#accessToken}` };
+      const headers: Record<string, string> = {
+        Accept: init.accept ?? 'application/json',
+        Authorization: `Bearer ${this.#accessToken}`,
+      };
       const encoded = encodeBody(init.body);
       if (encoded.contentType) headers['Content-Type'] = encoded.contentType;
       return fetch(`${this.#cfg.apiBaseUrl}${path}`, {
@@ -235,7 +238,20 @@ export class NativeOidcAuthClient implements AuthClient {
       this.#accessToken = undefined; // force one refresh + retry
       res = await send();
     }
-    return parseResponse<T>(res);
+    return res;
+  }
+
+  async api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+    return parseResponse<T>(await this.#send(path, init));
+  }
+
+  /** Bearer-authenticated GET of binary content (the WebView cannot open an authenticated URL directly). */
+  async download(path: string): Promise<Blob> {
+    return parseBlob(await this.#send(path, { accept: 'application/pdf, image/*, */*' }));
+  }
+
+  directUrl(): undefined {
+    return undefined;
   }
 }
 

@@ -593,3 +593,89 @@ td.suppressed {
   margin-top: 0;
   align-self: flex-start;
 }
+
+/* ---------- increment 2: fitness / restrictions / RTW / documents ---------- */
+.badge-expiring,
+.badge-proposed,
+.badge-issued,
+.badge-awaiting-cmo,
+.badge-appealed {
+  background: #fff4d6;
+  color: #6b4a00;
+  border-color: #e0b84a;
+}
+.badge-lapsed,
+.badge-declined,
+.badge-escalated-to-hr {
+  background: var(--c-error-bg);
+  color: var(--c-error);
+}
+.badge-accepted,
+.badge-decided,
+.badge-completed {
+  background: var(--c-success-bg);
+  color: var(--c-success);
+}
+@media (prefers-color-scheme: dark) {
+  .badge-expiring,
+  .badge-proposed,
+  .badge-issued,
+  .badge-awaiting-cmo,
+  .badge-appealed {
+    background: #3a2f10;
+    color: #ffd98a;
+    border-color: #7a6020;
+  }
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+.filters .field {
+  margin-top: 0;
+  min-width: 12rem;
+}
+.filters label {
+  font-weight: 600;
+}
+.plain-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.restriction-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: baseline;
+}
+.card h2,
+.card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+.card .details {
+  margin: 0.5rem 0;
+}
+.card .form {
+  max-width: none;
+}
+.section-gap {
+  margin-top: 2rem;
+}
+.checkbox-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.checkbox-list input[type='number'] {
+  max-width: 7rem;
+  margin-left: 0.5rem;
+}

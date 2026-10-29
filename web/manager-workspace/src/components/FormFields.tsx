@@ -54,13 +54,15 @@ export function InputField(p: {
   label: string;
   value: string;
   onChange: (v: string) => void;
-  type?: 'text' | 'date' | 'number';
+  type?: 'text' | 'date' | 'number' | 'email';
   required?: boolean;
   hint?: ReactNode;
   error?: string;
   inputMode?: 'numeric';
   min?: number | string;
   max?: number | string;
+  maxLength?: number;
+  autoComplete?: string;
 }) {
   return (
     <div className={p.error ? 'field field-invalid' : 'field'}>
@@ -80,6 +82,8 @@ export function InputField(p: {
         inputMode={p.inputMode}
         min={p.min}
         max={p.max}
+        maxLength={p.maxLength}
+        autoComplete={p.autoComplete}
         value={p.value}
         aria-required={p.required ? true : undefined}
         aria-invalid={p.error ? true : undefined}

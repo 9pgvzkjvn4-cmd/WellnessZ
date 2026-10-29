@@ -22,3 +22,14 @@ export function formatDate(iso?: string | null): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '–' : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
+
+/** Calendar date (`YYYY-MM-DD` or timestamp) without time; date-only values are not shifted by the time zone. */
+export function formatDay(iso?: string | null): string {
+  if (!iso) return '–';
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  const d = new Date(dateOnly ? `${iso}T00:00:00Z` : iso);
+  return Number.isNaN(d.getTime()) ? '–' : d.toLocaleDateString(undefined, { dateStyle: 'medium', ...(dateOnly ? { timeZone: 'UTC' } : {}) });
+}
+
+/** Safe DOM id fragment for a server id. */
+export const idPart = (id: string) => id.replace(/[^A-Za-z0-9_-]/g, '-');
