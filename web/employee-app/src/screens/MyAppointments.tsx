@@ -28,6 +28,7 @@ import { useAsync } from '../components/useAsync';
 import { labelOf } from '../i18n/portal';
 import { ohErrorText, ohStrings, type OhStrings } from '../i18n/occupational';
 import { today } from '../intake/occupationalForms';
+import { isCandidateOnly } from '../routing/navigation';
 import type { PortalScreenProps } from './types';
 
 const timeOf = (iso: string, lang: string) => new Date(iso).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
@@ -239,7 +240,7 @@ const plusDays = (n: number, now = new Date()) => today(new Date(now.getFullYear
 /** `#/appointments` – my appointments, self-booking, reschedule, cancel, check-in, telehealth join (E14 §5.2). */
 export function MyAppointments({ client, session, onSessionExpired, lang }: PortalScreenProps) {
   const t = ohStrings(lang);
-  const isEmployee = session.roles.includes('EMPLOYEE');
+  const isEmployee = !isCandidateOnly(session.roles);
   const appts = useAsync(() => fetchMyAppointments(client), onSessionExpired);
   const options = useAsync(() => (isEmployee ? Promise.all([fetchBookableTypes(client), fetchSites(client)]) : Promise.resolve([[], []] as [BookableType[], ClinicSite[]])), onSessionExpired);
   const [now] = useState(() => new Date());

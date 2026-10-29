@@ -1,4 +1,5 @@
 import { toMyCases } from '../api/cases';
+import { loadOhCounts, type OhCounts } from '../api/occupational';
 import { loadPortalCounts, type PortalCounts } from '../api/portal';
 import {
   CASE_STATUS_LABELS,
@@ -13,6 +14,7 @@ import {
 import { describeError, formatDate, formatDay, humanise } from '../components/format';
 import { Alert, Loading, PageTitle, StatusBadge } from '../components/ui';
 import { useAsync } from '../components/useAsync';
+import { ohStrings, type OhStrings } from '../i18n/occupational';
 import { portalStrings, type PortalStrings } from '../i18n/portal';
 import { dirFor } from '../i18n/strings';
 import type { PortalScreenProps } from './types';
@@ -28,6 +30,31 @@ export function PortalTiles({ t, lang, counts = {} }: { t: PortalStrings; lang: 
   return (
     <nav className="tiles" aria-labelledby="tiles-title" dir={dirFor(lang)} lang={lang}>
       <h2 id="tiles-title">{t.tilesTitle}</h2>
+      <ul>
+        {tiles.map((tile) => (
+          <li key={tile.href}>
+            <a className="tile" href={tile.href}>
+              <span className="tile-label">{tile.label}</span>
+              {!!tile.count && <span className="tile-count badge badge-doc-action">{t.tileActions(tile.count)}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/** Hook-free tiles for the increment-3 sections (appointments, absence, advice reports, health checks). */
+export function OhTiles({ t, oh, lang, counts = {} }: { t: PortalStrings; oh: OhStrings; lang: string; counts?: Partial<OhCounts> }) {
+  const tiles = [
+    { href: '#/appointments', label: oh.tileAppointments, count: counts.appointments },
+    { href: '#/advice', label: oh.tileAdvice, count: counts.advice },
+    { href: '#/absence', label: oh.tileAbsence, count: undefined },
+    { href: '#/surveillance', label: oh.tileSurveillance, count: counts.surveillance },
+  ];
+  return (
+    <nav className="tiles" aria-labelledby="oh-tiles-title" dir={dirFor(lang)} lang={lang}>
+      <h2 id="oh-tiles-title">{oh.tilesTitle}</h2>
       <ul>
         {tiles.map((tile) => (
           <li key={tile.href}>
@@ -88,6 +115,7 @@ export function CaseCard({ c }: { c: MyCase }) {
 export function Home({ client, session, onSessionExpired, lang }: PortalScreenProps) {
   const cases = useAsync(async () => toMyCases(await client.api<unknown>('/cases')), onSessionExpired);
   const counts = useAsync(() => loadPortalCounts(client), onSessionExpired);
+  const ohCounts = useAsync(() => loadOhCounts(client), onSessionExpired);
 
   return (
     <section aria-labelledby="home-title">
@@ -108,6 +136,7 @@ export function Home({ client, session, onSessionExpired, lang }: PortalScreenPr
         </a>
       </div>
 
+      <OhTiles t={portalStrings(lang)} oh={ohStrings(lang)} lang={lang} counts={ohCounts.data} />
       <PortalTiles t={portalStrings(lang)} lang={lang} counts={counts.data} />
 
       <h2 id="home-title">My cases</h2>

@@ -7,29 +7,22 @@ import { Consents } from './screens/Consents';
 import { FitnessDeclaration } from './screens/FitnessDeclaration';
 import { Home } from './screens/Home';
 import { JobOffers } from './screens/JobOffers';
+import { MyAbsence } from './screens/MyAbsence';
 import { MyAdvice } from './screens/MyAdvice';
+import { MyAppointments } from './screens/MyAppointments';
 import { MyDocuments } from './screens/MyDocuments';
 import { MyReturnToWork } from './screens/MyReturnToWork';
+import { MySurveillance } from './screens/MySurveillance';
+import { PreEmployment } from './screens/PreEmployment';
 import { Privacy } from './screens/Privacy';
 import { Profile } from './screens/Profile';
 import { SelfReferral } from './screens/SelfReferral';
 import { startIdleTimer } from './security/idleTimeout';
 import { errorName, log } from './security/log';
 import { portalStrings, type PortalStrings } from './i18n/portal';
+import { ohStrings, type OhStrings } from './i18n/occupational';
+import { navFor, resolveRoute } from './routing/navigation';
 import { DEFAULT_LANGUAGES, dirFor, initialLanguage } from './i18n/strings';
-
-const NAV: readonly { path: string; key: keyof PortalStrings['nav'] }[] = [
-  { path: '/', key: 'home' },
-  { path: '/refer', key: 'refer' },
-  { path: '/advice', key: 'advice' },
-  { path: '/documents', key: 'documents' },
-  { path: '/rtw', key: 'rtw' },
-  { path: '/job-offers', key: 'offers' },
-  { path: '/fitness-declaration', key: 'declaration' },
-  { path: '/privacy', key: 'privacy' },
-  { path: '/consents', key: 'consents' },
-  { path: '/profile', key: 'profile' },
-];
 
 type Notice = 'idle' | 'expired' | 'login-failed' | undefined;
 
@@ -39,7 +32,8 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
   // App language for the portal screens (en/ar/fr); in memory only, initial value from the browser languages.
   const [lang, setLang] = useState(() => initialLanguage(DEFAULT_LANGUAGES, typeof navigator !== 'undefined' ? navigator.languages : []));
   const t = portalStrings(lang);
-  const route = useHashRoute();
+  const oh = ohStrings(lang);
+  const hashRoute = useHashRoute();
 
   useEffect(() => {
     client.init().then(setSession, (e: unknown) => {
@@ -104,8 +98,23 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
   }
 
   const screenProps = { client, session, onSessionExpired, lang };
+  // Candidates without employee features only ever see the pre-employment section.
+  const route = resolveRoute(hashRoute, session.roles);
+  const nav = navFor(session.roles);
   let screen;
   switch (route) {
+    case '/appointments':
+      screen = <MyAppointments {...screenProps} />;
+      break;
+    case '/absence':
+      screen = <MyAbsence {...screenProps} />;
+      break;
+    case '/surveillance':
+      screen = <MySurveillance {...screenProps} />;
+      break;
+    case '/pre-employment':
+      screen = <PreEmployment {...screenProps} />;
+      break;
     case '/refer':
       screen = <SelfReferral {...screenProps} isNative={client.mode === 'native-oidc'} />;
       break;
@@ -168,10 +177,10 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
       </header>
       <nav className="app-nav" aria-label="Main" dir={dirFor(lang)} lang={lang}>
         <ul>
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <li key={n.path}>
               <a href={`#${n.path}`} aria-current={route === n.path ? 'page' : undefined}>
-                {t.nav[n.key]}
+                {n.source === 'oh' ? oh.nav[n.key as keyof OhStrings['nav']] : t.nav[n.key as keyof PortalStrings['nav']]}
               </a>
             </li>
           ))}

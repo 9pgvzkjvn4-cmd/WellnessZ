@@ -511,6 +511,18 @@ export function toPreEmployment(raw: unknown): MyPreEmployment | undefined {
   };
 }
 
+export type StepId = 'questionnaire' | 'consent' | 'documents' | 'book';
+
+/** Which steps are complete (documents are optional – done once at least one is uploaded). */
+export function preEmploymentSteps(r: MyPreEmployment): Record<StepId, boolean> {
+  return {
+    questionnaire: r.questionnaireCompleted,
+    consent: r.consentGiven,
+    documents: r.documents.length > 0,
+    book: !!r.appointment && r.appointment.status !== 'CANCELLED',
+  };
+}
+
 export type QuestionType = 'YES_NO' | 'TEXT' | 'DATE';
 export interface Question {
   code: string;
