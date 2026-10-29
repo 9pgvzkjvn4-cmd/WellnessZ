@@ -77,6 +77,30 @@ const CrewCertificates = lazy(() => import('./screens/surveillance/Crew').then((
 const ImmunisationScreen = lazy(() => import('./screens/surveillance/Immunisation').then((m) => ({ default: m.ImmunisationScreen })));
 const ExposureScreen = lazy(() => import('./screens/surveillance/Exposure').then((m) => ({ default: m.ExposureScreen })));
 const ComplianceScreen = lazy(() => import('./screens/surveillance/Compliance').then((m) => ({ default: m.ComplianceScreen })));
+// Increment 4 – E04 treatment coordination & E08 claims (one chunk per screen file).
+const ReferralWorklist = lazy(() => import('./screens/treatment/ReferralScreens').then((m) => ({ default: m.ReferralWorklist })));
+const ReferralScreen = lazy(() => import('./screens/treatment/ReferralScreens').then((m) => ({ default: m.ReferralScreen })));
+const VarianceAlerts = lazy(() => import('./screens/treatment/TreatmentWork').then((m) => ({ default: m.VarianceAlerts })));
+const TreatmentKpis = lazy(() => import('./screens/treatment/TreatmentWork').then((m) => ({ default: m.TreatmentKpis })));
+const ProviderDirectory = lazy(() => import('./screens/treatment/Providers').then((m) => ({ default: m.ProviderDirectory })));
+const ProviderScreen = lazy(() => import('./screens/treatment/Providers').then((m) => ({ default: m.ProviderScreen })));
+const ProviderScorecards = lazy(() => import('./screens/treatment/Providers').then((m) => ({ default: m.ProviderScorecards })));
+const NetworkGaps = lazy(() => import('./screens/treatment/Providers').then((m) => ({ default: m.NetworkGaps })));
+const MedicationsScreen = lazy(() => import('./screens/treatment/Medications').then((m) => ({ default: m.MedicationsScreen })));
+const TelehealthScreen = lazy(() => import('./screens/treatment/Telehealth').then((m) => ({ default: m.TelehealthScreen })));
+const ClaimList = lazy(() => import('./screens/claims/ClaimScreens').then((m) => ({ default: m.ClaimList })));
+const PreauthList = lazy(() => import('./screens/claims/ClaimScreens').then((m) => ({ default: m.PreauthList })));
+const ClaimReportsDashboard = lazy(() => import('./screens/claims/ClaimScreens').then((m) => ({ default: m.ClaimReportsDashboard })));
+const NurseAssignment = lazy(() => import('./screens/claims/ClaimScreens').then((m) => ({ default: m.NurseAssignment })));
+const LegalScreen = lazy(() => import('./screens/claims/ClaimScreens').then((m) => ({ default: m.LegalScreen })));
+const ClaimDisclosureReport = lazy(() => import('./screens/claims/ClaimScreens').then((m) => ({ default: m.ClaimDisclosureReport })));
+const ClaimCostsScreen = lazy(() => import('./screens/claims/ClaimCosts').then((m) => ({ default: m.ClaimCostsScreen })));
+const ClaimDetailScreen = lazy(() => import('./screens/claims/ClaimDetail').then((m) => ({ default: m.ClaimDetailScreen })));
+const PhysicianLegalRequests = lazy(() => import('./screens/claims/LegalRequests').then((m) => ({ default: m.PhysicianLegalRequests })));
+
+/** Fixed second segments that are screens, not ids (`/claims/reports` is not claim "reports"). */
+const CLAIM_SCREENS = new Set(['reports', 'costs', 'nurse-assignment', 'disclosures', 'preauthorisations']);
+const PROVIDER_SCREENS = new Set(['scorecards', 'gaps']);
 
 type Notice = 'idle' | 'expired' | undefined;
 
@@ -95,6 +119,12 @@ function renderRoute(route: string, props: ScreenProps): ReactNode {
   if (ltaMatch?.[1]) return <LtaDetail key={ltaMatch[1]} {...props} caseId={decodeURIComponent(ltaMatch[1])} />;
   const progMatch = /^\/surveillance\/programmes\/([^/]+)$/.exec(route);
   if (progMatch?.[1]) return <ProgrammeBuilder key={progMatch[1]} {...props} code={decodeURIComponent(progMatch[1])} />;
+  const claimMatch = /^\/claims\/([^/]+)(?:\/([a-z-]+))?$/.exec(route);
+  if (claimMatch?.[1] && !(CLAIM_SCREENS.has(claimMatch[1]) && !claimMatch[2])) return <ClaimDetailScreen key={claimMatch[1]} {...props} claimId={decodeURIComponent(claimMatch[1])} tab={claimMatch[2]} />;
+  const referralMatch = /^\/referrals\/([^/]+)$/.exec(route);
+  if (referralMatch?.[1]) return <ReferralScreen key={referralMatch[1]} {...props} referralId={decodeURIComponent(referralMatch[1])} />;
+  const providerMatch = /^\/providers\/([^/]+)$/.exec(route);
+  if (providerMatch?.[1] && !PROVIDER_SCREENS.has(providerMatch[1])) return <ProviderScreen key={providerMatch[1]} {...props} code={decodeURIComponent(providerMatch[1])} />;
   const incMatch = /^\/intake\/incidents(?:\/([^/]+))?$/.exec(route);
   if (incMatch) return <IncidentCases {...props} incidentId={incMatch[1] ? decodeURIComponent(incMatch[1]) : undefined} />;
   switch (route) {
@@ -156,6 +186,22 @@ function renderRoute(route: string, props: ScreenProps): ReactNode {
     case '/scheduling/equipment': return <EquipmentScreen {...props} />;
     case '/scheduling/capacity': return <Capacity {...props} />;
     case '/scheduling/catalogue': return <Catalogue {...props} />;
+    case '/referrals': return <ReferralWorklist {...props} />;
+    case '/treatment/variance': return <VarianceAlerts {...props} />;
+    case '/treatment/kpis': return <TreatmentKpis {...props} />;
+    case '/treatment/medications': return <MedicationsScreen {...props} />;
+    case '/telehealth': return <TelehealthScreen {...props} />;
+    case '/providers': return <ProviderDirectory {...props} />;
+    case '/providers/scorecards': return <ProviderScorecards {...props} />;
+    case '/providers/gaps': return <NetworkGaps {...props} />;
+    case '/claims': return <ClaimList {...props} />;
+    case '/claims/reports': return <ClaimReportsDashboard {...props} />;
+    case '/claims/preauthorisations': return <PreauthList {...props} />;
+    case '/claims/costs': return <ClaimCostsScreen {...props} />;
+    case '/claims/nurse-assignment': return <NurseAssignment {...props} />;
+    case '/claims/disclosures': return <ClaimDisclosureReport {...props} />;
+    case '/legal': return <LegalScreen {...props} />;
+    case '/legal/requests': return <PhysicianLegalRequests {...props} />;
     default:
       return (
         <section>
@@ -244,7 +290,11 @@ export function App({ client }: { client: AuthClient }) {
     ? '/queues'
     : /^\/employees\/./.test(route) || (route.startsWith('/encounters/') && route !== '/encounters/unsigned')
       ? '/employees'
-      : route.replace(/^(\/intake\/incidents)\/.*$/, '$1').replace(/^(\/scheduling\/campaigns)\/.*$/, '$1').replace(/^(\/absence\/lta|\/surveillance\/programmes)\/.*$/, '$1');
+      : nav.some((n) => n.path === route)
+        ? route
+        : /^\/(claims|referrals|providers)\/./.test(route)
+          ? `/${route.split('/')[1]}`
+          : route.replace(/^(\/intake\/incidents)\/.*$/, '$1').replace(/^(\/scheduling\/campaigns)\/.*$/, '$1').replace(/^(\/absence\/lta|\/surveillance\/programmes)\/.*$/, '$1');
 
   return (
     <div className="shell">
@@ -280,7 +330,7 @@ export function App({ client }: { client: AuthClient }) {
             </div>
           ))}
         </nav>
-        <main id="main" tabIndex={-1} key={route.replace(/^(\/cases\/[^/]+)\/.*$/, '$1').replace(/^(\/employees\/[^/]+\/chart)\/.*$/, '$1')}>
+        <main id="main" tabIndex={-1} key={route.replace(/^(\/cases\/[^/]+)\/.*$/, '$1').replace(/^(\/employees\/[^/]+\/chart)\/.*$/, '$1').replace(/^(\/claims\/[^/]+)\/.*$/, '$1')}>
           <Suspense fallback={<Loading />}>{screen}</Suspense>
         </main>
       </div>

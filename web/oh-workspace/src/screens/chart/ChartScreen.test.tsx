@@ -88,6 +88,6 @@ describe('ChartScreen', () => {
     expect((await screen.findByRole('link', { name: 'Injury consultation' })).getAttribute('href')).toBe('#/encounters/enc9');
     const nav = screen.getByRole('navigation', { name: 'Chart sections' });
     expect(within(nav).getByRole('link', { name: 'Timeline' }).getAttribute('aria-current')).toBe('page');
-    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Problems', 'Medications', 'Allergies', 'Immunisations', 'Jobs & exposures', 'Results', 'Documents', 'Encounters', 'Timeline', 'Absence', 'Surveillance']);
+    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Problems', 'Medications', 'Allergies', 'Immunisations', 'Jobs & exposures', 'Results', 'Documents', 'Encounters', 'Timeline', 'Absence', 'Surveillance', 'Treatment']);
   });
 });

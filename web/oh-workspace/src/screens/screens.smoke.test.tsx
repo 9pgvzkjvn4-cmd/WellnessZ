@@ -61,6 +61,20 @@ import { ImmunisationScreen } from './surveillance/Immunisation';
 import { PreEmploymentScreen } from './surveillance/PreEmployment';
 import { ProgrammeBuilder, ProgrammeList } from './surveillance/Programmes';
 import { SurveillanceChartTab } from './surveillance/SurveillanceChartTab';
+import { ClaimCostsScreen } from './claims/ClaimCosts';
+import { ClaimDetailScreen } from './claims/ClaimDetail';
+import { ClaimDisclosureReport, ClaimList, ClaimReportsDashboard, LegalScreen, NurseAssignment, PreauthList } from './claims/ClaimScreens';
+import { PhysicianLegalRequests } from './claims/LegalRequests';
+import { ClaimTab } from './treatment/ClaimTab';
+import { CostsTab } from './treatment/CostsTab';
+import { MedicationsScreen } from './treatment/Medications';
+import { OutcomesTab } from './treatment/OutcomesTab';
+import { NetworkGaps, ProviderDirectory, ProviderScorecards, ProviderScreen } from './treatment/Providers';
+import { ReferralScreen, ReferralWorklist } from './treatment/ReferralScreens';
+import { ReferralsTab } from './treatment/ReferralsTab';
+import { TelehealthScreen } from './treatment/Telehealth';
+import { TreatmentKpis, VarianceAlerts } from './treatment/TreatmentWork';
+import { TreatmentTab } from './treatment/TreatmentTab';
 
 /** Initial render (SSR, no effects) of every screen – catches render-time errors without a browser. */
 const client: AuthClient = {
@@ -166,6 +180,33 @@ const screens: [string, ReactElement][] = [
   ['ComplianceScreen', <ComplianceScreen {...base} />],
   ['SurveillanceChartTab', <SurveillanceChartTab {...base} employeeId="E1004" canWrite refreshSummary={() => {}} />],
   ...(['absence', 'surveillance'].map((t) => [`Chart ${t}`, <ChartScreen {...base} employeeId="E1004" tab={t} />]) as [string, ReactElement][]),
+  // increment 4 – E04 treatment coordination / E08 claims
+  ...(['treatment', 'referrals', 'costs', 'outcomes', 'claim'].map((t) => [`CaseView ${t}`, <CaseView {...base} caseId="c1" tab={t} />]) as [string, ReactElement][]),
+  ['TreatmentTab', <TreatmentTab {...tab} />],
+  ['ReferralsTab', <ReferralsTab {...tab} />],
+  ['CostsTab', <CostsTab {...tab} />],
+  ['OutcomesTab', <OutcomesTab {...tab} />],
+  ['ClaimTab', <ClaimTab {...tab} />],
+  ['Chart treatment', <ChartScreen {...base} employeeId="E1004" tab="treatment" />],
+  ['ReferralWorklist', <ReferralWorklist {...base} />],
+  ['ReferralScreen', <ReferralScreen {...base} referralId="r1" />],
+  ['VarianceAlerts', <VarianceAlerts {...base} />],
+  ['TreatmentKpis', <TreatmentKpis {...base} />],
+  ['ProviderDirectory', <ProviderDirectory {...base} />],
+  ['ProviderScreen', <ProviderScreen {...base} code="CITYHOSP" />],
+  ['ProviderScorecards', <ProviderScorecards {...base} />],
+  ['NetworkGaps', <NetworkGaps {...base} />],
+  ['MedicationsScreen', <MedicationsScreen {...base} />],
+  ['TelehealthScreen', <TelehealthScreen {...base} />],
+  ['ClaimList', <ClaimList {...base} />],
+  ['PreauthList', <PreauthList {...base} />],
+  ['ClaimReportsDashboard', <ClaimReportsDashboard {...base} />],
+  ['ClaimCostsScreen', <ClaimCostsScreen {...base} />],
+  ['NurseAssignment', <NurseAssignment {...base} />],
+  ['LegalScreen', <LegalScreen {...base} />],
+  ['PhysicianLegalRequests', <PhysicianLegalRequests {...base} />],
+  ['ClaimDisclosureReport', <ClaimDisclosureReport {...base} />],
+  ...(['overview', 'reports', 'disclosures', 'collaboration', 'costs', 'legal'].map((t) => [`ClaimDetail ${t}`, <ClaimDetailScreen {...base} claimId="cl1" tab={t} />]) as [string, ReactElement][]),
 ];
 
 describe('screen render smoke test', () => {

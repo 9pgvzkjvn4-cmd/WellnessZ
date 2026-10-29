@@ -323,7 +323,7 @@ describe('SummaryTab and CaseView', () => {
     const { unmount } = render(<CaseView client={api.client} session={sessionFor('OH_CLINICIAN')} onSessionExpired={() => {}} caseId="c1" tab="summary" />);
     expect((await screen.findByRole('link', { name: 'Open OH chart' })).getAttribute('href')).toBe('#/employees/E1004/chart');
     const labels = within(screen.getByRole('navigation', { name: 'Case sections' })).getAllByRole('link').map((a) => a.textContent);
-    expect(labels).toEqual(['Overview', 'Triage', 'Recordability', 'Checklists', 'Assignment', 'Escalation', 'Complexity', 'Duplicates', 'Tasks', 'Timeline', 'Encounters', 'Fitness', 'Restrictions & duties', 'RTW plan', 'IHR', 'Documents', 'Summary', 'Status']);
+    expect(labels).toEqual(['Overview', 'Triage', 'Recordability', 'Checklists', 'Assignment', 'Escalation', 'Complexity', 'Duplicates', 'Tasks', 'Timeline', 'Encounters', 'Fitness', 'Restrictions & duties', 'RTW plan', 'IHR', 'Treatment', 'Referrals', 'Costs', 'Outcomes', 'Claim', 'Documents', 'Summary', 'Status']);
     unmount();
     const crewApi = mockApi({ 'GET /cases/c1': caseDetail({ safetyCategory: 'CABIN_CREW' }), 'GET /cases/c1/header': {}, 'GET /crew/limitation-codes': [], 'GET /cases/c1/fitness-decisions': [] });
     render(<CaseView client={crewApi.client} session={sessionFor('AME')} onSessionExpired={() => {}} caseId="c1" tab="crew" />);

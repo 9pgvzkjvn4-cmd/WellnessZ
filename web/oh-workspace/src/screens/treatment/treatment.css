@@ -145,3 +145,7 @@
     display: none !important;
   }
 }
+
+.trend-cell {
+  min-width: 12rem;
+}

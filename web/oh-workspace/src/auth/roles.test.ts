@@ -108,7 +108,8 @@ describe('increment 2 gating (API-Contract-E03-E05 §1)', () => {
 
   it('DPO sees only the privacy area – no clinical screen', () => {
     expect(hasWorkspaceAccess(['DPO'])).toBe(true);
-    expect(paths(['DPO'])).toEqual(['/dpo/break-glass', '/dpo/break-glass-report', '/dpo/disclosures', '/dpo/retention']);
+    // increment 4 adds the claim disclosure report (still in the privacy area)
+    expect(paths(['DPO'])).toEqual(['/dpo/break-glass', '/dpo/break-glass-report', '/dpo/disclosures', '/dpo/retention', '/claims/disclosures']);
     expect(navFor(['DPO']).every((n) => n.group === 'Privacy')).toBe(true);
     expect(homeRoute(['DPO'])).toBe('/dpo/break-glass');
     for (const r of CLINICAL_ROUTES) expect(can(['DPO'], featureForRoute(r)!)).toBe(false);
@@ -121,7 +122,7 @@ describe('increment 2 gating (API-Contract-E03-E05 §1)', () => {
     for (const route of CLINICAL_ROUTES) expect(can(['CREW_SCHEDULING'], featureForRoute(route)!)).toBe(false);
   });
 
-  it.each([['HR'], ['MANAGER'], ['HYGIENE_MANAGER'], ['CLAIMS_HANDLER'], ['EMPLOYEE'], ['PARTNER_PROVIDER'], ['INTEGRATION']])('%s never reaches this workspace', (r) => {
+  it.each([['HR'], ['MANAGER'], ['HYGIENE_MANAGER'], ['CLAIMS_HANDLER'], ['EMPLOYEE'], ['PARTNER_PROVIDER'], ['TPA_ADJUSTER'], ['INTEGRATION']])('%s never reaches this workspace', (r) => {
     expect(hasWorkspaceAccess([r])).toBe(false);
     for (const route of CLINICAL_ROUTES) expect(can([r], featureForRoute(route)!)).toBe(false);
   });
@@ -331,6 +332,95 @@ describe('increment 3 – E06 absence & E07 surveillance gating (API-Contract-E0
   });
 
   it.each([['HR'], ['MANAGER'], ['EMPLOYEE'], ['CANDIDATE'], ['CREW_SCHEDULING'], ['HYGIENE_MANAGER'], ['BIOMEDICAL'], ['DPO']])('%s gets no absence / surveillance screen', (r) => {
+    expect(area([r])).toEqual([]);
+  });
+});
+
+describe('increment 4 – E04 treatment & E08 claims gating (API-Contract-E04-E08 §1, §6)', () => {
+  const CLINICAL = [
+    '/queues', '/cases/c1', '/cases/c1/treatment', '/cases/c1/referrals', '/cases/c1/outcomes', '/cases/c1/claim', '/employees/E1/chart', '/employees/E1/chart/treatment',
+    '/encounters/e1', '/referrals', '/referrals/r1', '/treatment/variance', '/treatment/medications', '/telehealth', '/absence/queue', '/surveillance/follow-ups',
+  ];
+  const area = (roles: string[]) => paths(roles).filter((p) => /^\/(referrals|treatment|telehealth|providers|claims|legal)/.test(p));
+
+  it.each(['CLAIMS_COORDINATOR', 'FINANCE', 'LEGAL_COUNSEL', 'PROCUREMENT'])('%s gets a workspace but never a clinical screen', (r) => {
+    expect(hasWorkspaceAccess([r])).toBe(true);
+    for (const route of CLINICAL) expect(can([r], featureForRoute(route)!)).toBe(false);
+    for (const f of ['caseView', 'employeeChart', 'encounters', 'documents', 'treatmentWrite', 'medications', 'telehealth', 'referrals', 'outcomeWrite', 'disclosureRedact'] as const) expect(can([r], f)).toBe(false);
+  });
+
+  it('clinicians: referrals, variance, telehealth, medications, providers (read) – no claims, no edit, no KPIs', () => {
+    expect(area(['OH_CLINICIAN'])).toEqual(['/referrals', '/treatment/variance', '/telehealth', '/treatment/medications', '/providers']);
+    for (const f of ['treatmentWrite', 'referralWrite', 'telehealthWrite', 'medicationAdminister', 'outcomeWrite', 'preauthCreate', 'stockReceive'] as const) expect(can(['OH_CLINICIAN'], f)).toBe(true);
+    for (const f of ['providerEdit', 'providerContracts', 'preauthDecide', 'claimCreate', 'claimDetail', 'formularyWrite', 'medicationUsage'] as const) expect(can(['OH_CLINICIAN'], f)).toBe(false);
+    expect(featureForRoute('/cases/c1/treatment')).toBe('caseView');
+    expect(featureForRoute('/employees/E1/chart/treatment')).toBe('employeeChart');
+    expect(featureForRoute('/referrals/r-1')).toBe('referrals');
+    expect(homeRoute(['OH_CLINICIAN'])).toBe('/queues');
+  });
+
+  it('case manager reads treatment and opens claims / collaborates, but does not write clinical content', () => {
+    expect(area(['CASE_MANAGER'])).toEqual(['/referrals', '/treatment/variance', '/telehealth', '/treatment/medications', '/providers']);
+    for (const f of ['claimCreate', 'claimCollaboration', 'disclosureSetWrite'] as const) expect(can(['CASE_MANAGER'], f)).toBe(true);
+    for (const f of ['treatmentWrite', 'referralWrite', 'medicationAdminister', 'telehealthWrite', 'outcomeWrite', 'preauthCreate'] as const) expect(can(['CASE_MANAGER'], f)).toBe(false);
+  });
+
+  it('PROCUREMENT: provider directory (edit + contracts), scorecards, network gaps only', () => {
+    expect(paths(['PROCUREMENT'])).toEqual(['/providers', '/providers/scorecards', '/providers/gaps']);
+    expect(homeRoute(['PROCUREMENT'])).toBe('/providers');
+    for (const f of ['providerEdit', 'providerContracts', 'scorecardRecompute'] as const) expect(can(['PROCUREMENT'], f)).toBe(true);
+    expect(featureForRoute('/providers/CITYHOSP')).toBe('providers');
+    expect(can(['PROCUREMENT'], 'claims')).toBe(false);
+  });
+
+  it('CLAIMS_COORDINATOR: claims, report deadlines, pre-auth list, nurse assignment, providers (read)', () => {
+    expect(paths(['CLAIMS_COORDINATOR'])).toEqual(['/claims', '/claims/reports', '/claims/preauthorisations', '/claims/nurse-assignment', '/providers']);
+    expect(homeRoute(['CLAIMS_COORDINATOR'])).toBe('/claims');
+    for (const f of ['claimDetail', 'claimWrite', 'claimCreate', 'preauthDecide', 'preauthCreate', 'invoiceWrite', 'disclosureSetWrite', 'disclosureRevoke', 'claimCostLedger', 'legalRequestCreate', 'claimCollaboration'] as const) {
+      expect(can(['CLAIMS_COORDINATOR'], f)).toBe(true);
+    }
+    for (const f of ['providerEdit', 'legalWrite', 'disclosureRedact', 'erpExports', 'budgetWrite'] as const) expect(can(['CLAIMS_COORDINATOR'], f)).toBe(false);
+    expect(featureForRoute('/claims/c1')).toBe('claimDetail');
+    expect(featureForRoute('/claims/c1/disclosures')).toBe('claimDetail');
+    expect(featureForRoute('/claims/reports')).toBe('claimReports');
+  });
+
+  it('FINANCE: claim & treatment costs only (budgets, ERP exports) – no claim records with names', () => {
+    expect(paths(['FINANCE'])).toEqual(['/claims/costs']);
+    expect(homeRoute(['FINANCE'])).toBe('/claims/costs');
+    for (const f of ['budgetWrite', 'erpExports', 'invoiceWrite', 'claimReconciliation'] as const) expect(can(['FINANCE'], f)).toBe(true);
+    for (const f of ['claims', 'claimDetail', 'claimCostLedger', 'providers'] as const) expect(can(['FINANCE'], f)).toBe(false);
+  });
+
+  it('LEGAL_COUNSEL: legal screen and claim detail (hold, privilege, requests) – no report writing', () => {
+    expect(paths(['LEGAL_COUNSEL'])).toEqual(['/legal']);
+    expect(homeRoute(['LEGAL_COUNSEL'])).toBe('/legal');
+    for (const f of ['legal', 'legalWrite', 'legalRequestCreate', 'claimDetail'] as const) expect(can(['LEGAL_COUNSEL'], f)).toBe(true);
+    for (const f of ['legalReportWrite', 'claimWrite', 'claims'] as const) expect(can(['LEGAL_COUNSEL'], f)).toBe(false);
+  });
+
+  it('NURSING_HEAD: nurse assignment, scorecards, variance, KPIs; CMO: scorecards, KPIs, costs, gaps; physicians write medico-legal reports', () => {
+    expect(area(['NURSING_HEAD'])).toEqual(expect.arrayContaining(['/claims/nurse-assignment', '/providers/scorecards', '/treatment/variance', '/treatment/kpis']));
+    expect(area(['NURSING_HEAD'])).not.toContain('/claims/costs');
+    expect(can(['NURSING_HEAD'], 'formularyWrite')).toBe(true);
+    expect(area(['CMO'])).toEqual(expect.arrayContaining(['/providers/scorecards', '/treatment/kpis', '/claims/costs', '/providers/gaps', '/legal/requests']));
+    expect(area(['CMO'])).not.toContain('/claims');
+    expect(can(['CMO'], 'erpExports')).toBe(false);
+    for (const r of ['OH_PHYSICIAN', 'AME', 'CMO']) expect(can([r], 'legalReportWrite')).toBe(true);
+    expect(can(['OH_CLINICIAN'], 'legalReportWrite')).toBe(false);
+    expect(homeRoute(['NURSING_HEAD'])).toBe('/queues');
+    expect(homeRoute(['CMO'])).toBe('/queues');
+  });
+
+  it('DPO: claim disclosure report and revoke only; OH_ADMIN: network gaps only', () => {
+    expect(area(['DPO'])).toEqual(['/claims/disclosures']);
+    expect(can(['DPO'], 'disclosureRevoke')).toBe(true);
+    expect(can(['DPO'], 'claimDetail')).toBe(false);
+    expect(area(['OH_ADMIN'])).toEqual(['/providers/gaps']);
+    expect(homeRoute(['OH_ADMIN'])).toBe('/intake/dashboard');
+  });
+
+  it.each([['HR'], ['MANAGER'], ['EMPLOYEE'], ['HSE_OFFICER'], ['CLINIC_SCHEDULER'], ['CLINIC_RECEPTION'], ['AUDITOR'], ['BIOMEDICAL']])('%s gets no increment-4 screen', (r) => {
     expect(area([r])).toEqual([]);
   });
 });

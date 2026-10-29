@@ -21,7 +21,7 @@ describe('App shell – increment 2 navigation and gating', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/dpo/break-glass'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Break-glass reviews' })).toBeTruthy();
     expect(navGroups()).toEqual(['Privacy']);
-    expect(navLinks()).toEqual(['Break-glass reviews', 'Break-glass report', 'Disclosure log', 'Retention & legal hold']);
+    expect(navLinks()).toEqual(['Break-glass reviews', 'Break-glass report', 'Disclosure log', 'Retention & legal hold', 'Claim disclosures']);
     for (const label of ['Work queues', 'Employee chart', 'Results worklist', 'Unsigned notes', 'Active restrictions']) expect(navLinks()).not.toContain(label);
   });
 
@@ -53,5 +53,36 @@ describe('App shell – increment 2 navigation and gating', () => {
     expect(navLinks()).not.toContain('Fitness sign-off');
     const nav = screen.getByRole('navigation', { name: 'Main' });
     expect(within(nav).getByRole('link', { name: 'Employee chart' }).getAttribute('aria-current')).toBe('page');
+  });
+});
+
+describe('App shell – increment 4 routing', () => {
+  it('FINANCE lands on claim costs and is restricted from a case', async () => {
+    window.location.hash = '#/';
+    const api = mockApi({ 'GET /bff/session': { authenticated: true, roles: ['FINANCE'] }, 'GET /claims/costs/rollup': [], 'GET /treatment/costs': [], 'GET /claims/costs/exports': [] });
+    render(<App client={api.client} />);
+    await waitFor(() => expect(window.location.hash).toBe('#/claims/costs'));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Claim & treatment costs' })).toBeTruthy();
+    expect(navLinks()).toEqual(['Claim & treatment costs']);
+    window.location.hash = '#/cases/c1/treatment';
+    expect(await screen.findByRole('heading', { name: 'Access restricted' })).toBeTruthy();
+    expect(api.calls.some((c) => c.path.startsWith('/cases/'))).toBe(false);
+  });
+
+  it('claims coordinator opens a claim detail tab; /claims/reports stays the dashboard', async () => {
+    window.location.hash = '#/claims/cl1/collaboration';
+    const api = mockApi({
+      'GET /bff/session': { authenticated: true, roles: ['CLAIMS_COORDINATOR'] },
+      'GET /claims/cl1': { id: 'cl1', claimRef: 'CLM-2026-000001', caseId: 'c1', employeeId: 'E1', displayName: 'Rami Ramp', claimType: 'WORKERS_COMP', status: 'OPEN', lostTime: false, litigationHold: false, privileged: false },
+      'GET /claims/cl1/tasks': [],
+      'GET /claims/cl1/messages': [],
+      'GET /claims/reports': [],
+    });
+    render(<App client={api.client} />);
+    expect(await screen.findByRole('heading', { level: 1, name: 'CLM-2026-000001' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Shared tasks' })).toBeTruthy();
+    expect(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Claims' }).getAttribute('aria-current')).toBe('page');
+    window.location.hash = '#/claims/reports';
+    expect(await screen.findByRole('heading', { level: 1, name: 'Report deadlines' })).toBeTruthy();
   });
 });

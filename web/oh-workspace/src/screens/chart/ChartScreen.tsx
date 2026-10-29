@@ -9,6 +9,7 @@ import { DocumentsPanel } from '../documents/DocumentsPanel';
 import { EncounterList } from '../encounter/EncounterList';
 import { ResultsTab } from '../results/ResultsTab';
 import { SurveillanceChartTab } from '../surveillance/SurveillanceChartTab';
+import { TreatmentChartTab } from '../treatment/TreatmentChartTab';
 import type { ScreenProps } from '../types';
 import { BreakGlass } from './BreakGlass';
 import type { ChartTabProps } from './chartTabProps';
@@ -27,6 +28,7 @@ const CHART_TABS: TabDef[] = [
   { id: 'timeline', label: 'Timeline' },
   { id: 'absence', label: 'Absence' },
   { id: 'surveillance', label: 'Surveillance' },
+  { id: 'treatment', label: 'Treatment' },
 ];
 
 const SEVERITY_SYMBOL: Record<string, string> = { HIGH: '!!', CRITICAL: '!!', MEDIUM: '!', WARNING: '!', LOW: 'i', INFO: 'i' };
@@ -157,6 +159,7 @@ function ChartTabBody({ tab, props }: { tab: string; props: ChartTabProps }) {
     case 'timeline': return <RecordTimelineTab {...props} />;
     case 'absence': return <AbsenceChartTab {...props} />;
     case 'surveillance': return <SurveillanceChartTab {...props} />;
+    case 'treatment': return <TreatmentChartTab {...props} />;
     default: return <ProblemsTab {...props} />;
   }
 }
