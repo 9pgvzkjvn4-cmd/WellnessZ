@@ -3,7 +3,7 @@ import { platformApi, type DocumentMeta } from '../../api/platform';
 import { CHANNELS, treatmentApi, URGENCIES, type Provider, type ReferralDetail, type ReferralService } from '../../api/treatment';
 import { ErrorSummary, IdField, type FieldError } from '../../components/forms';
 import { errorInfo, formatDay, humanise } from '../../components/format';
-import { ActionFeedback, Alert, Empty, ErrorAlert, Field, Loading, SelectOptions } from '../../components/ui';
+import { ActionFeedback, Alert, Empty, ErrorAlert, Field, Loading } from '../../components/ui';
 import { useAction, useAsync } from '../../components/useAsync';
 import { formatMoney } from '../../domain/money';
 import {

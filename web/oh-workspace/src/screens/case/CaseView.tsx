@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { seg } from '../../api/links';
 import type { CaseDetail, CaseHeader as Header } from '../../api/types';
 import { DuplicateFlag, IntensityBadge, SafetyBadge, SlaBadge, UrgencyBadge } from '../../components/badges';
@@ -22,6 +23,12 @@ import { TasksTab } from './TasksTab';
 import { TimelineTab } from './TimelineTab';
 import { TriageTab } from './TriageTab';
 import type { CaseTabProps } from './caseTabProps';
+import { ClaimBadge } from '../claims/ClaimBadge';
+import { ClaimTab } from '../treatment/ClaimTab';
+import { CostsTab } from '../treatment/CostsTab';
+import { OutcomesTab } from '../treatment/OutcomesTab';
+import { ReferralsTab } from '../treatment/ReferralsTab';
+import { TreatmentTab } from '../treatment/TreatmentTab';
 
 const CREW_CATEGORIES = ['FLIGHT_CREW', 'CABIN_CREW'];
 
@@ -50,6 +57,11 @@ const CASE_TABS: TabDef[] = [
   { id: 'food-handler', label: 'Food handler' },
   { id: 'crew', label: 'Crew' },
   { id: 'ihr', label: 'IHR' },
+  { id: 'treatment', label: 'Treatment' },
+  { id: 'referrals', label: 'Referrals' },
+  { id: 'costs', label: 'Costs' },
+  { id: 'outcomes', label: 'Outcomes' },
+  { id: 'claim', label: 'Claim' },
   { id: 'documents', label: 'Documents' },
   { id: 'summary', label: 'Summary' },
   { id: 'status', label: 'Status' },
@@ -73,6 +85,11 @@ function TabBody({ tab, props }: { tab: string; props: CaseTabProps }) {
     case 'food-handler': return <FoodHandlerTab {...props} />;
     case 'crew': return <CrewTab {...props} />;
     case 'ihr': return <IhrTab {...props} />;
+    case 'treatment': return <TreatmentTab {...props} />;
+    case 'referrals': return <ReferralsTab {...props} />;
+    case 'costs': return <CostsTab {...props} />;
+    case 'outcomes': return <OutcomesTab {...props} />;
+    case 'claim': return <ClaimTab {...props} />;
     case 'documents': return <CaseDocumentsTab {...props} />;
     case 'summary': return <SummaryTab {...props} />;
     case 'status': return <StatusTab {...props} />;
@@ -81,7 +98,7 @@ function TabBody({ tab, props }: { tab: string; props: CaseTabProps }) {
 }
 
 /** E02-BL-018 case header: SLA, safety badge, badges, open tasks, next action, owner, queue, intensity, complexity. */
-function CaseHeaderPanel({ h, detail }: { h?: Header; detail?: CaseDetail }) {
+function CaseHeaderPanel({ h, detail, claim }: { h?: Header; detail?: CaseDetail; claim?: ReactNode }) {
   const urgency = h?.urgency ?? detail?.urgency;
   return (
     <div className="case-header" aria-label="Case summary">
@@ -92,6 +109,7 @@ function CaseHeaderPanel({ h, detail }: { h?: Header; detail?: CaseDetail }) {
         <SafetyBadge safetyCritical={h?.safetyCritical ?? detail?.safetyCritical} category={h?.safetyCategory ?? detail?.safetyCategory} />
         <IntensityBadge intensity={h?.intensity ?? detail?.intensity} />
         <DuplicateFlag suspect={detail?.duplicateSuspect} />
+        {claim}
         {(h?.badges ?? []).map((b) => (
           <span key={b} className="badge badge-muted">{humanise(b)}</span>
         ))}
@@ -154,7 +172,7 @@ export function CaseView(props: ScreenProps & { caseId: string; tab: string }) {
         </p>
       )}
       {!!header.error && !detail.error && <ErrorAlert error={header.error} />}
-      <CaseHeaderPanel h={header.data} detail={d} />
+      <CaseHeaderPanel h={header.data} detail={d} claim={<ClaimBadge client={props.client} session={props.session} onSessionExpired={onSessionExpired} caseId={caseId} />} />
       <TabNav tabs={tabs} current={current} label="Case sections" hrefFor={(id) => `#/cases/${encodeURIComponent(caseId)}/${id}`} />
       <div className="tab-panel">
         {detail.loading && !d && <Loading label="Loading case…" />}

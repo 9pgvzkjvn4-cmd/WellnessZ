@@ -5,6 +5,7 @@
 | [`employee-app`](employee-app/README.md) | employees & crew | 5173 | BFF session (browser/PWA) · OIDC + PKCE (native) | web, installable PWA, Capacitor 8 iOS/Android (`com.wellnessz.app`) |
 | [`manager-workspace`](manager-workspace/README.md) | managers, HR, OH | 5174 | BFF session | web |
 | [`oh-workspace`](oh-workspace/README.md) | OH nurses, physicians, AME, CMO, Nursing Head, OH admin, clinic reception, first aiders | 5175 | BFF session | web |
+| [`partner-portal`](partner-portal/README.md) | External partner providers (hospitals, specialists, physiotherapy, telehealth) and TPA / insurer adjusters – MFA required | 5176 | BFF session | web |
 
 All apps are React 19 + TypeScript 6 + Vite 8, no UI framework and no router library (hash routing), with exact
 pinned dependency versions and a committed `package-lock.json`.
