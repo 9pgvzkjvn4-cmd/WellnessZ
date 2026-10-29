@@ -1,0 +1,19 @@
+WZ_MASTER_KEY: "q3x5V2m8yH1cKpT0bN7rJ4sF6dL9wE2aZ5uC8iO1gM0="
+spring:
+  datasource:
+    hikari:
+      data-source-properties:
+        sslmode: disable
+  security:
+    oauth2:
+      client:
+        registration:
+          wellnessz:
+            client-secret: test-only
+        provider:
+          wellnessz:
+            authorization-uri: https://idp.test/auth
+            token-uri: https://idp.test/token
+            jwk-set-uri: https://idp.test/certs
+            user-info-uri: https://idp.test/userinfo
+            user-name-attribute: preferred_username

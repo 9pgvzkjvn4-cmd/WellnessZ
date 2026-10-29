@@ -1,0 +1,186 @@
+# WellnessZ core API – base configuration. Environment-specific values come from environment variables
+# (12-factor). Secrets may be given as ENC(...) (AES-256-GCM, see EncryptCli) or file:/mnt/secrets/<name>.
+spring:
+  application:
+    name: wellnessz-core
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${WZ_DB_URL:jdbc:postgresql://localhost:5432/wellnessz}
+    username: ${WZ_DB_USERNAME:wz_app}
+    password: ${WZ_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${WZ_DB_POOL_SIZE:20}
+      connection-timeout: 10000
+      max-lifetime: 1500000
+      data-source-properties:
+        # TLS to PostgreSQL; local profile relaxes to 'prefer'
+        sslmode: ${WZ_DB_SSLMODE:verify-full}
+        ApplicationName: wellnessz-core
+  flyway:
+    enabled: ${WZ_FLYWAY_ENABLED:true}
+    # migrations run with a separate owner role; the runtime role has DML-only grants
+    user: ${WZ_DB_MIGRATOR_USERNAME:${WZ_DB_USERNAME:wz_app}}
+    password: ${WZ_DB_MIGRATOR_PASSWORD:${WZ_DB_PASSWORD:}}
+    schemas: platform,masterdata,intake,casemgmt,analytics
+    default-schema: platform
+    create-schemas: true
+    placeholders:
+      app_role: ${WZ_DB_USERNAME:wz_app}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+  mail:
+    host: ${WZ_SMTP_HOST:localhost}
+    port: ${WZ_SMTP_PORT:587}
+    username: ${WZ_SMTP_USERNAME:}
+    password: ${WZ_SMTP_PASSWORD:}
+    properties:
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: ${WZ_SMTP_STARTTLS_REQUIRED:true}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+    include-message: never
+  forward-headers-strategy: framework
+  max-http-request-header-size: 16KB
+  tomcat:
+    max-swallow-size: 2MB
+
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  tracing:
+    sampling:
+      probability: ${WZ_TRACE_SAMPLING:0.1}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+  metrics:
+    tags:
+      application: wellnessz-core
+
+springdoc:
+  api-docs:
+    enabled: ${WZ_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${WZ_API_DOCS_ENABLED:false}
+
+wellnessz:
+  security:
+    issuers: ${WZ_OIDC_ISSUERS:http://localhost:8180/realms/wellnessz}
+    audience: ${WZ_OIDC_AUDIENCE:wellnessz-api}
+    cors-origins: ${WZ_CORS_ORIGINS:}
+    role-claims: realm_access.roles,roles,groups
+    employee-id-claim: employee_id
+    org-scope-claim: org_scope
+  crypto:
+    active-key-version: ${WZ_FIELD_KEY_VERSION:v1}
+  consent:
+    notice-version: "2026.1"
+  analytics:
+    min-group-size: ${WZ_ANALYTICS_MIN_GROUP:5}
+  integration:
+    external-publisher: logging
+    outbox:
+      poll-interval: PT2S
+      max-attempts: 10
+    # status-only disclosure rule for enterprise destinations (default deny for anything not listed)
+    outbound-allowlist:
+      crew-rostering: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom]
+      hr-systems: [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom]
+  notification:
+    quiet-hours:
+      start: "21:00"
+      end: "07:00"
+    email:
+      from: ${WZ_NOTIFY_FROM:no-reply@wellnessz.local}
+  ehs:
+    source-system: ${WZ_EHS_SOURCE_SYSTEM:EHS}
+    timezone: ${WZ_EHS_TIMEZONE:UTC}
+    mailbox:
+      mode: ${WZ_EHS_MAILBOX_MODE:none}
+      poll-interval: ${WZ_EHS_MAILBOX_POLL:PT5M}
+      allowed-senders: ${WZ_EHS_ALLOWED_SENDERS:}
+      imap:
+        host: ${WZ_IMAP_HOST:}
+        port: ${WZ_IMAP_PORT:993}
+        ssl: ${WZ_IMAP_SSL:true}
+        username: ${WZ_IMAP_USERNAME:}
+        password: ${WZ_IMAP_PASSWORD:}
+        processed-folder: ${WZ_IMAP_PROCESSED_FOLDER:Processed}
+      graph:
+        tenant-id: ${WZ_GRAPH_TENANT_ID:}
+        client-id: ${WZ_GRAPH_CLIENT_ID:}
+        client-secret: ${WZ_GRAPH_CLIENT_SECRET:}
+        mailbox: ${WZ_GRAPH_MAILBOX:}
+
+logging:
+  level:
+    root: INFO
+    com.wellnessz: INFO
+    org.hibernate.SQL: WARN
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    hikari:
+      data-source-properties:
+        sslmode: ${WZ_DB_SSLMODE:prefer}
+  mail:
+    port: ${WZ_SMTP_PORT:1025}
+    properties:
+      mail.smtp.starttls.required: false
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+wellnessz:
+  security:
+    cors-origins: http://localhost:5173,http://localhost:5174
+  ehs:
+    mailbox:
+      allowed-senders: ${WZ_EHS_ALLOWED_SENDERS:@wellnessz.local}
+      imap:
+        ssl: ${WZ_IMAP_SSL:false}
+---
+spring:
+  config:
+    activate:
+      on-profile: azure | gcp | hybrid | prod
+  flyway:
+    # in cloud environments migrations normally run as a pre-deploy job; app-start migration can be enabled per env
+    enabled: ${WZ_FLYWAY_ENABLED:true}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Logging: human-readable locally, JSON (logstash) elsewhere for SIEM ingestion (Sentinel / Chronicle / Splunk).
+     PHI must never be logged: code logs ids and metadata only; LogSanitizer neutralises CR/LF in user input. -->
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <springProfile name="local | test | default">
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <root level="INFO"><appender-ref ref="CONSOLE"/></root>
+  </springProfile>
+  <springProfile name="!(local | test | default)">
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <includeMdcKeyName>correlationId</includeMdcKeyName>
+        <includeMdcKeyName>traceId</includeMdcKeyName>
+        <includeMdcKeyName>spanId</includeMdcKeyName>
+        <customFields>{"service":"wellnessz-bff"}</customFields>
+      </encoder>
+    </appender>
+    <root level="INFO"><appender-ref ref="JSON"/></root>
+  </springProfile>
+</configuration>

@@ -1,0 +1,470 @@
+# =============================================================================
+# WellnessZ Helm chart - default values (secure, cloud-neutral).
+# Layer a platform file on top:
+#   -f values.yaml -f values-azure.yaml | values-gcp.yaml | values-hybrid.yaml | values-local.yaml
+# Secrets are NEVER set in values files: they are mounted from Azure Key Vault,
+# GCP Secret Manager or HashiCorp Vault through the Secrets Store CSI driver
+# (secrets.provider) or, for local clusters only, from a pre-created Secret.
+# =============================================================================
+
+global:
+  # Registry + repository prefix, e.g. ghcr.io/acme/wellnessz, myacr.azurecr.io/wellnessz,
+  # europe-west4-docker.pkg.dev/my-project/wellnessz
+  imageRegistry: ghcr.io/OWNER/wellnessz
+  # Defaults to .Chart.AppVersion when empty. CD sets this to the release tag.
+  imageTag: ""
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+  # Free-form environment name (dev|test|prod) - added as a label.
+  environment: dev
+  # Spring profile(s) for core and bff (local|azure|gcp|hybrid|prod)
+  springProfiles: prod
+  # OpenShift: let the restricted-v2 SCC assign UIDs (omits runAsUser/runAsGroup/fsGroup)
+  openshift: false
+  commonLabels: {}
+  commonAnnotations: {}
+
+# -----------------------------------------------------------------------------
+# Workload identity - no static cloud credentials in the cluster.
+# -----------------------------------------------------------------------------
+workloadIdentity:
+  azure:
+    enabled: false
+    tenantId: ""
+    # Client IDs of the user-assigned managed identities (Terraform outputs)
+    clientIds:
+      core: ""
+      bff: ""
+      migrations: ""
+  gcp:
+    enabled: false
+    # Google service account emails (Terraform outputs)
+    serviceAccounts:
+      core: ""
+      bff: ""
+      migrations: ""
+
+# -----------------------------------------------------------------------------
+# Secrets - Secrets Store CSI driver (secrets-store.csi.x-k8s.io/v1)
+#   provider: none  -> use secrets.existingSecret.* (envFrom), local clusters only
+#   provider: azure -> Azure Key Vault provider (workload identity)
+#   provider: gcp   -> GCP Secret Manager provider (workload identity)
+#   provider: vault -> HashiCorp Vault provider (Kubernetes auth)
+# Files land in <mountPath>/<component>/<fileName>; core consumes them as
+# WZ_DB_PASSWORD=file:/... and WZ_MASTER_KEY_FILE=/..., and every file is also
+# exposed to Spring through `configtree:` (file name == property name).
+# -----------------------------------------------------------------------------
+secrets:
+  provider: none
+  mountPath: /mnt/secrets
+  # Also mirror into a Kubernetes Secret (secretObjects). Keep false so
+  # secret material is not persisted in etcd.
+  syncToKubernetesSecret: false
+  azure:
+    keyVaultName: ""
+    tenantId: ""
+    cloudName: AzurePublicCloud
+  gcp:
+    projectId: ""
+    # "gke" = GKE-managed Secret Manager add-on (driver secrets-store-gke.csi.k8s.io)
+    # "gcp" = open-source secrets-store-csi-driver-provider-gcp
+    providerName: gke
+  # CSI driver name; GKE add-on uses secrets-store-gke.csi.k8s.io
+  csiDriver: secrets-store.csi.k8s.io
+  vault:
+    address: ""
+    kubernetesMountPath: kubernetes
+    roles:
+      core: wellnessz-core
+      bff: wellnessz-bff
+      migrations: wellnessz-migrations
+  # remoteName = Key Vault secret name / Secret Manager secret id / Vault "path#key"
+  # env/format (optional): also export an env var pointing at the file:
+  #   format: fileRef -> ENV=file:<path>   (wz-secrets SecretResolver)
+  #   format: path    -> ENV=<path>        (e.g. WZ_MASTER_KEY_FILE)
+  core:
+    files:
+      - fileName: wz-db-password
+        remoteName: wz-db-password
+        env: WZ_DB_PASSWORD
+        format: fileRef
+      - fileName: wz-master-key
+        remoteName: wz-master-key
+        env: WZ_MASTER_KEY_FILE
+        format: path
+      - fileName: wz-pseudonym-key
+        remoteName: wz-pseudonym-key
+        env: WZ_PSEUDONYM_KEY
+        format: fileRef
+  bff:
+    files:
+      # configtree: file name == Spring property / placeholder name
+      - fileName: WZ_BFF_CLIENT_SECRET
+        remoteName: wz-bff-client-secret
+  migrations:
+    files:
+      # migrations.mode=app: merged into the core volume and read by Spring as
+      # spring.flyway.password (configtree). mode=job: read by the Flyway Job.
+      - fileName: spring.flyway.password
+        remoteName: wz-migrator-db-password
+  # provider=none only: names of pre-created Secrets injected with envFrom.
+  existingSecret:
+    core: ""
+    bff: ""
+    migrations: ""
+
+# -----------------------------------------------------------------------------
+# Database migrations (Flyway)
+#   app: core runs Flyway on start-up as the schema-owner role (spring.flyway.*)
+#   job: a pre-install/pre-upgrade Job runs Flyway CLI; core then runs with
+#        Flyway disabled and never holds the migrator credential (preferred
+#        for prod - least privilege).
+# -----------------------------------------------------------------------------
+migrations:
+  mode: app
+  migratorUsername: wz_migrator
+  job:
+    image:
+      repository: flyway/flyway
+      tag: 11.20.3-alpine
+      fullName: ""   # overrides repository:tag when set (e.g. mirrored image)
+    # Location of SQL migrations inside the core image (Spring Boot layered extraction)
+    locationInImage: /app/BOOT-INF/classes/db/migration
+    # JDBC URL for Flyway; defaults to core.env.WZ_DB_URL
+    dbUrl: ""
+    schemas: platform,masterdata,intake,casemgmt,analytics
+    extraArgs: []
+    backoffLimit: 1
+    activeDeadlineSeconds: 900
+    ttlSecondsAfterFinished: 86400
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { memory: 512Mi }
+
+# -----------------------------------------------------------------------------
+# Shared pod hardening (applied to every workload)
+# -----------------------------------------------------------------------------
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  privileged: false
+  capabilities:
+    drop: ["ALL"]
+
+topologySpread:
+  enabled: true
+  # ScheduleAnyway keeps single-zone clusters schedulable; use DoNotSchedule in prod.
+  whenUnsatisfiable: ScheduleAnyway
+
+# -----------------------------------------------------------------------------
+# Core API (apps/wz-core-app)
+# -----------------------------------------------------------------------------
+core:
+  enabled: true
+  name: core
+  image:
+    repository: wz-core-app
+    tag: ""
+    digest: ""      # sha256:... - takes precedence over tag (recommended in prod)
+  replicaCount: 2
+  runAsUser: 10001
+  ports:
+    http: 8080
+    management: 8081
+  service:
+    type: ClusterIP
+    annotations: {}
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { memory: 1536Mi }
+  tmpSizeLimit: 512Mi
+  probes:
+    livenessPath: /actuator/health/liveness
+    readinessPath: /actuator/health/readiness
+    startupFailureThreshold: 36   # x5s = 3 min (Flyway on first start)
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Non-secret configuration (rendered into a ConfigMap)
+  env:
+    WZ_DB_URL: "jdbc:postgresql://postgres.example.internal:5432/wellnessz?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+    WZ_DB_USERNAME: wz_app
+    WZ_OIDC_ISSUERS: ""
+    WZ_OIDC_AUDIENCE: wellnessz-api
+    WZ_CORS_ORIGINS: ""
+    WZ_ANALYTICS_MIN_GROUP: "5"
+    WZ_EHS_MAILBOX_MODE: none
+    WZ_SMTP_HOST: ""
+    WZ_SMTP_PORT: "587"
+    OTEL_EXPORTER_OTLP_ENDPOINT: ""
+    OTEL_SERVICE_NAME: wz-core-app
+  extraEnv: []
+
+# -----------------------------------------------------------------------------
+# Backend-for-Frontend (apps/wz-bff)
+# -----------------------------------------------------------------------------
+bff:
+  enabled: true
+  name: bff
+  image:
+    repository: wz-bff
+    tag: ""
+    digest: ""
+  replicaCount: 2
+  runAsUser: 10001
+  ports:
+    http: 8090
+    management: 8081
+  service:
+    type: ClusterIP
+    annotations: {}
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { memory: 1Gi }
+  tmpSizeLimit: 256Mi
+  probes:
+    livenessPath: /actuator/health/liveness
+    readinessPath: /actuator/health/readiness
+    startupFailureThreshold: 24
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  env:
+    WZ_BFF_ISSUER_URI: ""
+    WZ_BFF_CLIENT_ID: wellnessz-bff
+    # Empty = in-cluster core Service (http://<release>-core:8080). Set when
+    # core runs elsewhere (hybrid: on-prem core over private connectivity).
+    WZ_CORE_API_URL: ""
+    WZ_BFF_POST_LOGOUT_URI: ""
+    OTEL_EXPORTER_OTLP_ENDPOINT: ""
+    OTEL_SERVICE_NAME: wz-bff
+  extraEnv: []
+
+# -----------------------------------------------------------------------------
+# Static web apps (nginx-unprivileged, port 8080)
+# -----------------------------------------------------------------------------
+employeePortal:
+  enabled: true
+  name: employee-portal
+  image:
+    repository: employee-app
+    tag: ""
+    digest: ""
+  replicaCount: 2
+  runAsUser: 101      # nginx-unprivileged image user
+  ports:
+    http: 8080
+  service:
+    type: ClusterIP
+    annotations: {}
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  tmpSizeLimit: 64Mi
+  probes:
+    path: /healthz
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    minAvailable: 1
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+managerWorkspace:
+  enabled: true
+  name: manager-workspace
+  image:
+    repository: manager-workspace
+    tag: ""
+    digest: ""
+  replicaCount: 2
+  runAsUser: 101
+  ports:
+    http: 8080
+  service:
+    type: ClusterIP
+    annotations: {}
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  tmpSizeLimit: 64Mi
+  probes:
+    path: /healthz
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    minAvailable: 1
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# Ingress (TLS terminated at the controller / cloud load balancer)
+# Web hosts route /bff, /oauth2, /login, /logout -> bff and / -> static app on
+# the SAME origin (BFF cookie is SameSite=Strict). The optional API host
+# exposes core /api/v1 for the mobile app (PKCE bearer tokens) and M2M clients.
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: true
+  # Controller-specific settings live in the platform overlays (AGIC, GCE,
+  # OpenShift router, ...). NOTE: the community ingress-nginx project was
+  # retired in March 2026 - prefer a supported controller for new clusters.
+  className: nginx
+  # Applied to every Ingress (HTTPS redirect, WAF, body size, ...)
+  annotations: {}
+  webAnnotations: {}
+  apiAnnotations: {}
+  # Use `kubernetes.io/ingress.class` annotation instead of spec.ingressClassName (GKE GCE)
+  useClassAnnotation: false
+  tls:
+    enabled: true
+    # Secret holding the certificate (cert-manager, Key Vault sync, etc.).
+    # Leave empty when the cloud LB supplies certificates (GKE ManagedCertificate,
+    # AGIC with Key Vault certificate annotation).
+    secretName: wellnessz-tls
+  bffPaths: [/bff, /oauth2, /login, /logout]
+  hosts:
+    employeePortal: employee.wellnessz.example.com
+    managerWorkspace: manager.wellnessz.example.com
+  api:
+    enabled: true
+    host: api.wellnessz.example.com
+    paths: [/api/v1]
+
+# -----------------------------------------------------------------------------
+# GKE-only objects (rendered when gcp.*.enabled)
+# -----------------------------------------------------------------------------
+gcp:
+  backendConfig:
+    enabled: false
+    securityPolicy: ""        # Cloud Armor policy name (Terraform output)
+    timeoutSec: 60
+    logging:
+      enable: true
+      sampleRate: 1.0
+  frontendConfig:
+    enabled: false
+    sslPolicy: ""             # Terraform output (TLS 1.2+, MODERN/RESTRICTED)
+  managedCertificate:
+    enabled: false
+
+# -----------------------------------------------------------------------------
+# NetworkPolicies - default deny, explicit allow
+# -----------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+  # Deny-all for every pod in the namespace (recommended: dedicated namespace)
+  defaultDenyNamespace: true
+  dns:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: kube-system
+    podSelector:
+      matchLabels:
+        k8s-app: kube-dns
+    # e.g. NodeLocal DNSCache 169.254.20.10/32
+    extraIpBlocks: []
+  # Where ingress traffic comes from. Either selectors (in-cluster controller)
+  # or ipBlocks (AGIC / GCE load balancers reach pods directly).
+  ingressController:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: ingress-nginx
+    podSelector: {}
+    ipBlocks: []
+    # Allow the same peers to reach the management port (cloud L7 load
+    # balancers - AGIC / GCE - health-check pods directly on the readiness probe port)
+    allowHealthChecks: false
+  # Prometheus / OTel scraping of management ports
+  monitoring:
+    enabled: true
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: monitoring
+  # PostgreSQL endpoints for core (and migration job)
+  database:
+    port: 5432
+    cidrs: []
+    # Alternatively select an in-cluster database (e.g. CloudNativePG)
+    namespaceSelector: {}
+    podSelector: {}
+  # OIDC IdP (JWKS / token endpoint), Microsoft Graph, etc. 443/TCP
+  https:
+    cidrs: ["0.0.0.0/0"]
+    except: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+  # OTLP collector
+  otel:
+    enabled: false
+    namespaceSelector: {}
+    podSelector: {}
+    ports: [4317, 4318]
+  # Extra peers allowed to reach core:8080 (raw NetworkPolicyPeer list), e.g.
+  # the cloud BFF egress range in hybrid deployments: [{ipBlock: {cidr: 10.20.0.0/24}}]
+  coreExtraIngressPeers: []
+  # Extra egress rules appended per component (raw NetworkPolicyEgressRule)
+  extraEgress:
+    core: []
+    bff: []
+
+# -----------------------------------------------------------------------------
+# Observability
+# -----------------------------------------------------------------------------
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  labels: {}

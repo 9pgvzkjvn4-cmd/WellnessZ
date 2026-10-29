@@ -1,0 +1,35 @@
+WellnessZ {{ .Chart.AppVersion }} deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Components:
+{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" }}
+{{- $c := index $.Values $key }}
+  - {{ $c.name }}: {{ ternary "enabled" "disabled" $c.enabled }}
+{{- end }}
+
+Secrets provider : {{ .Values.secrets.provider }}
+Migrations mode  : {{ .Values.migrations.mode }}
+NetworkPolicies  : {{ ternary "enabled (default deny)" "DISABLED" .Values.networkPolicy.enabled }}
+{{- if .Values.ingress.enabled }}
+
+Endpoints:
+{{- range $key := list "employeePortal" "managerWorkspace" }}
+{{- if (index $.Values $key).enabled }}
+  https://{{ index $.Values.ingress.hosts $key }}/
+{{- end }}
+{{- end }}
+{{- if and .Values.ingress.api.enabled .Values.core.enabled }}
+  https://{{ .Values.ingress.api.host }}/api/v1
+{{- end }}
+{{- end }}
+{{- if eq .Values.secrets.provider "none" }}
+
+WARNING: secrets.provider=none - secrets are read from pre-created Kubernetes
+Secrets ({{ .Values.secrets.existingSecret.core | default "<unset>" }}, {{ .Values.secrets.existingSecret.bff | default "<unset>" }}). Use only for local clusters.
+{{- end }}
+{{- if not .Values.networkPolicy.enabled }}
+
+WARNING: NetworkPolicies are disabled - not compliant with the WellnessZ baseline.
+{{- end }}
+
+Check rollout:
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}

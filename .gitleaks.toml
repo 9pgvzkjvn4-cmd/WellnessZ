@@ -1,0 +1,26 @@
+# gitleaks configuration - extends the upstream default rule set.
+# Allowlist ONLY well-known local-development placeholders; every entry must
+# be reviewed by @OWNER/wellnessz-security (see CODEOWNERS).
+title = "WellnessZ gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented local-only placeholders"
+regexTarget = "match"
+regexes = [
+  # Keycloak local realm / compose placeholders
+  '''change-me-local-only''',
+  '''REPLACE-ME[-A-Za-z0-9]*''',
+  # Published test-user password for the local realm (temporary, forced change)
+  '''ChangeMe!123''',
+  # PostgreSQL parameter value (password_encryption = SCRAM-SHA-256), not a secret
+  '''SCRAM-SHA-256''',
+]
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)terraform\.tfvars\.example$''',
+  '''(^|/)backend\.hcl\.example$''',
+  '''(^|/)package-lock\.json$''',
+]

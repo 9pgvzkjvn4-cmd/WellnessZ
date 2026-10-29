@@ -1,0 +1,38 @@
+{{- $root := . -}}
+{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" }}
+{{- $comp := index $root.Values $key }}
+{{- if $comp.enabled }}
+{{- $ctx := dict "root" $root "comp" $comp }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wellnessz.componentName" $ctx }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
+  {{- $ann := deepCopy (default (dict) $comp.service.annotations) }}
+  {{- if and $root.Values.gcp.backendConfig.enabled (ne $key "core" | or $root.Values.ingress.api.enabled) }}
+  {{- $_ := set $ann "cloud.google.com/neg" "{\"ingress\": true}" }}
+  {{- $_ := set $ann "cloud.google.com/backend-config" (printf "{\"default\": \"%s\"}" (include "wellnessz.componentName" $ctx)) }}
+  {{- end }}
+  {{- with $ann }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $comp.service.type }}
+  selector:
+    {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $comp.ports.http }}
+      targetPort: http
+      protocol: TCP
+    {{- if $comp.ports.management }}
+    - name: management
+      port: {{ $comp.ports.management }}
+      targetPort: management
+      protocol: TCP
+    {{- end }}
+{{- end }}
+{{- end }}

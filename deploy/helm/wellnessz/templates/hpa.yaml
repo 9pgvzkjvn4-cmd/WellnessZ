@@ -1,0 +1,41 @@
+{{- $root := . -}}
+{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" }}
+{{- $comp := index $root.Values $key }}
+{{- if and $comp.enabled $comp.autoscaling.enabled }}
+{{- $ctx := dict "root" $root "comp" $comp }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "wellnessz.componentName" $ctx }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "wellnessz.componentName" $ctx }}
+  minReplicas: {{ $comp.autoscaling.minReplicas }}
+  maxReplicas: {{ $comp.autoscaling.maxReplicas }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+  metrics:
+    {{- with $comp.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+    {{- with $comp.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+{{- end }}
+{{- end }}

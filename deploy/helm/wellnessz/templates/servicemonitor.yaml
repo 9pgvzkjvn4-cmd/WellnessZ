@@ -1,0 +1,26 @@
+{{- if .Values.serviceMonitor.enabled }}
+{{- $root := . -}}
+{{- range $key := list "core" "bff" }}
+{{- $comp := index $root.Values $key }}
+{{- if $comp.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $comp) }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
+    {{- with $root.Values.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" $comp.name) | nindent 6 }}
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: {{ $root.Values.serviceMonitor.interval }}
+{{- end }}
+{{- end }}
+{{- end }}

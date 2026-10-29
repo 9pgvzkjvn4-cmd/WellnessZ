@@ -1,0 +1,11 @@
+# Dedicated namespace for the on-prem WellnessZ database (PHI).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wellnessz-db
+  labels:
+    app.kubernetes.io/part-of: wellnessz
+    # Pod Security Admission: CNPG instances run as non-root with RuntimeDefault seccomp
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

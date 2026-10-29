@@ -1,0 +1,31 @@
+# Copy to terraform.tfvars (git-ignored). Contains identifiers only - no secrets.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+location        = "westeurope"
+environment     = "prod"
+name_prefix     = "wz"
+
+aks_private_cluster        = true
+aks_admin_group_object_ids = ["00000000-0000-0000-0000-000000000000"] # Entra group: WellnessZ AKS admins
+
+postgres_entra_admin = {
+  object_id      = "00000000-0000-0000-0000-000000000000"
+  principal_name = "sg-wellnessz-db-admins"
+}
+postgres_ha_enabled           = true
+postgres_geo_redundant_backup = true
+postgres_cmk_enabled          = false
+
+# Terraform runner egress IP while Key Vault is private-only (prefer a private runner)
+key_vault_allowed_ips = []
+
+acr_public_network_access = true # GitHub-hosted runners push images
+log_retention_days        = 365
+enable_front_door         = false
+
+tags = {
+  cost-center = "occupational-health"
+  owner       = "platform-team@example.com"
+}
+
+github_repository   = "OWNER/WellnessZ"
+github_environments = ["dev", "test", "prod"]

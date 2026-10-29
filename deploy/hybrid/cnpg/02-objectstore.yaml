@@ -1,0 +1,35 @@
+# Backup target for the Barman Cloud CNPG-I plugin
+# (plugin-barman-cloud; the in-tree spec.backup.barmanObjectStore is deprecated).
+# Works with any S3-compatible on-prem object store (MinIO, NetApp StorageGRID,
+# Dell ECS) or Azure Blob / GCS for an off-site copy.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: wellnessz-backup-store
+  namespace: wellnessz-db
+spec:
+  retentionPolicy: "35d"
+  configuration:
+    destinationPath: s3://wellnessz-pg-backups/prod
+    endpointURL: https://objectstore.onprem.example.internal
+    # CA bundle of the object store endpoint (internal PKI)
+    endpointCA:
+      name: internal-pki-ca
+      key: ca.crt
+    s3Credentials:
+      # Created by External Secrets from Vault (see ../external-secrets)
+      accessKeyId:
+        name: wellnessz-backup-s3
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: wellnessz-backup-s3
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+      # Server-side encryption at rest on the bucket
+      encryption: AES256
+      maxParallel: 4
+    data:
+      compression: gzip
+      encryption: AES256
+      jobs: 2

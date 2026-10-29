@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1150" viewBox="0 0 1700 1150" role="img" aria-label="Mobile flow - OIDC Authorization Code + PKCE with MDM configuration">
+<title>Mobile flow - OIDC Authorization Code + PKCE with MDM configuration</title>
+<defs><marker id="eg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="sg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="eb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="egr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="sgr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="en" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="sn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="ea" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker></defs>
+<rect width="100%" height="100%" fill="#FFFFFF"/>
+<rect x="0" y="0" width="1700" height="54" fill="#1B365D"/>
+<text x="24" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="21" font-weight="bold" fill="#FFFFFF" text-anchor="start">Mobile flow - OIDC Authorization Code + PKCE with MDM configuration</text>
+<text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">web/employee-app (src/auth, src/config)</text>
+<rect x="15.0" y="76" width="210" height="62" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="120.0" y="104.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E6DA4" text-anchor="middle">MDM</text>
+<text x="120.0" y="121.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Intune / Workspace ONE / Jamf</text>
+<line x1="120.0" y1="140" x2="120.0" y2="1080" stroke="#B8C2CC" stroke-width="1.4" stroke-dasharray="5 5"/>
+<rect x="307.0" y="76" width="210" height="62" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="412.0" y="104.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">Native app</text>
+<text x="412.0" y="121.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Capacitor 8 WebView</text>
+<line x1="412.0" y1="140" x2="412.0" y2="1080" stroke="#B8C2CC" stroke-width="1.4" stroke-dasharray="5 5"/>
+<rect x="599.0" y="76" width="210" height="62" rx="8" ry="8" fill="#EEF3F8" stroke="#1B365D" stroke-width="1.6"/>
+<text x="704.0" y="104.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="middle">Secure storage</text>
+<text x="704.0" y="121.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Keychain / Keystore</text>
+<line x1="704.0" y1="140" x2="704.0" y2="1080" stroke="#B8C2CC" stroke-width="1.4" stroke-dasharray="5 5"/>
+<rect x="891.0" y="76" width="210" height="62" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="996.0" y="104.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="middle">System browser</text>
+<text x="996.0" y="121.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">SFSafariVC / Custom Tabs</text>
+<line x1="996.0" y1="140" x2="996.0" y2="1080" stroke="#B8C2CC" stroke-width="1.4" stroke-dasharray="5 5"/>
+<rect x="1183.0" y="76" width="210" height="62" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1288.0" y="104.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Identity provider</text>
+<text x="1288.0" y="121.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">public client wellnessz-mobile</text>
+<line x1="1288.0" y1="140" x2="1288.0" y2="1080" stroke="#B8C2CC" stroke-width="1.4" stroke-dasharray="5 5"/>
+<rect x="1475.0" y="76" width="210" height="62" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1580.0" y="104.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-core-app</text>
+<text x="1580.0" y="121.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">/api/v1 (CORS allow-list)</text>
+<line x1="1580.0" y1="140" x2="1580.0" y2="1080" stroke="#B8C2CC" stroke-width="1.4" stroke-dasharray="5 5"/>
+<path d="M 120.0 180 L 408.0 180" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<text x="368.35" y="165" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">managed AppConfig: wz.apiBaseUrl, wz.oidcIssuer, wz.oidcClientId, wz.redirectUri, wz.requireBiometric</text>
+<circle cx="136.0" cy="180" r="11" fill="#2E6DA4"/>
+<text x="136.0" y="184" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">1</text>
+<rect x="20.0" y="220" width="492.0" height="46" rx="4" ry="4" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="266.0" y="241.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">App protection policy (MAM SDK / wrapping):</text>
+<text x="266.0" y="257.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">copy-paste, screenshot, selective wipe - native SDK needed</text>
+<path d="M 412.0 298 L 462.0 298 L 462.0 318 L 416.0 318" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<text x="472.0" y="310" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">config precedence: MDM -&gt; /config.json -&gt; defaults</text>
+<circle cx="394.0" cy="308" r="11" fill="#2E7D4F"/>
+<text x="394.0" y="312" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">2</text>
+<path d="M 412.0 360 L 1284.0 360" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<text x="850.0" y="345" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">OIDC discovery (.well-known/openid-configuration)</text>
+<circle cx="428.0" cy="360" r="11" fill="#2E6DA4"/>
+<text x="428.0" y="364" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">3</text>
+<path d="M 412.0 410 L 462.0 410 L 462.0 430 L 416.0 430" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<text x="472.0" y="422" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">WebCrypto: code_verifier, S256 challenge, state, nonce</text>
+<circle cx="394.0" cy="420" r="11" fill="#2E7D4F"/>
+<text x="394.0" y="424" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">4</text>
+<path d="M 412.0 472 L 992.0 472" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<text x="704.0" y="457" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">open authorize URL in system browser (RFC 8252 - no embedded WebView login)</text>
+<circle cx="428.0" cy="472" r="11" fill="#2E6DA4"/>
+<text x="428.0" y="476" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">5</text>
+<path d="M 996.0 528 L 1284.0 528" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<text x="1142.0" y="513" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">user authenticates - MFA / Conditional Access (e.g. require app protection policy)</text>
+<circle cx="1012.0" cy="528" r="11" fill="#2E6DA4"/>
+<text x="1012.0" y="532" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">6</text>
+<path d="M 1288.0 584 L 416.0 584" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<text x="850.0" y="569" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">redirect com.wellnessz.app://callback?code&amp;state  (appUrlOpen) - state verified</text>
+<circle cx="428.0" cy="584" r="11" fill="#2E6DA4"/>
+<text x="428.0" y="588" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">7</text>
+<path d="M 412.0 640 L 1284.0 640" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<text x="850.0" y="625" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">token request: code + code_verifier (no client secret)</text>
+<circle cx="428.0" cy="640" r="11" fill="#2E6DA4"/>
+<text x="428.0" y="644" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">8</text>
+<path d="M 1288.0 696 L 416.0 696" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<text x="850.0" y="681" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ID / access / refresh token - nonce verified</text>
+<circle cx="428.0" cy="696" r="11" fill="#2E6DA4"/>
+<text x="428.0" y="700" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">9</text>
+<path d="M 412.0 752 L 700.0 752" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
+<text x="558.0" y="737" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">refresh token -&gt; SecureStorage plugin (in-memory fallback); access/ID token in memory only</text>
+<circle cx="428.0" cy="752" r="11" fill="#1B365D"/>
+<text x="428.0" y="756" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">10</text>
+<path d="M 412.0 808 L 1576.0 808" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<text x="996.0" y="793" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">API call  Authorization: Bearer &lt;access token&gt;  (cache: no-store)</text>
+<circle cx="428.0" cy="808" r="11" fill="#2E7D4F"/>
+<text x="428.0" y="812" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">11</text>
+<rect x="1352.4" y="848" width="327.5999999999999" height="46" rx="4" ry="4" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1516.2" y="869.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">same multi-issuer validation, ABAC and audit</text>
+<text x="1516.2" y="885.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">as for BFF traffic</text>
+<line x1="40" y1="922" x2="1660" y2="922" stroke="#1B365D" stroke-width="1" stroke-dasharray="2 4"/>
+<text x="50" y="938" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1B365D" text-anchor="start">Resume / refresh / logout</text>
+<path d="M 704.0 962 L 416.0 962" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
+<text x="558.0" y="947" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">wz.requireBiometric=true: refresh token released only after biometric check (fail closed)</text>
+<circle cx="428.0" cy="962" r="11" fill="#1B365D"/>
+<text x="428.0" y="966" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">12</text>
+<path d="M 412.0 1018 L 1284.0 1018" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<text x="850.0" y="1003" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">single-flight refresh before expiry or on 401</text>
+<circle cx="428.0" cy="1018" r="11" fill="#2E6DA4"/>
+<text x="428.0" y="1022" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">13</text>
+<path d="M 412.0 1074 L 1284.0 1074" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<text x="850.0" y="1059" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">logout: revoke refresh token (RFC 7009) if revocation_endpoint advertised; clear state</text>
+<circle cx="428.0" cy="1074" r="11" fill="#2E6DA4"/>
+<text x="428.0" y="1078" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">14</text>
+<text x="40" y="1120" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="start">No PHI cached: no localStorage/sessionStorage (ESLint), service worker not registered in native app, 15-minute idle logout, privacy screen on background.</text>
+</svg>

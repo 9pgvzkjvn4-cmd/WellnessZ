@@ -1,0 +1,15 @@
+# Daily base backup at 01:00 UTC (WAL archived continuously -> PITR)
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: wellnessz-db-daily
+  namespace: wellnessz-db
+spec:
+  schedule: "0 0 1 * * *"   # six-field cron (seconds first)
+  backupOwnerReference: self
+  cluster:
+    name: wellnessz-db
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+  immediate: true

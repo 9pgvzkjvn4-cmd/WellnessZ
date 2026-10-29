@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1080" viewBox="0 0 1700 1080" role="img" aria-label="C4 system context - WellnessZ OHCM">
+<title>C4 system context - WellnessZ OHCM</title>
+<defs><marker id="eg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="sg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="eb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="egr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="sgr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="en" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="sn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="ea" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker></defs>
+<rect width="100%" height="100%" fill="#FFFFFF"/>
+<rect x="0" y="0" width="1700" height="54" fill="#1B365D"/>
+<text x="24" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="21" font-weight="bold" fill="#FFFFFF" text-anchor="start">C4 Level 1 - System context: WellnessZ OHCM</text>
+<text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">Source: repository @ base framework 0.1.0-SNAPSHOT</text>
+<circle cx="170.0" cy="92" r="14" fill="#1B365D"/>
+<rect x="70" y="102" width="200" height="60" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="170.0" y="129.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="middle">Employee / crew</text>
+<text x="170.0" y="146.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">portal, PWA, iOS/Android</text>
+<circle cx="400.0" cy="92" r="14" fill="#1B365D"/>
+<rect x="300" y="102" width="200" height="60" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="400.0" y="129.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="middle">Line manager / HR</text>
+<text x="400.0" y="146.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">status-only workspace</text>
+<circle cx="630.0" cy="92" r="14" fill="#1B365D"/>
+<rect x="530" y="102" width="200" height="60" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="630.0" y="129.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="middle">OH clinician / case mgr</text>
+<text x="630.0" y="146.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">clinical access</text>
+<circle cx="860.0" cy="92" r="14" fill="#1B365D"/>
+<rect x="760" y="102" width="200" height="60" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="860.0" y="129.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="middle">Psych. health clinician</text>
+<text x="860.0" y="146.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">restricted class E09</text>
+<circle cx="1090.0" cy="92" r="14" fill="#1B365D"/>
+<rect x="990" y="102" width="200" height="60" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="1090.0" y="129.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="middle">Auditor / compliance</text>
+<text x="1090.0" y="146.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">audit API, read-only</text>
+<circle cx="1320.0" cy="92" r="14" fill="#1B365D"/>
+<rect x="1220" y="102" width="200" height="60" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="1320.0" y="129.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="middle">Partner provider / TPA</text>
+<text x="1320.0" y="146.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">portal - planned</text>
+<circle cx="1550.0" cy="92" r="14" fill="#1B365D"/>
+<rect x="1450" y="102" width="200" height="60" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
+<text x="1550.0" y="129.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="middle">Group clinics</text>
+<text x="1550.0" y="146.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">scheduling E14 - planned</text>
+<rect x="470" y="330" width="760" height="340" rx="14" ry="14" fill="#1B365D" stroke="#1B365D" stroke-width="1.6"/>
+<text x="850" y="380" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="26" font-weight="bold" fill="#FFFFFF" text-anchor="middle">WellnessZ OHCM</text>
+<text x="850" y="408" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#DCE6F2" text-anchor="middle">Occupational Health Case Management - modular monolith + BFF + web/mobile clients</text>
+<rect x="500" y="432" width="330" height="72" rx="8" fill="#24466F" stroke="#6F8FB8"/>
+<text x="665" y="462" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">E01-E14 case management</text>
+<text x="665" y="484" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#C9D7E8" text-anchor="middle">kernel E01/E05/E13 · rest planned</text>
+<rect x="870" y="432" width="330" height="72" rx="8" fill="#24466F" stroke="#6F8FB8"/>
+<text x="1035" y="462" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">E15 integration &amp; API gateway</text>
+<text x="1035" y="484" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#C9D7E8" text-anchor="middle">outbox bus · FHIR R4 · HL7 v2</text>
+<rect x="500" y="520" width="330" height="72" rx="8" fill="#24466F" stroke="#6F8FB8"/>
+<text x="665" y="550" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">E16 identity · ABAC · consent · audit</text>
+<text x="665" y="572" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#C9D7E8" text-anchor="middle">multi-issuer OIDC · hash-chained audit</text>
+<rect x="870" y="520" width="330" height="72" rx="8" fill="#24466F" stroke="#6F8FB8"/>
+<text x="1035" y="550" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">E17 analytics · E18 master data</text>
+<text x="1035" y="572" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#C9D7E8" text-anchor="middle">k-anonymity · no-code config</text>
+<text x="850" y="640" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#F6D58E" text-anchor="middle">Rule: clinical data stays in the OH domain - operations &amp; HR receive status-only outputs</text>
+<path d="M 170.0 162 L 170.0 290 L 510 290 L 510 328" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<path d="M 400.0 162 L 400.0 270 L 600 270 L 600 328" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<path d="M 630.0 162 L 630.0 328" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<path d="M 860.0 162 L 860.0 328" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<path d="M 1090.0 162 L 1090.0 328" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<path d="M 1320.0 162 L 1320.0 230 L 1150 230 L 1150 328" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)"/>
+<path d="M 1550.0 162 L 1550.0 250 L 1210 250 L 1210 328" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)"/>
+<text x="745" y="236" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#3D4955" text-anchor="middle">HTTPS: BFF session /</text>
+<text x="745" y="250" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#3D4955" text-anchor="middle">OIDC bearer</text>
+<text x="40" y="300" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">Inbound to OH</text>
+<rect x="40" y="316" width="300" height="88" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="190.0" y="349.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">EHS incident management</text>
+<text x="190.0" y="367.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">primary feed: mailbox (IMAP /</text>
+<text x="190.0" y="383.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">MS Graph) or Excel import</text>
+<path d="M 340 360 L 468 360" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="40" y="424" width="300" height="88" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="190.0" y="457.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">HRIS / HCM</text>
+<text x="190.0" y="475.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">employees, org, job codes</text>
+<text x="190.0" y="491.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">generic inbound API today</text>
+<path d="M 340 468 L 468 468" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<rect x="40" y="532" width="300" height="88" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="190.0" y="573.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#5F6B7A" text-anchor="middle">Time &amp; attendance</text>
+<text x="190.0" y="591.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">absence episodes (E06)</text>
+<path d="M 340 576 L 468 576" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)"/>
+<text x="1360" y="300" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">Outbound from OH (status / aggregates only)</text>
+<rect x="1360" y="316" width="300" height="70" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1510.0" y="340.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Crew rostering</text>
+<text x="1510.0" y="358.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">fitness status + dates only</text>
+<text x="1510.0" y="374.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">event produced; adapter = SPI</text>
+<path d="M 1232 351 L 1358 351" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<rect x="1360" y="400" width="300" height="70" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="1510.0" y="432.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#5F6B7A" text-anchor="middle">HR systems / catering hygiene</text>
+<text x="1510.0" y="450.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">status only (allow-list set)</text>
+<path d="M 1232 435 L 1358 435" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)"/>
+<rect x="1360" y="484" width="300" height="70" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="1510.0" y="516.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#5F6B7A" text-anchor="middle">ERP / finance</text>
+<text x="1510.0" y="534.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">case costs</text>
+<path d="M 1232 519 L 1358 519" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)"/>
+<rect x="1360" y="568" width="300" height="70" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="1510.0" y="600.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#5F6B7A" text-anchor="middle">SMS / EHS dashboards</text>
+<text x="1510.0" y="618.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">anonymised metrics</text>
+<path d="M 1232 603 L 1358 603" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)"/>
+<text x="40" y="744" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">Bidirectional clinical</text>
+<text x="40" y="762" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">exchange (consent-gated</text>
+<text x="40" y="780" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">where required)</text>
+<rect x="420" y="716" width="210" height="84" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="525.0" y="746.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Labs &amp; clinic devices</text>
+<text x="525.0" y="763.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HL7 v2 / FHIR R4 inbound</text>
+<text x="525.0" y="779.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">endpoints available</text>
+<path d="M 525 714 L 525 672" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)" marker-start="url(#sb)"/>
+<rect x="650" y="716" width="210" height="84" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="755.0" y="746.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="middle">Partner hospitals / EAP</text>
+<text x="755.0" y="763.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">FHIR R4 referrals/reports</text>
+<text x="755.0" y="779.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">consent - planned</text>
+<path d="M 755 714 L 755 672" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)" marker-start="url(#sg)"/>
+<rect x="880" y="716" width="210" height="84" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="985.0" y="754.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="middle">Insurers / TPAs</text>
+<text x="985.0" y="771.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">claims E08 - planned</text>
+<path d="M 985 714 L 985 672" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)" marker-start="url(#sg)"/>
+<rect x="1110" y="716" width="210" height="84" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="1215.0" y="754.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="middle">Campaign app / wearables</text>
+<text x="1215.0" y="771.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">E12 - consent - planned</text>
+<path d="M 1215 714 L 1215 672" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)" marker-start="url(#sg)"/>
+<text x="1380" y="700" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="start">Platform dependencies</text>
+<rect x="1380" y="716" width="280" height="70" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1520.0" y="747.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">Identity provider</text>
+<text x="1520.0" y="764.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">Entra ID / Keycloak / Okta</text>
+<rect x="1380" y="798" width="280" height="70" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1520.0" y="829.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Notification gateways</text>
+<text x="1520.0" y="846.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">SMTP impl.; SMS/push SPI</text>
+<rect x="1380" y="880" width="280" height="70" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1520.0" y="911.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E6DA4" text-anchor="middle">MDM (Intune / WS ONE)</text>
+<text x="1520.0" y="928.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">managed AppConfig wz.*</text>
+<path d="M 1378 751 L 1355 751 L 1355 632 L 1232 632" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)" marker-start="url(#sgr)"/>
+<path d="M 1232 656 L 1320 656 L 1320 833 L 1378 833" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>
+<text x="40" y="860" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1B365D" text-anchor="start">Legend</text>
+<rect x="40" y="870" width="26" height="14" rx="3" fill="#E5F3EA" stroke="#2E7D4F"/>
+<text x="74" y="881" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">Implemented in the base framework</text>
+<rect x="40" y="890" width="26" height="14" rx="3" fill="#E7F0FA" stroke="#2E6DA4"/>
+<text x="74" y="901" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">Endpoint / SPI available - adapter or mapping per increment</text>
+<rect x="40" y="910" width="26" height="14" rx="3" fill="#F3F5F8" stroke="#AEB8C4" stroke-dasharray="5 3"/>
+<text x="74" y="921" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">Planned increment (catalogued in ConnectorRegistry / ModuleRegistry)</text>
+<rect x="40" y="930" width="26" height="14" rx="3" fill="#FFFFFF" stroke="#1B365D"/>
+<text x="74" y="941" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">Person / role (canonical role names in wz-common Roles)</text>
+<text x="40" y="1010" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="start">Arrows: data direction. Outbound enterprise payloads pass OutboundPayloadGuard (field allow-list, default deny); aggregates pass k-anonymity small-cell suppression.</text>
+</svg>

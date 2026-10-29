@@ -1,0 +1,27 @@
+# build
+target/
+*.class
+*.log
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+# secrets – never commit
+.env
+*.env.local
+*.pem
+*.key
+*.p12
+*.jks
+*.tfvars
+!*.tfvars.example
+*.tfstate
+*.tfstate.*
+.terraform/
+# web
+node_modules/
+dist/
+coverage/
+# e2e output
+tools/e2e/shots/

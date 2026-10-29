@@ -1,0 +1,117 @@
+{{- if .Values.ingress.enabled }}
+{{- $root := . -}}
+{{- $ing := .Values.ingress -}}
+{{- $bff := .Values.bff -}}
+{{- $webHosts := list }}
+{{- range $key := list "employeePortal" "managerWorkspace" }}
+{{- $comp := index $root.Values $key }}
+{{- if and $comp.enabled (index $ing.hosts $key) }}
+{{- $webHosts = append $webHosts (dict "host" (index $ing.hosts $key) "comp" $comp) }}
+{{- end }}
+{{- end }}
+{{- if $webHosts }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "wellnessz.fullname" . }}-web
+  labels:
+    {{- include "wellnessz.labels" . | nindent 4 }}
+  {{- $ann := merge (deepCopy (default (dict) $ing.webAnnotations)) (deepCopy (default (dict) $ing.annotations)) }}
+  {{- if $ing.useClassAnnotation }}
+  {{- $_ := set $ann "kubernetes.io/ingress.class" $ing.className }}
+  {{- end }}
+  {{- if .Values.gcp.frontendConfig.enabled }}
+  {{- $_ := set $ann "networking.gke.io/v1beta1.FrontendConfig" (printf "%s-frontend" (include "wellnessz.fullname" .)) }}
+  {{- end }}
+  {{- if .Values.gcp.managedCertificate.enabled }}
+  {{- $_ := set $ann "networking.gke.io/managed-certificates" (printf "%s-web" (include "wellnessz.fullname" .)) }}
+  {{- end }}
+  {{- with $ann }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not $ing.useClassAnnotation }}
+  ingressClassName: {{ $ing.className }}
+  {{- end }}
+  {{- if and $ing.tls.enabled $ing.tls.secretName }}
+  tls:
+    - hosts:
+        {{- range $webHosts }}
+        - {{ .host | quote }}
+        {{- end }}
+      secretName: {{ $ing.tls.secretName }}
+  {{- end }}
+  rules:
+    {{- range $w := $webHosts }}
+    - host: {{ $w.host | quote }}
+      http:
+        paths:
+          {{- if $bff.enabled }}
+          {{- range $ing.bffPaths }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $bff) }}
+                port:
+                  name: http
+          {{- end }}
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $w.comp) }}
+                port:
+                  name: http
+    {{- end }}
+{{- end }}
+{{- if and $ing.api.enabled .Values.core.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "wellnessz.fullname" . }}-api
+  labels:
+    {{- include "wellnessz.labels" . | nindent 4 }}
+  {{- $ann := merge (deepCopy (default (dict) $ing.apiAnnotations)) (deepCopy (default (dict) $ing.annotations)) }}
+  {{- if $ing.useClassAnnotation }}
+  {{- $_ := set $ann "kubernetes.io/ingress.class" $ing.className }}
+  {{- end }}
+  {{- if .Values.gcp.frontendConfig.enabled }}
+  {{- $_ := set $ann "networking.gke.io/v1beta1.FrontendConfig" (printf "%s-frontend" (include "wellnessz.fullname" .)) }}
+  {{- end }}
+  {{- if .Values.gcp.managedCertificate.enabled }}
+  {{- $_ := set $ann "networking.gke.io/managed-certificates" (printf "%s-api" (include "wellnessz.fullname" .)) }}
+  {{- end }}
+  {{- with $ann }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not $ing.useClassAnnotation }}
+  ingressClassName: {{ $ing.className }}
+  {{- end }}
+  {{- if and $ing.tls.enabled $ing.tls.secretName }}
+  tls:
+    - hosts:
+        - {{ $ing.api.host | quote }}
+      secretName: {{ $ing.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ $ing.api.host | quote }}
+      http:
+        paths:
+          {{- range $ing.api.paths }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $root.Values.core) }}
+                port:
+                  name: http
+          {{- end }}
+{{- end }}
+{{- end }}

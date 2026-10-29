@@ -1,0 +1,132 @@
+# =============================================================================
+# Hybrid - ON-PREM cluster (RKE2 or OpenShift, attached to Azure Arc or
+# GKE Enterprise). Runs the core API next to the CloudNativePG database so
+# clinical data never leaves the airline data centre. BFF and web apps run in
+# the cloud cluster with deploy/hybrid/values-hybrid-cloud-edge.yaml.
+# See deploy/hybrid/README.md.
+# =============================================================================
+global:
+  imageRegistry: registry.onprem.example.internal/wellnessz   # mirror of ACR/Artifact Registry
+  environment: prod
+  springProfiles: hybrid,prod
+  # true on OpenShift (restricted-v2 SCC assigns UIDs); false on RKE2
+  openshift: false
+
+# HashiCorp Vault (on-prem) via Secrets Store CSI; Kubernetes auth roles per
+# component. Alternative: Azure Key Vault through Arc-enabled Kubernetes
+# (secrets.provider=azure + Arc workload identity) - see README.
+secrets:
+  provider: vault
+  vault:
+    address: https://vault.onprem.example.internal:8200
+    kubernetesMountPath: kubernetes-wellnessz
+    roles:
+      core: wellnessz-core
+      bff: wellnessz-bff
+      migrations: wellnessz-migrations
+  core:
+    files:
+      - fileName: wz-db-password
+        remoteName: kv/data/wellnessz/core#wz-db-password
+        env: WZ_DB_PASSWORD
+        format: fileRef
+      - fileName: wz-master-key
+        remoteName: kv/data/wellnessz/core#wz-master-key
+        env: WZ_MASTER_KEY_FILE
+        format: path
+      - fileName: wz-pseudonym-key
+        remoteName: kv/data/wellnessz/core#wz-pseudonym-key
+        env: WZ_PSEUDONYM_KEY
+        format: fileRef
+      # CNPG cluster CA so JDBC can verify-full the database
+      - fileName: wellnessz-db-ca.crt
+        remoteName: kv/data/wellnessz/core#db-ca-crt
+  migrations:
+    files:
+      - fileName: spring.flyway.password
+        remoteName: kv/data/wellnessz/migrations#password
+      - fileName: wellnessz-db-ca.crt
+        remoteName: kv/data/wellnessz/core#db-ca-crt
+
+migrations:
+  mode: job
+  job:
+    dbUrl: "jdbc:postgresql://wellnessz-db-rw.wellnessz-db.svc:5432/wellnessz?sslmode=verify-full&sslrootcert=/mnt/secrets/migrations/wellnessz-db-ca.crt"
+
+core:
+  enabled: true
+  env:
+    # CloudNativePG read-write service (cluster.yaml in deploy/hybrid/cnpg)
+    WZ_DB_URL: "jdbc:postgresql://wellnessz-db-rw.wellnessz-db.svc:5432/wellnessz?sslmode=verify-full&sslrootcert=/mnt/secrets/core/wellnessz-db-ca.crt"
+    WZ_DB_USERNAME: wz_app
+    WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<tenant-id>/v2.0"
+    WZ_OIDC_AUDIENCE: "api://wellnessz-api"
+    WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com"
+    WZ_EHS_MAILBOX_MODE: imap
+    WZ_IMAP_HOST: mail.onprem.example.internal
+    WZ_IMAP_PORT: "993"
+    WZ_SMTP_HOST: smtp.onprem.example.internal
+    WZ_SMTP_PORT: "587"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc:4318"
+
+# Web tier runs in the cloud cluster
+bff:
+  enabled: false
+employeePortal:
+  enabled: false
+managerWorkspace:
+  enabled: false
+
+# Internal-only API ingress reachable from the cloud BFF over
+# ExpressRoute / Interconnect / site-to-site VPN (internal load balancer).
+ingress:
+  enabled: true
+  className: openshift-default        # RKE2: nginx / traefik
+  annotations:
+    route.openshift.io/termination: reencrypt
+  tls:
+    enabled: true
+    secretName: wellnessz-api-internal-tls   # issued by the internal PKI (cert-manager)
+  hosts:
+    employeePortal: ""
+    managerWorkspace: ""
+  api:
+    enabled: true
+    host: api.wellnessz.onprem.example.internal
+
+networkPolicy:
+  enabled: true
+  ingressController:
+    # OpenShift router namespace; RKE2: kube-system rke2-ingress-nginx
+    namespaceSelector:
+      matchLabels:
+        policy-group.network.openshift.io/ingress: ""
+  dns:
+    # OpenShift: openshift-dns / dns-default; RKE2: kube-system / rke2-coredns
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: openshift-dns
+    podSelector:
+      matchLabels:
+        dns.operator.openshift.io/daemonset-dns: default
+  database:
+    port: 5432
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: wellnessz-db
+    podSelector:
+      matchLabels:
+        cnpg.io/cluster: wellnessz-db
+  https:
+    # Entra ID / JWKS via the corporate egress proxy range only
+    cidrs: ["0.0.0.0/0"]
+    except: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+  extraEgress:
+    core:
+      # Vault is reached by the CSI provider on the node, not by the pod.
+      # On-prem mail server (IMAPS / submission)
+      - to:
+          - ipBlock: { cidr: 10.10.20.0/24 }
+        ports:
+          - { protocol: TCP, port: 993 }
+          - { protocol: TCP, port: 587 }

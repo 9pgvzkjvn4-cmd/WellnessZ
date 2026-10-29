@@ -1,0 +1,269 @@
+# =============================================================================
+# CI - build, test, SAST/SCA, secret scanning, SBOM.
+# All third-party actions are pinned to full commit SHAs (version in comment);
+# Dependabot (github-actions ecosystem) keeps them current.
+# =============================================================================
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  JAVA_VERSION: "21"
+  NODE_VERSION: "24"
+  # Maven >= 3.9 appends MAVEN_ARGS to every invocation (mvn and mvnw)
+  MAVEN_ARGS: "-B -ntp -Dstyle.color=always"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  java:
+    name: Java build & test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Maven verify (unit + integration tests, JaCoCo, CycloneDX)
+        run: |
+          if [ -x ./mvnw ]; then MVN=./mvnw; else MVN=mvn; fi
+          $MVN verify
+
+      - name: Upload test & coverage reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: java-test-reports
+          path: |
+            **/target/surefire-reports/
+            **/target/failsafe-reports/
+            **/target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload Java SBOM (CycloneDX)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-java
+          path: |
+            target/bom.json
+            target/bom.xml
+          if-no-files-found: warn
+          retention-days: 90
+
+  # ---------------------------------------------------------------------------
+  web:
+    name: Web ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [employee-app, manager-workspace]
+    defaults:
+      run:
+        working-directory: web/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/${{ matrix.app }}/package-lock.json
+
+      - name: Install (lockfile only, no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Test
+        run: npm test --if-present
+
+      - name: Build
+        run: npm run build
+
+      - name: npm audit (high+ production deps)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: SBOM (CycloneDX)
+        run: npx --yes @cyclonedx/cyclonedx-npm@6.0.1 --omit dev --output-format JSON --output-file "sbom-${{ matrix.app }}.cdx.json"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-${{ matrix.app }}
+          path: web/${{ matrix.app }}/sbom-${{ matrix.app }}.cdx.json
+          retention-days: 90
+
+  # ---------------------------------------------------------------------------
+  gitleaks:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Runs the OSS CLI from its pinned container image (no licence key needed)
+      - name: gitleaks detect
+        env:
+          GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
+        run: |
+          docker run --rm --network none --user "$(id -u):$(id -g)" \
+            -v "$PWD:/repo:ro" -v "$RUNNER_TEMP:/out" "$GITLEAKS_IMAGE" \
+            git /repo --config /repo/.gitleaks.toml --redact --no-banner \
+            --report-format sarif --report-path /out/gitleaks.sarif || rc=$?
+          cp "$RUNNER_TEMP/gitleaks.sarif" gitleaks.sarif 2>/dev/null || true
+          exit "${rc:-0}"
+
+      - name: Upload gitleaks report
+        if: always() && hashFiles('gitleaks.sarif') != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gitleaks-report
+          path: gitleaks.sarif
+          if-no-files-found: ignore
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  dependency-check:
+    name: OWASP dependency-check (fail CVSS >= 7)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      security-events: write # upload SARIF to code scanning
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Restore NVD data cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: nvd-${{ runner.os }}-
+
+      # Plugin version and failBuildOnCVSS=7 come from the root pom's pluginManagement
+      - name: dependency-check aggregate
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -x ./mvnw ]; then MVN=./mvnw; else MVN=mvn; fi
+          $MVN -DskipTests package \
+            org.owasp:dependency-check-maven:aggregate \
+            -DfailBuildOnCVSS=7 -Dformats=HTML,SARIF,JSON
+
+      - name: Upload SARIF to code scanning
+        if: always() && hashFiles('target/dependency-check-report.sarif') != ''
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: target/dependency-check-report.sarif
+          category: owasp-dependency-check
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dependency-check-report
+          path: target/dependency-check-report.*
+          if-no-files-found: ignore
+          retention-days: 90
+
+  # ---------------------------------------------------------------------------
+  dependency-review:
+    name: Dependency review (PR)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # summary comment
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+          deny-licenses: AGPL-3.0-only, AGPL-3.0-or-later, GPL-3.0-only, GPL-3.0-or-later
+
+  # ---------------------------------------------------------------------------
+  iac:
+    name: IaC & config checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.19.0
+
+      - name: helm lint + template (all platform values)
+        run: |
+          set -euo pipefail
+          chart=deploy/helm/wellnessz
+          for f in values-local values-azure values-gcp values-hybrid; do
+            helm lint "$chart" -f "$chart/values.yaml" -f "$chart/$f.yaml"
+            helm template wz "$chart" -f "$chart/values.yaml" -f "$chart/$f.yaml" > "/tmp/render-$f.yaml"
+          done
+          helm template edge "$chart" -f "$chart/values.yaml" -f "$chart/values-azure.yaml" \
+            -f deploy/hybrid/values-hybrid-cloud-edge.yaml > /tmp/render-edge.yaml
+
+      - name: terraform fmt
+        run: |
+          docker run --rm --network none -v "$PWD/deploy/terraform:/tf:ro" -w /tf \
+            hashicorp/terraform:1.13.4 fmt -check -recursive -diff
+
+      - name: Trivy config scan (Dockerfiles, Helm, Terraform, k8s)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: deploy
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          trivyignores: .trivyignore
+          format: sarif
+          output: trivy-config.sarif
+
+      - name: Upload Trivy config SARIF
+        if: always() && hashFiles('trivy-config.sarif') != ''
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: trivy-config.sarif
+          category: trivy-config

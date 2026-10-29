@@ -1,0 +1,162 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $root := . -}}
+{{- $np := .Values.networkPolicy -}}
+{{- $sel := include "wellnessz.selectorLabels" . -}}
+{{- $fn := include "wellnessz.fullname" . -}}
+---
+# 1) Default deny all ingress and egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fn }}-default-deny
+  labels:
+    {{- include "wellnessz.labels" . | nindent 4 }}
+spec:
+  {{- if $np.defaultDenyNamespace }}
+  podSelector: {}
+  {{- else }}
+  podSelector:
+    matchLabels:
+      {{- $sel | nindent 6 }}
+  {{- end }}
+  policyTypes: [Ingress, Egress]
+---
+# 2) DNS for all WellnessZ pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fn }}-allow-dns
+  labels:
+    {{- include "wellnessz.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- $sel | nindent 6 }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            {{- toYaml $np.dns.namespaceSelector | nindent 12 }}
+          podSelector:
+            {{- toYaml $np.dns.podSelector | nindent 12 }}
+        {{- range $np.dns.extraIpBlocks }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+{{- range $key := list "employeePortal" "managerWorkspace" }}
+{{- $comp := index $root.Values $key }}
+{{- if $comp.enabled }}
+---
+# 3) Web: ingress controller -> static app
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $comp) }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" $comp.name) | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    {{- include "wellnessz.np.ingressRule" (dict "peers" (include "wellnessz.np.ingressControllerPeers" $np) "port" $comp.ports.http) | nindent 4 }}
+  egress: []
+{{- end }}
+{{- end }}
+{{- if .Values.bff.enabled }}
+---
+# 4) BFF: ingress controller -> bff; bff -> core, IdP (443), OTel
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "wellnessz.componentName" (dict "root" $root "comp" .Values.bff) }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" .Values.bff.name) | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" .Values.bff.name) | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    {{- include "wellnessz.np.ingressRule" (dict "peers" (include "wellnessz.np.ingressControllerPeers" $np) "port" .Values.bff.ports.http) | nindent 4 }}
+    {{- include "wellnessz.np.monitoringIngress" (dict "np" $np "port" .Values.bff.ports.management) | nindent 4 }}
+    {{- if $np.ingressController.allowHealthChecks }}
+    {{- include "wellnessz.np.ingressRule" (dict "peers" (include "wellnessz.np.ingressControllerPeers" $np) "port" .Values.bff.ports.management) | nindent 4 }}
+    {{- end }}
+  egress:
+    {{- if .Values.core.enabled }}
+    - to:
+        {{- include "wellnessz.np.componentPeer" (dict "root" $root "component" .Values.core.name) | nindent 8 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.core.ports.http }}
+    {{- end }}
+    {{- include "wellnessz.np.httpsEgress" $np | nindent 4 }}
+    {{- include "wellnessz.np.otelEgress" $np | nindent 4 }}
+    {{- with $np.extraEgress.bff }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
+{{- if .Values.core.enabled }}
+---
+# 5) Core: bff (+ ingress controller for the API host) -> core; core -> DB, IdP/Graph (443), OTel
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "wellnessz.componentName" (dict "root" $root "comp" .Values.core) }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" .Values.core.name) | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" .Values.core.name) | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    {{- $corePeers := "" }}
+    {{- if .Values.bff.enabled }}
+    {{- $corePeers = include "wellnessz.np.componentPeer" (dict "root" $root "component" .Values.bff.name) }}
+    {{- end }}
+    {{- if and .Values.ingress.enabled .Values.ingress.api.enabled }}
+    {{- $corePeers = printf "%s\n%s" $corePeers (include "wellnessz.np.ingressControllerPeers" $np) }}
+    {{- end }}
+    {{- with $np.coreExtraIngressPeers }}
+    {{- $corePeers = printf "%s\n%s" $corePeers (toYaml .) }}
+    {{- end }}
+    {{- include "wellnessz.np.ingressRule" (dict "peers" $corePeers "port" .Values.core.ports.http) | nindent 4 }}
+    {{- include "wellnessz.np.monitoringIngress" (dict "np" $np "port" .Values.core.ports.management) | nindent 4 }}
+    {{- if and $np.ingressController.allowHealthChecks .Values.ingress.api.enabled }}
+    {{- include "wellnessz.np.ingressRule" (dict "peers" (include "wellnessz.np.ingressControllerPeers" $np) "port" .Values.core.ports.management) | nindent 4 }}
+    {{- end }}
+  egress:
+    {{- include "wellnessz.np.dbEgress" $np | nindent 4 }}
+    {{- include "wellnessz.np.httpsEgress" $np | nindent 4 }}
+    {{- include "wellnessz.np.otelEgress" $np | nindent 4 }}
+    {{- with $np.extraEgress.core }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- if eq .Values.migrations.mode "job" }}
+---
+# 6) Migration job: -> DB only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fn }}-migrations
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" "migrations") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" "migrations") | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress:
+    {{- include "wellnessz.np.dbEgress" $np | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

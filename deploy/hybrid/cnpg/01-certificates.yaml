@@ -1,0 +1,52 @@
+# TLS for PostgreSQL issued by the internal PKI through cert-manager
+# (instead of the CNPG self-signed CA) so clients can verify-full against a
+# trusted, centrally-rotated CA. Requires cert-manager and a ClusterIssuer
+# named `internal-pki` (e.g. backed by HashiCorp Vault PKI or AD CS).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wellnessz-db-server
+  namespace: wellnessz-db
+spec:
+  secretName: wellnessz-db-server-tls
+  usages: [server auth]
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  duration: 2160h      # 90 days
+  renewBefore: 360h    # 15 days
+  dnsNames:
+    - wellnessz-db-rw
+    - wellnessz-db-rw.wellnessz-db
+    - wellnessz-db-rw.wellnessz-db.svc
+    - wellnessz-db-ro
+    - wellnessz-db-ro.wellnessz-db
+    - wellnessz-db-ro.wellnessz-db.svc
+    - wellnessz-db-r
+    - wellnessz-db-r.wellnessz-db.svc
+  issuerRef:
+    kind: ClusterIssuer
+    name: internal-pki
+    group: cert-manager.io
+---
+# Client certificate for streaming replication between instances
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wellnessz-db-replication
+  namespace: wellnessz-db
+spec:
+  secretName: wellnessz-db-replication-tls
+  usages: [client auth]
+  commonName: streaming_replica
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  duration: 2160h
+  renewBefore: 360h
+  issuerRef:
+    kind: ClusterIssuer
+    name: internal-pki
+    group: cert-manager.io

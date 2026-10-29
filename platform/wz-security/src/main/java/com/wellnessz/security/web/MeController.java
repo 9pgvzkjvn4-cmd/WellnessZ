@@ -1,0 +1,37 @@
+package com.wellnessz.security.web;
+
+import java.util.Set;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.wellnessz.common.model.DisclosureLevel;
+import com.wellnessz.common.model.Roles;
+import com.wellnessz.security.identity.CurrentUser;
+import com.wellnessz.security.identity.CurrentUserProvider;
+
+@RestController
+@RequestMapping("/api/v1/me")
+public class MeController {
+
+    private final CurrentUserProvider users;
+
+    public MeController(CurrentUserProvider users) {
+        this.users = users;
+    }
+
+    public record MeResponse(String subject, String username, String displayName, String employeeId, String orgScope,
+                             Set<String> roles, DisclosureLevel maxDisclosure) {
+    }
+
+    @GetMapping
+    public MeResponse me() {
+        CurrentUser u = users.require();
+        DisclosureLevel level = u.hasRole(Roles.PSYCH_CLINICIAN) ? DisclosureLevel.RESTRICTED_CLINICAL
+                : u.hasAnyRole(Roles.OH_CLINICIAN, Roles.CASE_MANAGER) ? DisclosureLevel.CLINICAL
+                : u.hasAnyRole(Roles.MANAGER, Roles.HR) ? DisclosureLevel.STATUS_ONLY
+                : u.hasRole(Roles.EMPLOYEE) ? DisclosureLevel.SELF : DisclosureLevel.NONE;
+        return new MeResponse(u.subject(), u.username(), u.displayName(), u.employeeId(), u.orgScope(), u.roles(), level);
+    }
+}

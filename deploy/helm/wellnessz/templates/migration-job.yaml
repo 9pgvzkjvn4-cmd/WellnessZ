@@ -1,0 +1,129 @@
+{{- /*
+Flyway migration Job (migrations.mode=job). Runs before install/upgrade as the
+schema-owner role using the migrations identity; core never sees that secret.
+The SQL scripts are copied from the core image so both always match.
+*/ -}}
+{{- if and .Values.core.enabled (eq .Values.migrations.mode "job") }}
+{{- $root := . -}}
+{{- $mig := .Values.migrations -}}
+{{- $comp := dict "name" "migrations" "runAsUser" 10001 -}}
+{{- $secretsOn := include "wellnessz.secretsEnabled" . -}}
+{{- $secretDir := include "wellnessz.secretDir" (dict "root" $root "key" "migrations") -}}
+{{- $wi := include "wellnessz.wiAnnotations" (dict "root" $root "key" "migrations") | trim }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "wellnessz.fullname" . }}-migrations
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" "migrations") | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-20"
+    helm.sh/hook-delete-policy: before-hook-creation
+    {{- with $wi }}
+    {{- . | nindent 4 }}
+    {{- end }}
+automountServiceAccountToken: false
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "wellnessz.fullname" . }}-migrations
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" "migrations") | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ $mig.job.backoffLimit }}
+  activeDeadlineSeconds: {{ $mig.job.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ $mig.job.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "wellnessz.componentLabels" (dict "root" $root "component" "migrations") | nindent 8 }}
+        {{- if .Values.workloadIdentity.azure.enabled }}
+        azure.workload.identity/use: "true"
+        {{- end }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "wellnessz.fullname" . }}-migrations
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "wellnessz.podSecurityContext" (dict "root" $root "comp" $comp) | nindent 8 }}
+      initContainers:
+        - name: copy-migrations
+          image: {{ include "wellnessz.image" (dict "root" $root "comp" .Values.core) | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command: ["sh", "-c", "cp -R {{ $mig.job.locationInImage }}/. /flyway/sql/"]
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 128Mi }
+          volumeMounts:
+            - name: sql
+              mountPath: /flyway/sql
+      containers:
+        - name: flyway
+          image: {{ default (printf "%s:%s" $mig.job.image.repository $mig.job.image.tag) $mig.job.image.fullName | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          command: ["sh", "-c"]
+          args:
+            - >-
+              {{- if $secretsOn }}
+              export FLYWAY_PASSWORD="$(cat {{ $secretDir }}/spring.flyway.password)" &&
+              {{- end }}
+              exec flyway
+              -url="${FLYWAY_URL}"
+              -user="${FLYWAY_USER}"
+              -locations=filesystem:/flyway/sql
+              -schemas={{ $mig.job.schemas }}
+              -connectRetries=10
+              -validateMigrationNaming=true
+              {{- range $mig.job.extraArgs }} {{ . }}{{- end }}
+              migrate
+          env:
+            - name: FLYWAY_URL
+              value: {{ default .Values.core.env.WZ_DB_URL $mig.job.dbUrl | quote }}
+            - name: FLYWAY_USER
+              value: {{ $mig.migratorUsername | quote }}
+            {{- if and (not $secretsOn) .Values.secrets.existingSecret.migrations }}
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.existingSecret.migrations }}
+                  key: SPRING_FLYWAY_PASSWORD
+            {{- end }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          resources:
+            {{- toYaml $mig.job.resources | nindent 12 }}
+          volumeMounts:
+            - name: sql
+              mountPath: /flyway/sql
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            {{- if $secretsOn }}
+            - name: secrets-migrations
+              mountPath: {{ $secretDir }}
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: sql
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi
+        {{- if $secretsOn }}
+        {{- include "wellnessz.secretVolume" (dict "root" $root "key" "migrations") | nindent 8 }}
+        {{- end }}
+{{- end }}

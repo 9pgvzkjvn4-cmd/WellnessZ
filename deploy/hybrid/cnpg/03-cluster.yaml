@@ -1,0 +1,158 @@
+# =============================================================================
+# WellnessZ on-prem PostgreSQL 16 - CloudNativePG (operator >= 1.26 with the
+# Barman Cloud plugin installed).
+#   * 3 instances (1 primary + 2 synchronous-capable replicas), spread across
+#     nodes/zones, automated failover
+#   * TLS with internal-PKI certificates, hostssl + scram-sha-256 only
+#   * Roles: wz_migrator (owner) / wz_app (least privilege), passwords from
+#     Vault via External Secrets
+#   * Continuous WAL archiving + base backups to object storage (PITR)
+# =============================================================================
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: wellnessz-db
+  namespace: wellnessz-db
+  labels:
+    app.kubernetes.io/part-of: wellnessz
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.15-standard-trixie
+  primaryUpdateStrategy: unsupervised
+  primaryUpdateMethod: switchover
+
+  # Zero data loss on failover: at least one synchronous standby
+  postgresql:
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: required
+    parameters:
+      password_encryption: scram-sha-256
+      ssl_min_protocol_version: TLSv1.3
+      log_connections: "on"
+      log_disconnections: "on"
+      log_checkpoints: "on"
+      log_lock_waits: "on"
+      log_min_duration_statement: "2000"
+      log_statement: ddl
+      # Setting pgaudit.* makes CNPG preload pgaudit automatically
+      pgaudit.log: "ddl,role"
+      pgaudit.log_catalog: "off"
+      max_connections: "300"
+    pg_hba:
+      # CNPG prepends its own rules (local + streaming_replica with certs).
+      - hostssl wellnessz wz_app      all scram-sha-256
+      - hostssl wellnessz wz_migrator all scram-sha-256
+      - host    all       all         all reject
+    enableAlterSystem: false
+
+  # Server / replication TLS from cert-manager (01-certificates.yaml)
+  certificates:
+    serverTLSSecret: wellnessz-db-server-tls
+    serverCASecret: internal-pki-ca
+    replicationTLSSecret: wellnessz-db-replication-tls
+    clientCASecret: internal-pki-ca
+
+  bootstrap:
+    initdb:
+      database: wellnessz
+      owner: wz_migrator
+      secret:
+        name: wellnessz-db-migrator   # kubernetes.io/basic-auth (from Vault)
+      dataChecksums: true
+      encoding: UTF8
+      localeCollate: C.UTF-8
+      localeCType: C.UTF-8
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS pgcrypto
+        - REVOKE ALL ON SCHEMA public FROM PUBLIC
+        - REVOKE ALL ON DATABASE wellnessz FROM PUBLIC
+        - CREATE SCHEMA IF NOT EXISTS platform AUTHORIZATION wz_migrator
+        - CREATE SCHEMA IF NOT EXISTS masterdata AUTHORIZATION wz_migrator
+        - CREATE SCHEMA IF NOT EXISTS intake AUTHORIZATION wz_migrator
+        - CREATE SCHEMA IF NOT EXISTS casemgmt AUTHORIZATION wz_migrator
+        - CREATE SCHEMA IF NOT EXISTS analytics AUTHORIZATION wz_migrator
+      # Grants for wz_app are applied once the managed role exists
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - name: wellnessz-db-grants
+            key: grants.sql
+
+  managed:
+    roles:
+      - name: wz_app
+        ensure: present
+        login: true
+        superuser: false
+        createdb: false
+        createrole: false
+        inherit: false
+        replication: false
+        bypassrls: false
+        connectionLimit: 200
+        passwordSecret:
+          name: wellnessz-db-app       # kubernetes.io/basic-auth (from Vault)
+
+  storage:
+    size: 200Gi
+    storageClass: encrypted-ssd        # CSI class with encryption at rest (LUKS / array encryption)
+  walStorage:
+    size: 50Gi
+    storageClass: encrypted-ssd
+
+  resources:
+    requests:
+      cpu: "2"
+      memory: 8Gi
+    limits:
+      memory: 8Gi
+
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          cnpg.io/cluster: wellnessz-db
+
+  monitoring:
+    enablePodMonitor: true
+
+  # Continuous archiving through the Barman Cloud plugin (02-objectstore.yaml)
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: wellnessz-backup-store
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wellnessz-db-grants
+  namespace: wellnessz-db
+data:
+  grants.sql: |
+    DO $$
+    DECLARE s text;
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'wz_app') THEN
+        CREATE ROLE wz_app LOGIN NOINHERIT;
+      END IF;
+      GRANT CONNECT, TEMPORARY ON DATABASE wellnessz TO wz_app;
+      GRANT USAGE ON SCHEMA public TO wz_app;
+      FOREACH s IN ARRAY ARRAY['platform','masterdata','intake','casemgmt','analytics'] LOOP
+        EXECUTE format('REVOKE ALL ON SCHEMA %I FROM PUBLIC', s);
+        EXECUTE format('GRANT USAGE ON SCHEMA %I TO wz_app', s);
+        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE wz_migrator IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO wz_app', s);
+        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE wz_migrator IN SCHEMA %I GRANT USAGE, SELECT ON SEQUENCES TO wz_app', s);
+        EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE wz_migrator IN SCHEMA %I GRANT EXECUTE ON FUNCTIONS TO wz_app', s);
+      END LOOP;
+      ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, analytics;
+      ALTER ROLE wz_app SET statement_timeout = '30s';
+    END $$;

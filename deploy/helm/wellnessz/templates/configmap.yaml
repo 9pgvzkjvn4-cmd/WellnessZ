@@ -1,0 +1,27 @@
+{{- /* Non-secret runtime configuration for core and bff (envFrom). */ -}}
+{{- $root := . -}}
+{{- range $key := list "core" "bff" }}
+{{- $comp := index $root.Values $key }}
+{{- if $comp.enabled }}
+{{- $env := deepCopy $comp.env }}
+{{- if eq $key "bff" }}
+{{- $_ := set $env "WZ_CORE_API_URL" (include "wellnessz.bffCoreUrl" $root) }}
+{{- end }}
+{{- $_ := set $env "SPRING_PROFILES_ACTIVE" $root.Values.global.springProfiles }}
+{{- $_ := set $env "SERVER_PORT" (toString $comp.ports.http) }}
+{{- $_ := set $env "MANAGEMENT_SERVER_PORT" (toString $comp.ports.management) }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $comp) }}-env
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
+data:
+  {{- range $k, $v := $env }}
+  {{- if and (not (kindIs "invalid" $v)) (ne (toString $v) "") }}
+  {{ $k }}: {{ toString $v | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,24 @@
+{{- $root := . -}}
+{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" }}
+{{- $comp := index $root.Values $key }}
+{{- if and $comp.enabled $comp.pdb.enabled }}
+{{- $ctx := dict "root" $root "comp" $comp }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "wellnessz.componentName" $ctx }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
+spec:
+  {{- if hasKey $comp.pdb "maxUnavailable" }}
+  maxUnavailable: {{ $comp.pdb.maxUnavailable }}
+  {{- else }}
+  minAvailable: {{ $comp.pdb.minAvailable | default 1 }}
+  {{- end }}
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" $comp.name) | nindent 6 }}
+{{- end }}
+{{- end }}

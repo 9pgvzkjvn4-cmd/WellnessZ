@@ -1,0 +1,123 @@
+# =============================================================================
+# CD - promote one immutable, signed image tag through dev -> test -> prod.
+# Each stage runs in a GitHub Environment; configure "Required reviewers"
+# (and optionally wait timers / deployment branch rules = tags v*) on
+# `test` and `prod` in Settings > Environments so promotion needs approval.
+#
+# Environment variables (per GitHub Environment, no secrets needed - OIDC):
+#   CLOUD                         azure | gcp
+#   HELM_RELEASE, K8S_NAMESPACE   e.g. wellnessz / wellnessz
+#   IMAGE_REGISTRY                e.g. myacr.azurecr.io/wellnessz
+#   VALUES_FILE                   e.g. deploy/helm/wellnessz/values-azure.yaml
+#   ENV_VALUES_FILE               optional per-environment overrides (ops repo / path)
+#   Azure: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
+#          AKS_RESOURCE_GROUP, AKS_CLUSTER_NAME, AKS_PRIVATE (true|false)
+#   GCP:   GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT, GCP_PROJECT_ID,
+#          GKE_CLUSTER, GKE_LOCATION
+#   DEPLOY_RUNNER                 optional self-hosted runner label (private clusters)
+# =============================================================================
+name: CD
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to deploy (e.g. v1.4.0 or sha-<12>)
+        required: true
+        type: string
+      start_at:
+        description: First environment (later stages still require approval)
+        type: choice
+        options: [dev, test, prod]
+        default: dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  images:
+    name: Build, scan, sign images
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/container.yml
+    with:
+      # ghcr | acr | gar (repository variable); must match IMAGE_REGISTRY of the environments
+      registry: ${{ vars.IMAGE_REGISTRY_KIND || 'ghcr' }}
+    secrets: inherit
+
+  resolve:
+    name: Resolve release
+    needs: [images]
+    if: always() && (needs.images.result == 'success' || needs.images.result == 'skipped')
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.r.outputs.tag }}
+      start: ${{ steps.r.outputs.start }}
+    steps:
+      - id: r
+        env:
+          INPUT_TAG: ${{ inputs.image_tag }}
+          INPUT_START: ${{ inputs.start_at }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            tag="$INPUT_TAG"; start="${INPUT_START:-dev}"
+          else
+            tag="$GITHUB_REF_NAME"; start=dev
+          fi
+          if ! [[ "$tag" =~ ^(v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?|sha-[0-9a-f]{12})$ ]]; then
+            echo "Invalid image tag: $tag" >&2; exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "start=$start" >> "$GITHUB_OUTPUT"
+
+  dev:
+    needs: [resolve]
+    if: always() && needs.resolve.result == 'success' && needs.resolve.outputs.start == 'dev'
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    uses: ./.github/workflows/deploy-env.yml
+    with:
+      environment: dev
+      image_tag: ${{ needs.resolve.outputs.tag }}
+
+  test:
+    needs: [resolve, dev]
+    if: >-
+      always() && needs.resolve.result == 'success' &&
+      (needs.dev.result == 'success' || (needs.dev.result == 'skipped' && needs.resolve.outputs.start == 'test'))
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    uses: ./.github/workflows/deploy-env.yml
+    with:
+      environment: test
+      image_tag: ${{ needs.resolve.outputs.tag }}
+
+  prod:
+    needs: [resolve, test]
+    if: >-
+      always() && needs.resolve.result == 'success' &&
+      (needs.test.result == 'success' || (needs.test.result == 'skipped' && needs.resolve.outputs.start == 'prod')) &&
+      (startsWith(needs.resolve.outputs.tag, 'v'))
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    uses: ./.github/workflows/deploy-env.yml
+    with:
+      environment: prod
+      image_tag: ${{ needs.resolve.outputs.tag }}

@@ -1,0 +1,186 @@
+{{- /*
+Core API and BFF Deployments (Spring Boot, Java 21).
+*/ -}}
+{{- $root := . -}}
+{{- $secretsOn := include "wellnessz.secretsEnabled" . -}}
+{{- $mig := .Values.migrations -}}
+{{- if not (has $mig.mode (list "app" "job")) }}
+{{- fail "migrations.mode must be 'app' or 'job'" }}
+{{- end }}
+{{- range $key := list "core" "bff" }}
+{{- $comp := index $root.Values $key }}
+{{- if $comp.enabled }}
+{{- $ctx := dict "root" $root "comp" $comp }}
+{{- $name := include "wellnessz.componentName" $ctx }}
+{{- $secretDir := include "wellnessz.secretDir" (dict "root" $root "key" $key) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
+  {{- with $root.Values.global.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not $comp.autoscaling.enabled }}
+  replicas: {{ $comp.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" $comp.name) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 8 }}
+        {{- if $root.Values.workloadIdentity.azure.enabled }}
+        azure.workload.identity/use: "true"
+        {{- end }}
+        {{- with $comp.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $root.Template.BasePath "/configmap.yaml") $root | sha256sum }}
+        {{- if eq $key "core" }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ $comp.ports.management | quote }}
+        prometheus.io/path: /actuator/prometheus
+        {{- end }}
+        {{- with $comp.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "wellnessz.serviceAccountName" $ctx }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- with $root.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "wellnessz.podSecurityContext" $ctx | nindent 8 }}
+      terminationGracePeriodSeconds: 45
+      {{- include "wellnessz.topologySpread" $ctx | nindent 6 }}
+      containers:
+        - name: {{ $comp.name }}
+          image: {{ include "wellnessz.image" $ctx | quote }}
+          imagePullPolicy: {{ $root.Values.global.imagePullPolicy }}
+          securityContext:
+            {{- toYaml $root.Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ $comp.ports.http }}
+              protocol: TCP
+            - name: management
+              containerPort: {{ $comp.ports.management }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ $name }}-env
+            {{- if not $secretsOn }}
+            {{- with (index $root.Values.secrets.existingSecret $key) }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+            {{- if and (eq $key "core") (eq $mig.mode "app") $root.Values.secrets.existingSecret.migrations }}
+            - secretRef:
+                name: {{ $root.Values.secrets.existingSecret.migrations }}
+            {{- end }}
+            {{- end }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment={{ $root.Values.global.environment }},k8s.namespace.name=$(POD_NAMESPACE),k8s.pod.name=$(POD_NAME)"
+            {{- if eq $key "core" }}
+            - name: SPRING_FLYWAY_ENABLED
+              value: {{ eq $mig.mode "app" | quote }}
+            {{- if eq $mig.mode "app" }}
+            - name: SPRING_FLYWAY_USER
+              value: {{ $mig.migratorUsername | quote }}
+            {{- end }}
+            {{- end }}
+            {{- if $secretsOn }}
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:configtree:{{ $secretDir }}/"
+            {{- $files := index $root.Values.secrets $key "files" }}
+            {{- range $files }}
+            {{- if .env }}
+            - name: {{ .env }}
+              value: {{ ternary (printf "file:%s/%s" $secretDir .fileName) (printf "%s/%s" $secretDir .fileName) (eq (default "fileRef" .format) "fileRef") | quote }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- with $comp.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: {{ $comp.probes.livenessPath }}
+              port: management
+            periodSeconds: 5
+            failureThreshold: {{ $comp.probes.startupFailureThreshold }}
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: {{ $comp.probes.livenessPath }}
+              port: management
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: {{ $comp.probes.readinessPath }}
+              port: management
+            periodSeconds: 5
+            failureThreshold: 3
+            timeoutSeconds: 3
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 10
+          resources:
+            {{- toYaml $comp.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if $secretsOn }}
+            - name: secrets-{{ $key }}
+              mountPath: {{ $secretDir }}
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ $comp.tmpSizeLimit }}
+        {{- if $secretsOn }}
+        {{- include "wellnessz.secretVolume" (dict "root" $root "key" $key) | nindent 8 }}
+        {{- end }}
+      {{- with $comp.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $comp.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $comp.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

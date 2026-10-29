@@ -1,0 +1,168 @@
+# Reusable: deploy one environment with Helm (called by cd.yml).
+name: Deploy environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.environment }} (${{ vars.CLOUD }})
+    runs-on: ${{ vars.DEPLOY_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      packages: read  # pull signatures from GHCR
+      id-token: write # OIDC federation to Azure / GCP
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      CLOUD: ${{ vars.CLOUD }}
+      RELEASE: ${{ vars.HELM_RELEASE || 'wellnessz' }}
+      NAMESPACE: ${{ vars.K8S_NAMESPACE || 'wellnessz' }}
+      IMAGE_REGISTRY: ${{ vars.IMAGE_REGISTRY }}
+      VALUES_FILE: ${{ vars.VALUES_FILE }}
+      ENV_VALUES_FILE: ${{ vars.ENV_VALUES_FILE }}
+      CHART: deploy/helm/wellnessz
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate configuration
+        run: |
+          set -euo pipefail
+          case "$CLOUD" in azure|gcp) ;; *) echo "vars.CLOUD must be azure or gcp" >&2; exit 1 ;; esac
+          test -n "$IMAGE_REGISTRY" || { echo "vars.IMAGE_REGISTRY missing" >&2; exit 1; }
+          test -f "$VALUES_FILE" || { echo "VALUES_FILE '$VALUES_FILE' not found" >&2; exit 1; }
+
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.19.0
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      # ---- Azure (AKS) ----
+      - name: Azure login (OIDC federated credential)
+        if: vars.CLOUD == 'azure'
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install kubelogin
+        if: vars.CLOUD == 'azure'
+        uses: azure/use-kubelogin@0ce7c36141aa27d4934872cf00b0120804c98a29 # v1.3
+        with:
+          kubelogin-version: v0.2.22
+
+      - name: AKS set context (Entra ID / Azure RBAC, no local accounts)
+        if: vars.CLOUD == 'azure' && vars.AKS_PRIVATE != 'true'
+        uses: azure/aks-set-context@883bdc8d8d1d0fd87e66cc4ba6f0b618f9eb5281 # v5.0.1
+        with:
+          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+          admin: "false"
+          use-kubelogin: "true"
+
+      # ---- GCP (GKE) ----
+      - name: Google auth (Workload Identity Federation)
+        if: vars.CLOUD == 'gcp'
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: GKE credentials
+        if: vars.CLOUD == 'gcp'
+        uses: google-github-actions/get-gke-credentials@3da1e46a907576cefaa90c484278bb5b259dd395 # v3.0.0
+        with:
+          cluster_name: ${{ vars.GKE_CLUSTER }}
+          location: ${{ vars.GKE_LOCATION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          use_dns_based_endpoint: true
+
+      # ---- Supply-chain gate: only deploy images signed by our own workflow ----
+      - name: Registry login (read signatures)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          host="${IMAGE_REGISTRY%%/*}"
+          case "$host" in
+            *.azurecr.io)      az acr login --name "${host%%.azurecr.io}" ;;
+            *-docker.pkg.dev)  gcloud auth configure-docker "$host" --quiet ;;
+            ghcr.io)           echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin ;;
+            *)                 echo "No login helper for $host - relying on existing credentials" ;;
+          esac
+
+      - name: Verify cosign signatures
+        env:
+          IDENTITY_REGEXP: ^https://github.com/${{ github.repository }}/\.github/workflows/container\.yml@
+        run: |
+          set -euo pipefail
+          for img in wz-core-app wz-bff employee-app manager-workspace; do
+            cosign verify "${IMAGE_REGISTRY}/${img}:${IMAGE_TAG}" \
+              --certificate-identity-regexp "$IDENTITY_REGEXP" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              > /dev/null
+            echo "verified ${img}:${IMAGE_TAG}"
+          done
+
+      - name: Helm upgrade (atomic)
+        if: vars.CLOUD == 'gcp' || vars.AKS_PRIVATE != 'true'
+        run: |
+          set -euo pipefail
+          extra=()
+          if [ -n "${ENV_VALUES_FILE}" ] && [ -f "${ENV_VALUES_FILE}" ]; then extra+=(-f "${ENV_VALUES_FILE}"); fi
+          helm upgrade --install "$RELEASE" "$CHART" \
+            --namespace "$NAMESPACE" \
+            -f "$CHART/values.yaml" -f "$VALUES_FILE" "${extra[@]}" \
+            --set-string global.imageRegistry="$IMAGE_REGISTRY" \
+            --set-string global.imageTag="$IMAGE_TAG" \
+            --set-string global.environment="${{ inputs.environment }}" \
+            --atomic --wait --timeout 15m --history-max 10
+          helm -n "$NAMESPACE" status "$RELEASE"
+
+      # Private AKS API server: run Helm inside the cluster network via
+      # `az aks command invoke` (or use a self-hosted runner via vars.DEPLOY_RUNNER).
+      - name: Helm upgrade via AKS command invoke (private cluster)
+        if: vars.CLOUD == 'azure' && vars.AKS_PRIVATE == 'true'
+        env:
+          RG: ${{ vars.AKS_RESOURCE_GROUP }}
+          CLUSTER: ${{ vars.AKS_CLUSTER_NAME }}
+        run: |
+          set -euo pipefail
+          extra=""
+          if [ -n "${ENV_VALUES_FILE}" ] && [ -f "${ENV_VALUES_FILE}" ]; then extra="-f ${ENV_VALUES_FILE}"; fi
+          mkdir -p /tmp/invoke
+          tar cf - deploy/helm deploy/hybrid ${ENV_VALUES_FILE:+"$ENV_VALUES_FILE"} | tar xf - -C /tmp/invoke
+          cd /tmp/invoke
+          az aks command invoke -g "$RG" -n "$CLUSTER" --file . --command \
+            "helm upgrade --install $RELEASE $CHART --namespace $NAMESPACE -f $CHART/values.yaml -f $VALUES_FILE $extra \
+             --set-string global.imageRegistry=$IMAGE_REGISTRY --set-string global.imageTag=$IMAGE_TAG \
+             --set-string global.environment=${{ inputs.environment }} --atomic --wait --timeout 15m --history-max 10"
+
+      - name: Deployment record
+        if: always()
+        run: |
+          {
+            echo "### ${{ inputs.environment }}: ${{ job.status }}"
+            echo "- cloud: ${CLOUD}, release: ${RELEASE}, namespace: ${NAMESPACE}"
+            echo "- image tag: \`${IMAGE_TAG}\` (cosign-verified)"
+            echo "- actor: ${GITHUB_ACTOR}, run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,87 @@
+{{- /* GKE-specific objects: BackendConfig (Cloud Armor, health checks, logging),
+       FrontendConfig (HTTPS redirect, SSL policy), ManagedCertificate. */ -}}
+{{- $root := . -}}
+{{- if .Values.gcp.backendConfig.enabled }}
+{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" }}
+{{- $comp := index $root.Values $key }}
+{{- if $comp.enabled }}
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $comp) }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
+spec:
+  timeoutSec: {{ $root.Values.gcp.backendConfig.timeoutSec }}
+  {{- with $root.Values.gcp.backendConfig.securityPolicy }}
+  securityPolicy:
+    name: {{ . }}
+  {{- end }}
+  logging:
+    enable: {{ $root.Values.gcp.backendConfig.logging.enable }}
+    sampleRate: {{ $root.Values.gcp.backendConfig.logging.sampleRate }}
+  healthCheck:
+    type: HTTP
+    {{- if $comp.ports.management }}
+    port: {{ $comp.ports.management }}
+    requestPath: {{ $comp.probes.readinessPath }}
+    {{- else }}
+    port: {{ $comp.ports.http }}
+    requestPath: {{ $comp.probes.path }}
+    {{- end }}
+    checkIntervalSec: 10
+    timeoutSec: 5
+  {{- if eq $key "bff" }}
+  # BFF uses server-side sessions; keep users on one backend when possible
+  sessionAffinity:
+    affinityType: GENERATED_COOKIE
+    affinityCookieTtlSec: 900
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.gcp.frontendConfig.enabled }}
+---
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: {{ include "wellnessz.fullname" . }}-frontend
+  labels:
+    {{- include "wellnessz.labels" . | nindent 4 }}
+spec:
+  redirectToHttps:
+    enabled: true
+    responseCodeName: MOVED_PERMANENTLY_DEFAULT
+  {{- with .Values.gcp.frontendConfig.sslPolicy }}
+  sslPolicy: {{ . }}
+  {{- end }}
+{{- end }}
+{{- if and .Values.gcp.managedCertificate.enabled .Values.ingress.enabled }}
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: {{ include "wellnessz.fullname" . }}-web
+  labels:
+    {{- include "wellnessz.labels" . | nindent 4 }}
+spec:
+  domains:
+    {{- range $key := list "employeePortal" "managerWorkspace" }}
+    {{- if and (index $root.Values $key).enabled (index $root.Values.ingress.hosts $key) }}
+    - {{ index $root.Values.ingress.hosts $key | quote }}
+    {{- end }}
+    {{- end }}
+{{- if and .Values.ingress.api.enabled .Values.core.enabled }}
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: {{ include "wellnessz.fullname" . }}-api
+  labels:
+    {{- include "wellnessz.labels" . | nindent 4 }}
+spec:
+  domains:
+    - {{ .Values.ingress.api.host | quote }}
+{{- end }}
+{{- end }}

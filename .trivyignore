@@ -1,0 +1,5 @@
+# Trivy ignore list (vulnerabilities and misconfiguration IDs).
+# Policy: every entry needs an owner, justification, risk acceptance reference
+# and an expiry date (`exp:YYYY-MM-DD`). Reviewed by @OWNER/wellnessz-security.
+# Example:
+# CVE-2099-00000 exp:2099-01-31  # owner: platform; not reachable (no XML parsing); RA-123

@@ -1,0 +1,109 @@
+# =============================================================================
+# Azure (AKS) overlay - use with values.yaml:
+#   helm upgrade --install wellnessz deploy/helm/wellnessz -n wellnessz \
+#     -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-azure.yaml \
+#     --set global.imageTag=<tag> ...
+# Placeholders in <angle brackets> come from `terraform output` (deploy/terraform/azure).
+# =============================================================================
+global:
+  imageRegistry: <acr-name>.azurecr.io/wellnessz
+  environment: prod
+  springProfiles: azure,prod
+
+workloadIdentity:
+  azure:
+    enabled: true
+    tenantId: <tenant-id>
+    clientIds:
+      core: <core-identity-client-id>              # terraform output core_identity_client_id
+      bff: <bff-identity-client-id>                # terraform output bff_identity_client_id
+      migrations: <migrator-identity-client-id>    # terraform output migrator_identity_client_id
+
+secrets:
+  provider: azure
+  azure:
+    keyVaultName: <key-vault-name>                 # terraform output key_vault_name
+    tenantId: <tenant-id>
+    cloudName: AzurePublicCloud
+
+# Prod: Flyway runs in a pre-upgrade Job with its own identity; core never
+# receives the schema-owner credential.
+migrations:
+  mode: job
+
+topologySpread:
+  whenUnsatisfiable: DoNotSchedule
+
+core:
+  env:
+    # Azure Database for PostgreSQL Flexible Server - TLS 1.2+ enforced server-side,
+    # certificate chain (DigiCert / Microsoft RSA Root) validated by the JVM trust store.
+    WZ_DB_URL: "jdbc:postgresql://<pg-server-name>.postgres.database.azure.com:5432/wellnessz?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+    WZ_DB_USERNAME: wz_app
+    # Entra ID v2 issuer of the airline tenant (add Keycloak/Okta issuers comma-separated if federated)
+    WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<tenant-id>/v2.0"
+    WZ_OIDC_AUDIENCE: "api://wellnessz-api"
+    WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com"
+    WZ_EHS_MAILBOX_MODE: graph
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
+
+bff:
+  env:
+    WZ_BFF_ISSUER_URI: "https://login.microsoftonline.com/<tenant-id>/v2.0"
+    WZ_BFF_CLIENT_ID: <bff-app-registration-client-id>
+    WZ_BFF_POST_LOGOUT_URI: "https://employee.wellnessz.example.com/"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
+
+# Graph client secret for the EHS mailbox is mounted with the other core secrets
+# (prefer certificate / federated credential in production).
+
+# Application Gateway Ingress Controller (WAF v2 policy attached by Terraform)
+ingress:
+  className: azure-application-gateway
+  annotations:
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    appgw.ingress.kubernetes.io/request-timeout: "60"
+    appgw.ingress.kubernetes.io/connection-draining: "true"
+    appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
+    appgw.ingress.kubernetes.io/backend-protocol: "http"
+    # Certificate stored in Key Vault and referenced by App Gateway (no TLS secret in cluster)
+    appgw.ingress.kubernetes.io/appgw-ssl-certificate: "wellnessz-tls"
+    # appgw.ingress.kubernetes.io/waf-policy-for-path: "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/<policy>"
+  # AGIC derives backend health probes from the pods' readiness probes (management port)
+  tls:
+    enabled: true
+    secretName: ""
+  hosts:
+    employeePortal: employee.wellnessz.example.com
+    managerWorkspace: manager.wellnessz.example.com
+  api:
+    enabled: true
+    host: api.wellnessz.example.com
+
+networkPolicy:
+  enabled: true
+  # AGIC sends traffic from the App Gateway subnet straight to pod IPs
+  ingressController:
+    namespaceSelector: {}
+    podSelector: {}
+    ipBlocks:
+      - 10.40.2.0/24          # terraform: appgw subnet
+    allowHealthChecks: true
+  database:
+    cidrs:
+      - 10.40.3.0/24          # terraform: PostgreSQL delegated subnet
+  https:
+    # Entra ID / Graph / JWKS over the internet (via egress firewall/NAT)
+    cidrs: ["0.0.0.0/0"]
+    except: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+  otel:
+    enabled: true
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: monitoring
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: opentelemetry-collector
+
+serviceMonitor:
+  enabled: false   # AKS managed Prometheus: enable with Azure Monitor ServiceMonitor CRD

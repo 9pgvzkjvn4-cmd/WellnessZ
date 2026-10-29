@@ -1,0 +1,9 @@
+# Copy to backend.hcl and run: terraform init -backend-config=backend.hcl
+# The storage account must have: shared key access disabled, TLS1.2+, blob
+# versioning + soft delete, infrastructure encryption, private endpoint or
+# firewall, and RBAC "Storage Blob Data Contributor" for the CI identity only.
+resource_group_name  = "rg-wellnessz-tfstate"
+storage_account_name = "stwellnessztfstate"
+container_name       = "tfstate"
+key                  = "wellnessz/prod/azure.tfstate"
+use_azuread_auth     = true

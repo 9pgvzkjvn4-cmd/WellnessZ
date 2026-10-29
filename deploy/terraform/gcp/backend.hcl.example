@@ -1,0 +1,6 @@
+# Copy to backend.hcl and run: terraform init -backend-config=backend.hcl
+# Bucket requirements: uniform bucket-level access, public access prevention,
+# object versioning, CMEK (kms_encryption_key), IAM limited to the CI identity.
+bucket = "wellnessz-tfstate-prod"
+prefix = "wellnessz/prod/gcp"
+# kms_encryption_key = "projects/<p>/locations/<r>/keyRings/<kr>/cryptoKeys/tfstate"

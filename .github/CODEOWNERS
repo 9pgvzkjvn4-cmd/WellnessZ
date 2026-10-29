@@ -1,0 +1,24 @@
+# CODEOWNERS - placeholder teams; replace OWNER with the GitHub organisation.
+# Branch protection on `main` must require review from Code Owners.
+
+*                                   @OWNER/wellnessz-maintainers
+
+# Platform & security-critical code
+/platform/wz-security/              @OWNER/wellnessz-security @OWNER/wellnessz-maintainers
+/platform/wz-secrets/               @OWNER/wellnessz-security @OWNER/wellnessz-maintainers
+/platform/                          @OWNER/wellnessz-backend
+/apps/                              @OWNER/wellnessz-backend
+/**/db/migration/                   @OWNER/wellnessz-backend @OWNER/wellnessz-dba
+
+# Front-end
+/web/                               @OWNER/wellnessz-frontend
+
+# Infrastructure, delivery pipeline and supply chain
+/deploy/                            @OWNER/wellnessz-platform @OWNER/wellnessz-security
+/.github/                           @OWNER/wellnessz-platform @OWNER/wellnessz-security
+/.gitleaks.toml                     @OWNER/wellnessz-security
+/.trivyignore                       @OWNER/wellnessz-security
+/config/dependency-check-suppressions.xml  @OWNER/wellnessz-security
+
+# Documentation
+/docs/                              @OWNER/wellnessz-maintainers

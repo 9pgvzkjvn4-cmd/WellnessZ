@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.wellnessz</groupId>
+    <artifactId>wellnessz-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+  <artifactId>wz-integration</artifactId>
+  <name>WellnessZ OHCM :: Integration and API gateway (E15)</name>
+
+  <dependencies>
+    <dependency><groupId>com.wellnessz</groupId><artifactId>wz-security</artifactId></dependency>
+    <dependency><groupId>com.wellnessz</groupId><artifactId>wz-masterdata</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-jpa</artifactId></dependency>
+    <dependency><groupId>ca.uhn.hapi.fhir</groupId><artifactId>hapi-fhir-structures-r4</artifactId></dependency>
+    <dependency><groupId>ca.uhn.hapi</groupId><artifactId>hapi-base</artifactId></dependency>
+    <dependency><groupId>ca.uhn.hapi</groupId><artifactId>hapi-structures-v25</artifactId></dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

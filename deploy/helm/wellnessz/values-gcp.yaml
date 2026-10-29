@@ -1,0 +1,155 @@
+# =============================================================================
+# GCP (GKE) overlay - use with values.yaml.
+# Placeholders in <angle brackets> come from `terraform output` (deploy/terraform/gcp).
+# =============================================================================
+global:
+  imageRegistry: <region>-docker.pkg.dev/<project-id>/wellnessz
+  environment: prod
+  springProfiles: gcp,prod
+
+workloadIdentity:
+  gcp:
+    enabled: true
+    serviceAccounts:
+      core: wellnessz-core@<project-id>.iam.gserviceaccount.com
+      bff: wellnessz-bff@<project-id>.iam.gserviceaccount.com
+      migrations: wellnessz-migrator@<project-id>.iam.gserviceaccount.com
+
+secrets:
+  provider: gcp
+  csiDriver: secrets-store-gke.csi.k8s.io   # GKE Secret Manager add-on (terraform: secret_manager_config)
+  gcp:
+    projectId: <project-id>
+    providerName: gke
+  core:
+    files:
+      - fileName: wz-db-password
+        remoteName: wz-db-password
+        env: WZ_DB_PASSWORD
+        format: fileRef
+      - fileName: wz-master-key
+        remoteName: wz-master-key
+        env: WZ_MASTER_KEY_FILE
+        format: path
+      - fileName: wz-pseudonym-key
+        remoteName: wz-pseudonym-key
+        env: WZ_PSEUDONYM_KEY
+        format: fileRef
+      # Cloud SQL per-instance server CA (stored by Terraform in Secret Manager)
+      - fileName: cloudsql-server-ca.pem
+        remoteName: wz-cloudsql-server-ca
+  migrations:
+    files:
+      - fileName: spring.flyway.password
+        remoteName: wz-migrator-db-password
+      - fileName: cloudsql-server-ca.pem
+        remoteName: wz-cloudsql-server-ca
+
+migrations:
+  mode: job
+  job:
+    dbUrl: "jdbc:postgresql://<cloudsql-private-ip>:5432/wellnessz?sslmode=verify-ca&sslrootcert=/mnt/secrets/migrations/cloudsql-server-ca.pem"
+
+topologySpread:
+  whenUnsatisfiable: DoNotSchedule
+
+core:
+  env:
+    # Cloud SQL private IP; SSL required (ENCRYPTED_ONLY). Cloud SQL server
+    # certificates carry no IP SAN, therefore verify-ca against the instance CA.
+    WZ_DB_URL: "jdbc:postgresql://<cloudsql-private-ip>:5432/wellnessz?sslmode=verify-ca&sslrootcert=/mnt/secrets/core/cloudsql-server-ca.pem"
+    WZ_DB_USERNAME: wz_app
+    WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<tenant-id>/v2.0"
+    WZ_OIDC_AUDIENCE: "api://wellnessz-api"
+    WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com"
+    WZ_EHS_MAILBOX_MODE: graph
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
+
+bff:
+  env:
+    WZ_BFF_ISSUER_URI: "https://login.microsoftonline.com/<tenant-id>/v2.0"
+    WZ_BFF_CLIENT_ID: <bff-client-id>
+    WZ_BFF_POST_LOGOUT_URI: "https://employee.wellnessz.example.com/"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
+
+# GKE Ingress (external Application Load Balancer) + Cloud Armor + managed certs
+ingress:
+  className: gce
+  useClassAnnotation: true
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: wellnessz-ingress-ip
+    kubernetes.io/ingress.allow-http: "false"
+  tls:
+    enabled: true
+    secretName: ""      # Google-managed certificates
+  hosts:
+    employeePortal: employee.wellnessz.example.com
+    managerWorkspace: manager.wellnessz.example.com
+  api:
+    enabled: true
+    host: api.wellnessz.example.com
+
+gcp:
+  backendConfig:
+    enabled: true
+    securityPolicy: wellnessz-waf          # terraform output cloud_armor_policy_name
+    timeoutSec: 60
+  frontendConfig:
+    enabled: true
+    sslPolicy: wellnessz-modern-tls         # terraform output ssl_policy_name
+  managedCertificate:
+    enabled: true
+
+networkPolicy:
+  enabled: true
+  # GKE Dataplane V2 (Cilium). Container-native LB health checks and proxies:
+  ingressController:
+    namespaceSelector: {}
+    podSelector: {}
+    ipBlocks:
+      - 35.191.0.0/16
+      - 130.211.0.0/22
+    allowHealthChecks: true
+  dns:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: kube-system
+    podSelector:
+      matchLabels:
+        k8s-app: kube-dns
+    extraIpBlocks:
+      - 169.254.20.10/32     # NodeLocal DNSCache (Autopilot default)
+  database:
+    cidrs:
+      - 10.60.64.0/20          # terraform: Private Service Access range (Cloud SQL)
+  https:
+    cidrs: ["0.0.0.0/0"]
+    except: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+  otel:
+    enabled: true
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: monitoring
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/name: opentelemetry-collector
+  extraEgress:
+    # GKE metadata server (Workload Identity token exchange)
+    core:
+      - to:
+          - ipBlock:
+              cidr: 169.254.169.254/32
+        ports:
+          - protocol: TCP
+            port: 80
+          - protocol: TCP
+            port: 988
+    bff:
+      - to:
+          - ipBlock:
+              cidr: 169.254.169.254/32
+        ports:
+          - protocol: TCP
+            port: 80
+          - protocol: TCP
+            port: 988

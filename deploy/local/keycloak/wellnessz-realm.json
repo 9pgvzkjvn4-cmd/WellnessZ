@@ -1,0 +1,544 @@
+{
+  "realm": "wellnessz",
+  "displayName": "WellnessZ (LOCAL DEV)",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxTemporaryLockouts": 0,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "passwordPolicy": "length(12) and maxLength(128) and upperCase(1) and lowerCase(1) and digits(1) and specialChars(1) and notUsername and notEmail and passwordHistory(5)",
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 300,
+  "ssoSessionIdleTimeout": 900,
+  "ssoSessionMaxLifespan": 36000,
+  "ssoSessionIdleTimeoutRememberMe": 0,
+  "ssoSessionMaxLifespanRememberMe": 0,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": true,
+  "offlineSessionMaxLifespan": 5184000,
+  "clientSessionIdleTimeout": 0,
+  "clientSessionMaxLifespan": 0,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "defaultSignatureAlgorithm": "RS256",
+  "eventsEnabled": true,
+  "eventsExpiration": 7776000,
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR",
+    "LOGOUT",
+    "LOGOUT_ERROR",
+    "CODE_TO_TOKEN",
+    "CODE_TO_TOKEN_ERROR",
+    "CLIENT_LOGIN",
+    "CLIENT_LOGIN_ERROR",
+    "REFRESH_TOKEN",
+    "REFRESH_TOKEN_ERROR",
+    "UPDATE_PASSWORD",
+    "UPDATE_PASSWORD_ERROR",
+    "UPDATE_TOTP",
+    "REMOVE_TOTP",
+    "SEND_RESET_PASSWORD",
+    "RESET_PASSWORD",
+    "USER_DISABLED_BY_TEMPORARY_LOCKOUT",
+    "USER_DISABLED_BY_PERMANENT_LOCKOUT",
+    "TOKEN_EXCHANGE",
+    "TOKEN_EXCHANGE_ERROR"
+  ],
+  "eventsListeners": [
+    "jboss-logging"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA256",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "en"
+  ],
+  "defaultLocale": "en",
+  "browserSecurityHeaders": {
+    "contentSecurityPolicyReportOnly": "",
+    "xContentTypeOptions": "nosniff",
+    "referrerPolicy": "no-referrer",
+    "xRobotsTag": "none",
+    "xFrameOptions": "SAMEORIGIN",
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+  },
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@wellnessz.local",
+    "fromDisplayName": "WellnessZ (local)",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "EMPLOYEE",
+        "description": "Employee / crew member - own cases, consents, self-referral",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "MANAGER",
+        "description": "Line manager - status-only view of cases in scope",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "HR",
+        "description": "HR partner - status-only view of cases in scope",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "OH_CLINICIAN",
+        "description": "Occupational Health clinician - clinical access",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "OH_ADMIN",
+        "description": "Occupational Health administrator",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "CASE_MANAGER",
+        "description": "OH case manager",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "PSYCH_CLINICIAN",
+        "description": "Psychological health clinician - restricted data class E09",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "AUDITOR",
+        "description": "Read-only audit trail access",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "PLATFORM_ADMIN",
+        "description": "Platform administration (configuration, modules, notifications)",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "INTEGRATION",
+        "description": "Machine-to-machine integration clients",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "PARTNER_PROVIDER",
+        "description": "External partner provider (referral recipient)",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "wellnessz-api",
+      "name": "WellnessZ Core API (audience only)",
+      "description": "Resource server audience. No login flows.",
+      "enabled": true,
+      "bearerOnly": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "wellnessz-bff",
+      "name": "WellnessZ BFF",
+      "description": "Confidential Backend-for-Frontend (web apps). Tokens never reach the browser.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "change-me-local-only",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "consentRequired": false,
+      "fullScopeAllowed": false,
+      "rootUrl": "http://localhost:8090",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:8090/login/oauth2/code/wellnessz"
+      ],
+      "webOrigins": [
+        "http://localhost:8090",
+        "http://localhost:5173",
+        "http://localhost:5174"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*##http://localhost:5174/*##http://localhost:8090/*",
+        "backchannel.logout.session.required": "true",
+        "use.refresh.tokens": "true",
+        "client_credentials.use_refresh_token": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "access.token.lifespan": "300"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-wellnessz-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "wellnessz-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        },
+        {
+          "name": "realm-roles-id-token",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "basic",
+        "profile",
+        "email",
+        "roles"
+      ],
+      "optionalClientScopes": [
+        "offline_access",
+        "address",
+        "phone"
+      ]
+    },
+    {
+      "clientId": "wellnessz-mobile",
+      "name": "WellnessZ Mobile / PWA",
+      "description": "Public native/PWA client - Authorization Code + PKCE (S256), system browser.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "consentRequired": false,
+      "fullScopeAllowed": false,
+      "redirectUris": [
+        "com.wellnessz.app://callback",
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "com.wellnessz.app://callback##http://localhost:5173/*",
+        "use.refresh.tokens": "true",
+        "oauth2.device.authorization.grant.enabled": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-wellnessz-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "wellnessz-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "basic",
+        "profile",
+        "email",
+        "roles"
+      ],
+      "optionalClientScopes": [
+        "offline_access",
+        "address",
+        "phone"
+      ]
+    },
+    {
+      "clientId": "wellnessz-integration",
+      "name": "WellnessZ Integration (M2M)",
+      "description": "Service account for FHIR/HL7/inbound integrations - role INTEGRATION.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "change-me-local-only",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": false,
+      "attributes": {
+        "client_credentials.use_refresh_token": "false",
+        "access.token.lifespan": "300"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-wellnessz-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "wellnessz-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "roles",
+        "basic"
+      ],
+      "optionalClientScopes": []
+    }
+  ],
+  "users": [
+    {
+      "username": "employee1",
+      "enabled": true,
+      "email": "employee1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Erin",
+      "lastName": "Employee",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "EMPLOYEE"
+      ]
+    },
+    {
+      "username": "manager1",
+      "enabled": true,
+      "email": "manager1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Max",
+      "lastName": "Manager",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "MANAGER"
+      ]
+    },
+    {
+      "username": "hr1",
+      "enabled": true,
+      "email": "hr1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Hana",
+      "lastName": "HR",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "HR"
+      ]
+    },
+    {
+      "username": "clinician1",
+      "enabled": true,
+      "email": "clinician1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Chris",
+      "lastName": "Clinician",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "OH_CLINICIAN",
+        "CASE_MANAGER"
+      ]
+    },
+    {
+      "username": "psych1",
+      "enabled": true,
+      "email": "psych1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Pat",
+      "lastName": "Psych",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "PSYCH_CLINICIAN"
+      ]
+    },
+    {
+      "username": "auditor1",
+      "enabled": true,
+      "email": "auditor1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Avery",
+      "lastName": "Auditor",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "AUDITOR"
+      ]
+    },
+    {
+      "username": "admin1",
+      "enabled": true,
+      "email": "admin1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Ada",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "PLATFORM_ADMIN",
+        "OH_ADMIN"
+      ]
+    },
+    {
+      "username": "service-account-wellnessz-integration",
+      "enabled": true,
+      "serviceAccountClientId": "wellnessz-integration",
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "INTEGRATION"
+      ]
+    }
+  ],
+  "attributes": {
+    "_wellnessz.note": "LOCAL DEVELOPMENT ONLY - known test credentials; never import into a shared environment."
+  },
+  "scopeMappings": [
+    {
+      "client": "wellnessz-bff",
+      "roles": [
+        "EMPLOYEE",
+        "MANAGER",
+        "HR",
+        "OH_CLINICIAN",
+        "OH_ADMIN",
+        "CASE_MANAGER",
+        "PSYCH_CLINICIAN",
+        "AUDITOR",
+        "PLATFORM_ADMIN",
+        "PARTNER_PROVIDER"
+      ]
+    },
+    {
+      "client": "wellnessz-mobile",
+      "roles": [
+        "EMPLOYEE",
+        "MANAGER",
+        "HR",
+        "OH_CLINICIAN",
+        "OH_ADMIN",
+        "CASE_MANAGER",
+        "PSYCH_CLINICIAN",
+        "AUDITOR",
+        "PLATFORM_ADMIN",
+        "PARTNER_PROVIDER"
+      ]
+    },
+    {
+      "client": "wellnessz-integration",
+      "roles": [
+        "INTEGRATION"
+      ]
+    }
+  ]
+}

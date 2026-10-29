@@ -1,0 +1,105 @@
+# WellnessZ BFF – browser session gateway (port 8090, management 8091)
+spring:
+  application:
+    name: wellnessz-bff
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${WZ_BFF_DB_URL:${WZ_DB_URL:jdbc:postgresql://localhost:5432/wellnessz}}
+    username: ${WZ_BFF_DB_USERNAME:${WZ_DB_USERNAME:wz_app}}
+    password: ${WZ_BFF_DB_PASSWORD:${WZ_DB_PASSWORD:}}
+    hikari:
+      maximum-pool-size: 10
+      data-source-properties:
+        sslmode: ${WZ_DB_SSLMODE:verify-full}
+        ApplicationName: wellnessz-bff
+  flyway:
+    locations: classpath:db/bff
+    schemas: bff
+    default-schema: bff
+    create-schemas: true
+    table: flyway_schema_history_bff
+    user: ${WZ_DB_MIGRATOR_USERNAME:${WZ_DB_USERNAME:wz_app}}
+    password: ${WZ_DB_MIGRATOR_PASSWORD:${WZ_DB_PASSWORD:}}
+    placeholders:
+      app_role: ${WZ_BFF_DB_USERNAME:${WZ_DB_USERNAME:wz_app}}
+  session:
+    jdbc:
+      table-name: bff.spring_session
+      initialize-schema: never
+      cleanup-cron: "0 */5 * * * *"
+    timeout: 15m
+  security:
+    oauth2:
+      client:
+        registration:
+          wellnessz:
+            provider: wellnessz
+            client-id: ${WZ_BFF_CLIENT_ID:wellnessz-bff}
+            client-secret: ${WZ_BFF_CLIENT_SECRET:}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: openid,profile,email
+
+server:
+  port: 8090
+  shutdown: graceful
+  forward-headers-strategy: framework
+  error:
+    include-stacktrace: never
+    include-message: never
+  servlet:
+    session:
+      timeout: 15m
+      cookie:
+        name: WZSESSION
+        http-only: true
+        secure: ${WZ_COOKIE_SECURE:true}
+        # Lax (not Strict) is required so the cookie survives the top-level redirect back from the IdP;
+        # cross-site request forgery is prevented by the CSRF token on every state-changing call.
+        same-site: lax
+
+management:
+  server:
+    port: 8091
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+wellnessz:
+  bff:
+    core-api-url: ${WZ_CORE_API_URL:http://localhost:8080}
+    post-logout-redirect-uri: ${WZ_BFF_POST_LOGOUT_URI:{baseUrl}/}
+---
+# OIDC discovery (Keycloak realm, Entra ID tenant v2.0 endpoint, Okta…) – resolved at start-up
+spring:
+  config:
+    activate:
+      on-profile: "!test"
+  security:
+    oauth2:
+      client:
+        provider:
+          wellnessz:
+            issuer-uri: ${WZ_BFF_ISSUER_URI:http://localhost:8180/realms/wellnessz}
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    hikari:
+      data-source-properties:
+        sslmode: prefer
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false

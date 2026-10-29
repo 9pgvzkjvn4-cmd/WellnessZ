@@ -1,0 +1,21 @@
+apiVersion: v2
+name: wellnessz
+description: >-
+  WellnessZ Occupational Health Case Management - core API, Backend-for-Frontend,
+  employee portal and manager workspace. Hardened defaults (non-root, read-only
+  root FS, default-deny NetworkPolicies, CSI-mounted secrets, workload identity).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.30.0-0"
+keywords:
+  - occupational-health
+  - case-management
+  - spring-boot
+home: https://github.com/OWNER/WellnessZ
+sources:
+  - https://github.com/OWNER/WellnessZ
+maintainers:
+  - name: WellnessZ Platform Team
+annotations:
+  wellnessz.io/data-classification: "PHI - special category health data"

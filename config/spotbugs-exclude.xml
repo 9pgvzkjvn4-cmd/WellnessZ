@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SpotBugs / FindSecBugs exclusions. Every entry carries a justification and is reviewed by the security
+     champion at each release (SOC 2 CC8.1 change management). Keep this list minimal. -->
+<FindBugsFilter>
+  <!-- JPA entities and immutable records expose internal representation by design -->
+  <Match><Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/></Match>
+  <!-- Spring beans are constructor-injected singletons; constructor validation is intentional (fail fast) -->
+  <Match><Bug pattern="CT_CONSTRUCTOR_THROW"/></Match>
+  <!-- Core API is a stateless OAuth2 resource server: bearer tokens are not ambient credentials, so CSRF does not apply.
+       Browser traffic reaches the API only through the BFF, which enforces CSRF tokens. -->
+  <Match>
+    <Class name="com.wellnessz.security.config.ResourceServerSecurityConfig"/>
+    <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED"/>
+  </Match>
+  <!-- The logout target is validated against the IdP end_session_endpoint from trusted OIDC metadata (safeTarget) and
+       the body is JSON-encoded by Jackson with content-type application/json. -->
+  <Match>
+    <Class name="com.wellnessz.bff.BffSecurityConfig$SpaOidcLogoutHandler"/>
+    <Bug pattern="UNVALIDATED_REDIRECT,XSS_SERVLET"/>
+  </Match>
+</FindBugsFilter>

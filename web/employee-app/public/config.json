@@ -1,0 +1,7 @@
+{
+  "wz.apiBaseUrl": "http://localhost:8080/api/v1",
+  "wz.oidcIssuer": "http://localhost:8180/realms/wellnessz",
+  "wz.oidcClientId": "wellnessz-mobile",
+  "wz.redirectUri": "com.wellnessz.app://callback",
+  "wz.requireBiometric": false
+}

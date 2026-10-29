@@ -1,0 +1,17 @@
+# Send only Maven sources to the build (BuildKit per-Dockerfile ignore file)
+**
+!pom.xml
+!.mvn/
+!mvnw
+!platform/
+!apps/
+!config/
+**/target/
+**/node_modules/
+**/*.iml
+**/.idea/
+**/.env
+**/*.pem
+**/*.key
+**/*.p12
+**/*.jks

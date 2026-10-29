@@ -1,0 +1,105 @@
+{{- /*
+Static web apps (employee portal, manager workspace) served by nginx-unprivileged.
+*/ -}}
+{{- $root := . -}}
+{{- range $key := list "employeePortal" "managerWorkspace" }}
+{{- $comp := index $root.Values $key }}
+{{- if $comp.enabled }}
+{{- $ctx := dict "root" $root "comp" $comp }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wellnessz.componentName" $ctx }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
+  {{- with $root.Values.global.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not $comp.autoscaling.enabled }}
+  replicas: {{ $comp.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" $comp.name) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 8 }}
+        {{- with $comp.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $comp.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "wellnessz.serviceAccountName" $ctx }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- with $root.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "wellnessz.podSecurityContext" $ctx | nindent 8 }}
+      terminationGracePeriodSeconds: 20
+      {{- include "wellnessz.topologySpread" $ctx | nindent 6 }}
+      containers:
+        - name: {{ $comp.name }}
+          image: {{ include "wellnessz.image" $ctx | quote }}
+          imagePullPolicy: {{ $root.Values.global.imagePullPolicy }}
+          securityContext:
+            {{- toYaml $root.Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ $comp.ports.http }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{ $comp.probes.path }}
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: {{ $comp.probes.path }}
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
+          resources:
+            {{- toYaml $comp.resources | nindent 12 }}
+          volumeMounts:
+            # nginx-unprivileged writes pid + temp files under /tmp
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ $comp.tmpSizeLimit }}
+      {{- with $comp.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $comp.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $comp.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

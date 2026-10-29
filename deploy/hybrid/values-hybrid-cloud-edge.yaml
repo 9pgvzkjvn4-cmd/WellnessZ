@@ -1,0 +1,36 @@
+# =============================================================================
+# Hybrid - CLOUD edge cluster (AKS or GKE): BFF + web apps only. Core API and
+# PostgreSQL stay on-prem (values-hybrid.yaml). The BFF reaches the on-prem
+# core over ExpressRoute / Cloud Interconnect / site-to-site VPN through an
+# internal hostname resolved by private DNS (conditional forwarders).
+#
+#   helm upgrade --install wellnessz-edge deploy/helm/wellnessz -n wellnessz \
+#     -f deploy/helm/wellnessz/values.yaml \
+#     -f deploy/helm/wellnessz/values-azure.yaml \
+#     -f deploy/hybrid/values-hybrid-cloud-edge.yaml
+# =============================================================================
+global:
+  springProfiles: hybrid,prod
+
+core:
+  enabled: false
+
+migrations:
+  mode: app   # no-op: core is not deployed here
+
+bff:
+  enabled: true
+  env:
+    # mTLS-terminating internal ingress of the on-prem cluster
+    WZ_CORE_API_URL: "https://api.wellnessz.onprem.example.internal"
+
+ingress:
+  api:
+    enabled: false   # mobile/M2M API is published on-prem (or via API gateway)
+
+networkPolicy:
+  https:
+    # Allow the BFF to reach the on-prem API range over the private link,
+    # plus the IdP on the internet.
+    cidrs: ["0.0.0.0/0", "10.10.0.0/16"]
+    except: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]

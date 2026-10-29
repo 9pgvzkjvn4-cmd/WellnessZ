@@ -1,0 +1,9 @@
+node_modules
+dist
+ios
+android
+coverage
+*.log
+.env*
+Dockerfile
+.dockerignore

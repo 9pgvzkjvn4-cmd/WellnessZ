@@ -1,0 +1,77 @@
+# Dependabot - weekly grouped updates; security updates are raised immediately.
+version: 2
+
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+    open-pull-requests-limit: 10
+    labels: [dependencies, java]
+    groups:
+      spring:
+        patterns: ["org.springframework*"]
+      maven-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /web/employee-app
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels: [dependencies, web]
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /web/manager-workspace
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels: [dependencies, web]
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, ci]
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directories:
+      - /deploy/docker
+      - /web/employee-app
+      - /web/manager-workspace
+    schedule:
+      interval: weekly
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker-compose
+    directory: /deploy/local
+    schedule:
+      interval: weekly
+    labels: [dependencies, docker]
+
+  - package-ecosystem: terraform
+    directories:
+      - /deploy/terraform/azure
+      - /deploy/terraform/gcp
+    schedule:
+      interval: weekly
+    labels: [dependencies, iac]
+
+  - package-ecosystem: helm
+    directory: /deploy/helm/wellnessz
+    schedule:
+      interval: monthly
+    labels: [dependencies, iac]

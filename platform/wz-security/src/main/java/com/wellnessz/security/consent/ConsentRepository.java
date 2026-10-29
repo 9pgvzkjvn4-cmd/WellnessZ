@@ -1,0 +1,13 @@
+package com.wellnessz.security.consent;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ConsentRepository extends JpaRepository<Consent, UUID> {
+
+    List<Consent> findByEmployeeIdOrderByGrantedAtDesc(String employeeId);
+
+    boolean existsByEmployeeIdAndPurposeAndStatus(String employeeId, ConsentPurpose purpose, Consent.Status status);
+}

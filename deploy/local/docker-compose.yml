@@ -1,0 +1,297 @@
+# =============================================================================
+# WellnessZ - local development stack
+#
+#   cp .env.example .env   # then fill in values (see comments in .env.example)
+#   ./up.sh                # infra only: postgres, keycloak, mailpit, greenmail, otel
+#   ./up.sh --apps         # + build & run core (8080/8081) and bff (8090)
+#
+# All ports are bound to 127.0.0.1 only. This stack is for LOCAL DEVELOPMENT:
+# Keycloak runs in dev mode over HTTP and test users have known (temporary)
+# passwords. Never expose it to a shared network.
+# =============================================================================
+name: wellnessz
+
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16 - databases `wellnessz` (app) and `keycloak` (IdP)
+  # ---------------------------------------------------------------------------
+  postgres:
+    <<: *hardening
+    image: postgres:16.15-bookworm
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set POSTGRES_SUPERUSER_PASSWORD in .env}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256 --data-checksums"
+      WZ_MIGRATOR_DB_PASSWORD: ${WZ_MIGRATOR_DB_PASSWORD:?set WZ_MIGRATOR_DB_PASSWORD in .env}
+      WZ_APP_DB_PASSWORD: ${WZ_APP_DB_PASSWORD:?set WZ_APP_DB_PASSWORD in .env}
+      WZ_BFF_DB_PASSWORD: ${WZ_BFF_DB_PASSWORD:?set WZ_BFF_DB_PASSWORD in .env}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set KEYCLOAK_DB_PASSWORD in .env}
+    command:
+      - postgres
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - log_connections=on
+      - -c
+      - log_disconnections=on
+      - -c
+      - log_line_prefix=%m [%p] %q%u@%d
+      - -c
+      - log_statement=ddl
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/01-init-wellnessz.sh:/docker-entrypoint-initdb.d/01-init-wellnessz.sh:ro
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wellnessz -h 127.0.0.1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Keycloak 26 - realm `wellnessz` imported from ./keycloak/wellnessz-realm.json
+  # Issuer: http://localhost:8180/realms/wellnessz  (Keycloak listens on 8180
+  # inside the container too, so http://keycloak:8180 works for back-channel).
+  # ---------------------------------------------------------------------------
+  keycloak:
+    <<: *hardening
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-kcadmin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in .env}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set KEYCLOAK_DB_PASSWORD in .env}
+      KC_HTTP_PORT: "8180"
+      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_LOG_LEVEL: info
+      KC_LOG_CONSOLE_OUTPUT: json
+    ports:
+      - "127.0.0.1:8180:8180"
+    volumes:
+      - ./keycloak/wellnessz-realm.json:/opt/keycloak/data/import/wellnessz-realm.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # Keycloak image has no curl; use bash /dev/tcp against the management port.
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '"UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Mailpit - SMTP sink (1025) + web UI (8025) for notification testing
+  # ---------------------------------------------------------------------------
+  mailpit:
+    <<: *hardening
+    image: axllent/mailpit:v1.32.0
+    environment:
+      MP_MAX_MESSAGES: "5000"
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # GreenMail - IMAP mailbox for the EHS incident feed (ehs-feed@wellnessz.local)
+  # IMAP 3143 (plain, local only). SMTP 3025 is internal so tests can drop mails.
+  # ---------------------------------------------------------------------------
+  greenmail:
+    <<: *hardening
+    image: greenmail/standalone:2.1.15
+    environment:
+      GREENMAIL_OPTS: >-
+        -Dgreenmail.setup.test.smtp
+        -Dgreenmail.setup.test.imap
+        -Dgreenmail.hostname=0.0.0.0
+        -Dgreenmail.auth.disabled=false
+        -Dgreenmail.users=ehs-feed:${WZ_IMAP_PASSWORD:?set WZ_IMAP_PASSWORD in .env}@wellnessz.local
+        -Dgreenmail.users.login=email
+    ports:
+      - "127.0.0.1:3143:3143"
+      - "127.0.0.1:3025:3025"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/3143 && head -c 4 <&3 | grep -q OK'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # OpenTelemetry Collector (contrib) - OTLP gRPC 4317 / HTTP 4318 -> debug log
+  # ---------------------------------------------------------------------------
+  otel-collector:
+    <<: *hardening
+    image: otel/opentelemetry-collector-contrib:0.164.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:13133:13133"
+    read_only: true
+    cap_drop: [ALL]
+    # The collector image is distroless (no shell), so no in-container
+    # healthcheck; the health_check extension is exposed on :13133.
+
+  # ---------------------------------------------------------------------------
+  # Application containers (profile `apps`): ./up.sh --apps
+  # Build context is the repository root.
+  #
+  # Tokens carry iss=http://localhost:8180/realms/wellnessz (what the browser
+  # sees). `apps-net` owns a network namespace shared by core and bff and
+  # forwards its loopback :8180 to Keycloak, so OIDC discovery/JWKS work from
+  # inside the containers with the very same issuer URL - no special-casing.
+  # ---------------------------------------------------------------------------
+  apps-net:
+    <<: *hardening
+    profiles: ["apps"]
+    image: alpine/socat:1.8.1.3
+    command: ["TCP-LISTEN:8180,fork,reuseaddr,bind=127.0.0.1", "TCP:keycloak:8180"]
+    user: "65534:65534"
+    read_only: true
+    cap_drop: [ALL]
+    # Ports of core (8080/8081) and bff (8090/8091) are published here because
+    # they share this container's network namespace.
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8081:8081"
+      - "127.0.0.1:8090:8090"
+      - "127.0.0.1:8091:8091"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  core:
+    <<: *hardening
+    profiles: ["apps"]
+    image: wellnessz/wz-core-app:local
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.core
+    network_mode: "service:apps-net"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      WZ_DB_URL: jdbc:postgresql://postgres:5432/wellnessz
+      WZ_DB_USERNAME: wz_app
+      WZ_DB_PASSWORD: ${WZ_APP_DB_PASSWORD}
+      # Flyway runs DDL as the schema owner; the app runs DML as wz_app
+      WZ_DB_MIGRATOR_USERNAME: wz_migrator
+      WZ_DB_MIGRATOR_PASSWORD: ${WZ_MIGRATOR_DB_PASSWORD}
+      WZ_MASTER_KEY: ${WZ_MASTER_KEY:?set WZ_MASTER_KEY in .env (openssl rand -base64 32)}
+      WZ_PSEUDONYM_KEY: ${WZ_PSEUDONYM_KEY:?set WZ_PSEUDONYM_KEY in .env (openssl rand -base64 32)}
+      WZ_OIDC_ISSUERS: http://localhost:8180/realms/wellnessz
+      WZ_OIDC_AUDIENCE: wellnessz-api
+      WZ_CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      WZ_ANALYTICS_MIN_GROUP: "5"
+      WZ_EHS_MAILBOX_MODE: imap
+      WZ_IMAP_HOST: greenmail
+      WZ_IMAP_PORT: "3143"
+      WZ_IMAP_USERNAME: ehs-feed@wellnessz.local
+      WZ_IMAP_PASSWORD: ${WZ_IMAP_PASSWORD}
+      WZ_SMTP_HOST: mailpit
+      WZ_SMTP_PORT: "1025"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: wz-core-app
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    cap_drop: [ALL]
+    depends_on:
+      apps-net:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      greenmail:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081 && printf \"GET /actuator/health/readiness HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3 && grep -q UP <&3'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  bff:
+    <<: *hardening
+    profiles: ["apps"]
+    image: wellnessz/wz-bff:local
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.bff
+    network_mode: "service:apps-net"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      WZ_BFF_ISSUER_URI: http://localhost:8180/realms/wellnessz
+      WZ_BFF_CLIENT_ID: wellnessz-bff
+      WZ_BFF_CLIENT_SECRET: ${WZ_BFF_CLIENT_SECRET:?set WZ_BFF_CLIENT_SECRET in .env}
+      WZ_CORE_API_URL: http://localhost:8080
+      WZ_BFF_POST_LOGOUT_URI: http://localhost:5173/
+      # Session store (schema bff) - separate least-privilege role
+      WZ_BFF_DB_URL: jdbc:postgresql://postgres:5432/wellnessz
+      WZ_BFF_DB_USERNAME: wz_bff
+      WZ_BFF_DB_PASSWORD: ${WZ_BFF_DB_PASSWORD:?set WZ_BFF_DB_PASSWORD in .env}
+      WZ_DB_MIGRATOR_USERNAME: wz_migrator
+      WZ_DB_MIGRATOR_PASSWORD: ${WZ_MIGRATOR_DB_PASSWORD}
+      # Separate key for session encryption - the internet-facing BFF never
+      # holds the core field-encryption master key.
+      WZ_MASTER_KEY: ${WZ_BFF_MASTER_KEY:?set WZ_BFF_MASTER_KEY in .env (openssl rand -base64 32)}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: wz-bff
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    cap_drop: [ALL]
+    depends_on:
+      core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8091 && printf \"GET /actuator/health/readiness HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3 && grep -q UP <&3'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 45s
+
+volumes:
+  pgdata:
+    name: wellnessz-pgdata

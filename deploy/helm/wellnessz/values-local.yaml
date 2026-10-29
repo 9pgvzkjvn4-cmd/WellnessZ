@@ -1,0 +1,135 @@
+# =============================================================================
+# Local Kubernetes (kind / minikube / Docker Desktop) - chart smoke testing.
+# Infra (postgres, keycloak, mailpit, greenmail, otel) runs via deploy/local
+# docker compose on the host and is reached through host.docker.internal.
+#
+#   docker build -f deploy/docker/Dockerfile.core -t wellnessz/wz-core-app:local .
+#   docker build -f deploy/docker/Dockerfile.bff  -t wellnessz/wz-bff:local .
+#   docker build -t wellnessz/employee-app:local web/employee-app
+#   docker build -t wellnessz/manager-workspace:local web/manager-workspace
+#   kind load docker-image wellnessz/wz-core-app:local wellnessz/wz-bff:local ...   # kind only
+#   kubectl create namespace wellnessz
+#   kubectl -n wellnessz create secret generic wellnessz-core-secrets \
+#     --from-literal=WZ_DB_PASSWORD="$WZ_APP_DB_PASSWORD" \
+#     --from-literal=WZ_MASTER_KEY="$WZ_MASTER_KEY" --from-literal=WZ_PSEUDONYM_KEY="$WZ_PSEUDONYM_KEY"
+#   kubectl -n wellnessz create secret generic wellnessz-migrations-secrets \
+#     --from-literal=SPRING_FLYWAY_PASSWORD="$WZ_MIGRATOR_DB_PASSWORD"
+#   kubectl -n wellnessz create secret generic wellnessz-bff-secrets \
+#     --from-literal=WZ_BFF_CLIENT_SECRET=change-me-local-only
+#   helm upgrade --install wellnessz deploy/helm/wellnessz -n wellnessz \
+#     -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-local.yaml
+#
+# Keycloak must advertise an issuer reachable from pods AND the browser:
+# start it with KC_HOSTNAME=http://host.docker.internal:8180 (Docker Desktop
+# resolves host.docker.internal on the host; on Linux add it to /etc/hosts).
+# =============================================================================
+global:
+  imageRegistry: wellnessz
+  imageTag: local
+  imagePullPolicy: IfNotPresent
+  environment: local
+  springProfiles: local
+
+secrets:
+  provider: none
+  existingSecret:
+    core: wellnessz-core-secrets
+    bff: wellnessz-bff-secrets
+    migrations: wellnessz-migrations-secrets
+
+migrations:
+  mode: app
+
+topologySpread:
+  enabled: false
+
+core:
+  replicaCount: 1
+  autoscaling: { enabled: false }
+  pdb: { enabled: false }
+  resources:
+    requests: { cpu: 100m, memory: 512Mi }
+    limits: { memory: 1Gi }
+  env:
+    WZ_DB_URL: "jdbc:postgresql://host.docker.internal:5432/wellnessz"
+    WZ_OIDC_ISSUERS: "http://host.docker.internal:8180/realms/wellnessz"
+    WZ_CORS_ORIGINS: "http://employee.localtest.me,http://manager.localtest.me"
+    WZ_EHS_MAILBOX_MODE: imap
+    WZ_IMAP_HOST: host.docker.internal
+    WZ_IMAP_PORT: "3143"
+    WZ_IMAP_USERNAME: ehs-feed@wellnessz.local
+    WZ_SMTP_HOST: host.docker.internal
+    WZ_SMTP_PORT: "1025"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4318"
+
+bff:
+  replicaCount: 1
+  autoscaling: { enabled: false }
+  pdb: { enabled: false }
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 768Mi }
+  env:
+    WZ_BFF_ISSUER_URI: "http://host.docker.internal:8180/realms/wellnessz"
+    WZ_BFF_POST_LOGOUT_URI: "http://employee.localtest.me/"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4318"
+
+employeePortal:
+  replicaCount: 1
+  autoscaling: { enabled: false }
+  pdb: { enabled: false }
+
+managerWorkspace:
+  replicaCount: 1
+  autoscaling: { enabled: false }
+  pdb: { enabled: false }
+
+# *.localtest.me resolves to 127.0.0.1 (public DNS)
+ingress:
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m"
+  tls:
+    enabled: false
+  hosts:
+    employeePortal: employee.localtest.me
+    managerWorkspace: manager.localtest.me
+  api:
+    enabled: true
+    host: api.localtest.me
+
+networkPolicy:
+  enabled: true
+  defaultDenyNamespace: true
+  ingressController:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: ingress-nginx
+  monitoring:
+    enabled: false
+  database:
+    cidrs: ["172.16.0.0/12", "192.168.0.0/16", "10.0.0.0/8"]
+  https:
+    cidrs: ["0.0.0.0/0"]
+    except: []
+  extraEgress:
+    # Host-side compose services: keycloak 8180, greenmail 3143, mailpit 1025, otel 4318
+    core:
+      - to:
+          - ipBlock: { cidr: 172.16.0.0/12 }
+          - ipBlock: { cidr: 192.168.0.0/16 }
+          - ipBlock: { cidr: 10.0.0.0/8 }
+        ports:
+          - { protocol: TCP, port: 8180 }
+          - { protocol: TCP, port: 3143 }
+          - { protocol: TCP, port: 1025 }
+          - { protocol: TCP, port: 4318 }
+    bff:
+      - to:
+          - ipBlock: { cidr: 172.16.0.0/12 }
+          - ipBlock: { cidr: 192.168.0.0/16 }
+          - ipBlock: { cidr: 10.0.0.0/8 }
+        ports:
+          - { protocol: TCP, port: 8180 }
+          - { protocol: TCP, port: 4318 }
