@@ -22,6 +22,11 @@ state proposed service levels, cost shape and the validation status of each setu
 > **Increment 1** (E01 intake, E02 triage) adds the OH workspace web app, the `triage` schema, nine roles and the
 > EHS webhook. It was verified on the local setup (Java and web tests, `tools/e2e/e2e-increment1.js` 18/18); Helm
 > values for every platform include the new component. Section 17 lists the changes per environment.
+>
+> **Increment 2** (E03 OH record, E05 fitness for duty) adds no new image or Helm component. It adds three schemas
+> (`docs`, `ohrecord`, `fitness`), the `DPO` role, optional PDF font and OCR settings and pull endpoints for the
+> laboratory, device and rostering gateways. It was verified on the local setup (128 Java tests, web tests,
+> `tools/e2e/e2e-increment2.js` 25/25). Section 18 lists the changes per environment.
 
 ## 1. Reference deployment topology
 
@@ -39,7 +44,7 @@ around the cluster change.
 | **OH workspace** (increment 1) | `web/oh-workspace` – static SPA (port 8080), Helm component `ohWorkspace`, host `oh.<domain>` | Clinical console for the OH team, reception and first aiders; same origin as the BFF |
 | **BFF** | `apps/wz-bff` – Spring Boot, port 8090, management 8081 (k8s) / 8091 (local) | OIDC confidential client, encrypted JDBC sessions (schema `bff`), CSRF, token relay; tokens never reach the browser |
 | **Core API** | `apps/wz-core-app` – Spring Boot, port 8080, management 8081 | Multi-issuer JWT resource server, ABAC, audit, integrations, EHS intake, Flyway migrations |
-| **Database** | PostgreSQL 16 | Schemas `platform, masterdata, intake, casemgmt, triage, analytics` + `bff` (`triage` since increment 1); roles `wz_migrator` (owner), `wz_app`, `wz_bff` |
+| **Database** | PostgreSQL 16 | Schemas `platform, masterdata, intake, casemgmt, triage, analytics` + `bff` (`triage` since increment 1; `docs`, `ohrecord`, `fitness` since increment 2); roles `wz_migrator` (owner), `wz_app`, `wz_bff` |
 | **Identity provider** | Microsoft Entra ID (production), Keycloak 26 (local / alternative), any OIDC IdP | Roles from `realm_access.roles`, `roles` (Entra app roles) or `groups`; `employee_id` and `org_scope` claims drive ABAC |
 | **Secrets** | Azure Key Vault, GCP Secret Manager or HashiCorp Vault via Secrets Store CSI | Mounted as files; consumed through `file:` references, `WZ_MASTER_KEY_FILE` and `ENC(...)` values |
 | **Edge** | App Gateway WAF v2 / Front Door (Azure), Cloud Armor + global LB (GCP), internal ingress (on-prem) | TLS 1.2+, OWASP rule sets, rate limiting on login paths |
@@ -113,7 +118,8 @@ around the cluster change.
   Eighteen test users have temporary passwords (the seven of the base framework plus `nurse1`, `nurse2`,
   `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`). The
   realm defines the nine increment-1 roles, and the scope mappings of `wellnessz-bff` and `wellnessz-mobile` include
-  them, because both clients have `fullScopeAllowed=false`. The realm also enforces brute-force protection, a password policy,
+  them, because both clients have `fullScopeAllowed=false`. Increment 2 adds the role `DPO` (also in both scope
+  mappings) and two more test users, `dpo1` (DPO) and `partner1` (PARTNER_PROVIDER, `org_scope=/PARTNERS/CITYHOSP`). The realm also enforces brute-force protection, a password policy,
   5-minute access tokens, a 15-minute SSO idle timeout and least-privilege scope mappings. The ABAC attributes
   `employee_id` and `org_scope` are editable by administrators only.
 * **Secrets.** `./up.sh` generates `deploy/local/.env` (mode 600, git-ignored) containing random values. These
@@ -218,12 +224,14 @@ Cloud NSGs and firewall rules enforce the subnet level.
   |---|---|---|
   | `wellnessz-bff` | Confidential web client | Browser login through the BFF |
   | `wellnessz-mobile` | Public client, PKCE | Mobile app login |
-  | `wellnessz-api` | Resource | Exposes the app roles (EMPLOYEE, MANAGER, HR, OH_CLINICIAN, …; increment 1 adds OH_PHYSICIAN, AME, CMO, NURSING_HEAD, HSE_OFFICER, CREW_SCHEDULING, HYGIENE_MANAGER, CLINIC_RECEPTION, FIRST_AIDER) |
+  | `wellnessz-api` | Resource | Exposes the app roles (EMPLOYEE, MANAGER, HR, OH_CLINICIAN, …; increment 1 adds OH_PHYSICIAN, AME, CMO, NURSING_HEAD, HSE_OFFICER, CREW_SCHEDULING, HYGIENE_MANAGER, CLINIC_RECEPTION, FIRST_AIDER; increment 2 adds DPO) |
 
   Users receive roles through groups. Conditional Access enforces MFA and compliant devices; the mobile app
   additionally requires an app protection policy.
 * **ABAC attributes.** `employee_id` and `org_scope` are emitted as token claims: Entra directory extensions with
-  optional claims, or Keycloak user-profile attributes. Only administrators can change them.
+  optional claims, or Keycloak user-profile attributes. Only administrators can change them. Since increment 2,
+  partner users (`PARTNER_PROVIDER`) need an `org_scope` of the form `/PARTNERS/<ORG>`; the last segment identifies
+  the partner organisation that documents are shared with.
 * **Keycloak** remains a supported alternative IdP. The core accepts several issuers at once (`WZ_OIDC_ISSUERS`),
   so migrating between IdPs needs no downtime.
 
@@ -291,8 +299,9 @@ environment and runs the smoke tests from the setup guides.
   each needs its own BFF redirect URI `https://<host>/login/oauth2/code/wellnessz`. The
   `WZSESSION` cookie is HttpOnly and Secure; CSRF protection uses the `XSRF-TOKEN` cookie and header pair.
 * **API host** (`api.*`). Publishes only `/api/v1` for the mobile app and M2M integrations, including the EHS
-  webhook `POST /api/v1/intake/ehs/incidents` (increment 1). The management port is
-  never exposed through the ingress.
+  webhook `POST /api/v1/intake/ehs/incidents` (increment 1) and, since increment 2, the gateway endpoints
+  `/api/v1/integration/lis/**`, `/api/v1/integration/hl7v2`, `/api/v1/integration/roster-feed/**` and
+  `/api/v1/employees/{id}/results/device`. The management port is never exposed through the ingress.
 * **WAF rule sets:**
   * Microsoft DRS 2.1 + Bot Manager (Azure);
   * Cloud Armor CRS 3.3 preconfigured rules (GCP).
@@ -378,6 +387,8 @@ Non-production environments should switch off HA, Front Door and geo-redundancy 
 | 5 | Private AKS API server requires a self-hosted runner or `az aks command invoke` | Provision runners inside the VNet before prod |
 | 6 | RPO/RTO targets are proposals | GRC and business sign-off; validate in the first DR test |
 | 7 | Increment 1: OH staff roster has no import path; demo data must never reach shared environments | Roster import before go-live; `WZ_FLYWAY_LOCATIONS` reviewed in each environment's values |
+| 8 | Increment 2: the Helm chart has no extra-volume hook, so a PDF font or Tesseract needs a derived core image | Build `wz-core-app` plus fonts / Tesseract in the pipeline (scanned and signed like the base image), or add a `core.extraVolumes` value |
+| 9 | Increment 2: gateway clients (LIS, devices, rostering, HR, hygiene) are not part of the repository | Each gateway is an `INTEGRATION` client with a certificate credential; pull model needs no core egress |
 
 ## 17. Increment 1 deployment changes (E01, E02, OH workspace)
 
@@ -405,3 +416,41 @@ the topology: the OH workspace is a third static SPA next to the other two, shar
 | Local | `tools/e2e/e2e-increment1.js` – 18 checks, all `PASS` |
 | Azure / GCP | `curl -sI https://oh.<domain>/` → `200` with HSTS; OH login as a Nursing Head test account; webhook smoke call returns `202`; `GET /api/v1/modules` shows E01 and E02 `IMPLEMENTED`; the E2E script with `WZ_E2E_*` pointing at the environment (dev/test only) |
 | Hybrid | As above from the cloud edge; additionally confirm that `triage` exists only in the on-prem database and that the cloud session database still holds only `bff` |
+
+## 18. Increment 2 deployment changes (E03, E05, document service)
+
+Increment 2 adds no image, Helm component or host. The modules ship inside the core image. Everything else is
+configuration, identity and database bootstrap.
+
+| Change | What to deploy / configure | Artefact |
+|---|---|---|
+| Schemas `docs`, `ohrecord`, `fitness` | Created by Flyway V6–V8 (owner `wz_migrator`; `USAGE` granted to `wz_app` by the migrations); new environments get them from the bootstrap scripts; `migrations.job.core.schemas` = `platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,analytics`; `spring.flyway.schemas` lists the same set | `deploy/sql/bootstrap-managed-postgres.sql`, `deploy/hybrid/cnpg/03-cluster.yaml`, `deploy/local/postgres/01-init-wellnessz.sh`, `deploy/helm/wellnessz/values.yaml` |
+| Search path | `wz_app` and `wz_migrator`: `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics` (re-run the idempotent bootstrap on existing environments) | same files |
+| Demo data | `R__demo_e03_record.sql` and `R__demo_e05_fitness.sql` in `db/demo` – loaded only by the `local` / `test` profiles; never set `WZ_FLYWAY_LOCATIONS` to include `classpath:db/demo` elsewhere | `apps/wz-core-app/src/main/resources/db/demo` |
+| Role `DPO` | Entra app role `DPO` on `wellnessz-api` assigned to a DPO group; Keycloak realm role and scope mappings of `wellnessz-bff` and `wellnessz-mobile` | setup guide 06 §5.1–5.2, local realm |
+| Partner users | `PARTNER_PROVIDER` with `org_scope=/PARTNERS/<ORG>` (Entra: directory extension or claims mapping for B2B guests) | setup guide 06 §5.3 |
+| Notification settings | `WZ_EMPLOYEE_PORTAL_URL` (`https://employee.<domain>`), `WZ_MANAGER_WORKSPACE_URL` (`https://manager.<domain>`), `WZ_DPO_EMAIL` (DPO mailbox for break-glass alerts) | core `env` |
+| Document settings | `WZ_DOCUMENTS_FONT_PATH` (optional Unicode font, for example Noto Sans for Arabic), `WZ_DOCUMENTS_RETENTION_CRON` (default `0 30 2 * * *` UTC), `WZ_DIAGNOSIS_REQUIRED_ON_CLOSE` (default `true`) | core `env` |
+| Optional OCR | Off by default. Tesseract: derived core image with `tesseract-ocr` and language packs, then `WELLNESSZ_DOCUMENTS_OCR_TESSERACTPATH=/usr/bin/tesseract` and `WELLNESSZ_DOCUMENTS_OCR_LANGUAGES=eng+ara+fra` (allow-listed values only) in `core.extraEnv`. Cloud OCR (Azure AI Document Intelligence, Google Document AI) is an `OcrProvider` extension point: it needs code, a private endpoint / VPC-SC, a `networkPolicy.extraEgress.core` rule and a DPIA | doc 01 §14.18 |
+| Read-only root filesystem | Fonts and Tesseract must be in the image (or a mounted volume); OCR writes only its temporary file to the `/tmp` emptyDir | `deployment-java.yaml` |
+| Gateway connectivity | Gateways call the **API host** with client-credentials tokens (`INTEGRATION` role): LIS pull queue `GET /api/v1/integration/lis/orders` + `POST …/{id}/ack`, results `POST /api/v1/integration/lis/results` or HL7 v2 ORU via `POST /api/v1/integration/hl7v2`; device middleware `POST /api/v1/employees/{id}/results/device`; crew rostering `GET /api/v1/integration/roster-feed` + `POST …/{messageId}/ack`. The core opens **no** new outbound connections; MLLP stays on the integration engine | Entra M2M apps (guide 06 §5.6), WAF |
+| Outbound allow-lists | `crew-rostering`, `hr-systems`, `catering-hygiene` extended (status, dates, limitation codes, job-offer outcome, food-handler status) | `application.yml` |
+| BFF | Passes `/bff/api/workspace/{team-restrictions,duty-proposals,rtw-plans,documents}` to the core unchanged; no configuration | `apps/wz-bff` |
+| Pipeline | No new image or matrix entry; PDFBox is scanned by dependency-check, Dependabot and the image Trivy scan | CI/CD Guide |
+
+Gateway connectivity per environment:
+
+| Setup | Laboratory / device / rostering gateways |
+|---|---|
+| Local | No gateways; the integration client `wellnessz-integration` (secret `change-me-local-only`) plays every gateway; `e2e-increment2.js` drives the roster feed |
+| Azure | Gateways reach `https://api.<domain>` through App Gateway WAF (public or private listener); on-prem lab systems via ExpressRoute / VPN to the private listener where possible |
+| GCP | Gateways reach `https://api.<domain>` through Cloud Armor; Cloud Armor rules must allow HL7 v2 ER7 bodies (`text/plain`) on `/api/v1/integration/hl7v2` |
+| Hybrid | Gateways on the corporate network call the **on-prem** internal API host directly (separate firewall rules per gateway, like the EHS webhook); nothing transits the cloud edge |
+
+**Verification per environment** (details in each setup guide):
+
+| Setup | Verification |
+|---|---|
+| Local | `tools/e2e/e2e-increment2.js` – 25 checks, all `PASS` (after `e2e-increment1.js` 18/18) |
+| Azure / GCP | `\dn` lists `docs`, `ohrecord`, `fitness`; `GET /api/v1/modules` shows E03 and E05 `IMPLEMENTED`; a DPO test account sees *Break-glass reviews* but gets `403`/`404` on a chart; LIS pull-queue smoke call with an `INTEGRATION` token returns `200`; the E2E script with `WZ_E2E_*` pointing at the environment (dev/test only) |
+| Hybrid | As above from the cloud edge; additionally confirm that the three new schemas exist only in the on-prem database and that gateway calls reach the on-prem API host |

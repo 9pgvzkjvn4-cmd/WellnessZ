@@ -5,8 +5,9 @@
 | **Document** | 02 – Security and SOC 2 Control Mapping |
 | **System** | WellnessZ Airline Occupational Health Case Management (OHCM) – base framework |
 | **Audience** | Cyber GRC team, CISO, internal audit, Data Protection Officer, CIO |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`; updated for **increment 1** (E01, E02 – Section 11) |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`; updated for **increment 1** (E01, E02 – Section 11) and **increment 2** (E03, E05 – Section 12) |
 | **Companion documents** | 01 – Technology Architecture and Technology Selection · 03 – Developer Guide |
+| **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
 
 > **Important – what SOC 2 is and is not.** A SOC 2 Type 2 report is an attestation by an independent CPA firm about
 > the controls of a **service organisation** – the organisation that operates WellnessZ – over a review period
@@ -106,7 +107,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | CC6.2 Registration and authorisation of users | No local accounts; users provisioned in IdP; role claims mapped (`RoleClaims`, Entra group GUID mapping) | IdP provisioning logs, access requests | O/C | Org (IdP) |
 | CC6.3 Role-based access, least privilege, segregation of duties | 20 canonical roles (9 added in increment 1, Section 11.1); disclosure levels; clinicians vs managers; AUDITOR read-only to audit; INTEGRATION limited to `/integration/**` | role matrix (doc 01 App. A), **quarterly access review** | F/O | Implemented / Org |
 | CC6.4 Physical access | – | cloud provider SOC 2 | C | Carve-out |
-| CC6.5 Disposal of data and assets | Consent withdrawal preserves evidence; delivered outbox events purged after 30 days (configurable), idempotency records after 7 days; **no retention/deletion jobs for OH records yet** | purge configuration, DB counts | F/O | Partial |
+| CC6.5 Disposal of data and assets | Consent withdrawal preserves evidence; delivered outbox events purged after 30 days (configurable), idempotency records after 7 days; **no retention/deletion jobs for OH records yet**; increment 2: document retention schedule, DPO flagging and legal hold, no automatic deletion (Section 12.6) | purge configuration, DB counts, `docs.retention_schedule` | F/O | Partial |
 | CC6.6 Protection against threats from outside the boundary | WAF (Front Door / App Gateway WAF_v2 / Cloud Armor) in Terraform; TLS 1.2+; CSP, HSTS, X-Frame-Options; CORS closed; EHS sender allow-list; hardened Excel parser; FHIR JSON-only (no XXE) | Terraform, response headers (scan), tests | F/C | Implemented |
 | CC6.7 Restriction of transmission and movement of information | TLS everywhere incl. DB `verify-full`; **OutboundPayloadGuard** allow-list per destination (default deny); notification content rules; BFF header allow-list; mobile no-store, no localStorage | config `outbound-allowlist`, test `fitnessOutcomeIsPublishedToRosteringAsStatusOnly` | F | Implemented |
 | CC6.8 Prevention/detection of unauthorised or malicious software | Trivy image gate (CRITICAL/HIGH with fix fails the build), cosign keyless signatures with SBOM and SLSA provenance attestations, signature verification in the deploy job, Binary Authorization (GKE); CodeQL, gitleaks; read-only root FS, non-root, dropped capabilities; no formula evaluation in Excel | `container.yml`, `deploy-env.yml`, Terraform `binauthz.tf`, code-scanning alerts | F/O | Implemented (cluster admission enforcement on AKS/on-prem: recommended) |
@@ -149,7 +150,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Criterion | Framework control | Evidence | Resp. | Status |
 |---|---|---|---|---|
 | C1.1 Identify and maintain confidential information | `DataClassification` (5 levels), classification derived from case category, field encryption, ABAC disclosure levels, restricted class, PHI-free logging | code, data inventory | F/O | Implemented |
-| C1.2 Dispose of confidential information | Retention schedule & purge jobs | – | O/F | **Planned** |
+| C1.2 Dispose of confidential information | Retention schedule & purge jobs; increment 2: retention schedule per record class for documents (DPO-approved, audited), daily flagging of documents past retention, legal hold; destruction is a reviewed manual decision (Section 12.6) | `GET /documents/retention`, `/documents/retention/due`, audit `RETENTION_*`, `LEGAL_HOLD_*` | O/F | **Partial** (documents); structured records planned |
 
 ### 4.3 Processing integrity (PI1)
 
@@ -166,15 +167,15 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Criterion | Framework control | Organisation responsibility | Status |
 |---|---|---|---|
 | P1.1 Notice | `notice_version` on every consent | Publish privacy notice for OH processing | F: Implemented; O: Org |
-| P2.1 Choice and consent | Consent per purpose, grant/withdraw by data subject, audited, evidence preserved | Decide lawful basis per purpose (Art. 9(2)(h)/(b) vs (a)) | Implemented; gate `hasActiveConsent` not yet called (no sharing flows yet) |
+| P2.1 Choice and consent | Consent per purpose, grant/withdraw by data subject, audited, evidence preserved | Decide lawful basis per purpose (Art. 9(2)(h)/(b) vs (a)) | Implemented; gate `hasActiveConsent` not yet called (no sharing flows yet). Increment 2: partner sharing checks `ConsentService.isActive` (`TREATMENT_SHARING_PARTNER`); AI documentation requires an `AI_DOCUMENTATION` consent; withdrawal triggers `ConsentWithdrawalListener`s |
 | P3.1–P3.2 Collection limited to purpose; explicit consent for sensitive data | Status-only rule; minimal event payloads; restricted class | DPIA, data-minimisation review per module | Implemented (base) |
 | P4.1 Use limited to purpose | ABAC per purpose of role; analytics on de-identified view only | Purpose specification per module | Implemented |
-| P4.2 Retention | – | Retention schedule | **Planned** |
-| P4.3 Disposal | – | Secure deletion procedures | **Planned** |
-| P5.1 Data-subject access | `GET /cases` (own), `/consents/me`, `/me` in the employee app | DSAR process for full export | Partial (no export endpoint) |
+| P4.2 Retention | – ; increment 2: `docs.retention_schedule` (7 record classes, proposed periods, DPO approval audited) | Retention schedule | **Partial** (documents) |
+| P4.3 Disposal | – ; increment 2: flagging of documents past retention, legal hold; no automatic deletion | Secure deletion procedures | **Partial** (flagging only) |
+| P5.1 Data-subject access | `GET /cases` (own), `/consents/me`, `/me` in the employee app; increment 2: `/me/documents`, `/me/disclosures`, `/me/rtw-plans`, `/me/job-offers` | DSAR process for full export (FHIR export `GET /employees/{id}/fhir` is OH-operated) | Partial (no self-service export) |
 | P5.2 Correction | – | Correction process via OH | Planned |
 | P6.1 Disclosure to third parties with consent | Outbound allow-list (default deny); consent purposes `TREATMENT_SHARING_PARTNER`, `INSURER_SHARING` | Processor/controller agreements | Partial |
-| P6.2–P6.3 Record of disclosures | Outbox records every external disclosure with destination and time (encrypted payload, 30-day default retention); audit trail | Records of processing (Art. 30); export to long-term store if disclosures must be kept longer | Implemented (retention to be confirmed) |
+| P6.2–P6.3 Record of disclosures | Outbox records every external disclosure with destination and time (encrypted payload, 30-day default retention); audit trail; increment 2: **disclosure log** `platform.disclosure_log` for every document share outside OH (recipient, purpose, consent, revocation), visible to the employee | Records of processing (Art. 30); export to long-term store if disclosures must be kept longer | Implemented (retention to be confirmed) |
 | P6.4–P6.5 Third-party commitments and notification | – | DPAs, breach-notification clauses | Org |
 | P6.6–P6.7 Breach notification; accounting of disclosures | Audit and outbox provide data for the accounting | Breach procedure (GDPR 72 h) | Org |
 | P7.1 Data quality | Validation, master data from HRIS (planned sync) | Data-quality ownership | Partial |
@@ -202,6 +203,11 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Increment 1: rule and protocol governance | Audit actions `INTAKE_RULE_*`, `ASSIGNMENT_RULE_SAVE`, `SLA_POLICY_UPDATE`, `NOTIFICATION_MATRIX_UPDATE`, `PROTOCOL_APPROVE`; `triage.triage_protocol` (status, approver, time) | CC8.1, PI1.3 |
 | Increment 1: intake completeness | `GET /api/v1/intake/reconciliation[/export]`, `GET /intake/dlq`, audit `EHS_WEBHOOK_DLQ`, `EHS_DLQ_REPLAY`, `EHS_DLQ_DISCARD` | PI1.2, PI1.4 |
 | Increment 1: status-only consumption | Audit `CREW_STATUS_READ`, `HYGIENE_STATUS_READ`; E2E log of `tools/e2e/e2e-increment1.js` (18 checks) | CC6.7, P3.1 |
+| Increment 2: break-glass | `GET /api/v1/break-glass?status=PENDING` and `GET /break-glass/report?month=YYYY-MM` as DPO; audit `BREAK_GLASS`, `BREAK_GLASS_REVIEW`; Mailpit / mail log of `break-glass.alert` | CC6.1, CC6.3, CC7.2 |
+| Increment 2: disclosures and consent | `GET /api/v1/disclosures?employeeId=` (DPO / OH), employee view `GET /me/disclosures`; audit `DOCUMENT_SHARE`, `DOCUMENT_SHARE_REVOKE`, `DISCLOSURE_REVOKED`, `CONSENT_WITHDRAW` (with `disclosuresRevoked=n`) | P6.1–P6.3, P2.1 |
+| Increment 2: document integrity and retention | `docs.document` (`sha256`, `signature_sha256`, `signed_by`, `signed_at`, `legal_hold`); `GET /documents/retention[/due]`; audit `DOCUMENT_SIGN`, `RETENTION_SCHEDULE_APPROVED`, `RETENTION_DUE_LISTED`, `LEGAL_HOLD_SET/RELEASED` | PI1.5, C1.2, P4.2 |
+| Increment 2: roster feed completeness | `GET /api/v1/crew/roster-feed/reconciliation` (sent, acknowledged, latency); audit `ROSTER_FEED_UNACKNOWLEDGED` | PI1.4, CC7.2 |
+| Increment 2: segregation tests | `Increment2RecordIntegrationTest.f08HrManagersEmployeesAndReceptionNeverOpenClinicalRecords`, `Increment2PlatformIntegrationTest`; E2E log of `tools/e2e/e2e-increment2.js` (25 checks) and screenshots in `docs/images/screens/increment-02/` | CC6.1, CC6.3, CC8.1 |
 
 ## 6. Cross-reference to other frameworks
 
@@ -344,9 +350,9 @@ identity flow, mobile flow); they are the same views as in document 01.
 |---|---|---|---|
 | RR1 | Single master key; master-key rotation requires re-encryption tooling not yet built | Vault RBAC, purge protection, access logging on Key Vault/Secret Manager | Envelope encryption via KMS/HSM; re-encryption job (increment 1) |
 | RR2 | Delivered outbox events kept 30 days (needed for replay window) | Payloads field-encrypted; metadata-only operations API | Confirm retention with DPO |
-| RR3 | No retention/deletion jobs | Data volume small at start; manual deletion procedure via DPO | Retention schedule and purge jobs (increment 2) |
+| RR3 | No retention/deletion jobs | Data volume small at start; manual deletion procedure via DPO | Retention schedule and purge jobs (increment 2: schedule, flagging and legal hold delivered for documents – see RR18) |
 | RR4 | Audit chain rewritable by DB owner | Separate owner role used only by migration Job; pgaudit DDL/role logging; cloud audit logs | External hash anchoring + SIEM streaming |
-| RR5 | No break-glass access | OH_ADMIN escalation via IdP role assignment (audited in IdP) | Break-glass flow with justification and alerting |
+| RR5 | No break-glass access | OH_ADMIN escalation via IdP role assignment (audited in IdP) | Break-glass flow with justification and alerting (delivered in increment 2, Section 12.2) |
 | RR6 | No maker-checker on configuration | Audited changes; limited admin population | Approval workflow in E18 UI |
 | RR7 | Mobile secure storage / MAM not yet integrated | In-memory fallback (re-login), idle logout, no-store | Keychain/Keystore plugin, Intune APP SDK before store release |
 | RR8 | External broker adapter and message authentication not implemented | Only logging publisher; no PHI leaves the system externally yet | Adapter with mTLS/managed identity per D3 |
@@ -543,3 +549,233 @@ wording is rejected*.
 | RR14 | Draft protocols usable when no approved version exists | UI shows the status; CMO approval workflow | Go-live gate: all protocols in use approved; option to block drafts in prod by configuration |
 | RR15 | OH staff roster loaded by SQL (no API, no HRIS feed) | Small population; changes by DBA under change control | Roster import from IdP groups or HRIS (doc 01, O9) |
 | RR16 | No maker-checker on rule / SLA / matrix changes | Audited, limited to NURSING_HEAD / OH_ADMIN | Approval workflow (RR6) |
+
+## 12. Increment 2 – E03 OH record and E05 fitness for duty
+
+Increment 2 adds the platform document service (`platform/wz-documents`), the business modules
+`modules/wz-e03-record` (schema `ohrecord`) and `modules/wz-e05-fitness` (schema `fitness`), the `DPO` role,
+break-glass access, a disclosure log and consent-withdrawal listeners. The design is in
+[`docs/increment-02/01-Solution-Design-E03-E05.md`](../increment-02/01-Solution-Design-E03-E05.md), requirement
+coverage in [`02-Requirements-Traceability-Matrix.md`](../increment-02/02-Requirements-Traceability-Matrix.md) and the
+endpoints in [`API-Contract-E03-E05.md`](../increment-02/API-Contract-E03-E05.md). Statements were checked against the
+code at the increment-2 baseline.
+
+### 12.1 DPO role and segregation of duties
+
+The canonical role list grows from 20 to 21 (`Roles.DPO`). The DPO receives **no clinical disclosure**: no ABAC policy
+grants the role a disclosure level, so every chart, encounter, result and document endpoint answers `403` / `404`
+(integration test `f08…` and E2E check *DPO has no clinical access*). The DPO reaches only privacy-governance
+endpoints.
+
+| Role | New in increment 2 | Data reach | Notable permissions | Cannot (enforced server-side) |
+|---|---|---|---|---|
+| `DPO` | new | metadata only | Review break-glass uses (`/break-glass`, `/break-glass/{id}/review`), monthly report (with CMO), disclosure log per employee (`/disclosures`), approve the retention schedule, list documents due, set / release legal hold | Read any clinical content; review a break-glass use made by themselves |
+| Clinicians (`OH_CLINICIAN`, `OH_PHYSICIAN`, `AME`, `CMO`, `NURSING_HEAD`, `PSYCH_CLINICIAN`) | extended | CLINICAL (+ RESTRICTED for PSYCH) | Document clinically, sign encounters and documents per template; declare break-glass (not `PSYCH_CLINICIAN`, who already has restricted access) | Break-glass on their own record |
+| `CASE_MANAGER` | extended | CLINICAL read | Read the chart and case work | Write clinical record entries (`403`, tested) |
+| `AME`, `CMO` | extended | CLINICAL | Sign-off of licensed-role fitness decisions (per standard `requires_signoff_role`); crew medical reports; CMO approves encounter templates and IHR decisions, sees the crew dashboard | – |
+| `HR` | extended | status-only | Generate, sign and issue the non-clinical **job offer** template to the employee only; read shared non-clinical documents, team restrictions and RTW plans in scope | Open any clinical record (tested, denials audited `CHART_READ` DENIED); share to manager / partner; use OH document APIs |
+| `MANAGER` | extended | status-only + functional restrictions | Team restrictions, duty-proposal decisions, RTW acknowledgement, shared non-clinical documents | Chart, results worklist, case summary (`403`, tested) |
+| `CLINIC_RECEPTION` | extended | none | File scanned documents for an employee (`/documents/scan`) | Read the record or the filed document |
+| `PARTNER_PROVIDER` | now used | shared documents only | `GET /partner/documents` for its organisation (last segment of `org_scope`, e.g. `CITYHOSP`) while the consent is active | Anything else |
+| `CREW_SCHEDULING` | extended | status-only | Roster feed via `/crew/roster-feed` and reconciliation | `/integration/**` (machine-only) |
+| `INTEGRATION` | extended | machine | LIS pull queue and results, device results, roster feed and acknowledgements | User-facing endpoints |
+
+Segregation-of-duties controls added:
+
+* **Break-glass review** by the DPO, never by the user of the grant (`403`).
+* **Sign-off** of licensed-role fitness decisions by AME / CMO (decision status `AWAITING_SIGNOFF` until then).
+* **Governance content** (encounter templates, fitness standards) is approved by the CMO; the restriction catalogue
+  and job-demand profiles are maintained by OH_ADMIN / NURSING_HEAD; the retention schedule only by the DPO. All
+  changes are audited (`ENCOUNTER_TEMPLATE_APPROVE`, `FITNESS_STANDARD_VERSION`, `RESTRICTION_CATALOGUE_UPDATE`,
+  `JOB_DEMAND_UPDATE` / `_IMPORT`, `RETENTION_SCHEDULE_APPROVED`).
+* **HR versus OH documents.** HR may only issue templates whose generator roles include HR and that contain no clinical
+  content (today: `JOB_OFFER`), only to the employee, and only within its org scope (`requireIssuer`).
+
+Identity configuration: Keycloak realm role `DPO`, users `dpo1` (DPO) and `partner1` (PARTNER_PROVIDER,
+`org_scope=/PARTNERS/CITYHOSP`), and `DPO` added to the scope mappings of `wellnessz-bff` and `wellnessz-mobile`;
+Entra ID: a `DPO` app role assigned to a DPO group, and an `org_scope` claim for partner users.
+
+### 12.2 Break-glass access
+
+| Aspect | Control |
+|---|---|
+| Who | `OH_CLINICIAN`, `OH_PHYSICIAN`, `AME`, `CMO`, `NURSING_HEAD` (`@PreAuthorize` and a service re-check); never on the user's own employee record |
+| Justification | Mandatory free text of 20–2,000 characters, stored with the grant |
+| Scope and duration | One employee, one user, **4 hours** (`BreakGlassService.VALIDITY`) |
+| Enforcement | ABAC: `DefaultPolicies.breakGlassPolicy` permits `RESTRICTED_CLINICAL` and `restrictedClassPolicy` stops denying while an active grant exists (`hasActiveGrant(username, employeeId)` evaluated on every request) |
+| Alerting | In-process event `BreakGlassGranted` → `SecurityAlertListener` sends the content-free `break-glass.alert` e-mail (URGENT, bypasses quiet hours) to `wellnessz.notification.dpo-email` (`WZ_DPO_EMAIL`) |
+| Review | Review item due after **24 hours**; overdue items are flagged; DPO decides `APPROPRIATE` / `INAPPROPRIATE` with a note |
+| Reporting | Monthly report (`/break-glass/report?month=`): totals, appropriate / inappropriate / pending / overdue, uses per user |
+| Audit | `BREAK_GLASS` (grant), `BREAK_GLASS_REVIEW`, `BREAK_GLASS_REVIEW_LIST`; every read under the grant is audited like any clinical read |
+
+Tests: `Increment2PlatformIntegrationTest.breakGlassOpensARestrictedRecordForFourHoursAndIsReviewedByTheDpo`,
+`Increment2RecordIntegrationTest.f02MentalHealthEncountersAreRestrictedAndBreakGlassOpensThem`, `PolicyEngineTest`,
+E2E checks *break-glass reveals the restricted case for a limited time* and *DPO reviews the break-glass use*.
+
+### 12.3 Record-level segregation (`EmployeeRecordAccess`)
+
+Increment 1 protected **cases**; increment 2 adds records that belong to an **employee** rather than a case (chart,
+encounters, orders, results, documents, fitness decisions). `EmployeeRecordAccess` (kernel) builds the ABAC resource
+from the HRIS employee master (org path, owner employee id, classification) and calls the same `PolicyEngine`:
+`requireClinical` for OH work (restricted class needs `RESTRICTED_CLINICAL` disclosure), `requireStatus` for manager /
+HR status access within org scope. A denial is **audited and answered with 404**, so the existence of a record is not
+revealed. Further rules:
+
+* **Negative tests** (`f08HrManagersEmployeesAndReceptionNeverOpenClinicalRecords`): HR, a manager, clinic reception,
+  the DPO and even the employee through the clinical API receive `403` / `404` on all twelve record reads (`/chart`,
+  `/problems`, `/allergies`, `/medications`, `/immunisations`, `/jobs`, `/encounters`, `/results`, `/orders`, `/fhir`,
+  `/odh`, `/record-timeline`) and the bodies never contain clinical text; HR cannot acknowledge results, write
+  problems or read encounter templates; managers cannot open the results worklist or a case summary; reception cannot
+  start an encounter; case managers read but cannot write. Employees see their own information through the portal
+  (`/me/documents`, `/me/rtw-plans`, `/me/disclosures`) rather than the clinical API.
+* **Functional restrictions only for managers.** `/workspace/team-restrictions` returns restriction labels (for example
+  *No lifting above 10 kg*) and dates, never the diagnosis (E2E check *manager sees functional restrictions only*).
+* **Restricted class.** Mental-health encounters and results with codes in `wellnessz.record.restricted-result-codes`
+  are `RESTRICTED_CLINICAL`; the chart reports `restrictedItemsHidden` instead of the items; FHIR exports omit them.
+* **Diagnosis-required close guard.** `DiagnosisRequiredGuard` refuses to close INJURY, ILLNESS, EXPOSURE, FITNESS,
+  MENTAL_HEALTH and SURVEILLANCE_FOLLOW_UP cases without a coded diagnosis (`422 diagnosis_required`), supporting
+  complete records (PI1.3).
+* **BFF.** `/bff/api/workspace/{team-restrictions,duty-proposals,rtw-plans,documents}` are forwarded unchanged to the
+  core (`ApiProxyController.isCoreWorkspaceResource`, unit-tested); the core re-applies role and ABAC checks.
+* **Machine-only integration paths.** `/api/v1/integration/**` stays restricted to `INTEGRATION`, `PLATFORM_ADMIN`,
+  `OH_ADMIN` by `ResourceServerSecurityConfig`; crew scheduling reads the same roster feed through `/crew/roster-feed`.
+
+### 12.4 Disclosure log and consent withdrawal
+
+Every share of a document outside the OH team (employee excluded) writes a row to `platform.disclosure_log`
+(recipient type and name, resource, title, purpose, consent id, actor, time). The employee sees the log without actor
+names (`GET /me/disclosures`); OH roles and the DPO see it with actors (`GET /disclosures?employeeId=`, audited
+`DISCLOSURE_LOG_READ`). Sharing with a **partner** requires an active consent with purpose
+`TREATMENT_SHARING_PARTNER` belonging to that employee; the partner's access is re-checked against the consent on
+every read. When the employee **withdraws** a consent, `ConsentService.withdraw` calls every
+`ConsentWithdrawalListener` inside the same transaction – `DocumentConsentListener` revokes the partner shares made
+under it **immediately** – and marks the matching disclosures `REVOKED`; the audit record carries the number of
+revoked disclosures. Signing a new version revokes the shares of the superseded version. Test:
+`partnerSharingNeedsConsentAndStopsWhenConsentIsWithdrawn`.
+
+### 12.5 Document integrity, e-signature and sharing rules
+
+* **Integrity.** SHA-256 of every stored document; signature hash `SHA-256(contentHash | signer | time)` on signing;
+  signed documents are immutable (changes create a new version that supersedes the old one); `DOCUMENT_SIGN` audit
+  carries the signature hash. The runtime role has no `DELETE` grant on `docs.document`.
+* **Confidentiality.** Content, merge fields and extracted text are field-encrypted (`EncryptedStringConverter`).
+  Footer text states whether a document is *medical-in-confidence* or *contains no clinical information*.
+* **What may leave OH.** Only signed documents can be shared. Templates with clinical content (referral letter, result
+  letter, crew medical reports) can never go to managers or HR (`403`); clinical photographs are never shared outside
+  OH; non-clinical templates have their merge fields screened by the clinical-text guard.
+* **Uploads.** Scanned documents and photographs: type by magic bytes (PDF, JPEG, PNG), 1 byte – 10 MB; photographs
+  require recorded consent; PDF text extraction limited to 50 pages.
+* **Clinical-text guard.** The vocabulary of `ClinicalTextDetector` was extended with common occupational-health
+  diagnoses (for example hernia, sciatica, dermatitis, infection, norovirus, hypertension, sleep apnoea, physiotherapy,
+  counselling) because certificates, RTW plans and restriction notes are written for managers.
+* **Notifications** remain content-free: 11 new templates (`document.shared`, `certificate.available`,
+  `rtw.plan-ack`, `rtw.review-due`, `restriction.expiring`, `result.abnormal`, `result.overdue`, `duty.proposal`,
+  `job-offer.issued`, `break-glass.alert`, `fitness.signoff-required`) with two new allow-listed placeholders
+  (`documentNumber`, `employeeName`); links point to the portal, workspace or OH workspace.
+* **Status-only feeds.** Roster messages (`crew.roster-status.changed.v1`) carry status, dates and operational limitation
+  codes only; the outbound allow-lists in `application.yml` were extended for `crew-rostering`, `hr-systems` (job-offer
+  outcome) and `catering-hygiene` (food-handler status). Rostering acknowledges each message; messages not acknowledged
+  within 15 minutes are audited (`ROSTER_FEED_UNACKNOWLEDGED`) while the outbox keeps retrying.
+
+### 12.6 Retention and legal hold (SOC 2 C1.2, privacy P4)
+
+| Aspect | Control |
+|---|---|
+| Schedule | `docs.retention_schedule`: one rule per record class (`OH_RECORD`, `EXPOSURE_RECORD`, `AEROMEDICAL_RECORD`, `FITNESS_CERTIFICATE`, `CORRESPONDENCE`, `PHOTO`, `EXTERNAL_REPORT`) with years, trigger (`LAST_ENCOUNTER`, `DOCUMENT_DATE`, `EMPLOYMENT_END`) and legal basis; seeded values are **proposals** |
+| Approval | Only the DPO changes a rule (1–100 years, valid trigger), recorded with approver and time, audited `RETENTION_SCHEDULE_APPROVED` |
+| Flagging | Daily job (`wellnessz.documents.retention-cron`, once per day across replicas) and `GET /documents/retention/due` list documents past retention and not on legal hold; audited `RETENTION_DUE_LISTED` |
+| Legal hold | DPO sets / releases a hold with a reason (`POST` / `DELETE /documents/{id}/legal-hold`, audited `LEGAL_HOLD_SET` / `LEGAL_HOLD_RELEASED`); held documents are never listed as due |
+| Disposal | **No automatic deletion.** Destruction is a reviewed, documented decision executed under change control; the application role cannot delete documents |
+| Gaps | Structured E03/E05 records and cases are not yet covered; `LAST_ENCOUNTER` / `EMPLOYMENT_END` triggers need HRIS end dates (doc 01, O12) |
+
+### 12.7 Search over encrypted documents
+
+Full-text search uses **blind-index tokens** (doc 01, Section 14.17): every word is replaced by a keyed HMAC-SHA256
+token in a PostgreSQL `tsvector`; no plaintext index exists. Search is limited to OH roles with clinical access to the
+employee, per employee, at most 50 hits, restricted-class documents filtered, snippets cut after the access check from
+the decrypted text, and every query audited (`DOCUMENT_SEARCH`). Residual: token frequencies per document are visible
+to database administrators; the blind-index key is not versioned (RR1, RR19). Test:
+`scannedReportsAreClassifiedAndSearchableWithoutAPlaintextIndex`.
+
+### 12.8 OCR command constraints
+
+OCR is off unless `wellnessz.documents.ocr.tesseract-path` is set. `TesseractOcrProvider` accepts the binary only from
+a fixed switch of three install paths and the languages only from six fixed values; configuration therefore cannot
+select an arbitrary executable or inject arguments. The only other argument is a JVM-created temporary file, deleted
+in a `finally` block; output is capped at 1 MB and runtime at 60 seconds; failures are logged without content. The
+SpotBugs `COMMAND_INJECTION` finding on this class is the **sixth** justified exclusion in
+`config/spotbugs-exclude.xml`. Cloud OCR services (Azure AI Document Intelligence, Google Document AI) are an
+extension point; enabling one requires a DPA, a regional endpoint and an egress rule.
+
+### 12.9 Threat model additions (STRIDE)
+
+| ID | Flow |
+|---|---|
+| F19 | OH clinician → OH workspace → BFF → chart, encounters, results, documents |
+| F20 | Clinician → break-glass → restricted record; DPO review |
+| F21 | OH / HR → document generation, signing, sharing → employee, manager, HR, partner |
+| F22 | Laboratory gateway / device middleware → `/integration/lis/**`, `/integration/hl7v2`, `/employees/{id}/results/device` |
+| F23 | Kernel → outbox / roster feed → crew rostering gateway (pull + acknowledgement) |
+| F24 | Manager / HR → `/workspace/{team-restrictions,duty-proposals,rtw-plans,documents}` |
+| F25 | Clinic reception → scanned document upload → text extraction / OCR → search index |
+
+| Flow | Threat (STRIDE) | Scenario | Controls | Residual |
+|---|---|---|---|---|
+| F19 | **I**nformation disclosure | Non-OH user enumerates employee records | `EmployeeRecordAccess` on every read, audited 404, id pattern validation | L |
+| F19 | **T**ampering / **R**epudiation | Signed encounter altered or disputed | Signed encounters immutable; addenda and entered-in-error with reason; audit chain | L |
+| F20 | **E**levation | Clinician abuses break-glass | Justification, 4 h limit, DPO alert, 24 h review, monthly report, no self-review, no own-record grant | M – detective, not preventive |
+| F20 | **R**epudiation | User denies emergency access | Grant, reason, reads and review audited in the hash chain | L |
+| F21 | **I**nformation disclosure | Diagnosis typed into a certificate or job offer for managers / HR | Clinical-text guard on non-clinical templates, clinical templates not shareable with managers / HR, photographs never shared | M – heuristic guard |
+| F21 | **I**nformation disclosure | Partner keeps access after consent withdrawal | Listener revokes shares in the withdrawal transaction; consent re-checked on each partner read | L |
+| F21 | **T**ampering | Document changed after signing | SHA-256 content and signature hashes, immutable signed versions, no DELETE grant | L – signature not qualified (RR20) |
+| F21 | **E**levation | HR shares or reads OH documents | `requireIssuer` (own non-clinical templates only, employee target only, org scope) | L |
+| F22 | **S**poofing / **T**ampering | Forged results or device readings | Client-credentials token with `INTEGRATION`; schema validation; HL7 validation; each inbound message processed once; calibration id required for device-captured (non-manual) readings | L |
+| F22 | **D**oS | Result flood | WAF, batch caps, idempotent processing | L |
+| F23 | **I**nformation disclosure | Clinical detail in roster messages | Flat payload, field allow-list per destination (default deny), limitation codes only | L |
+| F23 | **R**epudiation / availability | Rostering misses a status change | Acknowledgement per `messageId`, 15-minute unacknowledged audit, reconciliation report, outbox retry | L |
+| F24 | **I**nformation disclosure | Manager infers diagnosis from restrictions | Functional labels only, no diagnosis fields in the view type | L – restrictions are disclosed by design |
+| F25 | **E**levation | Command injection through OCR configuration or file names | Allow-listed binary and languages, temp file from the JVM, timeout, output cap | L |
+| F25 | **I**nformation disclosure | Search index reveals content | Blind-index tokens only; access check before snippets | L – token frequencies (RR19) |
+| F25 | **T**ampering | Malicious file disguised as PDF / image | Magic-byte check, size cap, PDFBox parsing bounded to 50 pages, files never rendered server-side for others | M – parser vulnerabilities depend on PDFBox patching (dependency scanning) |
+
+### 12.10 Control mapping additions
+
+| Criterion | Increment-2 control | Evidence source | Resp. | Status |
+|---|---|---|---|---|
+| CC6.1 | Record-level ABAC (`EmployeeRecordAccess`), break-glass policy, `@PreAuthorize` on every E03 / E05 / document endpoint; `/integration/**` machine-only | `DefaultPolicies`, controllers, `Increment2*IntegrationTest`, E2E | F | Implemented |
+| CC6.2 | `DPO` role and test users in the realm; Entra `DPO` app role; partner `org_scope` | realm export, Entra assignments | O/F | Implemented (assignment: Org) |
+| CC6.3 | DPO without clinical access; break-glass review not by the user; AME / CMO sign-off; HR limited to the job-offer template; case manager read-only on the chart | code, tests, access reviews | F/O | Implemented |
+| CC6.6 | Magic-byte checks and size limits on scans and photos; OCR command allow-lists; HL7 / LIS / device validation | code, SpotBugs exclusion rationale | F | Implemented |
+| CC6.7 | Status-only roster, HR and hygiene feeds (allow-lists extended); clinical documents not shareable with managers / HR; content-free notifications | `application.yml`, `DocumentService.share`, `NotificationTemplates` | F | Implemented |
+| CC7.2 | Break-glass alert to the DPO, review queue and monthly report; `ROSTER_FEED_UNACKNOWLEDGED`; result escalation after 72 h | audit, mail log, reconciliation | F/O | Implemented (SIEM rules: Org) |
+| CC8.1 | Flyway V6–V8; CMO approval of encounter templates and fitness standards; versioned standards; E2E `e2e-increment2.js` 25/25 | `flyway_schema_history`, audit, release record | F/O | Implemented |
+| PI1.2 | LIS JSON and HL7 ORU validation; device rules with calibration; terminology codes from the catalogue | tests (`Hl7MessagesTest`, `DeviceRulesTest`, `ResultFlagsTest`) | F | Implemented |
+| PI1.3 | Diagnosis-required close guard; sign-off state machine; CDS hard stops with logged overrides | `DiagnosisRequiredGuard`, `CdsServiceTest`, integration tests | F | Implemented |
+| PI1.4 | Roster-feed acknowledgement and reconciliation; LIS order acknowledgement | `/crew/roster-feed/reconciliation`, `/integration/lis/orders` | F/O | Implemented (gateway adapters: Org / later increment) |
+| PI1.5 | Document SHA-256 and signature hash; immutable signed versions | `docs.document` | F | Implemented |
+| C1.1 | `docs`, `ohrecord`, `fitness` classified; content and free text encrypted; blind-index search | migrations, entities | F | Implemented |
+| C1.2 / P4.2 / P4.3 | Retention schedule, flagging, legal hold for documents; no automatic deletion | Section 12.6 | F/O | Partial |
+| P2.1 / P6.1 | Consent-gated partner sharing and AI documentation; withdrawal revokes partner shares | `partnerSharingNeedsConsentAndStopsWhenConsentIsWithdrawn`, `f07AiAssistant…` | F | Implemented |
+| P6.2–P6.3 / P6.7 | Disclosure log visible to the employee and the DPO | `platform.disclosure_log`, `/me/disclosures` | F | Implemented |
+
+### 12.11 Organisation-operated controls and residual risks added
+
+| Control | Frequency | Owner (proposed) | TSC |
+|---|---|---|---|
+| Review of every break-glass use within 24 hours; monthly report to the CMO and privacy committee | Daily / monthly | DPO | CC6.3, CC7.2 |
+| Approval of the retention schedule; documented destruction of documents due (outside the application); legal-hold register | Before go-live, then annual / per request | DPO + legal | C1.2, P4.2, P4.3 |
+| Approval of encounter templates, document template wording, CDS rules, fitness standards, restriction catalogue and job-demand profiles | Before go-live, then per version | CMO + Nursing Head + DPO | CC8.1, PI1.3 |
+| Access review including `DPO`, `PARTNER_PROVIDER` (partner organisations and their `org_scope`) and `INTEGRATION` clients of the laboratory and rostering gateways | Quarterly | OH service owner + IAM | CC6.2, CC6.3 |
+| Partner data-sharing agreements and consent wording for `TREATMENT_SHARING_PARTNER` | Per partner | DPO + procurement | P6.1, P6.4 |
+| SIEM rules on `BREAK_GLASS`, `ROSTER_FEED_UNACKNOWLEDGED`, denied record reads (`CHART_READ` DENIED bursts) | Continuous | SOC | CC7.2 |
+| DPIA before enabling OCR in the cloud or any AI documentation provider | Before enablement | DPO | P3.1, CC9.2 |
+| PDFBox and other document-parsing dependencies patched within the vulnerability SLA | Continuous | Platform team | CC7.1 |
+
+| ID | Residual risk | Compensating control (now) | Target remediation |
+|---|---|---|---|
+| RR17 | Break-glass is detective, not preventive | Justification, 4 h limit, alert, 24 h review, monthly report | Optional second-person approval for non-emergency use |
+| RR18 | No automatic deletion; structured records outside the schedule | Flagging, legal hold, DPO review, no DELETE grant | Destruction workflow and schedule for `ohrecord` / `fitness` / cases |
+| RR19 | Blind-index token frequency visible; unversioned blind-index key | Access to the database restricted; tokens keyed | Versioned key and re-indexing in the key-rotation job |
+| RR20 | Simple electronic signature only | SHA-256 integrity, audit chain | Qualified signing provider for external-effect documents (doc 01, D12) |
+| RR21 | Template and CDS content is draft | Status visible; CMO approval workflow | Go-live gate: all templates and rules approved (doc 01, O14) |
+| RR22 | Gateway adapters (LIS, rostering, HR, hygiene) not built | Pull APIs with acknowledgement and reconciliation | Gateway clients with certificate credentials and monitoring |

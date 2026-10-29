@@ -18,12 +18,21 @@ generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
 | 11 | Increment 1 – Requirements Traceability Matrix | Project sponsor, QA, OH governance | `increment-01/02-Requirements-Traceability-Matrix.md` | – |
 | 12 | Increment 1 – Release Notes | All | `increment-01/03-Release-Notes-Increment-1.md` | – |
 | 13 | Increment 1 – API Contract E01/E02 | Engineering, integrators | `increment-01/API-Contract-E01-E02.md` | – |
+| 14 | Increment 2 – Solution Design E03/E05 | Architects, OH governance, DPO, engineering | `increment-02/01-Solution-Design-E03-E05.md` | – |
+| 15 | Increment 2 – Requirements Traceability Matrix | Project sponsor, QA, OH governance | `increment-02/02-Requirements-Traceability-Matrix.md` | – |
+| 16 | Increment 2 – Release Notes | All | `increment-02/03-Release-Notes-Increment-2.md` | – |
+| 17 | Increment 2 – API Contract E03/E05 | Engineering, integrators | `increment-02/API-Contract-E03-E05.md` | – |
 | – | Design brief (contract between components) | Engineering | `00-design-brief.md` | – |
 | – | OpenAPI 3 contract of the core API | Integrators | `api/openapi.json` | – |
 
 Documents 1–9 were updated for increment 1 (E01 case intake, E02 clinical triage): new sections are doc 01
 Sections 14.12–14.14 and 19, doc 02 Section 11, doc 03 Section 14, doc 04 Section 17, and increment-1 steps in each
 setup guide and the CI/CD Guide.
+
+Documents 1–9 were updated again for increment 2 (E03 OH record & clinical encounters, E05 fitness for duty,
+restrictions & return to work): doc 01 Sections 14.15–14.21 and 20 (plus module status, schemas, licensing, risks and
+open items), doc 02 Section 12, doc 03 Section 15, doc 04 Section 18, increment-2 steps in each setup guide and
+Section 3.2 and the checklists of the CI/CD Guide. Rendered copies in `docs/dist/` must be regenerated.
 
 Supporting material:
 
@@ -33,6 +42,12 @@ Supporting material:
 * `images/screens/increment-01/` – increment-1 screenshots captured by `tools/e2e/e2e-increment1.js` (employee
   referral template, fitness declaration and advice; manager referral and status-only team view; OH workspace
   queues, case tabs, escalations, handovers, intake operations, configuration screens and reception)
+* `images/screens/increment-02/` – increment-2 screenshots captured by `tools/e2e/e2e-increment2.js` (OH chart,
+  signed encounter, results worklist, fitness decision, restrictions and duties, RTW plan, documents, crew roster feed
+  and dashboard, restricted record hidden, fitness sign-off, admin screens for fitness standards, job demands,
+  encounter templates and the restriction catalogue; DPO break-glass reviews, disclosure log and retention; manager
+  team restrictions, duty proposals, RTW plans and documents; HR job offers; employee documents, RTW plan, job offer
+  and privacy)
 * Executive concept video (`WellnessZ-Executive-Briefing.mp4`, 6 min, 1080p, English subtitles) – shipped in
   the documents bundle rather than in Git
 
@@ -57,3 +72,15 @@ Supporting material:
 | End-to-end (`tools/e2e/e2e-increment1.js`, real Keycloak login via the BFF) | 18/18 checks: EHS webhook → auto-created, routed case; self-referral via UI; manager referral clinical-text guard and org scope; status-only manager view; queues; reassignment; red-flag hard stop; triage; escalation; SLA clock; first-aid suggestion; DLQ; reception and crew-scheduling restrictions |
 | Defect found by E2E and fixed | Keycloak clients `wellnessz-bff` / `wellnessz-mobile` (`fullScopeAllowed=false`) lacked scope mappings for the new roles |
 | Not yet exercised | Increment-1 changes on AKS/GKE/hybrid; Entra ID app roles for the nine new roles; clinical approval of the 13 draft triage protocols |
+
+## Verification summary (increment 2 – E03, E05)
+
+| Check | Result |
+|---|---|
+| Java build & tests (`./mvnw verify`) | 128 tests – adds `Increment2RecordIntegrationTest`, `Increment2FitnessIntegrationTest`, `Increment2PlatformIntegrationTest`, HL7 message, device-rule, result-flag, CDS, terminology, decision-rule, matching-engine and crew-dashboard unit tests, BFF `ApiProxyPathTest`; 10 ArchUnit rules (new: document service independent of business modules, E03 ↔ E05 independence, earlier modules independent of later ones) – all passing |
+| SAST (SpotBugs + FindSecBugs, effort Max) | 0 findings; 6 justified exclusions in `config/spotbugs-exclude.xml` (new: allow-listed Tesseract command line in `TesseractOcrProvider`) |
+| Web apps (`npm run lint && npm test && npm run build`) | oh-workspace 305 tests, employee-app 138, manager-workspace 99 – passing |
+| End-to-end (`tools/e2e/e2e-increment2.js`, real Keycloak login via the BFF) | 25/25 checks: chart summary, CDS block, terminology search, signed injury encounter, device audiogram with threshold shift, fitness decision, certificate signed and shared, job-demand matching, modified duty and RTW plan, manager functional restrictions only and no chart access, HR job offer, employee acknowledgements, disclosure log, AME crew assessment, status-only roster feed, restricted psychological case, break-glass, DPO review, DPO without clinical access |
+| API contract | `api/openapi.json` regenerated – 240 paths |
+| New dependency | Apache PDFBox 3.0.8 (Apache-2.0) – document generation and PDF text extraction |
+| Not yet exercised | Increment-2 changes on AKS/GKE/hybrid; Entra `DPO` app role and partner `org_scope` claims; real laboratory, device and rostering gateways; Tesseract or cloud OCR; clinical / DPO approval of templates, standards, CDS rules and the retention schedule |

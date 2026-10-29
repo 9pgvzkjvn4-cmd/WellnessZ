@@ -132,7 +132,7 @@ public class FitnessDecisionController {
      * crew scheduling reads the same feed through the {@code /crew/roster-feed} alias.
      */
     @GetMapping({"/integration/roster-feed", "/crew/roster-feed"})
-    @PreAuthorize("hasAnyRole('INTEGRATION','CREW_SCHEDULING')")
+    @PreAuthorize("hasAnyRole('INTEGRATION','CREW_SCHEDULING','CMO','OH_ADMIN')")
     public List<RosterFeedLog.FeedMessage> rosterFeed(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
                                                       Instant since) {
         return feed.messages(since);

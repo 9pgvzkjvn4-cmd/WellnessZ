@@ -11,7 +11,7 @@ Step-by-step guides: [`docs/deployment/Deployment-Architecture.md`](../docs/depl
 | Path | What it is |
 |---|---|
 | [`local/`](local/) | Docker Compose dev stack: PostgreSQL 16, Keycloak 26 (realm import), Mailpit, GreenMail IMAP, OTel collector, optional core + bff |
-| [`local/keycloak/wellnessz-realm.json`](local/keycloak/wellnessz-realm.json) | Realm `wellnessz`: roles (incl. the nine increment-1 roles), clients (bff, mobile, api, integration), test users |
+| [`local/keycloak/wellnessz-realm.json`](local/keycloak/wellnessz-realm.json) | Realm `wellnessz`: roles (incl. the nine increment-1 roles and the increment-2 role `DPO`), clients (bff, mobile, api, integration), test users |
 | [`docker/`](docker/) | `Dockerfile.core`, `Dockerfile.bff` (+ per-Dockerfile `.dockerignore`) |
 | [`helm/wellnessz/`](helm/wellnessz/) | Helm chart (core, bff, employee-portal, manager-workspace, oh-workspace) + `values-{local,azure,gcp,hybrid}.yaml`, `values.schema.json` |
 | [`terraform/azure/`](terraform/azure/) | AKS, PostgreSQL Flexible Server, Key Vault, ACR, App Gateway WAF v2 / Front Door, Log Analytics, identities |
@@ -48,7 +48,7 @@ containers additionally run read-only with `cap_drop: ALL` and a `/tmp` tmpfs.
 
 | Role | Purpose | Privileges |
 |---|---|---|
-| `wz_migrator` | Flyway only | owns `wellnessz` and schemas `platform, masterdata, intake, casemgmt, triage, analytics` (+ `bff` created by BFF migrations; `triage` since increment 1) |
+| `wz_migrator` | Flyway only | owns `wellnessz` and schemas `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics` (+ `bff` created by BFF migrations; `triage` since increment 1; `docs`, `ohrecord`, `fitness` since increment 2) |
 | `wz_app` | core runtime | `CONNECT` + schema `USAGE`; **table privileges are granted only by the Flyway migrations** (e.g. `platform.audit_event` is SELECT/INSERT = append-only) |
 | `wz_bff` | BFF session store | `CONNECT`; DML on `bff.spring_session*` via BFF migrations; no access to clinical schemas |
 | `keycloak` | IdP | owns the separate `keycloak` database |
@@ -58,14 +58,15 @@ containers additionally run read-only with `cap_drop: ALL` and a `/tmp` tmpfs.
 (audience only, added to access tokens of bff/mobile/integration via audience
 mappers), `wellnessz-integration` (client-credentials, role `INTEGRATION`).
 Least-privilege scope mappings (no full-scope – every role a token may carry,
-including the increment-1 roles, must be listed in the scope mappings of
+including the increment-1 roles and `DPO`, must be listed in the scope mappings of
 `wellnessz-bff` and `wellnessz-mobile`), direct-access grants disabled,
 brute-force detection (5 failures, up to 15 min lockout), password policy
 (≥12 chars, mixed classes, history 5, not username/email), access token 5 min,
 SSO idle 15 min, refresh-token rotation, login + admin events enabled.
 Test users `employee1, manager1, hr1, clinician1, psych1, auditor1, admin1` and
 (increment 1) `nurse1, nurse2, physician1, ame1, cmo1, nursinghead1, hse1,
-crewsched1, hygiene1, reception1, firstaider1` use the temporary password
+crewsched1, hygiene1, reception1, firstaider1` and (increment 2) `dpo1` (DPO) and
+`partner1` (PARTNER_PROVIDER, `org_scope=/PARTNERS/CITYHOSP`) use the temporary password
 `ChangeMe!123` and must change it on first login. The realm is imported only
 when it does not exist: after a realm change run `./down.sh --purge` and `./up.sh`.
 The BFF client allows redirects for the dev servers on 5173, 5174 and 5175
@@ -118,6 +119,14 @@ Increment 1 adds the component `ohWorkspace` (image `oh-workspace`, host
 `ingress.hosts.ohWorkspace`, e.g. `oh.wellnessz.example.com`; disabled on-prem in
 `values-hybrid.yaml`, served by the cloud edge) and schema `triage` in
 `migrations.job.core.schemas`.
+
+Increment 2 adds no component: schemas `docs`, `ohrecord` and `fitness` are added to
+`migrations.job.core.schemas`, `postgres/01-init-wellnessz.sh`, `sql/bootstrap-managed-postgres.sql` and
+`hybrid/cnpg/03-cluster.yaml`. New core settings (`WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL`,
+`WZ_DPO_EMAIL`, optional `WZ_DOCUMENTS_FONT_PATH` and OCR) go into `core.env` / `core.extraEnv`; a font or Tesseract
+needs a derived core image because the chart has no extra-volume hook. Gateways (laboratory, devices, crew rostering)
+call `/api/v1/integration/**` on the API host with `INTEGRATION` client-credentials tokens – see
+[`docs/deployment/Deployment-Architecture.md`](../docs/deployment/Deployment-Architecture.md), Section 18.
 
 Platform files: `values-local.yaml` (kind / minikube / Docker Desktop, secrets
 from pre-created K8s Secrets), `values-azure.yaml`, `values-gcp.yaml`,

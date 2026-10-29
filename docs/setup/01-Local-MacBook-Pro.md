@@ -28,6 +28,11 @@
 >
 > **Increment 1** (E01 intake, E02 triage) was verified on this setup: 65 Java tests, web tests (oh-workspace 151,
 > employee-app 81, manager-workspace 55) and `tools/e2e/e2e-increment1.js` with 18/18 checks passing (section 7.1).
+>
+> **Increment 2** (E03 OH record, E05 fitness for duty) was verified on this setup: 128 Java tests, web tests
+> (oh-workspace 305, employee-app 138, manager-workspace 99) and `tools/e2e/e2e-increment2.js` with 25/25 checks
+> passing (section 7.2). New here: schemas `docs`, `ohrecord`, `fitness`, the `dpo1` and `partner1` users, gateway
+> smoke calls (section 8.4) and the optional PDF font and OCR (section 8.5).
 
 ## 1. Prerequisites
 
@@ -194,7 +199,7 @@ Expected: `"aud": "wellnessz-api"` and `"roles": ["INTEGRATION"]`.
 |---|---|---|
 | PostgreSQL 16.15 | `localhost:5432`, databases `wellnessz`, `keycloak` | Roles `wz_migrator` (DDL), `wz_app` (core runtime), `wz_bff` (sessions); passwords in `.env` |
 | Keycloak 26.8.1 | <http://localhost:8180/admin> | `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD` from `.env` |
-| Realm users | `employee1`, `manager1`, `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; increment 1: `nurse1`, `nurse2`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1` | Temporary password `ChangeMe!123`; change it at first login |
+| Realm users | `employee1`, `manager1`, `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; increment 1: `nurse1`, `nurse2`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`; increment 2: `dpo1`, `partner1` | Temporary password `ChangeMe!123`; change it at first login |
 | Mailpit | UI <http://localhost:8025>, SMTP `localhost:1025` | none |
 | GreenMail | IMAP `localhost:3143`, SMTP `localhost:3025` | `ehs-feed@wellnessz.local` / `WZ_IMAP_PASSWORD` |
 | OTel collector | OTLP `localhost:4317` (gRPC) / `4318` (HTTP) | – |
@@ -219,6 +224,12 @@ mappings.
 | `crewsched1` / `hygiene1` | CREW_SCHEDULING / HYGIENE_MANAGER | Status-only APIs |
 | `reception1` / `firstaider1` | CLINIC_RECEPTION / FIRST_AIDER | Walk-in and emergency registration |
 | `admin1` | PLATFORM_ADMIN, OH_ADMIN | Configuration screens, dead-letter queue |
+| `dpo1` (increment 2) | DPO | Break-glass reviews, disclosure log, retention schedule and legal hold in the OH workspace; no clinical access |
+| `partner1` (increment 2) | PARTNER_PROVIDER, `org_scope=/PARTNERS/CITYHOSP` | Documents shared with partner `CITYHOSP` under consent (`GET /api/v1/partner/documents`) |
+
+**Increment-2 role.** The realm adds `DPO`, included in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`.
+A realm imported before increment 2 has neither the role nor `dpo1` / `partner1`: run `./deploy/local/down.sh --purge`
+and `./deploy/local/up.sh` to re-import it (this deletes local data).
 
 The Keycloak container imports the realm only when it does not exist yet (`--import-realm`). A stack created before
 increment 1 keeps the old realm without the new roles and users: run `./deploy/local/down.sh --purge` and
@@ -227,7 +238,20 @@ increment 1 keeps the old realm without the new roles and users: run `./deploy/l
 **Demo data.** With the `local` profile, Flyway also runs `apps/wz-core-app/src/main/resources/db/demo`
 (`R__demo_reference_people.sql`): HRIS employees `E1001`–`E1005` and `M2001`, the OH staff roster (`nurse1`,
 `nurse2`, `clinician1`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `psych1`) and the crew-scheduling and hygiene
-notification addresses. Other profiles never load it.
+notification addresses. Other profiles never load it. Increment 2 adds `R__demo_e03_record.sql` (OH chart of
+`E1004`: penicillin allergy, a work-related problem, hepatitis B immunisation, a baseline audiogram and an earlier job) and `R__demo_e05_fitness.sql` (fleet and base of the crew members
+`E1002`, `E1003`).
+
+**Schemas.** `01-init-wellnessz.sh` creates `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness,
+analytics`. Load `.env` first (`set -a; source deploy/local/.env; set +a`) for the check below. On a database volume
+created before increment 2, Flyway V6–V8 create the three new schemas themselves;
+`search_path` of `wz_app` is only updated by a fresh init, so prefer `./deploy/local/down.sh --purge` once. Check:
+
+```bash
+docker compose -f deploy/local/docker-compose.yml exec -T -e PGPASSWORD="$POSTGRES_SUPERUSER_PASSWORD" postgres psql -h 127.0.0.1 -U postgres -d wellnessz -c '\dn'
+```
+
+Expected (after the core has started once): `docs`, `ohrecord` and `fitness` in the list, owned by `wz_migrator`.
 
 ## 4. Build and test
 
@@ -509,6 +533,24 @@ published set is in `docs/images/screens/increment-01/`. Unlike `e2e.js`, the sc
 so it can be repeated without purging the realm. Other variables: `WZ_E2E_OH_URL`, `WZ_E2E_IDP_URL`,
 `WZ_E2E_CORE_URL`, `WZ_E2E_INTEGRATION_SECRET` (see the Developer Guide, section 14.7).
 
+### 7.2 Increment-2 end-to-end test (E03, E05)
+
+`tools/e2e/e2e-increment2.js` covers increment 2 with 25 checks: chart summary with allergy alert, CDS block of a
+penicillin-class medication, terminology search, signed injury encounter with body map and coded diagnosis, device
+audiogram with threshold-shift flag, fitness decision against the food-handler standard, certificate signed and
+shared, job-demand matching, modified duty and RTW plan, manager view with functional restrictions only and no chart
+access, HR job offer, employee acknowledgements and disclosure log, AME crew assessment, status-only roster feed,
+restricted psychological case, break-glass, DPO review and DPO without clinical access. It needs the same setup as
+section 7.1 and the increment-2 realm (`dpo1`).
+
+```bash
+node tools/e2e/e2e-increment2.js
+```
+
+Expected: 25 lines starting with `PASS`; exit code 0. Screenshots go to `tools/e2e/shots/` (`WZ_E2E_OUT`); the
+published set is in `docs/images/screens/increment-02/`. Like `e2e-increment1.js`, the script handles first and later
+logins, so it can be repeated; each run creates new cases. Run `e2e-increment1.js` first when you verify a release.
+
 ## 8. EHS intake tests
 
 ### 8.1 Mailbox (IMAP via GreenMail)
@@ -578,6 +620,54 @@ medical treatment* (`AUTO_CREATE`, `SEMI_URGENT`) and appears as a `GND-…` cas
 is in the dead-letter queue (`GET /api/v1/intake/dlq`, OH workspace *Intake → DLQ* as `admin1`). Repeating the call
 with the same key and body returns the stored response with `Idempotent-Replayed: true`.
 
+### 8.4 Gateway smoke calls (increment 2)
+
+Laboratory, device and rostering gateways are machine clients with the `INTEGRATION` role. Locally the client
+`wellnessz-integration` plays all of them (`$TOKEN` from section 5.3):
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" 'http://localhost:8080/api/v1/integration/lis/orders?status=QUEUED' | jq 'map({placerOrderNumber, status})'
+```
+
+Expected: HTTP `200` with the orders waiting for the laboratory (an empty list until a physician places an order in
+the OH workspace). Each entry carries the HL7 v2 `ORM^O01` message in `hl7`; the gateway acknowledges it with
+`POST /api/v1/integration/lis/orders/{id}/ack` and returns results with `POST /api/v1/integration/lis/results` (JSON)
+or `POST /api/v1/integration/hl7v2` (`ORU^R01`, `Content-Type: text/plain`).
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/integration/roster-feed | jq 'map({messageId, employeeId, rosterStatus, validUntil, operationalLimitations})'
+```
+
+Expected: `200` with status-only roster messages (after a fitness decision on a crew case, for example from
+`e2e-increment2.js`); the rostering gateway acknowledges each with `POST /api/v1/integration/roster-feed/{messageId}/ack`.
+A user token (for example `crewsched1` through the BFF) gets `403` on `/integration/**`; people use
+`/api/v1/crew/roster-feed`. Device middleware posts to `POST /api/v1/employees/{id}/results/device` (contract:
+`docs/increment-02/API-Contract-E03-E05.md`, section 4.4).
+
+### 8.5 Optional: PDF font and OCR (increment 2)
+
+Generated PDFs use Helvetica, which has no Arabic glyphs. To render Arabic or other scripts, point the core at a
+Unicode TrueType font before starting it (section 5.1), for example Noto Sans Arabic downloaded from Google Fonts:
+
+```bash
+export WZ_DOCUMENTS_FONT_PATH="$HOME/Library/Fonts/NotoSansArabic-Regular.ttf"
+```
+
+OCR of scanned JPEG / PNG images is off by default (PDFs are indexed from their text layer). To try local OCR,
+install Tesseract with the language packs and set the two allow-listed properties:
+
+```bash
+brew install tesseract tesseract-lang
+```
+
+```bash
+export WELLNESSZ_DOCUMENTS_OCR_TESSERACTPATH=/opt/homebrew/bin/tesseract WELLNESSZ_DOCUMENTS_OCR_LANGUAGES=eng+ara+fra
+```
+
+Only `/usr/bin/tesseract`, `/usr/local/bin/tesseract` and `/opt/homebrew/bin/tesseract` and the language lists `eng`,
+`ara`, `fra`, `eng+ara`, `eng+fra`, `eng+ara+fra` are accepted; any other value stops the core at start-up. In
+Option B (containers) neither font nor Tesseract is in the image; use Option A to try them.
+
 ## 9. Secrets in configuration: `ENC(...)`
 
 Values that must live in configuration files, such as a connector password, are stored encrypted:
@@ -641,6 +731,11 @@ development.
 | `npm ci` fails on Node version | Node 20/22 active | `brew link --overwrite --force node@24` |
 | Apple Silicon: very slow image builds | Rosetta not enabled in Colima / Docker Desktop | Docker Desktop: enable *Use Rosetta*; Colima: `--vz-rosetta` |
 | E-mail not ingested | Sender not in the allowed list or poll interval not elapsed | Use a `@wellnessz.local` sender; set `WZ_EHS_MAILBOX_POLL=PT30S` |
+| `dpo1` cannot log in, or the OH workspace shows *Access restricted* for it | Realm imported before increment 2 | `./deploy/local/down.sh --purge` and `up.sh` to re-import the realm |
+| Chart of `E1004` is empty, crew dashboard has no fleet | Core not started with the `local` profile, so `R__demo_e03_record.sql` / `R__demo_e05_fitness.sql` were not loaded | Start the core with `SPRING_PROFILES_ACTIVE=local` |
+| Core stops with `Unsupported OCR binary location` or `Unsupported OCR language list` | OCR properties outside the allow-list | Use one of the values in section 8.5 or unset both variables |
+| Arabic text in generated PDFs is missing or replaced | No Unicode font configured | Set `WZ_DOCUMENTS_FONT_PATH` to a readable TrueType font (section 8.5) |
+| Closing a case fails with `422 diagnosis_required` | Clinical case without a coded diagnosis (intended) | Sign an encounter with a coded diagnosis, or set `WZ_DIAGNOSIS_REQUIRED_ON_CLOSE=false` for local experiments only |
 
 ## 13. Teardown
 

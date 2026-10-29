@@ -4,7 +4,8 @@
 |---|---|
 | **Document** | 03 – Developer Guide |
 | **Audience** | Developers and technical leads building business modules E01–E14 and integrations |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2 |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increment 2 (E03, E05 – Section 15) |
+| **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
 | **Companion documents** | 01 – Technology Architecture and Technology Selection · 02 – Security and SOC 2 Control Mapping |
 
 This guide explains how to add a business module (an *E-number* from the logical architecture) to the base framework
@@ -19,12 +20,13 @@ immunisation**; replace names as appropriate. Everything referenced exists in th
 | Path | Content |
 |---|---|
 | `pom.xml` | Parent/aggregator; Spring Boot 4.1.2 parent; managed versions (HAPI FHIR, POI, springdoc, ArchUnit …); `security` profile |
-| `platform/wz-*` | Shared kernel and platform services (E15–E18, notifications), EHS intake, case kernel |
+| `platform/wz-*` | Shared kernel and platform services (E15–E18, notifications), EHS intake, case kernel; since increment 2 the document service `platform/wz-documents` (Section 15.2) |
 | `apps/wz-core-app` | Runnable core API; **all Flyway migrations** (`src/main/resources/db/migration`); ArchUnit and integration tests |
 | `apps/wz-bff` | Backend-for-Frontend for browser apps |
 | `modules/wz-e01-intake`, `modules/wz-e02-triage` | Business modules of increment 1 – the worked example in Section 14 |
+| `modules/wz-e03-record`, `modules/wz-e05-fitness` | Business modules of increment 2 (OH record, fitness for duty) – the worked example in Section 15 |
 | `web/employee-app`, `web/manager-workspace`, `web/oh-workspace` | React front-ends (the OH clinical workspace was added in increment 1) |
-| `tools/e2e` | Playwright end-to-end scripts: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, Section 14.7) |
+| `tools/e2e` | Playwright end-to-end scripts: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, Section 14.7), `e2e-increment2.js` (E03/E05, Section 15.12) |
 | `deploy/local` | Docker Compose: PostgreSQL, Keycloak (realm import), Mailpit, GreenMail, OpenTelemetry collector |
 | `config/` | SpotBugs exclusions and dependency-check suppressions (justification required) |
 
@@ -818,3 +820,212 @@ node tools/e2e/e2e-increment1.js
 
 The script relies on the demo people loaded by the `local` profile (`E1001`–`E1005`, `M2001`, the OH staff roster)
 and on the realm users `employee1`, `manager1`, `nursinghead1`, `nurse1`, `admin1`, `reception1` and `crewsched1`.
+
+## 15. Worked example: E03, E05 and the document service (increment 2)
+
+Increment 2 added a platform service used by two business modules and four kernel / platform SPIs. Design background:
+[Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md); endpoints:
+[API Contract E03/E05](../increment-02/API-Contract-E03-E05.md).
+
+### 15.1 Module wiring
+
+| Step | Documents (`platform/wz-documents`) | E03 (`modules/wz-e03-record`) | E05 (`modules/wz-e05-fitness`) |
+|---|---|---|---|
+| Maven dependencies | `wz-case-kernel`, `wz-notification`, `org.apache.pdfbox:pdfbox` (version `pdfbox.version` = 3.0.8 in the root `pom.xml`) | `wz-e02-triage`, `wz-documents` | `wz-e02-triage`, `wz-documents` |
+| Root `pom.xml` / core app | `<module>` + `<dependencyManagement>` entries; dependency in `apps/wz-core-app/pom.xml` | same | same |
+| Registration | platform service (no `CaseModule`) | `E03Module` (code `E03`) | `E05Module` (code `E05`) |
+| Schema / migration | `docs` (V6) | `ohrecord` (V7) | `fitness` (V8) |
+| Demo data (`db/demo`, local / test only) | – | `R__demo_e03_record.sql` | `R__demo_e05_fitness.sql` |
+| ArchUnit | `documentServiceIsAPlatformService` (no dependency on E01–E05) | `recordAndFitnessModulesAreIndependent` | `fitnessDoesNotDependOnRecord`; both covered by `earlierModulesDoNotDependOnLaterOnes` and the kernel / platform rules |
+
+E03 and E05 do **not** depend on each other. Anything they share goes through the kernel (coded diagnosis on the
+case, `ChartContributor`, `FitnessPublicationListener`), the document service or master data (fitness standards,
+restriction catalogue, job-demand profiles in `wz-masterdata`).
+
+### 15.2 Using `DocumentService`
+
+Inject `com.wellnessz.documents.DocumentService` and work with its views; never write to `docs.*` directly.
+
+```java
+// generate a DRAFT from a template (merge fields validated, non-clinical templates screened by the clinical-text guard)
+DocumentService.DocumentView doc = documents.generate(user, "RTW_PLAN", plan.getEmployeeId(), plan.getCaseId(), fields);
+// sign: locks the draft, stores SHA-256(contentHash | signer | time), supersedes and un-shares older versions
+documents.sign(user, doc.id());
+// share: only signed documents; EMPLOYEE / MANAGER / HR (non-clinical templates only) / PARTNER (needs a consent id)
+documents.share(user, doc.id(), DocumentShare.Target.EMPLOYEE, null, null);
+documents.share(user, doc.id(), DocumentShare.Target.MANAGER, null, null);
+```
+
+| Method | Use | Access rule inside the service |
+|---|---|---|
+| `generate(user, templateCode, employeeId, caseId, fields)` | Draft from a template | OH roles: `EmployeeRecordAccess.requireClinical`; HR: own non-clinical templates within org scope |
+| `newVersion(user, id, fields)` / `sign(user, id)` | Versioning and e-signature | Signer roles per template |
+| `share(user, id, target, partnerOrg, consentId)` / `revokeShare(...)` | Disclosure (logged in `platform.disclosure_log`) | Clinical templates never to MANAGER / HR; PARTNER needs an active `TREATMENT_SHARING_PARTNER` consent |
+| `scan(user, employeeId, caseId, documentType, bytes)` | Uploaded PDF / JPEG / PNG ≤ 10 MB; text layer or `OcrProvider` | OH roles or `CLINIC_RECEPTION` (files without reading) |
+| `storePhoto(user, employeeId, caseId, bytes, title, classification)` | Clinical photograph (consent captured by the caller) | Never shareable |
+| `search(user, employeeId, q)` | Blind-index search (doc 01, Section 14.17) | Clinical access; restricted class filtered |
+| `list`, `get`, `content`, `sharedWithMe`, `sharedWithWorkspace`, `sharedWithPartner`, `acknowledge` | Reads | Audited; non-OH callers only see what was shared with them |
+
+Real call sites: `RtwService` (RTW plan to employee and manager), `JobOfferService` (HR generates, signs and issues the
+job offer), `ResultService` (result letter), `FitnessDecisionService` / `CrewService` (certificates and crew medical
+reports). Do not catch and swallow the `ApiException`s these methods throw – they carry the user-facing reason.
+
+### 15.3 Kernel SPI: `ChartContributor`
+
+The chart (E03) shows sections owned by other modules without depending on them:
+
+```java
+// platform/wz-case-kernel/.../support/ChartContributor.java
+public interface ChartContributor {
+    record Alert(String kind, String severity, String text) { }
+    record Contribution(Map<String, Object> sections, List<Alert> alerts) {
+        public static final Contribution EMPTY = new Contribution(Map.of(), List.of());
+    }
+    Contribution contribute(CurrentUser user, String employeeId);
+}
+```
+
+`ChartService` injects `List<ChartContributor>`, calls each after its own record-level access check, merges the
+sections and alerts, and logs (without content) and skips a contributor that throws. E05's `FitnessChartContributor`
+contributes `fitness` and `restrictions` and alerts such as `FITNESS_SIGNOFF_PENDING` or `RESTRICTION_LAPSED`. Rules:
+return `Contribution.EMPTY` for callers outside the OH team, keep it read-only (`@Transactional(readOnly = true)`) and
+cheap, use stable section keys, and put no restricted-class content into a section unless you check
+`EmployeeRecordAccess.canSeeClinical(..., RESTRICTED_CLINICAL)` yourself.
+
+### 15.4 Kernel SPI: `FitnessPublicationListener`
+
+```java
+// platform/wz-case-kernel/.../FitnessPublicationListener.java
+public interface FitnessPublicationListener {
+    void rosterStatusPublished(OhCase c, CaseEvents.RosterStatusChanged message);
+}
+```
+
+`CaseService.publishFitness` builds the status-only `CaseEvents.RosterStatusChanged` (message id, roster status
+FIT / LIMITED / UNFIT / PENDING via `FitnessFeed.rosterStatus`, validity dates, operational limitation codes), puts it
+on the outbox for `crew-rostering` and calls every listener **inside the same transaction**. E05's `RosterFeedLog`
+stores the message for the pull feed, acknowledgement and reconciliation. A listener must not call external systems
+or throw for expected situations – an exception rolls back the fitness decision. Pass extra feed details with
+`FitnessFeed` rather than adding clinical fields to the event; the outbound allow-list (`application.yml`) rejects
+unknown fields.
+
+### 15.5 Record-level access: `EmployeeRecordAccess`
+
+Use it for every record that belongs to an employee rather than a case:
+
+```java
+Employee e = records.requireClinical(user, employeeId, DataClassification.CLINICAL, AccessPolicy.Action.READ, "CHART_READ");
+// restricted class (mental health, restricted result codes)
+records.requireClinical(user, employeeId, DataClassification.RESTRICTED_CLINICAL, AccessPolicy.Action.READ, "ENCOUNTER_READ");
+// manager / HR views (status only, org scope)
+records.requireStatus(user, employeeId, "TEAM_RESTRICTIONS_READ");
+// filter lists instead of failing
+boolean showRestricted = records.canSeeClinical(user, records.employee(employeeId), DataClassification.RESTRICTED_CLINICAL);
+```
+
+A denial is audited with your action name and surfaces as `404`. Break-glass needs nothing in your code: the ABAC
+policies evaluate the active grant. Add a negative test for every non-OH role that could reach the endpoint (pattern:
+`Increment2RecordIntegrationTest.f08HrManagersEmployeesAndReceptionNeverOpenClinicalRecords`).
+
+Related platform hooks: implement `com.wellnessz.security.consent.ConsentWithdrawalListener` (idempotent, runs inside
+the withdrawal transaction) if your module processes data under a consent – see `DocumentConsentListener`; use
+`com.wellnessz.integration.JobRunGuard.tryStart(jobName, runKey)` to run a daily job once across replicas
+(`platform.scheduled_job_run`) – see `FitnessJobs` and `RetentionService`.
+
+### 15.6 Adding a document template
+
+Templates are code (`platform/wz-documents/.../DocumentTemplates.java`), reviewed like code:
+
+1. Add a `Template(code, type, title, audience, containsClinical, recordClass, generatorRoles, signerRoles, mergeFields,
+   body)` entry. Merge fields: `f(key, label)` required (≤ 400 chars), `o(...)` optional, `t(key, label, required)`
+   long text (≤ 4,000 chars); body paragraphs use `{{key}}` placeholders (letters only).
+2. Set `containsClinical` honestly. `false` means the document may go to managers / HR and every merge field is screened
+   by `ClinicalContentException.screen`; `true` means OH and the employee (and partners with consent) only.
+3. Choose the record class for retention (`recordClassFor`) – a new class also needs a `docs.retention_schedule` row
+   (Flyway migration, legal basis marked *Proposed*) and DPO approval.
+4. If HR may issue it, add `Roles.HR` to generator and signer roles; HR can then only share it with the employee.
+5. If notifications differ from `document.shared`, add a content-free template in `NotificationTemplates` (allowed
+   placeholders only).
+6. Extend the OH workspace document form (`web/oh-workspace/src/screens/documents/DocumentsPanel.tsx`) and tests;
+   add an integration test that generates, signs and shares the template and, for non-clinical templates, proves that
+   clinical wording is rejected (`certificateIsGeneratedSignedAndSharedWithoutClinicalContent`).
+7. Wording is a draft until the DPO / CMO approve it (doc 01, O14).
+
+### 15.7 Adding an encounter template or a new template version
+
+Encounter templates are versioned JSON in `modules/wz-e03-record/src/main/resources/encounter-templates/` (loaded by
+`EncounterTemplates` from `classpath*:encounter-templates/*.json`; governance status in `ohrecord.encounter_template`).
+
+1. **New version of an existing type:** add a file (for example `INJURY_v2.json`) with the same `type` and
+   `"version": 2`. Never edit a released version – encounters store the template version they used.
+2. Fields: `key`, `label`, `type` (`TEXT`, `TEXTAREA`, `NUMBER` with optional `unit`, `DATE`, `BOOLEAN`, `SELECT`,
+   `MULTISELECT` with `options`, `CODE` with `codeSystem`), `required`. Template flags: `bodyMap`, `bodyMapRequired`,
+   `requiresDiagnosis`, `fitnessStandardPrompt`, `protocolPrompts`. Required fields are checked on signing
+   (`ClinicalEncounterService.missingFields`).
+3. Add a Flyway migration inserting `(type, version, 'DRAFT')` into `ohrecord.encounter_template`; without the row the
+   template is shown as DRAFT and cannot be approved.
+4. The CMO approves it in *OH workspace → Admin → Encounter templates*
+   (`POST /api/v1/encounter-templates/{type}/approve`, audited `ENCOUNTER_TEMPLATE_APPROVE`).
+5. **New encounter type** is a code change: add it to `EncounterTemplates.TYPES`, the `TYPES` pattern in
+   `ClinicalEncounterService` and the controller validation, decide its classification (only `MENTAL_HEALTH` is
+   restricted today), and extend the OH workspace types (`web/oh-workspace/src/domain/encounter.ts`) and tests
+   (`EncounterRulesTest`, `Encounter.test.tsx`).
+
+### 15.8 Adding or changing a fitness standard
+
+Fitness standards live in `masterdata.fitness_standard` (`code`, `version`, `title`, `role_category`, `source`,
+`reference_url`, `validity_months`, `validity_months_over_40`, `requires_signoff_role` `AME`/`CMO`,
+`limitation_codes`, `status`).
+
+* **Business change (no release):** OH_ADMIN or the CMO uses *OH workspace → Admin → Fitness standards*
+  (`PUT /api/v1/masterdata/fitness-standards/{code}`). Each save creates a **new version** and marks the previous one
+  `SUPERSEDED` (audited `FITNESS_STANDARD_VERSION`); past decisions keep the version they were made against.
+* **Shipped default:** a Flyway migration inserting version 1 (see the seed in `V6__increment2_platform.sql`); never
+  update rows an operator may have versioned.
+* Limitation codes must exist in the crew limitation-code list (`LimitationCodes`, `GET /api/v1/crew/limitation-codes`)
+  when the standard is used for crew; `requires_signoff_role` routes decisions to `AWAITING_SIGNOFF`.
+
+### 15.9 Adding a job-demand profile or a restriction
+
+* **Job-demand profiles** (`masterdata.job_demand_profile`): `PUT /api/v1/masterdata/job-demands/{jobCode}`
+  (OH_ADMIN, NURSING_HEAD) or bulk `POST /api/v1/masterdata/job-demands/import` (OH_ADMIN, ≤ 2,000 profiles). `demands`
+  is a JSON object over the fixed dimensions: numeric 0–500 for `LIFT_KG`, `PUSH_PULL_KG`, `HOURS_PER_DAY`,
+  `SCREEN_HOURS`; boolean for `CLIMB`, `AIRSIDE_DRIVE`, `NIGHT`, `KNIFE`, `CHEMICAL`, `RESPIRATOR`, `NOISE`, `HEAT`,
+  `HEIGHT`, `FLIGHT_DUTY`, `FOOD_HANDLING`, `SAFETY_CRITICAL`. Record who validated the profile (`validatedBy`).
+* **Restrictions** (`masterdata.restriction`, *Admin → Restriction catalogue*,
+  `PUT /api/v1/masterdata/restrictions/{code}`) map a functional label to one dimension; `MatchingEngine` compares
+  restrictions with profiles to suggest compatible duties.
+* **New dimension** is a code change: add it to `NUMERIC_DIMENSIONS` / `BOOLEAN_DIMENSIONS` in
+  `FitnessMasterDataController`, to `MatchingEngine` (and `MatchingEngineTest`) and to the OH workspace admin screen.
+
+### 15.10 Status-only outputs from a module
+
+Follow the E05 pattern (`E05Events`): a flat event record, a destination constant (`hr-systems`, `catering-hygiene`,
+`crew-rostering`) and the matching field list under `wellnessz.integration.outbound-allowlist.<destination>` in
+`apps/wz-core-app/src/main/resources/application.yml`. Fields not in the list are rejected by `OutboundPayloadGuard`.
+Have the DPO approve every list change (doc 02, Section 10).
+
+### 15.11 Machine endpoints for gateways
+
+Put endpoints that only gateways call under `/api/v1/integration/**` with `@PreAuthorize("hasRole('INTEGRATION')")`
+(the platform filter already limits the path to `INTEGRATION`, `PLATFORM_ADMIN`, `OH_ADMIN`). Prefer **pull with
+acknowledgement** (the LIS order queue, the roster feed) so the core needs no outbound connections. If people need the
+same data, add an alias outside `/integration` (for example `/crew/roster-feed` for `CREW_SCHEDULING`) – never widen
+the integration path rule.
+
+### 15.12 Running the increment-2 end-to-end test
+
+`tools/e2e/e2e-increment2.js` drives E03 and E05 through real Keycloak logins and the BFF and prints 25
+`PASS`/`FAIL` lines (exit code 1 on any failure). Prerequisites as in Section 14.7: local stack, core with the `local`
+profile (demo people, demo chart of `E1004`, crew profiles), BFF and the three dev servers. A realm imported before
+increment 2 lacks `dpo1`: run `./deploy/local/down.sh --purge` and `./deploy/local/up.sh` once.
+
+```bash
+node tools/e2e/e2e-increment2.js
+```
+
+It uses the same environment variables as `e2e-increment1.js` (Section 14.7; screenshots go to `WZ_E2E_OUT`, the
+published set is in `docs/images/screens/increment-02/`) and the realm users `employee1`, `manager1`, `hr1`, `nurse1`,
+`physician1`, `ame1`, `cmo1`, `crewsched1`, `dpo1` and `admin1`. It seeds a pilot incident through the EHS webhook
+(client `wellnessz-integration`), so `WZ_E2E_CORE_URL` and `WZ_E2E_INTEGRATION_SECRET` must match the environment.
+Run both increment scripts before a release (CI/CD Guide, Section 3.1).

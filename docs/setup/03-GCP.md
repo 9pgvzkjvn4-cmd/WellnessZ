@@ -16,6 +16,10 @@
 > `terraform fmt` is clean. The Helm chart renders with `values-gcp.yaml` and passes schema validation, including
 > the GKE CRDs (BackendConfig, FrontendConfig, ManagedCertificate) and the Secret Manager add-on
 > SecretProviderClass. **No `terraform apply` was run in a real project.** Build **dev** first.
+>
+> **Increment 2** (E03 OH record, E05 fitness for duty) needs no new GCP resource. It adds the `DPO` role, partner
+> `org_scope` claims and gateway clients in Entra ID (section 5), three Flyway-created schemas (section 8), new core
+> settings with optional font and OCR (section 12) and increment-2 smoke checks (section 14).
 
 ## 1. Overview of the steps
 
@@ -106,15 +110,18 @@ GKE does not change the identity model. Users still authenticate with **Microsof
 
 * the groups (including the nine increment-1 groups for OH_PHYSICIAN, AME, CMO, NURSING_HEAD, HSE_OFFICER,
   CREW_SCHEDULING, HYGIENE_MANAGER, CLINIC_RECEPTION and FIRST_AIDER);
-* `wellnessz-api` with app roles (20, including the nine increment-1 roles), the `access_as_user` scope and v2 tokens;
+* `wellnessz-api` with app roles (20, including the nine increment-1 roles; 21 with the increment-2 role `DPO`), the `access_as_user` scope and v2 tokens;
 * the `employee_id` / `org_scope` claims;
 * `wellnessz-bff`, with redirect URIs `https://employee.<domain>/login/oauth2/code/wellnessz`,
   `https://manager.<domain>/login/oauth2/code/wellnessz` and (increment 1) `https://oh.<domain>/login/oauth2/code/wellnessz`;
 * `wellnessz-mobile`;
-* M2M apps, including the **EHS webhook client** with the `INTEGRATION` application role (Azure guide, section 5.6).
+* M2M apps, including the **EHS webhook client** with the `INTEGRATION` application role (Azure guide, section 5.6);
+* (increment 2) the `DPO` app role and group `sg-wellnessz-dpo`, `org_scope=/PARTNERS/<ORG>` for partner users
+  (Azure guide, sections 5.1–5.3), and one `INTEGRATION` client per gateway – laboratory, device middleware, crew
+  rostering (Azure guide, section 5.6).
 
 Those steps need only Entra ID, not an Azure subscription. If the airline uses **Keycloak**, follow section 5.7 of
-the Azure guide; keep the nine increment-1 roles in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`
+the Azure guide; keep the nine increment-1 roles and the increment-2 role `DPO` in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`
 (`fullScopeAllowed=false`). On GKE, run Keycloak with the Keycloak Operator and a separate Cloud SQL database, behind its own
 Ingress and Cloud Armor policy.
 
@@ -260,9 +267,9 @@ On GCP no password variables are passed: Terraform already set them. The script:
 * makes `wz_migrator` the owner of the database and schemas;
 * grants `CONNECT` to the runtime roles.
 
-The schema list includes `triage` (increment 1). For an instance bootstrapped earlier, Flyway V5 creates `triage` and
-grants `USAGE` to `wz_app` during the next deployment; re-run the idempotent script to align the roles'
-`search_path`.
+The schema list includes `triage` (increment 1) and `docs`, `ohrecord`, `fitness` (increment 2). For an instance
+bootstrapped earlier, Flyway V5 (and V6–V8) create the schemas and grant `USAGE` to `wz_app` during the next
+deployment; re-run the idempotent script to align the roles' `search_path`.
 
 ```bash
 kubectl delete namespace wz-admin
@@ -352,6 +359,16 @@ Copy `values-gcp.yaml` placeholders into an overrides file, for example `deploy/
 | `networkPolicy.database.cidrs` | `psa_cidr` |
 | Hostnames | Your domain: `ingress.hosts.employeePortal`, `managerWorkspace`, `ohWorkspace` (increment 1), `ingress.api.host`; the same web hosts in `core.env.WZ_CORS_ORIGINS` |
 | `core.env.WZ_OH_WORKSPACE_URL`, `WZ_OH_CONTACT` (increment 1) | `https://oh.<domain>`; the OH service-desk contact line for notifications |
+| `core.env.WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL`, `WZ_DPO_EMAIL` (increment 2) | `https://employee.<domain>`, `https://manager.<domain>`; the DPO mailbox for break-glass alerts |
+| `core.env.WZ_DOCUMENTS_FONT_PATH`, `WZ_DOCUMENTS_RETENTION_CRON`, `WZ_DIAGNOSIS_REQUIRED_ON_CLOSE` (increment 2, optional) | Font path inside a derived core image (Arabic PDFs); default `0 30 2 * * *`; default `true` |
+
+**Optional OCR (increment 2).** Off by default. Either a derived core image with Tesseract
+(`core.extraEnv`: `WELLNESSZ_DOCUMENTS_OCR_TESSERACTPATH=/usr/bin/tesseract`,
+`WELLNESSZ_DOCUMENTS_OCR_LANGUAGES=eng+ara+fra`; allow-listed values only), or **Google Document AI** as an
+`OcrProvider` extension point (not shipped): processor in the same region, access through Private Service Connect /
+VPC Service Controls perimeter, the core's Google service account with `roles/documentai.apiUser`, a
+`networkPolicy.extraEgress.core` rule and a DPIA approved by the DPO. Derived images must go through the same
+build, attestation and Binary Authorization path as the base image.
 
 ```bash
 helm lint deploy/helm/wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-gcp.yaml -f deploy/env/dev-gcp.yaml
@@ -431,6 +448,12 @@ Run the same checklist as the Azure guide, section 14, with these GCP specifics:
   `IMPLEMENTED` in `GET /api/v1/modules`, new roles in tokens, EHS webhook `202`, status-only crew API, and
   `tools/e2e/e2e-increment1.js` with `WZ_E2E_OH_URL=https://oh.<domain>` in dev/test. Cloud Armor must allow webhook
   bodies of up to 500 incidents; check `jsonPayload.enforcedSecurityPolicy` if the call returns `403`.
+* **Increment 2:** run checks 18–24 of the Azure guide, section 14: new schemas (`\dn` from the bootstrap pod), E03 /
+  E05 `IMPLEMENTED`, DPO segregation, break-glass alert, document generation, gateway pull queue (`200` with a
+  gateway token, `403` with a user token) and `tools/e2e/e2e-increment2.js` (25 `PASS` lines) in dev/test. Cloud
+  Armor must accept HL7 v2 ER7 bodies (`text/plain`) on `/api/v1/integration/hl7v2` and multipart uploads of up to
+  10 MB on `/api/v1/documents/scan`; check `jsonPayload.enforcedSecurityPolicy` for false positives on the
+  preconfigured CRS rules.
 
 ## 15. EHS mailbox and MDM
 
@@ -453,6 +476,8 @@ private ranges are excluded.
 | Core cannot connect: `SSL error: certificate verify failed` | CA file missing or `WZ_DB_SSLMODE` mismatch | `cloudsql-server-ca.pem` in `secrets.core.files`; `verify-ca` with Cloud SQL |
 | ManagedCertificate `FailedNotVisible` | DNS not pointing to the static IP | Fix the A records and wait |
 | CD cannot reach the control plane | Private endpoint | Use `use_dns_based_endpoint` (default in `deploy-env.yml`) and authorised networks, or a runner in the VPC |
+| Lab gateway `403` on `/integration/hl7v2` with a valid token | Cloud Armor CRS rule matched the pipe-delimited body | Add a scoped exclusion for that path and rule id; keep the `INTEGRATION` role check |
+| DPO or partner sees no data | `DPO` app role / partner `org_scope` missing | Azure guide, sections 5.2–5.3 |
 
 ## 17. Teardown (dev/test only)
 

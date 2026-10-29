@@ -20,6 +20,10 @@
 >
 > **Increment 1** (E01 intake, E02 triage) adds the OH workspace to the cloud web tier, schema `triage` to the
 > on-prem database and the EHS webhook on the on-prem API. The changes are listed in sections 8–10.
+>
+> **Increment 2** (E03 OH record, E05 fitness for duty) adds schemas `docs`, `ohrecord`, `fitness` to the on-prem
+> database, the `DPO` role, and gateway connectivity from the laboratory, device middleware and crew rostering to the
+> on-prem API. All clinical data, documents and the search index stay on-premises. Changes are in sections 4, 8 and 10.
 
 ## 1. Target state
 
@@ -107,7 +111,9 @@ gcloud container fleet policycontroller enable --memberships=wz-onprem-prod
 3. **Firewall.** Allow `cloud BFF egress range → on-prem API ingress VIP : 443/TCP` only. Deny everything else and
    log denies. The EHS webhook (increment 1) is called by the EHS system on the corporate network: allow
    `EHS system → on-prem API ingress VIP : 443/TCP` as a separate, documented rule rather than routing it through
-   the cloud edge (`ingress.api.enabled` is `false` there).
+   the cloud edge (`ingress.api.enabled` is `false` there). Increment 2 adds the same kind of rule for each gateway
+   (laboratory / LIS integration engine, device middleware, crew-rostering gateway → on-prem API ingress VIP :
+   443/TCP). All three **pull** from or post to the API; the core opens no connections towards them.
 4. **DNS.** A conditional forwarder for `onprem.example.internal`: Azure Private DNS Resolver, Cloud DNS
    forwarding zone or on-prem DNS.
 5. **TLS.** The API ingress certificate comes from the internal PKI. Add the internal root CA to the BFF JVM
@@ -304,6 +310,23 @@ The pre-upgrade Flyway Job migrates `wellnessz` as `wz_migrator` and grants the 
   calls go to `https://api.wellnessz.onprem.example.internal/api/v1/intake/ehs/incidents`.
 * Load the OH staff roster (`masterdata.staff_member`) with a reviewed SQL script; never enable `classpath:db/demo`.
 
+**Increment 2 on-prem.**
+
+* Schemas `docs`, `ohrecord`, `fitness` are in `migrations.job.core.schemas` and in the CNPG bootstrap
+  (`postInitApplicationSQL` and the grants loop of `deploy/hybrid/cnpg/03-cluster.yaml`). A cluster initialised
+  earlier gets them from Flyway V6–V8; then align `search_path` as `postgres`:
+  `ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, analytics;`
+* Core `env` in your overrides file: `WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL` (cloud hosts),
+  `WZ_DPO_EMAIL` (on-prem or M365 DPO mailbox reachable through the SMTP relay).
+* Optional PDF font and Tesseract OCR: build a derived core image in your pipeline and push it to the registry mirror;
+  set `WZ_DOCUMENTS_FONT_PATH` and, for OCR, `WELLNESSZ_DOCUMENTS_OCR_TESSERACTPATH=/usr/bin/tesseract` and
+  `WELLNESSZ_DOCUMENTS_OCR_LANGUAGES` (allow-listed). On-host Tesseract keeps scanned documents on-premises; cloud OCR
+  services would move PHI to the cloud and contradict the purpose of the hybrid setup.
+* Register one `INTEGRATION` client per gateway (guide 06, section 5.6); their calls go to
+  `https://api.wellnessz.onprem.example.internal/api/v1/integration/...` and
+  `/api/v1/employees/{id}/results/device`.
+* Add `DPO` to the IdP (Entra app role or Keycloak realm role plus BFF / mobile scope mappings).
+
 Verify:
 
 ```bash
@@ -354,6 +377,10 @@ The Azure workload identity federated credentials expect the release name `welln
 | 10 | Schema location: `kubectl -n wellnessz-db exec wellnessz-db-1 -c postgres -- psql -U postgres -d wellnessz -c '\dn'` | `triage` present on-prem; the cloud session database still holds only `bff` |
 | 11 | EHS webhook from the EHS network to the on-prem API host (guide 06, section 5.6 smoke call) | `202` |
 | 12 | `tools/e2e/e2e-increment1.js` with `WZ_E2E_EMPLOYEE_URL`, `WZ_E2E_WORKSPACE_URL`, `WZ_E2E_OH_URL` set to the cloud hosts and `WZ_E2E_CORE_URL` to the on-prem API host (dev/test only, run from a host that can reach both) | 18 `PASS` lines |
+| 13 | Increment-2 schema location: `kubectl -n wellnessz-db exec wellnessz-db-1 -c postgres -- psql -U postgres -d wellnessz -c '\dn'` | `docs`, `ohrecord`, `fitness` present on-prem; the cloud session database still holds only `bff` |
+| 14 | Gateway pull queue from the laboratory network: `GET https://api.wellnessz.onprem.example.internal/api/v1/integration/lis/orders?status=QUEUED` with a gateway token | `200`; a user token gets `403` |
+| 15 | DPO test account on `https://oh.<domain>` | Break-glass reviews, disclosures and retention load; a chart is not shown |
+| 16 | `tools/e2e/e2e-increment2.js` with the same `WZ_E2E_*` settings as check 12 (dev/test only) | 25 `PASS` lines |
 
 ## 11. Backup restore test (quarterly, SOC 2 A1.3)
 
@@ -408,6 +435,8 @@ Then delete the test cluster.
 | Edge BFF `504` / connection reset | Firewall or MTU on the VPN, or DNS forwarder | Test with the `nettest` pod; set the MSS clamp to 1350 on the VPN |
 | OpenShift pods rejected by SCC | `runAsUser` set | `global.openshift=true` |
 | Arc extension `Failed` | Outbound proxy not configured | `az connectedk8s connect --proxy-https …` |
+| Lab or rostering gateway times out | Firewall rule for that gateway → on-prem API VIP missing | Section 4, step 3 (one documented rule per gateway) |
+| Break-glass alert e-mail not received | `WZ_DPO_EMAIL` unset or the SMTP relay rejects the recipient | Set the variable; check the notification log in the core |
 
 ## 13. Teardown
 

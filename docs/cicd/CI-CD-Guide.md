@@ -138,16 +138,42 @@ servers or images). Run them as a release gate:
 
 | When | What | Pass criterion |
 |---|---|---|
-| Before opening the release PR (developer laptop, setup guide 05) | `node tools/e2e/e2e.js` and `node tools/e2e/e2e-increment1.js` | `e2e.js` ends with the status-only lines; `e2e-increment1.js` prints 18 `PASS` lines and exits 0 |
-| After `cd.yml` deploys to **dev** or **test** | `e2e-increment1.js` with `WZ_E2E_*` pointing at the environment and dedicated test accounts | Same; attach the log and screenshots to the release record (CC8.1 evidence) |
+| Before opening the release PR (developer laptop, setup guide 05) | `node tools/e2e/e2e.js`, `node tools/e2e/e2e-increment1.js` and `node tools/e2e/e2e-increment2.js` | `e2e.js` ends with the status-only lines; `e2e-increment1.js` prints 18 and `e2e-increment2.js` 25 `PASS` lines, both exit 0 |
+| After `cd.yml` deploys to **dev** or **test** | `e2e-increment1.js` and `e2e-increment2.js` with `WZ_E2E_*` pointing at the environment and dedicated test accounts | Same; attach the logs and screenshots to the release record (CC8.1 evidence) |
 
 Increment 1 baseline: `e2e-increment1.js` 18/18. Screenshots of the reference run are kept in
 `docs/images/screens/increment-01/`.
 
+Increment 2 baseline: `e2e-increment2.js` 25/25, screenshots in `docs/images/screens/increment-02/`. **Both increment
+scripts are the pre-release gate from increment 2 on**: a release that touches the case kernel, security, documents
+or any business module must pass both, because increment 2 changed shared code that increment 1 relies on (kernel
+fitness publication, consent, notification templates, BFF path handling). The increment-2 script needs the realm user
+`dpo1` (a realm imported before increment 2 must be re-imported) and the `local` profile demo data.
+
 To automate the stage later (recommended), add a `workflow_dispatch` / post-deploy job that starts the Docker Compose
 stack with `./deploy/local/up.sh --apps`, serves the three built web apps, installs `playwright@1` with Chromium,
-runs both scripts and uploads `tools/e2e/shots` as an artefact. Pin every action by SHA and keep the job's
+runs all three scripts and uploads `tools/e2e/shots` as an artefact. Pin every action by SHA and keep the job's
 `permissions` at `contents: read`. Only local, generated secrets may be used; never point an automated run at prod.
+
+### 3.2 Document-processing dependencies (increment 2)
+
+Increment 2 adds **Apache PDFBox 3.0.8** (`pdfbox.version` in the root `pom.xml`, used by `platform/wz-documents`). It
+parses untrusted uploads (scanned PDFs), so it is treated as a security-relevant dependency:
+
+| Control | Where | Notes |
+|---|---|---|
+| CVE scanning | OWASP dependency-check job (`ci.yml`, fails at CVSS ≥ 7) and the Trivy image gate in `container.yml` (the jar is inside `wz-core-app`) | A PDFBox CVE blocks the build; suppressions only with justification and expiry |
+| Updates | Dependabot `maven` ecosystem (weekly, `maven-minor-patch` group; security updates immediately) | Patch releases of 3.0.x are expected to be drop-in |
+| Licence | CycloneDX SBOM (`sbom-java`) and dependency review (denies GPL/AGPL) | PDFBox is Apache-2.0; its transitive `fontbox` and `pdfbox-io` are Apache-2.0 too |
+| SAST | SpotBugs + FindSecBugs; the OCR command line is the sixth justified exclusion (`TesseractOcrProvider`) | No other exclusion was added for document handling |
+| Patch SLA | Critical 7 days, high 30 days (doc 02, Section 10) | Prioritise parser CVEs that are reachable from `/documents/scan` |
+
+Optional runtime additions are **not** part of the repository images: a Unicode font for Arabic PDFs and Tesseract
+OCR. If an environment needs them, build a derived image from the signed `wz-core-app` digest in your pipeline
+(for example `FROM <registry>/wz-core-app@sha256:…` plus `tesseract-ocr`, `tesseract-ocr-ara`, `tesseract-ocr-fra`
+and the font) and run it through the same Trivy gate, SBOM, provenance and cosign signing as the base image; add the
+image to the `cosign verify` loop of `deploy-env.yml`. Never install packages at container start (read-only root
+filesystem).
 
 ## 4. Supply chain: pinning, signing, SBOM, provenance
 
@@ -422,7 +448,8 @@ repository. This requires the `attribute.environment` mapping shown above.
 
 ### 10.1 New Maven module (for example a business module `modules/wz-e07-surveillance`)
 
-Increment 1 followed this checklist for `modules/wz-e01-intake` and `modules/wz-e02-triage`:
+Increment 1 followed this checklist for `modules/wz-e01-intake` and `modules/wz-e02-triage`; increment 2 for
+`platform/wz-documents`, `modules/wz-e03-record` and `modules/wz-e05-fitness`:
 
 1. Add `<module>` and the `<dependencyManagement>` entry to the root `pom.xml` and the dependency in
    `apps/wz-core-app/pom.xml`. CI picks it up automatically through `./mvnw verify`, SpotBugs, dependency-check,
@@ -431,12 +458,18 @@ Increment 1 followed this checklist for `modules/wz-e01-intake` and `modules/wz-
    kernel must not depend on it; no cycles between business modules).
 3. Add migrations for its tables (section 8) and grants to `${app_role}`. A **new schema** must also be added to
    `spring.flyway.schemas`, the Helm value `migrations.job.core.schemas`, `deploy/local/postgres/01-init-wellnessz.sh`,
-   `deploy/sql/bootstrap-managed-postgres.sql` and `deploy/hybrid/cnpg/03-cluster.yaml` (increment 1: `triage`).
+   `deploy/sql/bootstrap-managed-postgres.sql` and `deploy/hybrid/cnpg/03-cluster.yaml` (increment 1: `triage`;
+   increment 2: `docs`, `ohrecord`, `fitness`). Demo data goes to `db/demo` (`R__demo_*.sql`), never to `db/migration`.
 4. New roles: Keycloak realm roles **and** the scope mappings of `wellnessz-bff` / `wellnessz-mobile`; Entra app roles
-   (setup guide 06, section 5.2).
-5. SpotBugs exclusions only with a justification in `config/spotbugs-exclude.xml` (increment 1 added one: 5 entries).
+   (setup guide 06, section 5.2). Increment 2 added `DPO` and the test users `dpo1` and `partner1`.
+5. SpotBugs exclusions only with a justification in `config/spotbugs-exclude.xml` (increment 1 added one: 5 entries;
+   increment 2 added one for the allow-listed OCR command line: **6 entries**).
 6. Add the module path (`/modules/<name>/`) to `CODEOWNERS` – today `/modules/` falls under the default owner `*`.
-7. Nothing else changes in the pipeline: it ships inside the core image.
+7. Nothing else changes in the pipeline: it ships inside the core image. A new third-party library (increment 2:
+   Apache PDFBox) gets a managed version property in the root `pom.xml` and is reviewed for licence and CVE exposure
+   (section 3.2).
+8. Add an end-to-end script for the increment (`tools/e2e/e2e-incrementN.js`) with published screenshots in
+   `docs/images/screens/increment-NN/`, and add it to the pre-release gate (section 3.1).
 
 ### 10.2 New deployable service (new image)
 
@@ -620,7 +653,9 @@ For each production change, the auditor can obtain the following without extra w
 | 12 | Rollback capability tested (A1.2) | `helm --atomic` behaviour; quarterly rollback drill recorded |
 | 13 | Database changes controlled (CC8.1) | Flyway history table (`platform.flyway_schema_history`, `bff.flyway_schema_history_bff`) + migration PR |
 | 14 | Access to pipelines reviewed (CC6.2) | Quarterly export of repository collaborators, teams, environment reviewers and federated credentials |
-| 15 | Functional acceptance of the increment (CC8.1) | E2E log of `tools/e2e/e2e-increment1.js` (18/18 for increment 1) and screenshots attached to the release record |
+| 15 | Functional acceptance of the increment (CC8.1) | E2E log of `tools/e2e/e2e-increment1.js` (18/18 for increment 1) and screenshots attached to the release record; from increment 2 on also `tools/e2e/e2e-increment2.js` (25/25) – both scripts for every release |
+| 16 | Approval of governed content shipped with the release (CC8.1, PI1.3) | Increment 2: CMO approval of encounter templates and fitness standards, DPO approval of the retention schedule and outbound allow-list changes – audit events `ENCOUNTER_TEMPLATE_APPROVE`, `FITNESS_STANDARD_VERSION`, `RETENTION_SCHEDULE_APPROVED` and the PR review of `application.yml` |
+| 17 | Third-party component review (CC7.1, CC9.2) | SBOM diff between releases; dependency-check result for new libraries (increment 2: Apache PDFBox 3.0.8) |
 
 Retention: export workflow logs, deployment history and attestations to the evidence store (for example a WORM
 storage container) monthly. The GitHub default log retention (90 days) is shorter than a SOC 2 Type 2 observation
