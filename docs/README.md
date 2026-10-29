@@ -22,6 +22,10 @@ generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
 | 15 | Increment 2 – Requirements Traceability Matrix | Project sponsor, QA, OH governance | `increment-02/02-Requirements-Traceability-Matrix.md` | – |
 | 16 | Increment 2 – Release Notes | All | `increment-02/03-Release-Notes-Increment-2.md` | – |
 | 17 | Increment 2 – API Contract E03/E05 | Engineering, integrators | `increment-02/API-Contract-E03-E05.md` | – |
+| 18 | Increment 3 – Solution Design E06/E07/E14 | Architects, OH governance, DPO, engineering | `increment-03/01-Solution-Design-E06-E07-E14.md` | – |
+| 19 | Increment 3 – Requirements Traceability Matrix | Project sponsor, QA, OH governance | `increment-03/02-Requirements-Traceability-Matrix.md` | – |
+| 20 | Increment 3 – Release Notes | All | `increment-03/03-Release-Notes-Increment-3.md` | – |
+| 21 | Increment 3 – API Contract E06/E07/E14 | Engineering, integrators | `increment-03/API-Contract-E06-E07-E14.md` | – |
 | – | Design brief (contract between components) | Engineering | `00-design-brief.md` | – |
 | – | OpenAPI 3 contract of the core API | Integrators | `api/openapi.json` | – |
 
@@ -32,7 +36,13 @@ setup guide and the CI/CD Guide.
 Documents 1–9 were updated again for increment 2 (E03 OH record & clinical encounters, E05 fitness for duty,
 restrictions & return to work): doc 01 Sections 14.15–14.21 and 20 (plus module status, schemas, licensing, risks and
 open items), doc 02 Section 12, doc 03 Section 15, doc 04 Section 18, increment-2 steps in each setup guide and
-Section 3.2 and the checklists of the CI/CD Guide. Rendered copies in `docs/dist/` must be regenerated.
+Section 3.2 and the checklists of the CI/CD Guide.
+
+Documents 1–9 were updated again for increment 3 (E06 absence & sickness management, E07 medical surveillance,
+statutory medicals & immunisation, E14 scheduling, clinic operations & resource management): doc 01 Sections
+14.22–14.25 and 21 (plus module status, schemas, roles, SPIs, risks and open items), doc 02 Section 13, doc 03
+Section 16, doc 04 Section 19, increment-3 steps in each setup guide and Sections 3.1, 3.3 and the checklists of the
+CI/CD Guide. Rendered copies in `docs/dist/` must be regenerated.
 
 Supporting material:
 
@@ -48,11 +58,18 @@ Supporting material:
   encounter templates and the restriction catalogue; DPO break-glass reviews, disclosure log and retention; manager
   team restrictions, duty proposals, RTW plans and documents; HR job offers; employee documents, RTW plan, job offer
   and privacy)
+* `images/screens/increment-03/` – increment-3 screenshots captured by `tools/e2e/e2e-increment3.js` (37 images: OH
+  absence queue, trigger rules, feed quality, certificates, LTA pathway, advice report, absence analytics, programmes
+  and programme builder, due list, exposure registers, equipment, follow-ups, return after illness, pre-employment,
+  crew certificates, immunisation, compliance, chart tabs, diary, reception kiosk, queue board, campaigns, capacity and
+  the service catalogue; employee advice review, absence, candidate portal, surveillance and appointments; manager / HR
+  absence, advice requests, team absence, pre-employment and compliance)
 * Executive videos for C-level stakeholders and the sponsor (1080p, English subtitles), shipped in the documents
   bundle (`05-Video/`) rather than in Git:
   * `WellnessZ-Executive-Briefing.mp4` – base framework concept (6 min)
   * `WellnessZ-Increment1-Executive-Briefing.mp4` – increment 1: intake rules, triage queues & SLAs (6 min)
   * `WellnessZ-Increment2-Executive-Briefing.mp4` – increment 2: health record, fitness for duty & return to work (6 min)
+  * `WellnessZ-Increment3-Executive-Briefing.mp4` – increment 3: absence & sickness, medical surveillance, scheduling & clinic operations (6 min)
 
 ## Verification summary (base framework)
 
@@ -87,3 +104,16 @@ Supporting material:
 | API contract | `api/openapi.json` regenerated – 240 paths |
 | New dependency | Apache PDFBox 3.0.8 (Apache-2.0) – document generation and PDF text extraction |
 | Not yet exercised | Increment-2 changes on AKS/GKE/hybrid; Entra `DPO` app role and partner `org_scope` claims; real laboratory, device and rostering gateways; Tesseract or cloud OCR; clinical / DPO approval of templates, standards, CDS rules and the retention schedule |
+
+## Verification summary (increment 3 – E06, E07, E14)
+
+| Check | Result |
+|---|---|
+| Java build & tests (`./mvnw verify`) | 210 tests – wz-core-app 89 (adds `Increment3AbsenceIntegrationTest` 10, `Increment3SurveillanceIntegrationTest` 9, `Increment3SchedulingIntegrationTest` 9), module unit tests E06 18, E07 13, E14 18, the notification content-rule test over every template; 14 ArchUnit rules (new: E03/E05 independent of increment 3, E06 / E07 / E14 mutually independent and E14 independent of the clinical modules) – all passing. Recreate the test database before each run when `WZ_TEST_DB_URL` points at a persistent database (encryption keys are generated per test JVM) |
+| SAST (SpotBugs + FindSecBugs, effort Max) | 0 findings; still 6 justified exclusions in `config/spotbugs-exclude.xml` (none added) |
+| Web apps (`npm run lint && npm test && npm run build`) | oh-workspace 463 tests, employee-app 191, manager-workspace 154 – passing, lint 0 warnings |
+| End-to-end (`tools/e2e/e2e-increment3.js`, real Keycloak login via the BFF) | 32/32 checks (increment 1 18/18 and increment 2 25/25 re-run): absence feed with reconciliation, trigger rules and early-intervention queue, certificate upload and validation (HR sees validity only), LTA milestones, clinical-text guard on HR stages and advice reports, employee consent before advice release, absence analytics with suppression; surveillance simulation, scheduler booking, IH import above the action level, calibration block (`422`) then acceptance, follow-up cases, return-after-illness clearance guard (`422 clearance_required`), candidate portal and HR clearance status, crew certificate expiry, GS1 vaccine entry, anonymised audit pack; double-booking `409`, self-booking and reschedule, badge check-in and queue board without names, call-next, cold-chain excursion, campaign cohort booking and capacity forecast |
+| Defect found by E2E and fixed | The BFF parsed browser multipart uploads itself and forwarded an empty body (`400`); `spring.servlet.multipart.enabled=false` in `apps/wz-bff` now streams uploads untouched |
+| API contract | `api/openapi.json` regenerated – 391 paths (was 240) |
+| New dependency | none |
+| Not yet exercised | Increment-3 changes on AKS/GKE/hybrid; Entra app roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`, `CANDIDATE` and a candidate identity solution; real HRIS / time & attendance / crew absence connectors (`AbsenceFeedConnector` default no-op), IoT fridge gateway, telehealth video; CMO validation of the 13 surveillance programmes and CAA confirmation of the crew examination formats |

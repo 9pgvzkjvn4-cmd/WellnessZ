@@ -9,7 +9,11 @@ E17 de-identified analytics, E18 master data & no-code configuration, notificati
 stratification, triage queue, SLA & case assignment) with the **OH clinical workspace**; **increment 2** delivered
 E03 (OH record & clinical encounters) and E05 (fitness for duty, restrictions & return to work) together with the
 platform **document service** (PDF generation, e-signature, consented sharing, retention and legal hold), the `DPO`
-role, break-glass access and a disclosure log.
+role, break-glass access and a disclosure log; **increment 3** delivered E06 (absence & sickness management), E07
+(medical surveillance, statutory medicals & immunisation, including pre-employment and crew medical certificates) and
+E14 (scheduling, clinic operations & resource management: diaries, self-booking, check-in and queue, equipment
+calibration, cold chain, campaigns, capacity), seven kernel SPIs that connect them without module-to-module
+dependencies, clinic sites, and the roles `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING` and `CANDIDATE`.
 
 > Core rule: clinical data stays inside the Occupational Health domain; operations and HR receive
 > **status-only** outputs. It is enforced in the ABAC policy engine, in the API projections, at the outbound
@@ -22,26 +26,29 @@ role, break-glass access and a disclosure log.
 | `platform/wz-common` | Shared kernel: RFC 9457 errors, correlation ids, classification & disclosure enums, IdP-neutral role mapping |
 | `platform/wz-secrets` | `ENC(...)` AES-256-GCM config secrets, `file:` mounted secrets, field-level encryption, `EncryptCli` |
 | `platform/wz-security` | E16 – multi-issuer OIDC resource server, ABAC policy engine, consent, hash-chained audit |
-| `platform/wz-masterdata` | E18 – org hierarchy, job codes, hazards, versioned configuration / feature flags |
+| `platform/wz-masterdata` | E18 – org hierarchy, job codes, hazards, versioned configuration / feature flags; clinic sites (increment 3) |
 | `platform/wz-integration` | E15 – transactional outbox event bus, idempotency, replay, FHIR R4, HL7 v2, terminology, connectors |
 | `platform/wz-notification` | Push / SMS / e-mail gateway with content rules and quiet hours |
 | `platform/wz-analytics` | E17 – de-identified KPIs, small-cell + complementary suppression, pseudonymisation |
-| `platform/wz-case-kernel` | Case aggregate, pathway state machine, status-only projection, `CaseModule` and `CaseTransitionGuard` SPIs, case numbering, timeline, tasks, attachments |
+| `platform/wz-case-kernel` | Case aggregate, pathway state machine, status-only projection, `CaseModule` and `CaseTransitionGuard` SPIs, case numbering, timeline, tasks, attachments; increment 3: `AppointmentBooking`, `AppointmentStatusListener`, `DeviceCalibrationCheck`, `ResultFollowUpListener`, `FitnessClearanceGuard`, `AbsenceSignalListener`, `CapacityDemandSource` SPIs |
 | `platform/wz-documents` | Document service (increment 2): code-defined templates, PDF rendering with Apache PDFBox, SHA-256 e-signature, versioning, sharing with consent and disclosure log, scanned documents with optional OCR, blind-index search, retention schedule and legal hold |
 | `platform/wz-ehs-intake` | EHS feed: IMAP / Microsoft Graph mailbox reader and hardened Excel import |
 | `modules/wz-e01-intake` | E01 – intake rule table, EHS incident rules, referrals, walk-in/emergency encounters, system triggers, duplicates, recordability, notification matrix |
 | `modules/wz-e02-triage` | E02 – triage protocols (versioned JSON), SLA timers, assignment engine, work queues, escalations, complexity, status-only crew / food-handler APIs |
 | `modules/wz-e03-record` | E03 (increment 2, schema `ohrecord`) – OH chart, versioned encounter templates (JSON) with body map and e-signature, terminology, lab orders / results (HL7 v2 pull queue, ORU), device capture, CDS, FHIR R4 / ODH export, AI documentation SPI (no provider) |
 | `modules/wz-e05-fitness` | E05 (increment 2, schema `fitness`) – fitness decisions and sign-off, restrictions and job-demand matching, modified duty, RTW plans, job offers, crew roster feed with acknowledgement, food handlers, ill-health retirement |
+| `modules/wz-e06-absence` | E06 (increment 3, schema `absence`) – absence feed (push endpoint + `AbsenceFeedConnector` pull SPI) with reconciliation, versioned trigger rules and early-intervention queue, sick certificates (upload, validation, HR sees validity only), long-term absence pathway with milestones, management advice requests and OH advice reports released after employee review, absence analytics with small-group suppression |
+| `modules/wz-e07-surveillance` | E07 (increment 3, schema `surveillance`) – hazard-driven surveillance programmes, due lists and invitations, exposure registers (IH measurements, cosmic dose), result follow-up, return-after-illness clearance guard, pre-employment with candidate portal and 12-month purge, crew medical certificates, immunisation registry (GS1 barcodes), compliance and anonymised audit packs |
+| `modules/wz-e14-scheduling` | E14 (increment 3, schema `scheduling`) – service catalogue, clinic resources and diary templates, booking with conflict detection, waitlist, self-booking, check-in and queue board, campaigns, equipment register with calibration (blocks device results), cold-chain readings (manual and IoT) with excursions, capacity forecast, telehealth links |
 | `apps/wz-core-app` | Runnable core API (8080, management 8081) + Flyway migrations (`db/migration`; demo data `db/demo` for the `local` profile only) |
 | `apps/wz-bff` | Backend-for-Frontend (8090): OIDC login, encrypted JDBC sessions, CSRF, token relay |
-| `web/employee-app` | React + Capacitor crew app (PWA / iOS / Android, MDM AppConfig) |
-| `web/manager-workspace` | React manager & HR workspace (status-only, manager and HR referrals) |
-| `web/oh-workspace` | React OH clinical workspace (dev port 5175): queues, triage, assignment, escalation, intake operations, configuration, reception |
+| `web/employee-app` | React + Capacitor crew app (PWA / iOS / Android, MDM AppConfig); increment 3: my absence and certificates, advice-report review, surveillance and immunisations, appointments with self-booking and check-in, candidate (pre-employment) portal |
+| `web/manager-workspace` | React manager & HR workspace (status-only, manager and HR referrals); increment 3: team absence, OH advice requests, surveillance compliance, pre-employment clearance (HR) |
+| `web/oh-workspace` | React OH clinical workspace (dev port 5175): queues, triage, assignment, escalation, intake operations, configuration, reception; chart, encounters, fitness (increment 2); absence, surveillance, scheduling and clinic operations (increment 3) |
 | `deploy/` | Docker Compose (local), Dockerfiles, Helm chart, Terraform (Azure, GCP), hybrid blueprint |
 | `.github/` | CI, CodeQL, container build/sign, CD workflows, Dependabot |
 | `docs/` | Architecture, SOC 2 mapping, deployment architecture, setup guides, CI/CD guide, OpenAPI |
-| `tools/` | `encrypt-secret.sh`; `tools/e2e/` Playwright end-to-end tests: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, 18 checks), `e2e-increment2.js` (E03/E05, 25 checks) |
+| `tools/` | `encrypt-secret.sh`; `tools/e2e/` Playwright end-to-end tests: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, 18 checks), `e2e-increment2.js` (E03/E05, 25 checks), `e2e-increment3.js` (E06/E07/E14, 32 checks) |
 
 ## Quick start (developer laptop)
 
@@ -60,17 +67,18 @@ cp deploy/local/.env.example deploy/local/.env   # then fill in local-only value
 ```
 
 Integration tests use PostgreSQL via Testcontainers, or an existing database when `WZ_TEST_DB_URL`
-(+ `_USERNAME`, `_PASSWORD`, `_MIGRATOR_USERNAME`, `_MIGRATOR_PASSWORD`) is set.
+(+ `_USERNAME`, `_PASSWORD`, `_MIGRATOR_USERNAME`, `_MIGRATOR_PASSWORD`) is set. Encrypted columns are keyed per
+test JVM (the test keys are generated on every run), so drop and recreate such a test database before every run.
 
 ## Quality gates
 
 * `./mvnw verify` – unit, integration (real PostgreSQL), ArchUnit boundary tests, JaCoCo, CycloneDX SBOM
 * `./mvnw -Psecurity verify` – SpotBugs + FindSecBugs SAST and OWASP dependency-check (needs `NVD_API_KEY`)
 * `npm run lint && npm test && npm run build` in each `web/*` app (`employee-app`, `manager-workspace`, `oh-workspace`)
-* `node tools/e2e/e2e-increment1.js` and `node tools/e2e/e2e-increment2.js` against the running local stack (release gate)
+* `node tools/e2e/e2e-increment1.js`, `node tools/e2e/e2e-increment2.js` and `node tools/e2e/e2e-increment3.js` against the running local stack (release gate)
 * CI adds CodeQL, gitleaks, Trivy image scanning, SBOM attestation and cosign signing
 
 ## Documentation
 
 Start with `docs/README.md`. Increment 1 documents are in `docs/increment-01/`, increment 2 documents in
-`docs/increment-02/`.
+`docs/increment-02/`, increment 3 documents in `docs/increment-03/`.
