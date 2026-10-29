@@ -79,8 +79,13 @@ Requirement scope: E04 F01–F07 (19 backlog items), E08 F01–F06 (12). Coverag
   consent; `legalHoldForCase`; templates `TREATMENT_PLAN`, `PREAUTH_REQUEST`, `FIRST_REPORT_OF_INJURY`,
   `MEDICO_LEGAL_REPORT`; upload types `PROVIDER_REPORT`, `PROVIDER_INVOICE`, `INSURER_ACKNOWLEDGEMENT`, `REDACTED_COPY`;
   retention class `CLAIM_RECORD` (10 y, proposed).
-* **Security**: MFA gate for `PARTNER_PROVIDER` and `TPA_ADJUSTER`; consent purpose `TELEHEALTH_CONSULTATION`; `/me`
-  disclosure level STATUS_ONLY for the new roles.
+* **Security**: MFA gate for `PARTNER_PROVIDER` and `TPA_ADJUSTER` (proof from `amr`, `acr` or the Entra ID `acrs`
+  authentication-context array); consent purpose `TELEHEALTH_CONSULTATION`; `/me` disclosure level STATUS_ONLY for the
+  new roles. **Partner / insurer machine clients are bound to their organisation** (fixed in increment 4 after review):
+  `CurrentUser.partnerOrganisation()` reads the code from `org_scope=/PARTNERS/<CODE>`; the FHIR referral endpoints
+  serve only the referral's provider, the pre-authorisation decision only the payer and the first-report
+  acknowledgement only the recipient – anything else `404` with a `DENIED` audit entry; unbound gateway clients are
+  refused.
 * **Notifications**: 13 content-free templates; placeholder `reference`; partner-portal links.
 * **Outbound allow-lists**: `insurer-gateway`, `authority-gateway`, `erp-finance` (references and amounts only).
 * **BFF**: `/bff/api/workspace/claims/**` keeps its prefix; redirect URIs and CORS include port 5176.
@@ -217,15 +222,17 @@ restoring the pre-upgrade backup together with the previous images; agree a roll
 | Item | Change |
 |---|---|
 | `spring.flyway.schemas` (core) | Adds `treatment, claims` |
-| `WZ_MFA_REQUIRED_ROLES` (`wellnessz.security.mfa-required-roles`) | **New.** Default `PARTNER_PROVIDER,TPA_ADJUSTER`; empty in the `local` profile. Accepted proof: `amr` ∈ {mfa, otp, totp, hwk, swk, sms, webauthn, fido} or `acr` ∈ {2, 3, mfa, c1} (`mfa-amr-values`, `mfa-acr-values`) |
-| `WZ_PARTNER_PORTAL_URL` (`wellnessz.notification.partner-portal-url`) | **New.** Default `https://partners.wellnessz.local` – set to `https://partners.<domain>` |
+| `WZ_MFA_REQUIRED_ROLES` (`wellnessz.security.mfa-required-roles`) | **New.** Default `PARTNER_PROVIDER,TPA_ADJUSTER`; empty in the `local` profile. Accepted proof: `amr` ∈ {mfa, otp, totp, hwk, swk, sms, webauthn, fido}, or `acr` or an entry of the Entra ID `acrs` array ∈ {2, 3, mfa, c1} (`mfa-amr-values`, `mfa-acr-values`) |
+| `WZ_PARTNER_PORTAL_URL` (`wellnessz.notification.partner-portal-url`) | **New.** Application default `https://partners.wellnessz.local`; Helm `values.yaml` sets `https://partners.wellnessz.example.com` (in line with `ingress.hosts.partnerPortal`) – override it with your domain |
+| `WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL`, `WZ_OH_WORKSPACE_URL` (Helm) | Now set in `values.yaml` core `env` to `https://employee|manager|oh.wellnessz.example.com` together with `WZ_PARTNER_PORTAL_URL` (fixed in increment 4 after review – previously unset, so notification links used the `.local` defaults); `values-local.yaml` sets the `http://*.localtest.me` equivalents |
+| `org_scope` on machine clients | **New requirement.** Partner-hospital (FHIR) and insurer / TPA `INTEGRATION` clients need a fixed `org_scope=/PARTNERS/<CODE>` claim (Keycloak hardcoded-claim mapper; Entra ID app role / optional claim or claims-mapping policy) |
 | `wellnessz.integration.outbound-allowlist.insurer-gateway` | **New:** `messageId, claimRef, reportRef, formCode, payerCode, employeeId, incidentDate, submittedAt, deadlineAt` |
 | `wellnessz.integration.outbound-allowlist.authority-gateway` | **New:** `messageId, reportRef, formCode, jurisdiction, employerRef, incidentDate, submittedAt, deadlineAt` |
 | `wellnessz.integration.outbound-allowlist.erp-finance` | **New:** `messageId, batchId, month, costCentre, subsidiaryCode, category, amount, currency, entryCount, checksum` |
 | `wellnessz.treatment.variance-job-cron` / `chase-job-cron` / `scorecard-job-cron` | `0 20 2 * * *` / `0 40 6 * * *` / `0 15 3 1 * *` UTC |
 | `wellnessz.claims.report-deadlines-cron` | `0 5 * * * *` UTC (hourly) |
 | `WZ_ANALYTICS_MIN_GROUP` | Default 5 – now also suppresses treatment and claims cost roll-ups |
-| `WZ_CORS_ORIGINS` (local) | Adds `http://localhost:5176` |
+| `WZ_CORS_ORIGINS` (local) | Adds `http://localhost:5176` (Compose) and `http://partners.localtest.me` (`values-local.yaml`) |
 | Mailboxes (`masterdata.config_entry`) | **Set per environment:** `claims.legal-email`, `claims.mailbox-email`; partner and payer contact e-mails in `masterdata.partner_organisation` |
 | E04 business settings | `treatment.variance.threshold-pct` (20), `treatment.follow-up.reminder-days` (2), `treatment.referral.max-chases` (2), `treatment.referral.chase-interval-days` (2), `treatment.preauth.sla-hours` (48), `treatment.invoice.tolerance-pct` (5), `treatment.base-currency` (GBP), `treatment.contract.expiring-days` (60), `treatment.network.cities`, `treatment.telehealth.base-url`, `treatment.eprescribing.route` (NONE) |
 | E08 business settings | `claims.nurse-sla-hours` (48), `claims.report-reminder-hours` (24), `claims.base-currency` (GBP), `claims.fx-rates` (**proposed – finance to confirm**), `claims.employer-name`, `claims.employer-ref` (**proposed – HSE to confirm**), `claims.forms.sign-off` (PENDING) |
@@ -279,7 +286,8 @@ Selected end-to-end evidence (Increment 4):
 | E-prescribing | `EPrescribingGateway` is a disabled no-op | Decision memo (E04-BL-013) |
 | Telehealth | Video platform not procured; link provider and token redemption ready; consent text says video and sound are not stored (to be confirmed with the platform); diary booking may differ from the scheduled time | Procurement + DPO |
 | Report forms | GB F2508, UAE labour injury notice and insurer FNOL pending Legal / HSE sign-off; other jurisdictions not mapped | E08-BL-003 sign-off |
-| MFA | Enforced by the core API outside `local`; requires enrolment in the production IdP; not exercised by the local E2E | Upgrade step 4 |
+| MFA | Enforced by the core API outside `local`; requires enrolment in the production IdP; not exercised by the local E2E. (Entra ID authentication contexts in `acrs` are accepted – fixed in increment 4 after review) | Upgrade step 4 |
+| Integration clients | Resolved in increment 4 after review: partner and insurer machine clients are bound to their organisation by `org_scope` (doc 02, RR33 closed). Remaining dependency: the IdP must emit the correct fixed claim per client | Upgrade step 11 |
 | Provider network | 20 illustrative providers, contracts and rates | Replace with procurement's contracted network |
 | Currency | E04 cost figures, KPIs and scorecards sum base-currency amounts only; E08 FX rates proposed | Finance confirmation |
 | Litigated-claim KPI | No dedicated trend endpoint | Analytics (E17) |
@@ -311,8 +319,8 @@ Selected end-to-end evidence (Increment 4):
    the roles, scope mappings, users (`claims1`, `adjuster1`, `legal1`, `finance1`, `procurement1`, `physio1`) and the
    5176 redirect URI: **re-import the realm** (`./deploy/local/down.sh --purge` then `./deploy/local/up.sh`).
 4. **MFA for partner roles** – in production IdPs enforce a second factor for every `PARTNER_PROVIDER` and
-   `TPA_ADJUSTER` identity (Entra ID: conditional-access policy with an authentication context reported in `acr`, or
-   MFA reported in `amr`; Keycloak: required OTP / WebAuthn with a step-up level reported in `acr`) and verify that the
+   `TPA_ADJUSTER` identity (Entra ID: conditional-access policy with MFA reported in `amr`, or an authentication
+   context reported in `acrs` – `c1` is accepted by default, other context ids are added to `mfa-acr-values`; Keycloak: required OTP / WebAuthn with a step-up level reported in `acr`) and verify that the
    **access token** carries the claim. Keep `WZ_MFA_REQUIRED_ROLES=PARTNER_PROVIDER,TPA_ADJUSTER` (the default) in every
    shared environment; only the `local` profile switches it off. Without the claim the portal shows the MFA / no-access
    page – test with one partner and one adjuster account before inviting partners.
@@ -324,7 +332,8 @@ Selected end-to-end evidence (Increment 4):
 6. **Outbound allow-lists** – add `insurer-gateway`, `authority-gateway` and `erp-finance` with the field lists of
    Section 7 if the allow-list is overridden per environment (the shipped `application.yml` contains them); default deny
    remains for any other destination.
-7. **Configuration** – set `WZ_PARTNER_PORTAL_URL`, `claims.legal-email`, `claims.mailbox-email`; review
+7. **Configuration** – override `WZ_PARTNER_PORTAL_URL` (and the other portal URLs set in `values.yaml`) with your
+   domain; set `claims.legal-email`, `claims.mailbox-email`; review
    `claims.fx-rates`, `claims.employer-name`, `claims.employer-ref`, `treatment.network.cities`,
    `treatment.telehealth.base-url`; maintain partner and payer contact e-mails; keep `WZ_FLYWAY_LOCATIONS` **without**
    `classpath:db/demo`.
@@ -335,8 +344,10 @@ Selected end-to-end evidence (Increment 4):
     profiles, contracts, rates, SLAs); confirm payers and authorities; review plan templates, referral services and the
     formulary; record clinic stock per site before medication administration goes live.
 11. **Integration clients** – client-credentials `INTEGRATION` clients for partner hospital FHIR systems, insurer
-    decision / acknowledgement callbacks and the telehealth platform (one client per partner recommended for audit
-    separation).
+    decision / acknowledgement callbacks and the telehealth platform (one client per partner organisation). Each
+    partner-hospital and insurer client **must** carry a fixed `org_scope=/PARTNERS/<CODE>` claim matching
+    `masterdata.partner_organisation` – without it the FHIR, pre-authorisation-decision and acknowledgement endpoints
+    answer `404`. Decode a client-credentials token and check the claim before handing over the credential.
 12. **Smoke test** – run `tools/e2e/e2e-increment4.js` (and the Increment 1–3 scripts) against the environment, or the
     equivalent manual checks: plan from template; referral send → portal accept → report; organisation isolation (404);
     pre-authorisation → adjuster decision; telehealth consent → join; claim → nurse assignment; first report submit;
@@ -357,6 +368,7 @@ Selected end-to-end evidence (Increment 4):
   decision memo (E04-BL-013); CMO approval of plan templates and referral data sets; procurement's contracted network;
   finance confirmation of FX rates; DPO approval of `CLAIM_RECORD` retention, disclosure rules and notification wording.
 * **Security** – MFA enrolment and conditional access for all partner and adjuster identities in the production IdP;
-  partner onboarding and off-boarding process (organisation codes, `org_scope`, account review).
+  partner onboarding and off-boarding process (organisation codes, `org_scope` for users and machine clients, account
+  review).
 * **E17 analytics** – treatment and claims KPIs (including the litigated-claim trend) in the enterprise analytics layer;
   load testing of worklists, roll-ups and exports at production volume.

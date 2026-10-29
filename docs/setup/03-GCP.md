@@ -141,14 +141,17 @@ GKE does not change the identity model. Users still authenticate with **Microsof
   `sg-wellnessz-finance`, `sg-wellnessz-procurement` with their app roles; partner and adjuster **B2B guests** with
   `org_scope=/PARTNERS/<CODE>` and a **Conditional Access policy requiring an authentication strength** for guest /
   external users on `wellnessz-bff` and `wellnessz-api` (Azure guide, sections 5.1–5.3a) – the core grants
-  `PARTNER_PROVIDER` / `TPA_ADJUSTER` only when the token carries `amr: mfa`; and one `INTEGRATION` client per partner
-  hospital (FHIR), insurer system and, once selected, the video platform (Azure guide, section 5.6).
+  `PARTNER_PROVIDER` / `TPA_ADJUSTER` only when the token carries `amr: mfa` (or an authentication context such as
+  `c1` in `acrs`); and one `INTEGRATION` client per partner hospital (FHIR), insurer system and, once selected, the
+  video platform (Azure guide, section 5.6) – partner-hospital and insurer clients with a fixed
+  `org_scope=/PARTNERS/<CODE>` claim, which binds each client to its own organisation's referrals, pre-authorisations
+  and reports.
 
 Those steps need only Entra ID, not an Azure subscription. If the airline uses **Keycloak**, follow section 5.7 of
 the Azure guide; keep the nine increment-1 roles, the increment-2 role `DPO`, the four increment-3 roles and the five increment-4 roles in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`
 (`fullScopeAllowed=false`), add the `partners.<domain>` redirect URI, post-logout URI and web origin, and require OTP
 or WebAuthn for every partner and adjuster account with an AMR mapper or a level-of-authentication flow so that the
-token carries `amr` / `acr` proof (Azure guide, section 5.7; setup guide 05, section 6.1). On GKE, run Keycloak with the Keycloak Operator and a separate Cloud SQL database, behind its own
+token carries `amr` / `acr` / `acrs` proof (Azure guide, section 5.7; setup guide 05, section 6.1). On GKE, run Keycloak with the Keycloak Operator and a separate Cloud SQL database, behind its own
 Ingress and Cloud Armor policy.
 
 Note for section 11: the **issuer**, **audience** (Entra: API client ID), **BFF client ID** and **mobile client
@@ -396,8 +399,8 @@ Copy `values-gcp.yaml` placeholders into an overrides file, for example `deploy/
 | `gcp.frontendConfig.sslPolicy` | `ssl_policy_name` |
 | `networkPolicy.database.cidrs` | `psa_cidr` |
 | Hostnames | Your domain: `ingress.hosts.employeePortal`, `managerWorkspace`, `ohWorkspace` (increment 1), `ingress.api.host`; the same web hosts in `core.env.WZ_CORS_ORIGINS` |
-| `core.env.WZ_OH_WORKSPACE_URL`, `WZ_OH_CONTACT` (increment 1) | `https://oh.<domain>`; the OH service-desk contact line for notifications |
-| `core.env.WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL`, `WZ_DPO_EMAIL` (increment 2) | `https://employee.<domain>`, `https://manager.<domain>`; the DPO mailbox for break-glass alerts |
+| `core.env.WZ_OH_WORKSPACE_URL`, `WZ_OH_CONTACT` (increment 1) | `https://oh.<domain>` (`values.yaml` sets `https://oh.wellnessz.example.com` – override with your domain); the OH service-desk contact line for notifications |
+| `core.env.WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL`, `WZ_DPO_EMAIL` (increment 2) | `https://employee.<domain>`, `https://manager.<domain>` (set in `values.yaml` to the `*.wellnessz.example.com` hosts – override with your domain); the DPO mailbox for break-glass alerts |
 | `core.env.WZ_DOCUMENTS_FONT_PATH`, `WZ_DOCUMENTS_RETENTION_CRON`, `WZ_DIAGNOSIS_REQUIRED_ON_CLOSE` (increment 2, optional) | Font path inside a derived core image (Arabic PDFs); default `0 30 2 * * *`; default `true` |
 
 **Increment 4** adds one required value and configuration:
@@ -405,7 +408,7 @@ Copy `values-gcp.yaml` placeholders into an overrides file, for example `deploy/
 | Value | Set to |
 |---|---|
 | `ingress.hosts.partnerPortal` | `partners.<domain>` (component enabled by default; `partnerPortal.enabled: false` to keep it off) |
-| `core.env.WZ_PARTNER_PORTAL_URL` | `https://partners.<domain>` – links in partner and adjuster notifications (not set in `values-gcp.yaml`; the default is for local use only) |
+| `core.env.WZ_PARTNER_PORTAL_URL` | `https://partners.<domain>` – links in partner and adjuster notifications (set in `values.yaml` to `https://partners.wellnessz.example.com`, in line with `ingress.hosts.partnerPortal` – override it with your domain) |
 | `core.env.WZ_MFA_REQUIRED_ROLES` | Leave unset (default `PARTNER_PROVIDER,TPA_ADJUSTER`); never empty outside local development |
 | `core.extraEnv` (optional) | `WELLNESSZ_TREATMENT_VARIANCEJOBCRON`, `WELLNESSZ_TREATMENT_CHASEJOBCRON`, `WELLNESSZ_TREATMENT_SCORECARDJOBCRON`, `WELLNESSZ_CLAIMS_REPORTDEADLINESCRON` |
 
@@ -560,10 +563,11 @@ private ranges are excluded.
 | Certificate upload `403` at the load balancer | Cloud Armor rule matched the multipart body | Scoped exclusion for the upload paths; the core still checks type and size |
 | Certificate upload `400` from the BFF | BFF multipart parsing re-enabled by an override | Keep the shipped `spring.servlet.multipart.enabled=false` |
 | ManagedCertificate stays `Provisioning` after adding `partners.<domain>` | DNS for the new host missing; the whole certificate re-provisions | Create the A record (section 10) and wait up to an hour |
-| Partner or adjuster sees *multi-factor sign-in required* | Token without `amr` / `acr` proof (Conditional Access not enforced for guests, or Keycloak without AMR mapper / LoA flow) | Azure guide, section 5.3a / 5.7 |
+| Partner or adjuster sees *multi-factor sign-in required* | Token without `amr` / `acr` / `acrs` proof (Conditional Access not enforced for guests, or Keycloak without AMR mapper / LoA flow) | Azure guide, section 5.3a / 5.7 |
 | Partner report or invoice upload `403` at the load balancer | Cloud Armor rule matched the multipart body | Scoped exclusion for `/bff/api/partner/referrals/*/report` and `/invoice`; the core checks type and size |
 | Internal hosts blocked for staff working remotely | Host-based Cloud Armor rule without the VPN egress range | Add the VPN / ZTNA egress ranges to the rule |
-| Partner e-mails link to `partners.wellnessz.local` | `WZ_PARTNER_PORTAL_URL` not set | Section 12 |
+| Partner e-mails link to `partners.wellnessz.example.com` (or `.local`) | `WZ_PARTNER_PORTAL_URL` not overridden with your domain | Section 12 |
+| Partner hospital or insurer system gets `404` for its own referral, pre-authorisation or report | Client token without `org_scope=/PARTNERS/<CODE>` or with another organisation's code (audit `DENIED`) | Azure guide, section 5.6 |
 
 ## 17. Teardown (dev/test only)
 

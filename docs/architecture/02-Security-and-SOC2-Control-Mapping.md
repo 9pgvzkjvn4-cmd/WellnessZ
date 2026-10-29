@@ -1231,7 +1231,7 @@ flowchart LR
 
 | Criterion | Increment-4 control | Evidence source | Resp. | Status |
 |---|---|---|---|---|
-| CC6.1 | MFA gate for external roles; organisation isolation; `@PreAuthorize` on every E04 / E08 endpoint; `/integration/**` machine-only | `MfaRoleGateTest`, `Increment4*IntegrationTest`, E2E | F | Implemented |
+| CC6.1 | MFA gate for external roles (`amr` / `acr` / `acrs`); organisation isolation for users and for partner / insurer machine clients (`org_scope` binding); `@PreAuthorize` on every E04 / E08 endpoint; `/integration/**` machine-only | `MfaRoleGateTest`, `Increment4*IntegrationTest`, E2E | F | Implemented |
 | CC6.2 | Five roles and six test users with scope mappings; partner / adjuster accounts with `org_scope`; MFA enrolment | realm export, Entra B2B guests and CA policies | O/F | Implemented (enrolment and assignment: Org) |
 | CC6.3 | Claims, finance, legal and procurement without clinical access (ArchUnit rule: E08 independent of E03); OH-only justification, provider reports and redaction; legal-only hold and privilege | `ArchitectureTest`, tests | F | Implemented |
 | CC6.6 | External users only through `partners.<domain>` with WAF; uploads validated in the core | doc 04, Section 20; ingress / WAF config | F/O | Implemented (WAF tuning: Org) |

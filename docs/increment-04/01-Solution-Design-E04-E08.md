@@ -137,7 +137,7 @@ organisations**: `PARTNER_PROVIDER` (existing role, first used for real here) an
 | `DPO` | existing | Data Protection Officer | – | Claim disclosure report; disclosure-set list and revocation |
 | `HSE_OFFICER` | existing | HSE | – | Report forms, first reports and deadline dashboard |
 | `EMPLOYEE` | existing | Employee / crew member | SELF | My treatment plan, follow-up confirm / decline, external appointments, telehealth sessions (consent, join, chat), consent to `TELEHEALTH_CONSULTATION` |
-| `INTEGRATION` | existing | Machine client | – | FHIR `ServiceRequest` pull, FHIR `DocumentReference` report push, insurer pre-authorisation decisions, first-report acknowledgements, telehealth token redemption |
+| `INTEGRATION` | existing | Machine client | – | FHIR `ServiceRequest` pull, FHIR `DocumentReference` report push, insurer pre-authorisation decisions, first-report acknowledgements, telehealth token redemption. Partner-hospital and insurer clients are **bound to their organisation** by a fixed `org_scope=/PARTNERS/<CODE>` claim (Section 5.3) |
 
 "OH roles" = `Roles.OH_TEAM`; "Clinicians" = OH roles minus `CASE_MANAGER`; "Physicians" = `OH_PHYSICIAN, AME, CMO` –
 unchanged from Increment 3.
@@ -149,7 +149,7 @@ Demo users: `claims1` (S8711, /AIRLINE), `adjuster1` (X8702, /PARTNERS/GULFTPA),
 > **Deployment note.** The five new roles must exist in the identity provider **and** be in the role scope mappings of
 > the BFF (`wellnessz-bff`) and mobile (`wellnessz-mobile`) clients (`fullScopeAllowed=false` – a missing mapping
 > silently drops the role). Partner and adjuster identities additionally need an **enrolled second factor** that the
-> IdP reports in `amr` or `acr`; otherwise the core API removes the partner role and the portal shows the MFA / no-access
+> IdP reports in `amr`, `acr` or (Entra ID) `acrs`; otherwise the core API removes the partner role and the portal shows the MFA / no-access
 > page (Section 5.3).
 
 ---
@@ -315,7 +315,7 @@ All events use the transactional outbox (at-least-once, idempotent consumers, pa
 
 The existing `REFERRAL_LETTER` (partner) is generated and signed on every referral send.
 
-### 5.3 MFA gate for external portal roles
+### 5.3 MFA gate for external portal roles and organisation-bound machine clients
 
 `WellnessZJwtConverter.withoutUnprovenMfaRoles` removes every role listed in `wellnessz.security.mfa-required-roles`
 (env `WZ_MFA_REQUIRED_ROLES`, default `PARTNER_PROVIDER,TPA_ADJUSTER`) from the granted authorities unless the access
@@ -323,14 +323,25 @@ token proves multi-factor authentication:
 
 * `amr` contains one of `mfa, otp, totp, hwk, swk, sms, webauthn, fido` (`wellnessz.security.mfa-amr-values`, RFC 8176
   plus common IdP values), **or**
-* `acr` is one of `2, 3, mfa, c1` (`wellnessz.security.mfa-acr-values`; Keycloak step-up level, Entra ID authentication
-  context).
+* `acr` is one of `2, 3, mfa, c1` (`wellnessz.security.mfa-acr-values`; Keycloak step-up level), **or**
+* the Entra ID `acrs` array (satisfied Conditional Access authentication contexts, for example `["c1"]`) contains one of
+  the same `mfa-acr-values`.
 
 Without that proof the role is simply absent, so every partner endpoint answers `403` and `/me` shows no partner role –
 the portal then displays its MFA / no-access page. The gate is **on by default** and **off in the `local` profile**
 (`mfa-required-roles` empty) because the demo realm has no OTP enrolment; `WZ_MFA_REQUIRED_ROLES=PARTNER_PROVIDER,TPA_ADJUSTER`
-rehearses it locally. Unit test `MfaRoleGateTest` (3 tests): role dropped without proof; granted with `amr` or `acr`;
+rehearses it locally. Unit test `MfaRoleGateTest` (3 tests): role dropped without proof; granted with `amr`, `acr` or `acrs`;
 gate switchable per environment.
+
+**Machine clients bound to their organisation.** Partner-hospital and insurer / TPA systems call `/integration/**`
+with `INTEGRATION` client-credentials tokens that carry a fixed `org_scope=/PARTNERS/<CODE>` claim, set at the IdP
+(Keycloak: *Hardcoded claim* mapper on the client; Entra ID: app role / optional claim or claims-mapping policy).
+`CurrentUser.partnerOrganisation()` returns `<CODE>` (or nothing for any other `org_scope`). The FHIR referral endpoints
+(`EReferralService.requireProviderClient`) accept only the referral's provider organisation, the pre-authorisation
+decision (`PreauthService.decideByRef`) only the payer, and the first-report acknowledgement
+(`ReportService.integrationAck`) only the report's recipient. Any other client – another partner, or an unbound gateway
+client such as the absence feed, IoT or laboratory gateways – gets `404` (existence not disclosed) and a `DENIED` audit
+entry (`REFERRAL_FHIR_ACCESS`, `PREAUTH_DECISION`, `CLAIM_REPORT_ACK`). Fixed in increment 4 after review (doc 02, RR33).
 
 ### 5.4 Consent and notifications
 
@@ -342,7 +353,8 @@ gate switchable per environment.
   `referral.appointment`, `treatment.follow-up`, `treatment.variance`, `preauth.status`, `telehealth.invite`,
   `claim.assigned`, `claim.report-due`, `claim.task`, `claim.message`, `legal.request`. New placeholder `reference`
   (referral, pre-authorisation, claim or report reference). Partner-portal links are built from
-  `wellnessz.notification.partner-portal-url` (`WZ_PARTNER_PORTAL_URL`, default `https://partners.wellnessz.local`),
+  `wellnessz.notification.partner-portal-url` (`WZ_PARTNER_PORTAL_URL`, default `https://partners.wellnessz.local`; Helm
+  `values.yaml` sets `https://partners.wellnessz.example.com`, override it with your domain),
   e.g. `…/#/referrals/{id}`.
 
 ### 5.5 BFF, partner portal and deployment
@@ -494,6 +506,8 @@ the provider, `chaseCount + 1`. Once `treatment.referral.max-chases` (2) chases 
   SNOMED 3457005 "Patient referral", priority, service code (`urn:wellnessz:referral-service`), subject by employee
   identifier, requester, performer by partner organisation identifier, reason, question as note, data set and
   `DocumentReference/{id}` links as `supportingInfo`, `occurrenceDateTime` once booked.
+* Both FHIR endpoints serve only the referral's provider system (client `org_scope=/PARTNERS/<providerCode>`, Section
+  5.3); other clients get `404`.
 * Inbound `POST /integration/referrals/fhir/document-reference` (INTEGRATION): `context.related` must point to
   `ServiceRequest/{id}` (or carry the referral reference as identifier); the first base64 attachment is stored as
   `PROVIDER_REPORT` → REPORT_RECEIVED.
@@ -591,7 +605,8 @@ components (30 / 25 / 25 / 20). Monthly job `provider-scorecards` (1st of the mo
 * Decisions – same body `{status APPROVED|PARTIALLY_APPROVED|DECLINED, approvalRef?, approvedAmount?, validUntil?,
   note?}` from three channels: `POST /preauthorisations/{id}/decision` (CLAIMS_COORDINATOR), `POST
   /partner/preauthorisations/{id}/decision` (TPA_ADJUSTER of the payer organisation) and `POST
-  /integration/preauthorisations/{ref}/decision` (insurer system). A partial approval needs the amount (`400
+  /integration/preauthorisations/{ref}/decision` (insurer system of the payer – client `org_scope=/PARTNERS/<payerCode>`,
+  otherwise `404`). A partial approval needs the amount (`400
   approved_amount_required`) in the estimate's currency (`400 currency_mismatch`); approval defaults the amount to the
   estimate and `validUntil` to today + 90 days and **updates the ESTIMATE ledger entry** to the approved amount (same
   source key). The decision note is screened. Requester notified `preauth.status`; `preauth.status.v1`; timeline.
@@ -836,7 +851,8 @@ Fields per form carry a `source` (CONFIG, HRIS, INCIDENT, CASE, CLAIM, USER).
   4. `ClaimsSubmissionGateway.submit` → message ID → SUBMITTED.
 * Acknowledgement – manual `POST /claims/reports/{reportId}/acknowledgement` (multipart `file?`, `ackRef`,
   `receivedAt`; file stored as `INSURER_ACKNOWLEDGEMENT`) or `POST /integration/claims/reports/{ref}/acknowledgement
-  {ackRef, receivedAt, status ACKNOWLEDGED|REJECTED, reason?}`.
+  {ackRef, receivedAt, status ACKNOWLEDGED|REJECTED, reason?}` – only from the recipient's system (client
+  `org_scope=/PARTNERS/<recipientCode>`, otherwise `404`).
 * **Deadline dashboard** – `GET /claims/reports?status&dueWithinHours` with `hoursLeft`; `GET /claims/reports/{id}`,
   `GET /claims/{id}/reports` and `GET /claims/reports/kpis` (`onTimeSubmissionPct`) are extra endpoints.
 * **Hourly job** `claims-report-deadlines` (minute 5): due within `claims.report-reminder-hours` (24) and not submitted
@@ -1067,7 +1083,7 @@ system). All UI text in `src/strings.ts`. 119 unit and screen tests.
   idle timeout (wall-clock based, so time asleep counts as idle). Sign-in button "Sign in with multi-factor
   authentication".
 * **MFA is enforced twice**: the IdP requires the second factor for partner users (OTP / conditional access) and the
-  core API grants `PARTNER_PROVIDER` / `TPA_ADJUSTER` only with `amr` / `acr` proof (Section 5.3).
+  core API grants `PARTNER_PROVIDER` / `TPA_ADJUSTER` only with `amr` / `acr` / `acrs` proof (Section 5.3).
 * **Access decision on `/me`** (`resolveAccess`): a partner role in `GET /bff/api/me` → portal; a partner role only in
   the BFF session (ID token) or no role at all → MFA / no-access page ("Your account needs multi-factor sign-in or has
   no partner access"); any other WellnessZ role → "This portal is for WellnessZ partner organisations". Route guards
@@ -1136,7 +1152,7 @@ their features in Sections 6–18.
 
 | Control | Implementation |
 |---|---|
-| Authentication | Browser apps through the BFF (OIDC code flow, HttpOnly session, CSRF); machine clients by client credentials (`INTEGRATION`); **MFA proof required in the token for `PARTNER_PROVIDER` and `TPA_ADJUSTER`** |
+| Authentication | Browser apps through the BFF (OIDC code flow, HttpOnly session, CSRF); machine clients by client credentials (`INTEGRATION`), partner / insurer clients bound to their organisation by `org_scope`; **MFA proof required in the token for `PARTNER_PROVIDER` and `TPA_ADJUSTER`** |
 | Role-based access | `@PreAuthorize` on every new endpoint (E04 expressions in `web/Spel`, E08 patterns in `web/Patterns`); `/api/v1/integration/**` machine-only |
 | ABAC for person-level data | OH reads through `CaseAccess` / `EmployeeRecordAccess`; claims are **not** cases – `ClaimAccess` states per endpoint who may see a claim (claims team, Nursing Head, CMO, case managers / assigned nurse, legal only on litigated or held claims, adjusters only for their payer); partner access by organisation code. Denials audited and returned as **404** |
 | Module boundary as privacy control | E08 cannot depend on E03 (ArchUnit) – the claims module has no code path to the clinical record |
@@ -1202,7 +1218,8 @@ chat with the clinician) is accepted but encrypted.
 | `costLedgerIncludesE04EntriesAndFinanceSeesUnitsWithoutNames` | Roll-ups and exports carry no names; small units suppressed; OH roles 403 on ledger and roll-ups; claims coordinators 403 on budgets and exports |
 | `litigationHoldPutsCaseDocumentsOnHoldAndMedicoLegalReportsStayInTheLegalAccessSet` | Claims coordinator 403 on hold, report writing and report content; finance 403 on legal requests |
 | `hrSeesClaimStatusOnlyInsideScopeAndEveryDisclosureIsLogged` | HR sees status fields only, inside scope; every shown claim disclosure-logged; claims coordinators 403 on the HR view |
-| `MfaRoleGateTest` (3) | Partner / adjuster role dropped without `amr` / `acr` proof |
+| `MfaRoleGateTest` (3) | Partner / adjuster role dropped without `amr` / `acr` / `acrs` proof; Entra ID `acrs` context `c1` accepted |
+| `Increment4TreatmentIntegrationTest`, `Increment4ClaimsIntegrationTest` (machine clients) | FHIR read and report only by the referral's provider system (payer system, CITYHOSP system on a PHYSIOPLUS referral and an unbound client → 404); pre-authorisation decision by a provider system → 404, by the payer system → 200; first-report acknowledgement by another insurer's system → 404 |
 | E2E | CITYHOSP → 404 on a PHYSIOPLUS referral; adjuster clinical wording → 422; provider → 403 on claims; finance → 403 on claim detail; claims coordinator → 403 on medico-legal content; HR sees status only |
 
 ---
@@ -1211,13 +1228,13 @@ chat with the clinician) is accepted but encrypted.
 
 | Interface | Direction | Contract | State |
 |---|---|---|---|
-| FHIR referral (ServiceRequest) | Partner hospital system ← WellnessZ | `GET /integration/referrals/{id}/fhir` – FHIR R4 `ServiceRequest` (Section 7.6) | Built and tested with a simulated partner; no live hospital yet (E04-BL-006) |
-| FHIR report (DocumentReference) | Partner hospital system → WellnessZ | `POST /integration/referrals/fhir/document-reference` – `context.related` = `ServiceRequest/{id}`, base64 attachment → `PROVIDER_REPORT`, REPORT_RECEIVED | Built and tested (simulated partner) |
+| FHIR referral (ServiceRequest) | Partner hospital system ← WellnessZ | `GET /integration/referrals/{id}/fhir` – FHIR R4 `ServiceRequest` (Section 7.6); provider's client only (`org_scope`) | Built and tested with a simulated partner; no live hospital yet (E04-BL-006) |
+| FHIR report (DocumentReference) | Partner hospital system → WellnessZ | `POST /integration/referrals/fhir/document-reference` – `context.related` = `ServiceRequest/{id}`, base64 attachment → `PROVIDER_REPORT`, REPORT_RECEIVED; provider's client only | Built and tested (simulated partner) |
 | Secure e-mail / portal fallback | WellnessZ → partner | `referral.sent` content-free e-mail with the portal link; documents only through the portal | Built |
-| Insurer pre-authorisation decisions | Insurer system → WellnessZ | `POST /integration/preauthorisations/{ref}/decision` (same body as the portal decision) | Built and tested |
+| Insurer pre-authorisation decisions | Insurer system → WellnessZ | `POST /integration/preauthorisations/{ref}/decision` (same body as the portal decision); payer's client only | Built and tested |
 | Insurer / TPA first notification | WellnessZ → insurer gateway | `ClaimsSubmissionGateway` default: `claim.report.submitted.v1` to `insurer-gateway` (allow-listed references) + content-free e-mail pointing to the partner portal; document only via the consented `INSURER` share | Default built; real insurer FNOL API connector = `@Primary` bean (E15) |
 | Statutory authority report | WellnessZ → authority gateway | Default: `claim.report.submitted.v1` to `authority-gateway` (no employee identifiers) + content-free e-mail; the document travels through the connector's secure channel | Default built; authority API connectors (E15) and form sign-off (E08-BL-003) pending |
-| Acknowledgements | Insurer / authority → WellnessZ | `POST /integration/claims/reports/{ref}/acknowledgement {ackRef, receivedAt, status ACKNOWLEDGED\|REJECTED, reason?}` or manual upload | Built and tested |
+| Acknowledgements | Insurer / authority → WellnessZ | `POST /integration/claims/reports/{ref}/acknowledgement {ackRef, receivedAt, status ACKNOWLEDGED\|REJECTED, reason?}` (recipient's client only) or manual upload | Built and tested |
 | ERP finance export | WellnessZ → ERP | `claim.cost.export.v1` to `erp-finance` (batch, month, total, count, checksum); CSV pulled from `/claims/costs/exports/{id}/content`; reconciliation by `POST …/reconcile` | Built; ERP connector (E15) pending |
 | Telehealth provider | WellnessZ → video platform | `TelehealthProvider.joinUrl` (default link on `treatment.telehealth.base-url`) | Default built; platform to be procured |
 | Telehealth token redemption | Video platform → WellnessZ | `POST /integration/telehealth/tokens/redeem {token}` – single use, window, consent and status re-checked | Built and tested |
@@ -1572,7 +1589,7 @@ flowchart LR
 | `spring.flyway.schemas` | adds `treatment, claims` | New schemas |
 | `wellnessz.security.mfa-required-roles` / `WZ_MFA_REQUIRED_ROLES` | `PARTNER_PROVIDER,TPA_ADJUSTER` (empty in `local`) | MFA role gate |
 | `wellnessz.security.mfa-amr-values` / `mfa-acr-values` | `mfa, otp, totp, hwk, swk, sms, webauthn, fido` / `2, 3, mfa, c1` | Accepted MFA proof |
-| `wellnessz.notification.partner-portal-url` / `WZ_PARTNER_PORTAL_URL` | `https://partners.wellnessz.local` | Links in partner notifications |
+| `wellnessz.notification.partner-portal-url` / `WZ_PARTNER_PORTAL_URL` | `https://partners.wellnessz.local` (Helm `values.yaml`: `https://partners.wellnessz.example.com` – override with your domain) | Links in partner notifications |
 | `wellnessz.integration.outbound-allowlist.insurer-gateway` | `messageId, claimRef, reportRef, formCode, payerCode, employeeId, incidentDate, submittedAt, deadlineAt` | Insurer submissions |
 | `wellnessz.integration.outbound-allowlist.authority-gateway` | `messageId, reportRef, formCode, jurisdiction, employerRef, incidentDate, submittedAt, deadlineAt` | Authority submissions |
 | `wellnessz.integration.outbound-allowlist.erp-finance` | `messageId, batchId, month, costCentre, subsidiaryCode, category, amount, currency, entryCount, checksum` | ERP export announcements |

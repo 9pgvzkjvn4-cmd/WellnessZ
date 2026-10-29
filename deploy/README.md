@@ -155,9 +155,14 @@ disabled on-prem in `values-hybrid.yaml`, served by the cloud edge) – it is in
 airline; its users need MFA at the IdP and the core verifies it (`WZ_MFA_REQUIRED_ROLES`, default
 `PARTNER_PROVIDER,TPA_ADJUSTER`). Schemas `treatment` and `claims` are added to the same four places, so the list now
 reads `platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,treatment,claims,analytics`.
-Set `WZ_PARTNER_PORTAL_URL` in `core.env` (not in the shipped values files). New machine endpoints on the API host:
+`values.yaml` sets the notification links `WZ_EMPLOYEE_PORTAL_URL`, `WZ_MANAGER_WORKSPACE_URL`, `WZ_OH_WORKSPACE_URL` and
+`WZ_PARTNER_PORTAL_URL` in `core.env` to the `https://<app>.wellnessz.example.com` hosts (keep them in line with
+`ingress.hosts`) – override them with your domain; `values-local.yaml` sets the `http://*.localtest.me` equivalents and
+adds `http://partners.localtest.me` to `WZ_CORS_ORIGINS`. New machine endpoints on the API host:
 `/api/v1/integration/referrals/**` (FHIR R4), `/api/v1/integration/preauthorisations/{ref}/decision`,
-`/api/v1/integration/claims/reports/{ref}/acknowledgement` and `/api/v1/integration/telehealth/tokens/redeem`; the
+`/api/v1/integration/claims/reports/{ref}/acknowledgement` and `/api/v1/integration/telehealth/tokens/redeem` – partner-hospital
+and insurer clients need a fixed `org_scope=/PARTNERS/<CODE>` claim (only their own organisation's referrals,
+pre-authorisations and reports are served, other clients get `404`); the
 outbound destinations `insurer-gateway`, `authority-gateway` and `erp-finance` carry references only – see Section 20 of
 the deployment architecture.
 

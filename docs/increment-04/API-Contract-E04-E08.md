@@ -7,7 +7,10 @@ problem details `{type,title,status,detail,code,correlationId,field?}`, ISO-8601
 JSON arrays unless stated, null fields omitted, denied record access reported as `404`, `422` for business-rule violations
 (with `code`), `409` for conflicts. Free text shown outside OH is screened with `ClinicalContentException.screen(field, value)`
 → 422 `clinical_content_not_allowed` with `field`. Money is `{amount: "1234.50", currency: "GBP"}` (decimal string, ISO 4217).
-`/api/v1/integration/**` is reserved for machine clients (INTEGRATION).
+`/api/v1/integration/**` is reserved for machine clients (INTEGRATION). Partner-hospital and insurer / TPA clients are
+bound to their organisation by a fixed `org_scope=/PARTNERS/<CODE>` claim; the referral, pre-authorisation and
+first-report endpoints below answer `404` to any client that is not the provider / payer / recipient organisation
+(including unbound gateway clients).
 
 **Confidentiality rules.**
 1. Partner providers see only the referrals, telehealth sessions and documents addressed to **their own organisation**
@@ -18,7 +21,7 @@ JSON arrays unless stated, null fields omitted, denied record access reported as
 3. Claims coordinators, finance, legal and procurement never read the OH clinical record. Finance sees money by unit, not by person.
 4. Every disclosure outside OH (partner, insurer, authority, HR, legal) writes the disclosure log.
 5. **MFA**: the core API grants `PARTNER_PROVIDER` and `TPA_ADJUSTER` only when the access token proves multi-factor
-   authentication (`amr` ∈ {mfa, otp, totp, hwk, swk, sms, webauthn, fido} or `acr` ∈ {2, 3, mfa, c1});
+   authentication (`amr` ∈ {mfa, otp, totp, hwk, swk, sms, webauthn, fido} or `acr` / an entry of the Entra ID `acrs` array ∈ {2, 3, mfa, c1});
    `wellnessz.security.mfa-required-roles` (env `WZ_MFA_REQUIRED_ROLES`) – on by default, off in the `local` profile (the demo realm has no OTP enrolment).
 
 ## 1. Roles
@@ -116,8 +119,8 @@ Enumerations: `PlanStatus` DRAFT | ACTIVE | COMPLETED | CANCELLED · `Interventi
 | POST | `/partner/referrals/{id}/seen` | PARTNER_PROVIDER | → SEEN |
 | POST | `/partner/referrals/{id}/report` | PARTNER_PROVIDER | multipart `file` (+ `summary?`) → `PROVIDER_REPORT` stored via `storeUpload` and attached to the case → REPORT_RECEIVED (shown on the referral worklist; no notification) |
 | POST | `/partner/referrals/{id}/invoice` | PARTNER_PROVIDER | multipart `file` + `invoiceNumber, amount, currency, serviceDate` → invoice (§3.4) |
-| GET | `/integration/referrals/{id}/fhir` | INTEGRATION | FHIR R4 `ServiceRequest` (partner hospital systems) |
-| POST | `/integration/referrals/fhir/document-reference` | INTEGRATION | FHIR R4 `DocumentReference` with `context.related` = ServiceRequest id and base64 attachment → report received |
+| GET | `/integration/referrals/{id}/fhir` | INTEGRATION (referral's provider: `org_scope=/PARTNERS/<providerCode>`) | FHIR R4 `ServiceRequest` (partner hospital systems); other clients `404` |
+| POST | `/integration/referrals/fhir/document-reference` | INTEGRATION (referral's provider) | FHIR R4 `DocumentReference` with `context.related` = ServiceRequest id and base64 attachment → report received; other clients `404` |
 
 Jobs: `referral-chase` (daily): report overdue → `referral.chase` to the provider (chaseCount+1); after `treatment.referral.max-chases` (2) → `escalated=true` and `referral.overdue-team` to the referring clinician.
 `ExternalReferralGateway`: creates a DRAFT referral with sourceType/sourceRef; every status change calls the `ReferralStatusListener`s that support the sourceType.
@@ -143,7 +146,7 @@ Seed (V14): profiles, contracts, rate cards and SLAs for the 20 providers (E04-B
 | POST | `/preauthorisations/{id}/submit` | Clinicians, CLAIMS_COORDINATOR | `PREAUTH_REQUEST` generated + signed and shared `INSURER` (consent INSURER_SHARING, 422 `consent_required`), SLA `treatment.preauth.sla-hours` (48) → SUBMITTED; `CaseCostRecorder` ESTIMATE/MEDICAL |
 | POST | `/preauthorisations/{id}/decision` | CLAIMS_COORDINATOR | `{status APPROVED|PARTIALLY_APPROVED|DECLINED, approvalRef?, approvedAmount?, validUntil?, note?}` → `preauth.status` to the requester |
 | POST | `/partner/preauthorisations/{id}/decision` | TPA_ADJUSTER (payer org) | same body |
-| POST | `/integration/preauthorisations/{ref}/decision` | INTEGRATION | same body (insurer system) |
+| POST | `/integration/preauthorisations/{ref}/decision` | INTEGRATION (payer: `org_scope=/PARTNERS/<payerCode>`) | same body (insurer system); other clients `404` |
 | GET | `/preauthorisations?status=` | OH roles, CLAIMS_COORDINATOR | `[Preauth {id, ref "PA-2026-000001", caseId, caseRef, employeeId, displayName, payerCode, payerName, serviceCode, providerCode, estimate, status, submittedAt?, slaDueAt?, decidedAt?, approvalRef?, approvedAmount?, validUntil?, documentId?}]` |
 | GET | `/partner/preauthorisations?status=` | TPA_ADJUSTER | own payer only; `justification` only via the shared document |
 | GET | `/cases/{caseId}/preauthorisations` · `/cases/{caseId}/invoices` | OH roles, CLAIMS_COORDINATOR | case tab |
@@ -212,7 +215,7 @@ Enumerations: `ClaimType` WORKERS_COMP | EMPLOYER_LIABILITY | GROUP_MEDICAL | TH
 | PUT | `/claims/reports/{reportId}` | same | edit fields while DRAFT (description screened for diagnoses beyond the nature of injury) |
 | POST | `/claims/reports/{reportId}/submit` | same | `{channel}` → `FIRST_REPORT_OF_INJURY` generated + signed; INSURER recipients: shared `INSURER` (consent INSURER_SHARING, else 422 `consent_required` – statutory AUTHORITY reports are a legal obligation: no consent, disclosure log with legal basis); `ClaimsSubmissionGateway` SPI (default: outbox event to `insurer-gateway` / `authority-gateway` + content-free e-mail) → SUBMITTED |
 | POST | `/claims/reports/{reportId}/acknowledgement` | CLAIMS_COORDINATOR | multipart `file?` + `ackRef, receivedAt` → ACKNOWLEDGED (`INSURER_ACKNOWLEDGEMENT` stored) |
-| POST | `/integration/claims/reports/{ref}/acknowledgement` | INTEGRATION | `{ackRef, receivedAt, status ACKNOWLEDGED|REJECTED, reason?}` |
+| POST | `/integration/claims/reports/{ref}/acknowledgement` | INTEGRATION (report recipient: `org_scope=/PARTNERS/<recipientCode>`) | `{ackRef, receivedAt, status ACKNOWLEDGED|REJECTED, reason?}`; other clients `404` |
 | GET | `/claims/reports?status=&dueWithinHours=` | CLAIMS_COORDINATOR, HSE_OFFICER | deadline dashboard `[{id, ref, claimRef, formCode, recipientCode, status, dueAt, hoursLeft, submittedAt?, acknowledgedAt?}]` |
 
 Job `claims-report-deadlines` (hourly): due within 24 h and not submitted → `claim.report-due`; past due → LATE + escalation to the claims mailbox; KPI `onTimeSubmissionPct`.
