@@ -534,8 +534,12 @@ gcloud iam workload-identity-pools create github-prod --location=global --displa
 ```
 
 ```bash
-gcloud iam workload-identity-pools providers create-oidc github --location=global --workload-identity-pool=github-prod --issuer-uri=https://token.actions.githubusercontent.com --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref,attribute.environment=assertion.environment" --attribute-condition="assertion.repository == 'OWNER/WellnessZ'"
+gcloud iam workload-identity-pools providers create-oidc github --location=global --workload-identity-pool=github-prod --issuer-uri=https://token.actions.githubusercontent.com --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref,attribute.environment=assertion.environment" --attribute-condition="assertion.repository == 'OWNER/WellnessZ' && (assertion.sub == 'repo:OWNER/WellnessZ:environment:gcp-prod')"
 ```
+
+The condition admits only the token subjects the deployer bindings accept (Terraform builds it from
+`github_environments` and `github_image_publish_branches`; DEV adds `|| assertion.sub == 'repo:OWNER/WellnessZ:ref:refs/heads/main'`).
+It assumes GitHub's default OIDC subject format – with a customised subject claim template, adapt it.
 
 ```bash
 gcloud iam service-accounts create github-deployer-prod --display-name="GitHub Actions deployer (prod)"

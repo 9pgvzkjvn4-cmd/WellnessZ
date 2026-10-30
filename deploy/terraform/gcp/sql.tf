@@ -60,10 +60,28 @@ resource "google_sql_database_instance" "main" {
       name  = "log_lock_waits"
       value = "on"
     }
+    # -1 = never log statement text by duration: logged statements and their
+    # bind parameters can carry special-category health data. Slow queries are
+    # analysed with Query Insights (normalised, no literals, no client address).
     database_flags {
       name  = "log_min_duration_statement"
-      value = "2000"
+      value = "-1"
     }
+    # Failing statements are logged (text with $n placeholders; bind values
+    # stay out because log_parameter_max_length_on_error keeps its default 0).
+    database_flags {
+      name  = "log_min_error_statement"
+      value = "error"
+    }
+    database_flags {
+      name  = "log_hostname"
+      value = "on"
+    }
+    # log_statement is deliberately NOT set: pgaudit.log = ddl,role above
+    # already audits DDL and role changes and redacts the text after PASSWORD,
+    # while core log_statement=ddl would write `ALTER ROLE ... PASSWORD '...'`
+    # (bootstrap / rotation) to Cloud Logging in clear text. log_duration stays off (one line per statement,
+    # no audit value beyond Query Insights).
     database_flags {
       name  = "log_temp_files"
       value = "0"

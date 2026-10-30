@@ -46,8 +46,30 @@ resource "google_container_cluster" "main" {
     services_secondary_range_name = "services"
   }
 
-  # Dataplane V2 (Cilium) enforces Kubernetes NetworkPolicies
+  # Dataplane V2 (Cilium) enforces Kubernetes NetworkPolicies natively; the
+  # legacy network_policy (Calico) block must not be combined with it.
   datapath_provider = "ADVANCED_DATAPATH"
+
+  # Same-node pod-to-pod traffic goes through the VPC so the subnet flow logs
+  # (network.tf) and firewall see it. Autopilot enables it by default; explicit
+  # for Standard mode.
+  enable_intranode_visibility = true
+
+  # No legacy client certificates: authentication is IAM / Workload Identity only
+  master_auth {
+    client_certificate_config {
+      issue_client_certificate = false
+    }
+  }
+
+  # Optional: Google Groups for RBAC (members of groups nested in
+  # gke-security-groups@<domain> can be bound in RoleBindings).
+  dynamic "authenticator_groups_config" {
+    for_each = var.gke_rbac_security_group == null ? [] : [1]
+    content {
+      security_group = var.gke_rbac_security_group
+    }
+  }
 
   private_cluster_config {
     enable_private_nodes    = true
@@ -102,11 +124,21 @@ resource "google_container_cluster" "main" {
   remove_default_node_pool = var.gke_autopilot ? null : true
   initial_node_count       = var.gke_autopilot ? null : 1
 
+  # Standard mode: the bootstrap default pool (removed right after creation)
+  # gets the same hardening as the "apps" pool. Autopilot always runs Shielded
+  # nodes with Secure Boot and the GKE metadata server; not configurable there.
   dynamic "node_config" {
     for_each = var.gke_autopilot ? [] : [1]
     content {
       service_account = google_service_account.nodes.email
       oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
+      shielded_instance_config {
+        enable_secure_boot          = true
+        enable_integrity_monitoring = true
+      }
+      workload_metadata_config {
+        mode = "GKE_METADATA"
+      }
     }
   }
 
@@ -145,7 +177,9 @@ resource "google_container_cluster" "main" {
   ]
 
   lifecycle {
-    ignore_changes = [node_config, initial_node_count]
+    # master_auth is ForceNew: clusters created before it was declared already
+    # have no client certificate (GKE default since 1.12) - never replace them.
+    ignore_changes = [node_config, initial_node_count, master_auth]
   }
 }
 

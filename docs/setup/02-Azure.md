@@ -752,6 +752,15 @@ Review the committed `environments/$ENV.tfvars` (excerpt of what differs):
 `location` is `westeurope` in all three files; change it in all three together if the client needs another region
 (it must offer availability zones and zone-redundant PostgreSQL HA). `postgres_cmk_enabled` is `false` everywhere –
 set it to `true` in `prod.tfvars` (plus the geo-backup key and identity) if the client requires customer-managed keys.
+`acr_georeplication_locations` is `[]` everywhere (single-region deployment); list a second region in `prod.tfvars`
+once AKS also runs there – each replica is zone redundant like the primary registry.
+
+Network security applied in every environment (no variable): every subnet has an NSG. The AKS node subnet NSG
+(`nsg-<prefix>-<env>-aks`) allows node↔node, node↔pod and pod↔pod traffic (the rules Azure CNI Overlay needs when a
+subnet NSG exists, pod CIDR = `aks_pod_cidr`) and App Gateway → nodes/pods; the default rules deny inbound traffic
+from the internet. If you change `aks_pod_cidr` or `subnet_cidrs`, the NSG follows automatically. PostgreSQL logs no
+statement text by duration (`log_min_duration_statement = -1`, statements can carry health data); use
+`pg_stat_statements` for slow queries.
 
 Initialise against this environment's state (`-reconfigure` switches cleanly between environments in one checkout):
 

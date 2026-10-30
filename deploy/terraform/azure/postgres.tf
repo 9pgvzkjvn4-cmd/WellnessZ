@@ -89,7 +89,11 @@ resource "azurerm_postgresql_flexible_server_database" "wellnessz" {
   }
 }
 
-# Server parameters: encryption in transit + audit logging
+# Server parameters: encryption in transit + audit logging.
+# log_min_duration_statement = -1: statement text is never logged by duration -
+# logged statements (and their bind parameters) can carry special-category
+# health data. Slow-query analysis uses pg_stat_statements (normalised, no
+# literals) instead.
 locals {
   postgres_parameters = {
     require_secure_transport     = "ON"
@@ -97,7 +101,7 @@ locals {
     log_connections              = "ON"
     log_disconnections           = "ON"
     log_checkpoints              = "ON"
-    log_min_duration_statement   = "2000"
+    log_min_duration_statement   = "-1"
     "connection_throttle.enable" = "ON"
     "azure.extensions"           = "PGCRYPTO,PGAUDIT,PG_STAT_STATEMENTS"
     shared_preload_libraries     = "pg_stat_statements,pgaudit"

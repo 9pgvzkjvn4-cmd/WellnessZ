@@ -33,6 +33,14 @@ resource "google_project_iam_member" "workload_telemetry" {
 # ---------------------------------------------------------------------------
 # GitHub Actions: Workload Identity Federation (no JSON keys)
 # ---------------------------------------------------------------------------
+locals {
+  # Default GitHub OIDC subject formats (no customised sub claim template)
+  github_wif_subjects = concat(
+    [for e in local.github_envs : "repo:${var.github_repository}:environment:${e}"],
+    [for b in var.github_image_publish_branches : "repo:${var.github_repository}:ref:refs/heads/${b}"],
+  )
+}
+
 resource "google_iam_workload_identity_pool" "github" {
   count                     = var.github_repository == "" ? 0 : 1
   workload_identity_pool_id = "github-${var.environment}"
@@ -51,8 +59,10 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.environment"  = "assertion.environment"
     "attribute.workflow_ref" = "assertion.job_workflow_ref"
   }
-  # Only this repository may federate
-  attribute_condition = "assertion.repository == '${var.github_repository}'"
+  # Only this repository, and only the token subjects the deployer SA bindings
+  # below accept (its GitHub Environments and the image-publish branches),
+  # may exchange a token at all - defence in depth for the IAM bindings.
+  attribute_condition = "assertion.repository == '${var.github_repository}' && (${join(" || ", [for s in local.github_wif_subjects : "assertion.sub == '${s}'"])})"
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
   }

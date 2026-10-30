@@ -61,10 +61,14 @@
     <dependency-check.version>13.0.0</dependency-check.version>
     <spotbugs-plugin.version>4.10.5.0</spotbugs-plugin.version>
     <findsecbugs.version>1.14.0</findsecbugs.version>
+    <!-- security overrides of Spring Boot managed versions (VAPT 2026-10: GHSA-ccrj-gw8r-854m, GHSA-xxph-c9ww-hj94) -->
+    <opentelemetry.version>1.67.0</opentelemetry.version>
+    <guava.version>33.7.2-jre</guava.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <dependency><groupId>com.google.guava</groupId><artifactId>guava</artifactId><version>${guava.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-common</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-secrets</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-security</artifactId><version>${project.version}</version></dependency>

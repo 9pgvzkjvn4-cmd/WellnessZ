@@ -223,6 +223,7 @@ Fill the identifiers (no secrets) in `environments/$ENV.local.tfvars`:
 | `sql_iam_admin_group` | `wellnessz-dba-dev@example.com` | Google group for IAM database login |
 | `github_repository` | `OWNER/WellnessZ` | Creates the WIF pool `github-<env>`, provider and deployer SA trusted by GitHub Environment `gcp-<env>` only |
 | `gke_master_authorized_networks` (optional override) | `[{ cidr_block = "<corporate egress>/24", display_name = "corporate" }]` | Replace the `203.0.113.0/24` placeholder of the committed tfvars |
+| `gke_rbac_security_group` (optional) | `gke-security-groups@example.com` | Google Groups for RBAC: the group must exist in Cloud Identity / Workspace and contain the groups bound in RoleBindings; omitted = off (IAM users and service accounts only) |
 
 Review what differs in the committed `environments/$ENV.tfvars`:
 
@@ -241,6 +242,15 @@ Review what differs in the committed `environments/$ENV.tfvars`:
 
 All three use `gke_autopilot = true`, `gke_private_endpoint = false` (set `true` in PROD only with CI inside the VPC
 or the Connect Gateway) and `region = "europe-west4"`.
+
+Security settings that are the same in every environment (no variable): GKE intranode visibility on (default in
+Autopilot), no legacy client certificates, Shielded nodes with Secure Boot and the GKE metadata server (enforced by
+Autopilot; set explicitly for Standard node pools); Cloud Armor rule 1011 evaluates all `cve-canary` (Log4j)
+signatures and follows `cloud_armor_preview` like the other WAF rules; Cloud SQL logs failing statements
+(`log_min_error_statement = error`) and client host names, but never statement text by duration
+(`log_min_duration_statement = -1`) – statements and bind values can carry health data; use Query Insights for slow
+queries. `log_statement` stays unset: `pgaudit.log = ddl,role` audits DDL and role changes with redacted passwords,
+whereas core `log_statement = ddl` would log `ALTER ROLE … PASSWORD` (section 8) in clear text.
 
 ```bash
 terraform init -reconfigure -backend-config=environments/backend-$ENV.hcl
@@ -460,7 +470,8 @@ does not point to the static IP yet.
 ## 11. GitHub configuration: Environments, Workload Identity Federation, required reviewers
 
 Terraform created per environment the pool `github-<env>`, the provider `github` (attribute condition on the
-repository) and the deployer service account `github-deployer-<env>@`, which only the GitHub Environment `gcp-<env>`
+repository and on the exact token subjects of `github_environments` / `github_image_publish_branches`, GitHub's default
+subject format) and the deployer service account `github-deployer-<env>@`, which only the GitHub Environment `gcp-<env>`
 may impersonate (`github_environments`); in DEV the `main` branch may also push images (`github_image_publish_branches`).
 Roles: `container.developer`, Artifact Registry writer on the repository, the Binary Authorization attestation roles and
 `cloudkms.signerVerifier` on the attestor key.

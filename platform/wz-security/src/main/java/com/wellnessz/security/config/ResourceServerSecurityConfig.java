@@ -1,5 +1,6 @@
 package com.wellnessz.security.config;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,6 +21,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.JwtIssuerAuthenticationManagerResolver;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -36,6 +38,7 @@ import com.wellnessz.security.identity.WellnessZJwtConverter;
  *   <li>Audience, expiry, not-before and issuer are validated; algorithms are restricted by the JWKS.</li>
  *   <li>Stateless, no sessions, no CSRF (bearer tokens only), strict security headers.</li>
  *   <li>Method security ({@code @PreAuthorize}) enabled for fine-grained RBAC; ABAC via {@code PolicyEngine}.</li>
+ *   <li>Per-principal rate limit ({@link ApiRateLimitFilter}) behind the edge WAF.</li>
  * </ul>
  */
 @Configuration
@@ -59,6 +62,7 @@ public class ResourceServerSecurityConfig {
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().denyAll())
             .oauth2ResourceServer(oauth -> oauth.authenticationManagerResolver(issuerResolver))
+            .addFilterAfter(new ApiRateLimitFilter(props, Clock.systemUTC()), BearerTokenAuthenticationFilter.class)
             .headers(h -> h
                 .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
                 .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))

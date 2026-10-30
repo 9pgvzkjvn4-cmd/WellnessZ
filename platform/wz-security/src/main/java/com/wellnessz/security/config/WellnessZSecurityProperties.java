@@ -44,6 +44,15 @@ public class WellnessZSecurityProperties {
     /** {@code acr} values accepted as proof of MFA (e.g. Keycloak step-up level "2", Entra ID "c1" authentication context). */
     private List<String> mfaAcrValues = new ArrayList<>(List.of("2", "3", "mfa", "c1"));
 
+    /** Per-principal API rate limit, independent of any edge WAF (requests per minute; 0 disables). */
+    private int rateLimitPerMinute = 600;
+
+    /** Per-principal rate limit for machine clients with the INTEGRATION role (requests per minute; 0 disables). */
+    private int integrationRateLimitPerMinute = 6000;
+
+    /** Short-term burst allowance on top of the steady rate (requests). */
+    private int rateLimitBurst = 120;
+
     public List<String> getIssuers() {
         return issuers;
     }
@@ -122,5 +131,29 @@ public class WellnessZSecurityProperties {
 
     public void setMfaAcrValues(List<String> mfaAcrValues) {
         this.mfaAcrValues = mfaAcrValues;
+    }
+
+    public int getRateLimitPerMinute() {
+        return rateLimitPerMinute;
+    }
+
+    public void setRateLimitPerMinute(int rateLimitPerMinute) {
+        this.rateLimitPerMinute = rateLimitPerMinute;
+    }
+
+    public int getIntegrationRateLimitPerMinute() {
+        return integrationRateLimitPerMinute;
+    }
+
+    public void setIntegrationRateLimitPerMinute(int integrationRateLimitPerMinute) {
+        this.integrationRateLimitPerMinute = integrationRateLimitPerMinute;
+    }
+
+    public int getRateLimitBurst() {
+        return rateLimitBurst;
+    }
+
+    public void setRateLimitBurst(int rateLimitBurst) {
+        this.rateLimitBurst = rateLimitBurst;
     }
 }

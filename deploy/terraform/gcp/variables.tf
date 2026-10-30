@@ -93,6 +93,16 @@ variable "gke_master_authorized_networks" {
   default = []
 }
 
+variable "gke_rbac_security_group" {
+  description = "Google Groups for RBAC: gke-security-groups@<your-domain> (must exist in Cloud Identity / Workspace and contain the groups used in RoleBindings). null = feature off; access is then granted to users / service accounts via IAM."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.gke_rbac_security_group == null || can(regex("^gke-security-groups@", coalesce(var.gke_rbac_security_group, "x")))
+    error_message = "gke_rbac_security_group must be gke-security-groups@<domain>."
+  }
+}
+
 variable "gke_release_channel" {
   type    = string
   default = "REGULAR"

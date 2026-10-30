@@ -46,10 +46,11 @@ appgw_min_capacity = 2
 appgw_max_capacity = 10
 enable_front_door  = false
 
-acr_public_network_access  = true # promotion copies images in from the azure-prod deploy job
-key_vault_soft_delete_days = 90
-log_retention_days         = 365
-enable_defender_plans      = true
+acr_public_network_access    = true # promotion copies images in from the azure-prod deploy job
+acr_georeplication_locations = []   # e.g. ["northeurope"] once AKS also runs in a DR region
+key_vault_soft_delete_days   = 90
+log_retention_days           = 365
+enable_defender_plans        = true
 
 github_environments           = ["azure-prod"]
 github_image_publish_branches = []

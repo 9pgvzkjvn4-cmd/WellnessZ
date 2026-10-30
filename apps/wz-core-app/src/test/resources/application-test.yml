@@ -8,6 +8,8 @@ spring:
 wellnessz:
   security:
     issuers: https://idp.test/realms/wellnessz
+    rate-limit-per-minute: 0 # integration tests replay many calls per user; the limiter has its own unit test
+    integration-rate-limit-per-minute: 0
   analytics:
     min-group-size: 3
   integration:

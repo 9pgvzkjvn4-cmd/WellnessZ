@@ -292,6 +292,16 @@ variable "acr_allowed_ips" {
   default = []
 }
 
+variable "acr_georeplication_locations" {
+  description = "Additional Azure regions the (Premium) ACR replicates to - only needed when AKS also runs in another region (multi-region DR). Must not contain `location`."
+  type        = list(string)
+  default     = []
+  validation {
+    condition     = !contains(var.acr_georeplication_locations, var.location)
+    error_message = "acr_georeplication_locations must not contain the primary location."
+  }
+}
+
 variable "log_retention_days" {
   description = "Log Analytics retention (SOC 2 evidence: >= 365 recommended for prod)."
   type        = number
@@ -320,7 +330,10 @@ variable "waf_rule_set" {
     version = string
   })
   default = {
-    type    = "Microsoft_DefaultRuleSet" # DRS 2.1 (successor of OWASP CRS 3.2)
+    # DRS 2.1 = successor of OWASP CRS 3.2 and the newest version azurerm ~> 4.81
+    # accepts (1.1 / 2.0 / 2.1). It includes the Log4Shell rule 944240
+    # (REQUEST-944-APPLICATION-ATTACK-JAVA); never disable it in an override.
+    type    = "Microsoft_DefaultRuleSet"
     version = "2.1"
   }
 }

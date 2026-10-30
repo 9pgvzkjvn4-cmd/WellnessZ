@@ -16,7 +16,6 @@ locals {
     1008 = "evaluatePreconfiguredWaf('sessionfixation-v33-stable', {'sensitivity': 1})"
     1009 = "evaluatePreconfiguredWaf('php-v33-stable', {'sensitivity': 1})"
     1010 = "evaluatePreconfiguredWaf('java-v33-stable', {'sensitivity': 1})"
-    1011 = "evaluatePreconfiguredWaf('cve-canary', {'sensitivity': 2})"
   }
 }
 
@@ -49,6 +48,21 @@ resource "google_compute_security_policy" "waf" {
       }
       description = "Preconfigured WAF rule"
     }
+  }
+
+  # Log4Shell (CVE-2021-44228 / CVE-2021-45046). Without a sensitivity
+  # argument all cve-canary signatures are evaluated, including the level-3
+  # bypass / base64 detections (id244228, id344228) that sensitivity 2 skipped.
+  rule {
+    action   = "deny(403)"
+    priority = 1011
+    preview  = var.cloud_armor_preview
+    match {
+      expr {
+        expression = "evaluatePreconfiguredWaf('cve-canary')"
+      }
+    }
+    description = "Log4j JNDI lookup (cve-canary, all signatures)"
   }
 
   # Throttle authentication endpoints (credential stuffing)

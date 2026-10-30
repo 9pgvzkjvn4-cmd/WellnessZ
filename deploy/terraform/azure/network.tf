@@ -96,6 +96,61 @@ resource "azurerm_subnet_network_security_group_association" "appgw" {
   network_security_group_id = azurerm_network_security_group.appgw.id
 }
 
+# AKS node subnet (Azure CNI Overlay). AKS keeps managing its own NSG on the
+# node NICs; this subnet NSG adds a boundary without changing cluster traffic:
+# the explicit allows are the rules Microsoft requires for CNI Overlay when a
+# subnet NSG is present (node<->node, node->pod, pod<->pod; pod traffic is not
+# encapsulated and the pod CIDR is outside the VNet address space) plus the
+# App Gateway (AGIC) backend path. The default rules stay in force
+# (AllowVnetInBound, AllowAzureLoadBalancerInBound, DenyAllInBound), so
+# inbound traffic from the internet straight to nodes/pods is denied - public
+# entry is the App Gateway only.
+resource "azurerm_network_security_group" "aks" {
+  name                = "nsg-${local.name}-aks"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  tags                = local.tags
+
+  security_rule {
+    name                         = "allow-cluster-inbound"
+    priority                     = 100
+    direction                    = "Inbound"
+    access                       = "Allow"
+    protocol                     = "*"
+    source_port_range            = "*"
+    destination_port_range       = "*"
+    source_address_prefixes      = [var.subnet_cidrs.aks, var.aks_pod_cidr]
+    destination_address_prefixes = [var.subnet_cidrs.aks, var.aks_pod_cidr]
+  }
+  security_rule {
+    name                         = "allow-appgw-to-backends"
+    priority                     = 110
+    direction                    = "Inbound"
+    access                       = "Allow"
+    protocol                     = "Tcp"
+    source_port_range            = "*"
+    destination_port_range       = "*"
+    source_address_prefix        = var.subnet_cidrs.appgw
+    destination_address_prefixes = [var.subnet_cidrs.aks, var.aks_pod_cidr]
+  }
+  security_rule {
+    name                         = "allow-cluster-outbound"
+    priority                     = 100
+    direction                    = "Outbound"
+    access                       = "Allow"
+    protocol                     = "*"
+    source_port_range            = "*"
+    destination_port_range       = "*"
+    source_address_prefixes      = [var.subnet_cidrs.aks, var.aks_pod_cidr]
+    destination_address_prefixes = [var.subnet_cidrs.aks, var.aks_pod_cidr]
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "aks" {
+  subnet_id                 = azurerm_subnet.aks.id
+  network_security_group_id = azurerm_network_security_group.aks.id
+}
+
 resource "azurerm_network_security_group" "postgres" {
   name                = "nsg-${local.name}-postgres"
   location            = azurerm_resource_group.main.location

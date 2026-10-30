@@ -13,6 +13,18 @@ resource "azurerm_container_registry" "main" {
   retention_policy_in_days      = 30
   tags                          = local.tags
 
+  # Optional geo-replicas (Premium) when the workload also runs in another
+  # region; each replica is zone redundant when the environment spans zones.
+  dynamic "georeplications" {
+    for_each = var.acr_georeplication_locations
+    content {
+      location                  = georeplications.value
+      zone_redundancy_enabled   = local.zone_redundant
+      regional_endpoint_enabled = true
+      tags                      = local.tags
+    }
+  }
+
   dynamic "network_rule_set" {
     for_each = var.acr_public_network_access && length(var.acr_allowed_ips) > 0 ? [1] : []
     content {

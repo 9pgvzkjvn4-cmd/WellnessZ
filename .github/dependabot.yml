@@ -1,4 +1,8 @@
 # Dependabot - weekly grouped updates; security updates are raised immediately.
+# cooldown: version updates are proposed only after a release has been public
+# for a few days (malicious / yanked releases are usually caught by then).
+# Security updates ignore cooldown. semver-*-days apply to maven/npm only;
+# the other ecosystems support default-days only.
 version: 2
 
 updates:
@@ -9,6 +13,11 @@ updates:
       day: monday
       time: "04:00"
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 5
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
     labels: [dependencies, java]
     groups:
       spring:
@@ -22,6 +31,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 5
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
     labels: [dependencies, web]
     groups:
       npm-minor-patch:
@@ -33,6 +47,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 5
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
     labels: [dependencies, web]
     groups:
       npm-minor-patch:
@@ -44,6 +63,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 5
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
     labels: [dependencies, web]
     groups:
       npm-minor-patch:
@@ -55,6 +79,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 5
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
     labels: [dependencies, web]
     groups:
       npm-minor-patch:
@@ -64,6 +93,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 5
     labels: [dependencies, ci]
     groups:
       actions:
@@ -78,12 +109,16 @@ updates:
       - /web/partner-portal
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 5
     labels: [dependencies, docker]
 
   - package-ecosystem: docker-compose
     directory: /deploy/local
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 5
     labels: [dependencies, docker]
 
   - package-ecosystem: terraform
@@ -92,10 +127,14 @@ updates:
       - /deploy/terraform/gcp
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 5
     labels: [dependencies, iac]
 
   - package-ecosystem: helm
     directory: /deploy/helm/wellnessz
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     labels: [dependencies, iac]

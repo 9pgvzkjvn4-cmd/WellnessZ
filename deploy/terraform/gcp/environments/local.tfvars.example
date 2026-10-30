@@ -2,3 +2,4 @@
 project_id          = "my-wellnessz-<env>"
 sql_iam_admin_group = "wellnessz-dba-<env>@example.com"
 github_repository   = "OWNER/WellnessZ"
+# gke_rbac_security_group = "gke-security-groups@example.com"  # optional: Google Groups for RBAC

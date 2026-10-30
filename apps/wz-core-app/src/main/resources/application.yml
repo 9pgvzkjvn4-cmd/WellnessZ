@@ -111,6 +111,10 @@ wellnessz:
     role-claims: realm_access.roles,roles,groups
     employee-id-claim: employee_id
     org-scope-claim: org_scope
+    # per-principal API rate limit (defence in depth behind the WAF; the only limit on-premises) – 0 disables
+    rate-limit-per-minute: ${WZ_RATE_LIMIT_PER_MINUTE:600}
+    integration-rate-limit-per-minute: ${WZ_INTEGRATION_RATE_LIMIT_PER_MINUTE:6000}
+    rate-limit-burst: ${WZ_RATE_LIMIT_BURST:120}
   crypto:
     active-key-version: ${WZ_FIELD_KEY_VERSION:v1}
   consent:

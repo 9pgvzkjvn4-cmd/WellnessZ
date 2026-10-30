@@ -108,7 +108,10 @@ resource "azurerm_kubernetes_cluster" "main" {
     utc_offset  = "+00:00"
   }
 
-  depends_on = [azurerm_role_assignment.aks_network]
+  depends_on = [
+    azurerm_role_assignment.aks_network,
+    azurerm_subnet_network_security_group_association.aks, # NSG in place before nodes join
+  ]
 
   lifecycle {
     ignore_changes = [
