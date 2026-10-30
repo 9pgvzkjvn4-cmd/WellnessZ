@@ -41,7 +41,9 @@ import tools.jackson.databind.json.JsonMapper;
 public class BffSecurityConfig {
 
     static final List<String> WORKSPACE_ROLES = List.of("MANAGER", "HR", "OH_CLINICIAN", "OH_ADMIN", "CASE_MANAGER",
-            "PSYCH_CLINICIAN", "PLATFORM_ADMIN");
+            "PSYCH_CLINICIAN", "PLATFORM_ADMIN",
+            // increment 5: safety managers (for-cause requests) and crew scheduling (duty status) use the manager workspace
+            "SAFETY_MANAGER", "CREW_SCHEDULING");
 
     /** Management port (internal only, never exposed by the ingress): probes and metrics are unauthenticated. */
     @Bean
