@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="WellnessZ Partner Portal – offline demo with synthetic data for treatment partners, the EAP partner and the claims administrator.">
+<title>WellnessZ – Partner Portal (demo)</title>
+<link rel="stylesheet" href="../shared/ui.css" data-wz-inline>
+<style>
+  .pp-main .wz-main { max-width: 1180px; }
+  .pp-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem 1rem; margin-bottom: .9rem; }
+  .pp-head h1 { margin: 0; }
+  .pp-head .pp-sp { flex: 1; }
+  .pp-head .wz-lead { flex-basis: 100%; margin: .2rem 0 0; }
+  .pp-kpis { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); margin-bottom: 1rem; }
+  .wz-kpi.warn { border-left: 4px solid var(--c-warn-border); }
+  .wz-kpi.danger { border-left: 4px solid var(--c-error); }
+  .wz-kpi.success { border-left: 4px solid var(--c-success); }
+  .wz-kpi.info { border-left: 4px solid var(--c-primary); }
+  .pp-filters { display: flex; flex-wrap: wrap; gap: .75rem 1rem; align-items: flex-end; margin-bottom: .6rem; }
+  .pp-filters .wz-field { min-width: 200px; }
+  .pp-filters .wz-check { align-self: center; margin-top: 1.4rem; }
+  .pp-count { color: var(--c-muted); font-size: .875rem; margin: .2rem 0 .6rem; }
+  .pp-sub { display: block; color: var(--c-muted); font-size: .82rem; }
+  .pp-split { display: grid; gap: 1rem; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
+  @media (max-width: 960px) { .pp-split { grid-template-columns: 1fr; } }
+  .pp-quote { border-left: 4px solid var(--c-border); background: var(--c-surface); padding: .6rem .9rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin: 0 0 1rem; }
+  .pp-tags { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .pp-signout { background: none; border: 0; color: inherit; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; padding: .25rem; }
+  .pp-thread { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+  .pp-msg { max-width: 80%; background: var(--c-surface-2); border: 1px solid var(--c-border); border-radius: 12px; padding: .55rem .8rem; }
+  .pp-msg.mine { margin-left: auto; background: var(--c-primary-soft); border-color: color-mix(in srgb, var(--c-primary) 30%, transparent); }
+  .pp-msg small { display: block; color: var(--c-muted); font-size: .78rem; }
+  .pp-denied { max-width: 680px; }
+  /* sign-in (MFA) */
+  .pp-auth { min-height: calc(100vh - 44px); display: grid; place-items: center; padding: 2rem 1rem; background: radial-gradient(circle at 20% 10%, #12807a 0, transparent 45%), radial-gradient(circle at 85% 90%, #0e4c75 0, transparent 40%), #0a3d3a; }
+  .pp-auth-in { width: min(460px, 100%); }
+  .pp-auth-brand { color: #fff; text-align: center; letter-spacing: .14em; font-size: 1.15rem; margin-bottom: 1.2rem; text-transform: uppercase; }
+  .pp-auth-brand .wz-logo { margin-right: .5rem; vertical-align: middle; }
+  .pp-auth-card { background: var(--c-surface); border-top: 5px solid #19a39b; border-radius: 6px; padding: 1.8rem 2rem 1.6rem; box-shadow: 0 18px 40px rgba(0,0,0,.35); }
+  .pp-auth-card h1 { font-size: 1.45rem; margin-bottom: .3rem; }
+  .pp-steps { display: flex; gap: .4rem; margin: .2rem 0 1.1rem; }
+  .pp-steps span { flex: 1; height: 5px; border-radius: 3px; background: var(--c-border); }
+  .pp-steps span.on { background: var(--c-primary); }
+  .pp-code { font-family: var(--mono); font-size: 1.6rem !important; letter-spacing: .5em; text-align: center; }
+  .pp-auth-foot { color: rgba(255,255,255,.82); font-size: .8rem; text-align: center; margin-top: 1rem; }
+  .pp-auth-who { display: flex; align-items: center; gap: .6rem; background: var(--c-surface-2); border-radius: var(--radius-sm); padding: .55rem .7rem; margin-bottom: 1rem; }
+  .pp-auth-who .wz-org-chip { border-color: var(--c-primary); color: var(--c-primary); }
+</style>
+</head>
+<body data-theme="partner">
+<a class="wz-skip" href="#main">Skip to content</a>
+<div id="app" aria-live="off"></div>
+
+<script src="../data/demo-data.js" data-wz-data></script>
+<script src="../shared/scenarios.js" data-wz-inline></script>
+<script src="../shared/engine.js" data-wz-inline></script>
+<script src="../shared/ui.js" data-wz-inline></script>
+<script>
+(function () {
+  'use strict';
+  var APP = 'partner';
+  var app = document.getElementById('app');
+  if (!window.WZ_DEMO_SEED || !window.WZ) {
+    app.innerHTML = '<main class="wz-main"><div class="wz-alert danger"><div class="wz-alert-title">Demo data not found</div><p>The file <code>demo-data.js</code> must be in the same folder as this app. Open the portal from the demo folder (for example via <code>index.html</code>) in Chrome or Edge.</p></div></main>';
+    return;
+  }
+  var h = UI.h, raw = UI.raw;
+  WZ.init({ app: APP });
+
+  // ---------------------------------------------------------------- local UI state
+  var ui = { dirty: false, pending: false, lastUser: null, filters: {}, authStep: 1 };
+  var MFA_KEY = 'wz-partner-mfa';
+  var mfaMemory = null;
+  function verifiedUser() { try { return sessionStorage.getItem(MFA_KEY); } catch (e) { return mfaMemory; } }
+  function setVerified(u) { mfaMemory = u; try { if (u) sessionStorage.setItem(MFA_KEY, u); else sessionStorage.removeItem(MFA_KEY); } catch (e) { /* storage blocked: memory only */ } }
+
+  var OUTCOMES = ['COMPLETED', 'DID_NOT_ENGAGE', 'ONWARD_REFERRAL', 'EMPLOYEE_WITHDREW'];
+  var DECLINE_REASONS = ['No capacity within the requested time', 'Service not offered at this clinic', 'Outside our service area', 'Clinically more suitable for another provider'];
+  var DECISIONS = [{ value: 'ACCEPTED', label: 'Accept' }, { value: 'DENIED', label: 'Deny' }, { value: 'MORE_INFO', label: 'Request more information' }, { value: 'UNDER_REVIEW', label: 'Mark under review' }];
+  var CODE_TEXT = {
+    forbidden: 'Your organisation’s role does not allow this.', not_found: 'This record is not available to your organisation.', validation: 'Please check the form.',
+    invalid_state: 'This step is not possible at the referral’s current status.', consent_required: 'Consent is needed first.',
+    consent_withdrawn: 'The employee has withdrawn consent – access to this referral has stopped.', clinical_content: 'Please remove clinical details from free text.',
+    case_closed: 'This case is closed.', unauthenticated: 'Please sign in first.', storage_full: 'The browser could not save the demo session.'
+  };
+  function friendly(e) {
+    if (!e) return 'Something went wrong.';
+    if (e.name !== 'WZError') return 'Something went wrong: ' + (e.message || e);
+    var base = CODE_TEXT[e.code] || 'The action could not be completed.';
+    return e.message && e.message !== e.code && e.message !== base ? base + ' ' + e.message.replace(/\.?$/, '.') : base;
+  }
+  function attempt(fn, ok) {
+    try { var r = fn(); if (ok) UI.toast(ok, 'success'); return r; }
+    catch (e) { UI.toast(friendly(e), 'danger'); if (window.console) console.warn(e); return undefined; }
+  }
+
+  function me() { return WZ.currentUser; }
+  function role(r) { var u = me(); return !!u && u.roles.indexOf(r) >= 0; }
+  function isEap() { return role('EAP_PARTNER'); }
+  function isAdjuster() { return role('TPA_ADJUSTER'); }
+  function isProvider() { return role('PARTNER_PROVIDER') && !isEap(); }
+  function orgName(code) { var o = WZ.ref('partnerOrgs').filter(function (x) { return x.code === code; })[0]; return o ? o.name : code; }
+  function toIso(local) { if (!local) return null; var d = new Date(local); return isNaN(d.getTime()) ? null : d.toISOString(); }
+  function localInput(daysAhead, hh) { var d = new Date(); d.setDate(d.getDate() + daysAhead); d.setHours(hh, 0, 0, 0); var p = function (n) { return String(n).padStart(2, '0'); }; return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+  function defaultRoute() { return isAdjuster() ? 'claims' : isEap() ? 'eap' : 'referrals'; }
+
+  var NAV = [
+    { route: 'referrals', label: 'Referral inbox', show: isProvider, count: function () { return WZ.tasks().filter(function (t) { return t.kind === 'REFERRAL_NEW' && t.link.route === 'referrals'; }).length; } },
+    { route: 'eap', label: 'EAP referrals', show: isEap, count: function () { return WZ.tasks().filter(function (t) { return t.kind === 'REFERRAL_NEW' && t.link.route === 'eap'; }).length; } },
+    { route: 'claims', label: 'Claims', show: isAdjuster, count: function () { return WZ.tasks().filter(function (t) { return t.kind === 'CLAIM_DECISION'; }).length; } },
+    { route: 'documents', label: 'Shared documents', show: function () { return true; } },
+    { route: 'messages', label: 'Messages', show: function () { return true; } },
+    { route: 'notifications', label: 'Notifications', show: function () { return true; }, count: function () { return WZ.unreadCount(); } }
+  ];
+
+  // ---------------------------------------------------------------- fragments
+  function head(title, lead, extra) { return h`<div class="pp-head"><h1 tabindex="-1">${title}</h1><span class="pp-sp"></span>${extra || ''}${lead ? h`<p class="wz-lead">${lead}</p>` : ''}</div>`; }
+  function confidential(text) { return UI.alert('info', 'Confidential', h`<p>${text}</p>`); }
+  function kpi(v, l, tone) { return h`<div class="wz-kpi ${tone || ''}"><b>${v}</b><span>${l}</span></div>`; }
+  function notAvailable(kind, backRoute) {
+    return h`<div class="pp-denied"><p class="wz-breadcrumb"><a href="#/${backRoute}">← Back</a></p>${head(kind + ' not available')}
+      ${UI.alert('warn', 'You cannot open this ' + kind.toLowerCase(), h`<p>It does not exist, or it belongs to another organisation. Partners see only the ${kind.toLowerCase()}s sent to their own organisation (${me().partnerOrg}).</p>`)}
+      <a class="wz-btn secondary" href="#/${backRoute}">Back to the inbox</a></div>`;
+  }
+  function withdrawnBox(id) {
+    return UI.alert('danger', 'Consent withdrawn – access stopped', h`<p>The employee has withdrawn consent for referral <span class="wz-mono">${id}</span>. No personal or clinical data is shown and no further actions are possible. Stop processing and handle any local copies under your data-sharing agreement.</p>`);
+  }
+  function urgencyBadge(u) { return UI.status('urgency', u || 'ROUTINE'); }
+
+  // =====================================================================================
+  // Screens
+  // =====================================================================================
+  var routes = {
+    home: function () { location.replace('#/' + defaultRoute()); return ''; },
+
+    referrals: function () {
+      var f = ui.filters.ref || (ui.filters.ref = { status: '', overdue: false });
+      var all = WZ.list('referrals', { kind: 'TREATMENT' });
+      var rows = all.filter(function (r) { return (!f.status || r.status === f.status) && (!f.overdue || r.reportOverdue); });
+      return h`${head('Referral inbox', 'Referrals sent to your organisation by WellnessZ Occupational Health.')}
+        ${confidential('Shared with ' + me().partnerOrg + ' under the employee’s consent for treatment by your organisation. Use it only for this referral, do not forward it, and keep reports in your clinical record system. Every access is logged.')}
+        <div class="pp-kpis">
+          ${kpi(all.filter(function (r) { return r.status === 'SENT'; }).length, 'New – to accept', 'warn')}
+          ${kpi(all.filter(function (r) { return r.status === 'APPOINTMENT_SET' || r.status === 'ACCEPTED' || r.status === 'IN_PROGRESS'; }).length, 'Active', 'info')}
+          ${kpi(all.filter(function (r) { return r.reportOverdue; }).length, 'Report overdue', 'danger')}
+          ${kpi(all.filter(function (r) { return r.status === 'REPORT_RECEIVED' || r.status === 'CLOSED'; }).length, 'Reported or closed', 'success')}
+        </div>
+        <form class="pp-filters" data-form="filter-ref" onsubmit="return false">
+          ${UI.field({ type: 'select', name: 'status', label: 'Status', value: f.status, options: [{ value: '', label: 'All statuses' }].concat(['SENT', 'ACCEPTED', 'APPOINTMENT_SET', 'IN_PROGRESS', 'REPORT_RECEIVED', 'DECLINED', 'CLOSED', 'CONSENT_WITHDRAWN'].map(function (s) { return { value: s, label: WZ.label('referral', s) }; })) })}
+          ${UI.checkbox({ name: 'overdue', label: 'Report overdue only', checked: f.overdue })}
+        </form>
+        <p class="pp-count">Showing ${rows.length} of ${all.length} referrals.</p>
+        ${UI.table([
+          { label: 'Referral', render: function (r) { return h`<a class="wz-mono" href="#/referral/${r.id}">${r.id}</a><span class="pp-sub">${UI.fmtDateTime(r.sentAt)}</span>`; } },
+          { label: 'Patient', render: function (r) { return r.status === 'CONSENT_WITHDRAWN' ? h`<span class="wz-muted">${r.employeeName}</span>` : r.employeeName; } },
+          { label: 'Service', key: 'serviceName' },
+          { label: 'Urgency', render: function (r) { return urgencyBadge(r.urgency); } },
+          { label: 'Status', render: function (r) { return UI.status('referral', r.status); } },
+          { label: 'Appointment', render: function (r) { return r.appointmentAt ? UI.fmtDateTime(r.appointmentAt) : '—'; } },
+          { label: 'Report due', render: function (r) { return h`${r.reportDue ? UI.fmtDate(r.reportDue) : '—'}${r.reportOverdue ? h`<span class="pp-sub">${UI.badge('Overdue', 'danger')}</span>` : ''}`; } }
+        ], rows, { empty: 'No referrals', emptyText: 'Referrals for your organisation appear here.', caption: 'Referral inbox' })}`;
+    },
+
+    eap: function () {
+      var all = WZ.list('referrals', { kind: 'EAP' });
+      return h`${head('EAP referrals', 'Employee assistance programme referrals sent to your organisation by the WellnessZ named mental-health clinician.')}
+        ${confidential('Restricted – shared with ' + me().partnerOrg + ' only to arrange counselling. You receive the name and contact preference only. You report attendance and a coded outcome – never session notes. Every access is logged.')}
+        <div class="pp-kpis">
+          ${kpi(all.filter(function (r) { return r.status === 'SENT'; }).length, 'New – to accept', 'warn')}
+          ${kpi(all.filter(function (r) { return ['ACCEPTED', 'APPOINTMENT_SET', 'IN_PROGRESS'].indexOf(r.status) >= 0; }).length, 'In counselling', 'info')}
+          ${kpi(all.filter(function (r) { return r.status === 'CLOSED'; }).length, 'Closed', 'success')}
+        </div>
+        ${UI.table([
+          { label: 'Referral', render: function (r) { return h`<a class="wz-mono" href="#/referral/${r.id}">${r.id}</a><span class="pp-sub">${UI.fmtDateTime(r.sentAt)}</span>`; } },
+          { label: 'Employee', render: function (r) { return r.status === 'CONSENT_WITHDRAWN' ? h`<span class="wz-muted">${r.employeeName}</span>` : r.employeeName; } },
+          { label: 'Contact preference', render: function (r) { return r.contactPreference ? WZ.label('contactPreference', r.contactPreference) : '—'; } },
+          { label: 'Sessions attended', className: 'num', render: function (r) { return r.sessions || 0; } },
+          { label: 'Status', render: function (r) { return UI.status('referral', r.status); } },
+          { label: 'Outcome', render: function (r) { return r.outcome ? WZ.label('eapOutcome', r.outcome) : '—'; } },
+          { label: '', render: function (r) { return h`<a class="wz-btn small secondary" href="#/referral/${r.id}">Open</a>`; } }
+        ], all, { empty: 'No EAP referrals', caption: 'EAP referrals' })}`;
+    },
+
+    'referral/:id': function (p) {
+      var back = isEap() ? 'eap' : 'referrals';
+      var r = WZ.get('referrals', p.id);
+      if (!r) return notAvailable('Referral', back);
+      var crumbs = h`<p class="wz-breadcrumb"><a href="#/${back}">← Back to ${isEap() ? 'EAP referrals' : 'referral inbox'}</a></p>`;
+      if (r.status === 'CONSENT_WITHDRAWN') return h`${crumbs}${head('Referral ' + r.id)}${withdrawnBox(r.id)}<div class="wz-card">${UI.dl([['Service', r.serviceName], ['Status', UI.status('referral', r.status)], ['Sent', UI.fmtDateTime(r.sentAt)]])}</div>`;
+      var eap = r.kind === 'EAP';
+      var active = ['ACCEPTED', 'APPOINTMENT_SET', 'IN_PROGRESS'].indexOf(r.status) >= 0;
+      var open = r.status !== 'CLOSED' && r.status !== 'DECLINED';
+      return h`${crumbs}${head('Referral ' + r.id, null, UI.status('referral', r.status))}
+        ${eap ? confidential('Restricted EAP referral – name and contact preference only. Record attendance and a coded outcome; never add notes about the content of sessions.')
+              : confidential('Shared with ' + me().partnerOrg + ' under the employee’s consent. Your report goes to Occupational Health only – it is never shown to the employer.')}
+        <div class="pp-split">
+          <section>
+            <div class="wz-card">${UI.dl([[eap ? 'Employee' : 'Patient', r.employeeName], eap ? ['Contact preference', WZ.label('contactPreference', r.contactPreference)] : ['Job', r.jobTitle], ['Service', r.serviceName], ['Urgency', urgencyBadge(r.urgency)],
+              ['Status', UI.status('referral', r.status)], ['Sent', UI.fmtDateTime(r.sentAt)], ['Accepted', r.acceptedAt ? UI.fmtDateTime(r.acceptedAt) : null], ['Appointment', r.appointmentAt ? UI.fmtDateTime(r.appointmentAt) : null],
+              [eap ? 'Review by' : 'Report due', r.reportDue ? h`${UI.fmtDate(r.reportDue)}${r.reportOverdue ? h` ${UI.badge('Overdue', 'danger')}` : ''}` : null],
+              eap ? ['Sessions attended', String(r.sessions || 0)] : null, r.outcome ? ['Closure outcome', WZ.label('eapOutcome', r.outcome)] : null, r.closedAt ? ['Closed', UI.fmtDateTime(r.closedAt)] : null])}</div>
+            ${!eap && r.question ? h`<h2>Question to the provider</h2><p class="pp-quote">${r.question}</p>` : ''}
+            ${!eap && r.dataSet ? h`<h2>Data shared with you</h2><div class="pp-tags">${r.dataSet.map(function (d) { return UI.badge(d, 'info'); })}</div>` : ''}
+            ${!eap && r.report ? h`<h2>Your report</h2><div class="wz-card">${UI.dl([['Uploaded', UI.fmtDateTime(r.report.at)], ['File', h`<span class="wz-mono">${r.report.fileName}</span>`], ['Summary', r.report.summary], ['Recommendation', r.report.recommendation]])}</div>` : ''}
+          </section>
+          <aside>
+            ${r.status === 'SENT' ? h`<form class="wz-card wz-form" data-form="accept" data-id="${r.id}" novalidate>
+                <h2 style="margin-top:0">Accept the referral</h2>
+                ${UI.field({ type: 'datetime-local', name: 'appointmentAt', id: 'f-appt-' + r.id, label: eap ? 'First session' : 'Appointment', optional: true, value: localInput(eap ? 3 : 2, eap ? 17 : 10), hint: 'The employee sees the date and time in their app.' })}
+                <p class="wz-error" data-error hidden></p>
+                <div class="wz-actions" style="margin-top:0"><button class="wz-btn" type="submit">Accept</button><button type="button" class="wz-btn secondary" data-act="decline" data-id="${r.id}">Decline…</button></div></form>` : ''}
+            ${r.status === 'ACCEPTED' ? h`<form class="wz-card wz-form" data-form="accept" data-id="${r.id}" novalidate>
+                <h2 style="margin-top:0">Set the ${eap ? 'first session' : 'appointment'}</h2>
+                ${UI.field({ type: 'datetime-local', name: 'appointmentAt', id: 'f-appt-' + r.id, label: 'Date and time', required: true, value: localInput(2, 10) })}
+                <p class="wz-error" data-error hidden></p><div><button class="wz-btn" type="submit">Save appointment</button></div></form>` : ''}
+            ${eap && active ? h`<form class="wz-card wz-form" data-form="attendance" data-id="${r.id}" novalidate>
+                <h2 style="margin-top:0">Record attendance</h2>
+                ${UI.field({ type: 'number', name: 'sessions', id: 'f-sessions-' + r.id, label: 'Sessions attended so far', value: (r.sessions || 0) + 1, min: '0', hint: 'Attendance only – no session notes.' })}
+                <p class="wz-error" data-error hidden></p><div><button class="wz-btn" type="submit">Save attendance</button></div></form>` : ''}
+            ${!eap && (active || r.status === 'REPORT_RECEIVED') ? h`<form class="wz-card wz-form" data-form="report" data-id="${r.id}" novalidate>
+                <h2 style="margin-top:0">${r.report ? 'Upload an updated report' : 'Upload your report'}</h2>
+                <p class="wz-hint" style="margin:0">The report goes to the referring OH clinician only.</p>
+                ${UI.field({ type: 'file', name: 'file', id: 'f-file-' + r.id, label: 'Report file (PDF)', optional: true })}
+                ${UI.field({ type: 'textarea', name: 'summary', id: 'f-summary-' + r.id, label: 'Clinical summary', required: true })}
+                ${UI.field({ type: 'textarea', name: 'recommendation', id: 'f-rec-' + r.id, label: 'Work recommendation', optional: true, hint: 'For example duties to avoid and for how long.' })}
+                ${UI.field({ type: 'number', name: 'sessions', id: 'f-rsessions-' + r.id, label: 'Sessions delivered', optional: true, min: '0', value: r.sessions || '' })}
+                <p class="wz-error" data-error hidden></p><div><button class="wz-btn" type="submit">Upload report</button></div></form>` : ''}
+            ${open && r.status !== 'SENT' ? h`<form class="wz-card wz-form" data-form="close" data-id="${r.id}" novalidate>
+                <h2 style="margin-top:0">Close the referral</h2>
+                ${UI.radios({ name: 'outcome', legend: 'Outcome', required: true, options: OUTCOMES.map(function (o) { return { value: o, label: WZ.label('eapOutcome', o) }; }) })}
+                <p class="wz-hint" style="margin:0">Coded outcome only – free text is not collected at closure, by design.</p>
+                <p class="wz-error" data-error hidden></p><div><button class="wz-btn secondary" type="submit">Close referral</button></div></form>` : ''}
+            ${!open ? UI.alert(r.status === 'DECLINED' ? 'warn' : 'success', r.status === 'DECLINED' ? 'Declined' : 'Closed', h`<p>No further actions on this referral.</p>`) : ''}
+          </aside>
+        </div>`;
+    },
+
+    claims: function () {
+      var f = ui.filters.claims || (ui.filters.claims = { status: '' });
+      var all = WZ.list('claims');
+      var rows = all.filter(function (c) { return !f.status || c.status === f.status; });
+      return h`${head('Claims', 'Claims where your organisation is the payer.')}
+        ${confidential('Shared with ' + me().partnerOrg + ' as payer under the employee’s consent. You see non-clinical claim documents and return-to-work status only, never clinical notes. Every access is logged.')}
+        <div class="pp-kpis">
+          ${kpi(all.filter(function (c) { return c.status === 'SUBMITTED' || c.status === 'UNDER_REVIEW'; }).length, 'Awaiting decision', 'warn')}
+          ${kpi(all.filter(function (c) { return c.status === 'MORE_INFO'; }).length, 'More information requested', 'info')}
+          ${kpi(all.filter(function (c) { return c.status === 'ACCEPTED'; }).length, 'Accepted', 'success')}
+          ${kpi(all.filter(function (c) { return c.status === 'DENIED'; }).length, 'Denied', 'danger')}
+        </div>
+        <form class="pp-filters" data-form="filter-claims" onsubmit="return false">
+          ${UI.field({ type: 'select', name: 'status', label: 'Status', value: f.status, options: [{ value: '', label: 'All statuses' }].concat(['SUBMITTED', 'UNDER_REVIEW', 'MORE_INFO', 'ACCEPTED', 'DENIED', 'CLOSED'].map(function (s) { return { value: s, label: WZ.label('claim', s) }; })) })}
+        </form>
+        ${UI.table([
+          { label: 'Claim', render: function (c) { return h`<a class="wz-mono" href="#/claim/${c.id}">${c.id}</a>`; } },
+          { label: 'Employee', key: 'employeeName' },
+          { label: 'Type', render: function (c) { return c.type === 'WORKERS_COMPENSATION' ? 'Workers’ compensation' : c.type; } },
+          { label: 'Status', render: function (c) { return UI.status('claim', c.status); } },
+          { label: 'Incident date', render: function (c) { return UI.fmtDate(c.incidentDate); } },
+          { label: 'Lost time', className: 'num', render: function (c) { return (c.lostTimeDays || 0) + ' days'; } },
+          { label: 'Messages', className: 'num', render: function (c) { return (c.messages || []).length; } }
+        ], rows, { empty: 'No claims', caption: 'Claims' })}`;
+    },
+
+    'claim/:id': function (p) {
+      var c = WZ.get('claims', p.id);
+      if (!c) return notAvailable('Claim', 'claims');
+      var deciding = ['SUBMITTED', 'UNDER_REVIEW', 'MORE_INFO'].indexOf(c.status) >= 0;
+      return h`<p class="wz-breadcrumb"><a href="#/claims">← Back to claims</a></p>${head('Claim ' + c.id, null, UI.status('claim', c.status))}
+        ${confidential('Non-clinical claim information only. Ask questions through the claim messages – the claims coordinator answers without sharing clinical notes.')}
+        <div class="pp-split">
+          <section>
+            <div class="wz-card">${UI.dl([['Employee', c.employeeName], ['Type', c.type === 'WORKERS_COMPENSATION' ? 'Workers’ compensation' : c.type], ['Status', UI.status('claim', c.status)], ['Incident date', UI.fmtDate(c.incidentDate)],
+              ['Opened', UI.fmtDateTime(c.openedAt)], ['Lost time', (c.lostTimeDays || 0) + ' days'], ['Reserve', c.reserve != null ? c.currency + ' ' + Number(c.reserve).toLocaleString('en-GB') : null], ['Return to work', c.rtwStatus],
+              c.decision ? ['Decision', h`${WZ.label('claim', c.decision.outcome)} · ${UI.fmtDateTime(c.decision.at)}${c.decision.note ? h`<span class="pp-sub">${c.decision.note}</span>` : ''}`] : null])}</div>
+            <h2>Claim documents</h2>
+            ${c.documents && c.documents.length ? h`<div class="wz-card"><ul class="wz-list">${c.documents.map(function (d) { return h`<li class="wz-row"><span>${d}</span>${UI.badge('Non-clinical', 'info')}</li>`; })}</ul></div>`
+              : UI.alert('warn', 'No documents available', h`<p>Documents are not available – the employee may have withdrawn consent to share them.</p>`)}
+            <h2>Messages</h2>
+            ${thread(c)}
+          </section>
+          <aside>
+            ${deciding ? h`<form class="wz-card wz-form" data-form="decision" data-id="${c.id}" novalidate>
+              <h2 style="margin-top:0">Decision</h2>
+              ${UI.radios({ name: 'decision', legend: 'Your decision', required: true, options: DECISIONS })}
+              ${UI.field({ name: 'note', id: 'f-note-' + c.id, label: 'Decision note', optional: true, hint: 'Shared with the claims coordinator. No clinical details.' })}
+              ${UI.field({ type: 'number', name: 'reserve', id: 'f-reserve-' + c.id, label: 'Reserve (' + c.currency + ')', optional: true, value: c.reserve, min: '0' })}
+              <p class="wz-error" data-error hidden></p><div><button class="wz-btn" type="submit">Record decision</button></div></form>`
+              : UI.alert('info', 'Decision recorded', h`<p>This claim is ${WZ.label('claim', c.status).toLowerCase()}. HR is told the status only.</p>`)}
+          </aside>
+        </div>`;
+    },
+
+    documents: function () {
+      var rows = [];
+      WZ.list('referrals').forEach(function (r) {
+        if (r.status === 'CONSENT_WITHDRAWN') { rows.push({ title: 'Referral data set', related: r.id, dir: 'Shared by WellnessZ OH', at: r.sentAt, access: UI.badge('Access stopped – consent withdrawn', 'danger') }); return; }
+        (r.dataSet || (r.kind === 'EAP' ? ['Name and contact preference only'] : [])).forEach(function (d) { rows.push({ title: d, related: r.id, dir: 'Shared by WellnessZ OH', at: r.sentAt, access: UI.badge(r.status === 'CLOSED' ? 'Closed referral' : 'Available', r.status === 'CLOSED' ? 'neutral' : 'success') }); });
+        if (r.report) rows.push({ title: r.report.fileName, related: r.id, dir: 'Uploaded by your organisation', at: r.report.at, access: UI.badge('Sent to OH', 'info') });
+      });
+      WZ.list('claims').forEach(function (c) { (c.documents || []).forEach(function (d) { rows.push({ title: d, related: c.id, dir: 'Shared by the claims coordinator', at: c.openedAt, access: UI.badge('Available', 'success') }); }); });
+      WZ.list('documents').forEach(function (d) { rows.push({ title: d.title, related: d.id, dir: 'Shared by ' + d.byName, at: d.createdAt, access: UI.badge('Available', 'success') }); });
+      rows.sort(function (a, b) { return (b.at || '').localeCompare(a.at || ''); });
+      return h`${head('Shared documents', 'Everything exchanged between your organisation and WellnessZ.')}
+        ${confidential('Only the data set the employee consented to is shared. When consent is withdrawn, access stops immediately.')}
+        ${UI.table([
+          { label: 'Document', render: function (x) { return h`<strong>${x.title}</strong>`; } },
+          { label: 'Related to', render: function (x) { return h`<span class="wz-mono">${x.related}</span>`; } },
+          { label: 'Direction', key: 'dir' }, { label: 'Date', render: function (x) { return UI.fmtDate(x.at); } }, { label: 'Access', render: function (x) { return x.access; } }
+        ], rows, { empty: 'No shared documents', caption: 'Shared documents' })}`;
+    },
+
+    messages: function () {
+      if (isAdjuster()) {
+        var claims = WZ.list('claims');
+        return h`${head('Messages', 'Secure messages with the WellnessZ claims coordinator.')}
+          ${claims.length ? claims.map(function (c) { return h`<div class="wz-card"><div class="wz-card-head"><div><a class="wz-mono" href="#/claim/${c.id}">${c.id}</a><span class="pp-sub">${c.employeeName}</span></div>${UI.status('claim', c.status)}</div>${thread(c)}</div>`; }) : UI.empty('No conversations', '')}`;
+      }
+      var refs = WZ.list('referrals');
+      return h`${head('Messages', 'Updates exchanged with WellnessZ Occupational Health on your referrals.')}
+        ${UI.alert('info', 'How you communicate with OH', h`<p>Referral updates travel as structured steps – acceptance, appointment, ${isEap() ? 'attendance and a coded outcome' : 'report and closure'}. Free-text messaging about a patient is not used${isEap() ? ' for EAP referrals' : ''}.</p>`)}
+        ${refs.length ? refs.map(function (r) {
+          var ev = [];
+          if (r.status === 'CONSENT_WITHDRAWN') ev.push({ at: null, who: 'WellnessZ OH', text: 'Consent withdrawn – access to the referral stopped.' });
+          else {
+            ev.push({ at: r.sentAt, who: 'WellnessZ OH', text: 'Referral sent: ' + r.serviceName + '.' });
+            if (r.acceptedAt) ev.push({ at: r.acceptedAt, who: 'You', text: 'Referral accepted.', mine: true });
+            if (r.appointmentAt) ev.push({ at: r.appointmentAt, who: 'You', text: 'Appointment set for ' + UI.fmtDateTime(r.appointmentAt) + '.', mine: true });
+            if (r.sessions && r.kind === 'EAP') ev.push({ at: null, who: 'You', text: r.sessions + ' session(s) attended.', mine: true });
+            if (r.report) ev.push({ at: r.report.at, who: 'You', text: 'Report uploaded (' + r.report.fileName + ').', mine: true });
+            if (r.status === 'DECLINED') ev.push({ at: null, who: 'You', text: 'Referral declined.', mine: true });
+            if (r.closedAt) ev.push({ at: r.closedAt, who: 'You', text: 'Closed – ' + WZ.label('eapOutcome', r.outcome) + '.', mine: true });
+          }
+          return h`<div class="wz-card"><div class="wz-card-head"><a class="wz-mono" href="#/referral/${r.id}">${r.id}</a>${UI.status('referral', r.status)}</div>
+            <ul class="pp-thread">${ev.map(function (m) { return h`<li class="pp-msg ${m.mine ? 'mine' : ''}"><small>${m.who}${m.at ? ' · ' + UI.fmtDateTime(m.at) : ''}</small>${m.text}</li>`; })}</ul></div>`; })
+          : UI.empty('No conversations', '')}`;
+    },
+
+    notifications: function () {
+      var notes = WZ.notifications();
+      return h`${head('Notifications', null, notes.some(function (n) { return !n.read; }) ? h`<button type="button" class="wz-btn small secondary" data-act="read-all">Mark all as read</button>` : '')}
+        ${notes.length ? h`<div class="wz-card"><ul class="wz-list">${notes.map(function (n) {
+          return h`<li><div class="wz-row"><div class="wz-grow ${n.read ? '' : 'wz-unread'}">${n.title}</div>${n.kind === 'ACTION' ? UI.badge('Action', 'warn') : ''}<time class="wz-small wz-muted">${UI.fmtRelative(n.at)}</time></div>
+            <div class="wz-small">${n.body}</div>
+            <div class="wz-actions" style="margin-top:.35rem">${n.link && n.link.app === APP ? h`<a class="wz-link-btn" href="#/${routeFor(n.link.route)}" data-act="open-note" data-id="${n.id}">View</a>` : ''}
+            ${!n.read ? h`<button type="button" class="wz-link-btn" data-act="read" data-id="${n.id}">Mark as read</button>` : ''}</div></li>`; })}</ul></div>` : UI.empty('No notifications', '')}`;
+    }
+  };
+
+  function thread(c) {
+    var u = me();
+    return h`${(c.messages || []).length ? h`<ul class="pp-thread">${c.messages.map(function (m) { var mine = m.by === u.username; return h`<li class="pp-msg ${mine ? 'mine' : ''}"><small>${mine ? 'You' : 'WellnessZ claims coordinator'} · ${UI.fmtDateTime(m.at)}</small>${m.text}</li>`; })}</ul>` : h`<p class="wz-muted">No messages yet.</p>`}
+      <form class="wz-form" data-form="message" data-id="${c.id}" style="margin-top:.8rem" novalidate>
+        ${UI.field({ type: 'textarea', name: 'text', id: 'f-msg-' + c.id, label: 'New message', hint: 'Do not ask for or include clinical details.' })}
+        <p class="wz-error" data-error hidden></p><div><button class="wz-btn small" type="submit">Send message</button></div></form>`;
+  }
+  /** Notification route -> screen of this portal (EAP partners receive 'referrals' links for their EAP referrals). */
+  function routeFor(r) {
+    if (r === 'referrals' && isEap()) return 'eap';
+    if (r === 'eap' && !isEap()) return 'referrals';
+    return routes[r] ? r : defaultRoute();
+  }
+  function allowed(key) {
+    var n = NAV.filter(function (x) { return x.route === key; })[0];
+    if (key === 'referral/:id') return isProvider() || isEap();
+    if (key === 'claim/:id') return isAdjuster();
+    return !n || n.show();
+  }
+
+  // ---------------------------------------------------------------- sign-in (MFA look)
+  function signInScreen() {
+    var u = me();
+    var users = WZ.users(APP);
+    var step = ui.authStep;
+    return h`<div class="pp-auth"><div class="pp-auth-in">
+      <div class="pp-auth-brand"><span class="wz-logo" aria-hidden="true">Z</span>WellnessZ Partner Portal</div>
+      <div class="pp-auth-card">
+        <div class="pp-steps" aria-hidden="true"><span class="on"></span><span class="${step === 2 ? 'on' : ''}"></span></div>
+        ${step === 1 ? h`<h1 tabindex="-1">Sign in to your account</h1><p class="wz-small wz-muted">For partner organisations working with WellnessZ Occupational Health.</p>
+          <form class="wz-form" data-form="signin" novalidate>
+            ${UI.field({ type: 'select', name: 'username', label: 'Partner account', value: u ? u.username : '', options: users.map(function (x) { return { value: x.username, label: x.name + ' – ' + x.partnerOrg }; }) })}
+            ${UI.field({ type: 'text', name: 'password', label: 'Password', value: '••••••••', autocomplete: 'off', hint: 'Demo: any password is accepted.' })}
+            <button class="wz-btn block" type="submit">Continue</button>
+          </form>`
+        : h`<h1 tabindex="-1">Two-step verification</h1>
+          <div class="pp-auth-who"><span class="wz-org-chip">${u.partnerOrg}</span><span><strong>${u.name}</strong><span class="pp-sub">${u.title}</span></span></div>
+          <form class="wz-form" data-form="mfa" novalidate>
+            ${UI.field({ type: 'text', name: 'code', label: 'Enter the 6-digit code from your authenticator app', autocomplete: 'one-time-code', hint: 'Demo: any 6 digits, for example 246810.' })}
+            <p class="wz-error" data-error hidden></p>
+            <button class="wz-btn block" type="submit">Verify and sign in</button>
+            <button type="button" class="wz-link-btn" data-act="auth-back">Use a different account</button>
+          </form>`}
+      </div>
+      <p class="pp-auth-foot">Access is limited to your organisation’s referrals and is logged. Synthetic demo data – all people and organisations are fictional.</p>
+    </div></div>`;
+  }
+
+  // =====================================================================================
+  // Render loop
+  // =====================================================================================
+  var router = UI.router(routes, { default: 'home' });
+  function render(focus) {
+    if (WZ.app !== APP) { ui.pending = true; return; }   // tests may seed through another app context
+    var u = me();
+    if (!u) { app.innerHTML = h`<main class="wz-main">${UI.empty('No demo user', 'Choose a user in the demo toolbar.')}</main>`.toString(); return; }
+    ui.lastUser = u.username;
+    if (verifiedUser() !== u.username) {
+      app.innerHTML = signInScreen().toString(); ui.dirty = false;
+      var inp = app.querySelector('[name="code"]'); if (inp) inp.focus(); else if (focus) { var t = app.querySelector('h1'); if (t) t.focus(); }
+      return;
+    }
+    var m = router.match(router.current()) || { key: 'home', params: {} };
+    if (m.key === 'home' || !allowed(m.key)) { location.replace('#/' + defaultRoute()); return; }   // hashchange renders the default screen
+    var body;
+    try { body = routes[m.key](m.params); } catch (e) { console.error(e); body = UI.alert('danger', 'Something went wrong', h`<p>${friendly(e)}</p>`); }
+    var active = m.key === 'referral/:id' ? (isEap() ? 'eap' : 'referrals') : m.key === 'claim/:id' ? 'claims' : m.key;
+    var nav = NAV.filter(function (n) { return n.show(); }).map(function (n) { return { route: n.route, label: n.label, count: n.count ? n.count() : 0 }; });
+    var header = UI.header({ appName: 'Partner Portal', orgChip: u.partnerOrg, user: { name: u.name, title: orgName(u.partnerOrg) }, bell: WZ.unreadCount(), bellHref: '#/notifications' }).toString()
+      .replace('</div></header>', '<button type="button" class="pp-signout" data-act="signout">Sign out</button></div></header>');
+    app.innerHTML = h`${raw(header)}${UI.nav(nav, active)}
+      <div class="pp-main"><main class="wz-main" id="main" tabindex="-1">${body}</main></div>
+      <footer class="wz-footer">WellnessZ Partner Portal demo · synthetic data, all people and organisations are fictional</footer>`.toString();
+    ui.dirty = false; ui.pending = false;
+    if (focus) { var h1 = app.querySelector('h1'); if (h1) h1.focus(); window.scrollTo(0, 0); }
+  }
+
+  window.addEventListener('hashchange', function () { render(true); });
+  WZ.subscribe(function () {
+    if (WZ.app !== APP) { ui.pending = true; return; }
+    var u = WZ.currentUser;
+    if (u && ui.lastUser && u.username !== ui.lastUser) { ui.filters = {}; ui.authStep = 2; render(true); return; }
+    if (ui.dirty) { ui.pending = true; return; }
+    render(false);
+  });
+  app.addEventListener('input', function (e) {
+    var f = e.target.closest('form[data-form]'); if (!f) return;
+    var kind = f.getAttribute('data-form');
+    if (kind.indexOf('filter-') === 0) {
+      var d = UI.formData(f);
+      if (kind === 'filter-ref') ui.filters.ref = { status: d.status || '', overdue: !!d.overdue };
+      if (kind === 'filter-claims') ui.filters.claims = { status: d.status || '' };
+      render(false); return;
+    }
+    if (kind !== 'signin' && kind !== 'mfa') ui.dirty = true;
+  });
+
+  function showError(form, msg) { var p = form.querySelector('[data-error]'); if (p) { p.textContent = msg; p.hidden = false; } else UI.toast(msg, 'danger'); }
+  function run(form, fn, ok) {
+    try { var r = fn(); ui.dirty = false; if (ok) UI.toast(ok, 'success'); return r; }
+    catch (e) { showError(form, friendly(e)); if (window.console) console.warn(e); return undefined; }
+  }
+
+  app.addEventListener('submit', function (e) {
+    var f = e.target.closest('form[data-form]'); if (!f) return;
+    e.preventDefault();
+    var kind = f.getAttribute('data-form'), id = f.getAttribute('data-id'), d = UI.formData(f), r;
+    if (kind === 'signin') {
+      ui.authStep = 2;
+      if (d.username && d.username !== (me() || {}).username) { attempt(function () { return WZ.signIn(d.username); }); }
+      render(true);
+    } else if (kind === 'mfa') {
+      if (!/^\d{6}$/.test((d.code || '').replace(/\s/g, ''))) return showError(f, 'Enter the 6 digits shown in your authenticator app.');
+      setVerified(me().username); ui.authStep = 1;
+      if (!router.match(router.current()) || router.current() === 'home') location.replace('#/' + defaultRoute());
+      render(true);
+    } else if (kind === 'accept') {
+      var at = toIso(d.appointmentAt);
+      if (f.querySelector('[name=appointmentAt][required]') && !at) return showError(f, 'Choose the date and time.');
+      r = run(f, function () { return WZ.partnerAccept(id, { appointmentAt: at || undefined }); }, at ? 'Accepted – appointment set' : 'Referral accepted');
+      if (r) render(false);
+    } else if (kind === 'attendance') {
+      var n = parseInt(d.sessions, 10);
+      if (!(n >= 0)) return showError(f, 'Enter the number of sessions attended.');
+      if (run(f, function () { return WZ.partnerRecordAttendance(id, { sessions: n }); }, 'Attendance recorded')) render(false);
+    } else if (kind === 'report') {
+      if (!d.summary.trim()) return showError(f, 'Add the report summary.');
+      var fileName = d.file && d.file.name ? d.file.name : 'report-' + id.toLowerCase() + '.pdf';
+      if (run(f, function () { return WZ.partnerUploadReport(id, { summary: d.summary, recommendation: d.recommendation, fileName: fileName, sessions: d.sessions === '' ? undefined : +d.sessions }); }, 'Report sent to Occupational Health')) render(false);
+    } else if (kind === 'close') {
+      if (!d.outcome) return showError(f, 'Choose the closure outcome.');
+      if (run(f, function () { return WZ.partnerClose(id, { outcome: d.outcome }); }, 'Referral closed – ' + WZ.label('eapOutcome', d.outcome))) render(false);
+    } else if (kind === 'decision') {
+      if (!d.decision) return showError(f, 'Choose a decision.');
+      if (run(f, function () { return WZ.adjusterDecision(id, { decision: d.decision, note: d.note, reserve: d.reserve === '' ? undefined : +d.reserve }); }, 'Decision recorded: ' + WZ.label('claim', d.decision))) render(false);
+    } else if (kind === 'message') {
+      if (!d.text.trim()) return showError(f, 'Write a message first.');
+      if (run(f, function () { return WZ.claimMessage(id, d.text); }, 'Message sent')) render(false);
+    }
+  });
+
+  UI.on(app, 'click', '[data-act]', function (e, el) {
+    var act = el.getAttribute('data-act'), id = el.getAttribute('data-id');
+    if (act === 'read' || act === 'open-note') WZ.markNotificationRead(id);
+    else if (act === 'read-all') WZ.markAllRead();
+    else if (act === 'signout') { setVerified(null); ui.authStep = 1; render(true); }
+    else if (act === 'auth-back') { ui.authStep = 1; render(true); }
+    else if (act === 'decline') {
+      UI.modal({ title: 'Decline referral ' + id, body: h`<p>OH is told the reason and refers elsewhere.</p><form class="wz-form" onsubmit="return false">${UI.radios({ name: 'reason', legend: 'Reason', value: DECLINE_REASONS[0], options: DECLINE_REASONS })}</form>`,
+        actions: [{ label: 'Cancel', tone: 'secondary' }, { label: 'Decline referral', tone: 'danger', onClick: function (close, dlg) {
+          var c = dlg.querySelector('[name=reason]:checked');
+          var res = attempt(function () { return WZ.partnerDecline(id, c ? c.value : DECLINE_REASONS[0]); }, 'Referral declined');
+          if (res) render(false);
+        } }] });
+    }
+  });
+
+  if (!location.hash) history.replaceState(null, '', '#/home');
+  render(true);
+})();
+</script>
+</body>
+</html>

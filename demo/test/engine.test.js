@@ -42,7 +42,7 @@ test('seed: synthetic data set is complete and version-stamped', () => {
   fresh();
   const s = WZ.session();
   assert.equal(s.employees.length, 40);
-  assert.equal(s.meta.seedVersion, '1.0.0');
+  assert.equal(s.meta.seedVersion, '1.0.1');
   assert.ok(s.meta.notice.includes('Synthetic'));
   const roles = new Set(s.users.flatMap((u) => u.roles));
   ['EMPLOYEE', 'MANAGER', 'HR', 'OH_CLINICIAN', 'OH_PHYSICIAN', 'AME', 'PSYCH_CLINICIAN', 'MRO', 'CASE_MANAGER', 'CLAIMS_COORDINATOR',

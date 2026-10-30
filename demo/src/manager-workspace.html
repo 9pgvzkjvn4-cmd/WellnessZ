@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="WellnessZ Manager and HR Workspace – offline demo with synthetic data. Status only, no clinical detail.">
+<title>WellnessZ – Manager &amp; HR Workspace (demo)</title>
+<link rel="stylesheet" href="../shared/ui.css" data-wz-inline>
+<style>
+  .mgr-chip { display: inline-flex; align-items: center; gap: .35rem; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.55); border-radius: 999px; padding: 2px 10px; font-size: .78rem; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
+  .mgr-chip svg { width: 12px; height: 12px; }
+  .wz-header-in { max-width: none; }
+  .mgr-side-in { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; padding-bottom: 1rem; }
+  .wz-side a { display: flex; align-items: center; justify-content: space-between; gap: .5rem; font-size: .95rem; }
+  .wz-side .wz-badge { font-size: .72rem; padding: 0 .45rem; }
+  .mgr-who { padding: .4rem 1rem .8rem; border-bottom: 1px solid var(--c-border); margin-bottom: .25rem; }
+  .mgr-who strong { display: block; }
+  .mgr-who span { color: var(--c-muted); font-size: .82rem; }
+  .mgr-main { min-width: 0; }
+  .mgr-main .wz-main { max-width: 1180px; margin: 0; padding: 1.4rem 1.6rem 3rem; }
+  .mgr-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem 1rem; margin-bottom: .9rem; }
+  .mgr-head h1 { margin: 0; }
+  .mgr-head .wz-lead { flex-basis: 100%; margin: .2rem 0 0; }
+  .mgr-head .mgr-sp { flex: 1; }
+  .mgr-kpis { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); margin-bottom: 1rem; }
+  .wz-kpi.warn { border-left: 4px solid var(--c-warn-border); }
+  .wz-kpi.danger { border-left: 4px solid var(--c-error); }
+  .wz-kpi.success { border-left: 4px solid var(--c-success); }
+  .wz-kpi.info { border-left: 4px solid var(--c-primary); }
+  .mgr-filters { display: flex; flex-wrap: wrap; gap: .75rem 1rem; align-items: flex-end; margin-bottom: .6rem; }
+  .mgr-filters .wz-field { min-width: 200px; }
+  .mgr-filters .wz-check { align-self: center; margin-top: 1.4rem; }
+  .mgr-count { color: var(--c-muted); font-size: .875rem; margin: .2rem 0 .6rem; }
+  .mgr-name { font-weight: 650; }
+  .mgr-id { color: var(--c-muted); font-size: .85rem; margin-left: .3rem; }
+  .mgr-sub { display: block; color: var(--c-muted); font-size: .82rem; }
+  .mgr-restr { margin: 0; padding: 0; list-style: none; }
+  .mgr-restr li + li { margin-top: .2rem; }
+  .mgr-restr small { color: var(--c-muted); margin-left: .35rem; }
+  .mgr-lock { display: flex; gap: .6rem; align-items: flex-start; }
+  .mgr-lock svg { flex: none; width: 20px; height: 20px; margin-top: .1rem; }
+  .mgr-split { display: grid; gap: 1rem; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
+  @media (max-width: 1050px) { .mgr-split { grid-template-columns: 1fr; } }
+  .mgr-tag-row { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .mgr-perm { margin: 0; padding-left: 1.1rem; }
+  .mgr-perm li { margin: .2rem 0; }
+  .mgr-note { font-size: .85rem; color: var(--c-muted); }
+  .mgr-rows .wz-row + .wz-row { margin-top: .5rem; }
+  .mgr-supp { display: inline-flex; align-items: center; gap: .3rem; color: var(--c-muted); font-style: italic; }
+  .mgr-bar { height: 8px; border-radius: 4px; background: var(--c-surface-2); overflow: hidden; min-width: 90px; }
+  .mgr-bar span { display: block; height: 100%; background: var(--c-primary); }
+  .wz-table td.tight, .wz-table th.tight { white-space: nowrap; }
+  .wz-table tr.mgr-click { cursor: pointer; }
+  .mgr-denied { max-width: 640px; }
+  .mgr-obs .wz-field + .wz-field { margin-top: -.4rem; }
+  @media (max-width: 860px) { .mgr-side-in { position: static; max-height: none; display: flex; } .mgr-who { display: none; } .mgr-main .wz-main { padding: 1rem; } }
+</style>
+</head>
+<body>
+<a class="wz-skip" href="#main">Skip to content</a>
+<div id="app" aria-live="off"></div>
+
+<script src="../data/demo-data.js" data-wz-data></script>
+<script src="../shared/scenarios.js" data-wz-inline></script>
+<script src="../shared/engine.js" data-wz-inline></script>
+<script src="../shared/ui.js" data-wz-inline></script>
+<script>
+(function () {
+  'use strict';
+  var APP = 'manager';
+  var app = document.getElementById('app');
+  if (!window.WZ_DEMO_SEED || !window.WZ) {
+    app.innerHTML = '<main class="wz-main"><div class="wz-alert danger"><div class="wz-alert-title">Demo data not found</div><p>The file <code>demo-data.js</code> must be in the same folder as this app. Open the app from the demo folder (for example via <code>index.html</code>) in Chrome or Edge.</p></div></main>';
+    return;
+  }
+  var h = UI.h, raw = UI.raw;
+  WZ.init({ app: APP });
+
+  // ---------------------------------------------------------------- local UI state (not part of the session)
+  var ui = { dirty: false, pending: false, lastUser: null, lastResult: null, filters: {} };
+
+  var LOCK = raw('<svg viewBox="0 0 20 20" aria-hidden="true" fill="currentColor"><path d="M10 1a5 5 0 0 0-5 5v3H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1V6a5 5 0 0 0-5-5Zm-3 5a3 3 0 1 1 6 0v3H7V6Z"/></svg>');
+  var ABSENCE_REASONS = ['Illness – short term', 'Musculoskeletal', 'Injury at work', 'Medical appointment', 'Other'];
+  var DEFAULT_QUESTIONS = ['Is there an underlying health reason for the absences?', 'Are adjustments recommended?'];
+  var CODE_TEXT = {
+    forbidden: 'Your role does not allow this.', not_found: 'This record is not available to you.', validation: 'Please check the form.',
+    invalid_state: 'This step is not possible at the moment.', consent_required: 'Consent is needed first.', consent_withdrawn: 'The employee has withdrawn consent.',
+    slot_taken: 'That time has just been taken.', closure_guard: 'The case cannot be closed yet.', urgent_open: 'An urgent item is still open.',
+    relief_active: 'Relief from duties is still active.', case_closed: 'This case is closed.', clinical_content: 'Please remove health details – only work-relevant information may be entered here.',
+    unauthenticated: 'Please choose a demo user first.', storage_full: 'The browser could not save the demo session.'
+  };
+  /** WZError -> friendly sentence (code text plus the engine's specific reason). */
+  function friendly(e) {
+    if (!e) return 'Something went wrong.';
+    if (e.name !== 'WZError') return 'Something went wrong: ' + (e.message || e);
+    var base = CODE_TEXT[e.code] || 'The action could not be completed.';
+    return e.message && e.message !== e.code && e.message !== base ? base + ' ' + e.message.replace(/\.?$/, '.') : base;
+  }
+  function attempt(fn, ok) {
+    try { var r = fn(); if (ok) UI.toast(ok, 'success'); return r; }
+    catch (e) { UI.toast(friendly(e), 'danger'); if (window.console) console.warn(e); return undefined; }
+  }
+
+  // ---------------------------------------------------------------- user and permissions
+  function me() { return WZ.currentUser; }
+  function can(p) { var u = me(); return !!u && WZ.can(u, p); }
+  function role(r) { var u = me(); return !!u && u.roles.indexOf(r) >= 0; }
+  function canAny() { for (var i = 0; i < arguments.length; i++) if (can(arguments[i])) return true; return false; }
+  function isHSE() { return role('HSE_OFFICER') && !role('MANAGER') && !role('HR'); }
+  function notMe(x) { var u = me(); return !u || !u.employeeId || x.employeeId !== u.employeeId; }
+  function k() { return WZ.ref('config').minGroupSize || 5; }
+  function query() { var q = (location.hash.split('?')[1] || ''); var o = {}; q.split('&').forEach(function (p) { if (!p) return; var kv = p.split('='); o[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || ''); }); return o; }
+  function teamOptions() {
+    return WZ.list('team').filter(notMe).map(function (e) { return { value: e.id, label: e.name + ' (' + e.id + ') – ' + (e.jobTitle || '') }; });
+  }
+  function unitName(id) { var u = WZ.ref('orgUnits').filter(function (x) { return x.id === id; })[0]; return u ? u.name : id; }
+
+  var NAV = [
+    { group: 'Overview', route: 'home', label: 'Overview', show: function () { return true; } },
+    { group: 'Overview', route: 'notifications', label: 'Notifications', show: function () { return true; }, count: function () { return WZ.unreadCount(); } },
+    { group: 'My people', route: 'team', label: 'Team status', show: function () { return can('team.status'); } },
+    { group: 'My people', route: 'refer', label: function () { return isHSE() ? 'Report EHS incident' : 'Refer to OH'; }, show: function () { return canAny('referral.manager', 'referral.hr', 'referral.ehs'); } },
+    { group: 'My people', route: 'incidents', label: 'EHS incidents', show: function () { return can('incident.status'); } },
+    { group: 'My people', route: 'rtw', label: 'Return to work', show: function () { return can('team.status'); }, count: function () { return WZ.tasks().filter(function (t) { return t.kind === 'RTW_ACK'; }).length; } },
+    { group: 'My people', route: 'absence', label: 'Absence', show: function () { return canAny('absence.record', 'absence.earlyIntervention'); }, count: function () { return WZ.tasks().filter(function (t) { return t.kind === 'EARLY_INTERVENTION'; }).length; } },
+    { group: 'My people', route: 'advice', label: 'OH advice', show: function () { return can('advice.request'); } },
+    { group: 'My people', route: 'shared-outcomes', label: 'Shared outcomes', show: function () { return role('MANAGER'); } },
+    { group: 'My people', route: 'documents', label: 'Documents', show: function () { return can('team.status'); } },
+    { group: 'Operations', route: 'duty-status', label: 'Duty status', show: function () { return can('testing.dutyStatus'); } },
+    { group: 'Operations', route: 'crew', label: 'Crew status', show: function () { return can('crew.status'); } },
+    { group: 'Operations', route: 'testing', label: 'D&A testing', show: function () { return canAny('testing.forCause', 'testing.stats', 'testing.programme', 'testing.select'); } },
+    { group: 'Operations', route: 'compliance', label: 'Health surveillance', show: function () { return can('surveillance.compliance'); } },
+    { group: 'Operations', route: 'claims', label: 'Claims', show: function () { return can('claim.status'); } },
+    { group: 'Health & wellbeing', route: 'advisories', label: 'Travel advisories', show: function () { return role('MANAGER') || role('HR') || role('CREW_SCHEDULING'); } },
+    { group: 'Health & wellbeing', route: 'campaigns', label: 'Campaigns', show: function () { return canAny('campaign.unitReport', 'campaign.manage', 'campaign.report'); } },
+    { group: 'Health & wellbeing', route: 'wellbeing', label: 'Psychosocial & peer', show: function () { return canAny('safety.reports', 'promotion.insights'); } },
+    { group: 'Health & wellbeing', route: 'ergonomics', label: 'Ergonomics', show: function () { return canAny('ergonomics.view', 'ergonomics.manage'); } }
+  ];
+  function navItem(route) { return NAV.filter(function (n) { return n.route === route; })[0]; }
+  function allowed(route) { var n = navItem(route); if (route === 'employee/:id') return can('team.status'); return !n || n.show(); }
+  function labelOf(n) { return typeof n.label === 'function' ? n.label() : n.label; }
+
+  // ---------------------------------------------------------------- shared fragments
+  function head(title, lead, extra) {
+    return h`<div class="mgr-head"><h1 tabindex="-1">${title}</h1><span class="mgr-sp"></span>${extra || ''}${lead ? h`<p class="wz-lead">${lead}</p>` : ''}</div>`;
+  }
+  /** The visible "status only – no clinical detail" principle. */
+  function statusOnly(text) {
+    return h`<div class="wz-alert mgr-lock" role="note" data-status-only>${LOCK}<div><div class="wz-alert-title">Status only – no clinical detail</div><p>${text}</p></div></div>`;
+  }
+  function kpi(value, label, tone) { return h`<div class="wz-kpi ${tone || ''}"><b>${value == null ? '—' : value}</b><span>${label}</span></div>`; }
+  function suppressed(note) { return h`<span class="mgr-supp" title="${'Fewer than ' + k() + ' people – hidden to protect privacy'}">${UI.badge('Suppressed', 'neutral')}${note ? ' ' + note : ''}</span>`; }
+  function who(name, id, sub) { return h`<span class="mgr-name">${name}</span>${id ? h`<span class="mgr-id">${id}</span>` : ''}${sub ? h`<span class="mgr-sub">${sub}</span>` : ''}`; }
+  function restrictionsList(list) {
+    if (!list || !list.length) return h`<span class="wz-muted">None</span>`;
+    return h`<ul class="mgr-restr">${list.map(function (r) { return h`<li>${r.text}<small>${r.until ? 'until ' + UI.fmtDate(r.until) : 'until further notice'}</small></li>`; })}</ul>`;
+  }
+  function dutyBadge(code) { return code && code !== 'AVAILABLE' ? UI.status('duty', code) : UI.badge('Available', 'success'); }
+  function denied(route) {
+    var n = navItem(route);
+    return h`<div class="mgr-denied">${head('Not available for your role')}
+      ${UI.alert('warn', null, h`<p>${n ? labelOf(n) : 'This page'} is not part of the ${me().title} role in WellnessZ. Each role sees only the status information it needs.</p>`)}
+      <a class="wz-btn secondary" href="#/home">Back to overview</a></div>`;
+  }
+  function resultBox() {
+    if (!ui.lastResult) return '';
+    var r = ui.lastResult;
+    return UI.alert('success', r.title, h`<p>${r.body}</p>${r.link ? h`<p><a href="${r.link.href}">${r.link.label}</a></p>` : ''}<button type="button" class="wz-link-btn" data-act="dismiss-result">Dismiss</button>`);
+  }
+  function perms() {
+    var out = [];
+    if (can('team.status')) out.push(role('HR') ? 'Fitness status, functional restrictions and duty status for staff in your HR scope.' : 'Fitness status, functional restrictions and duty status for your direct reports.');
+    if (can('crew.status')) out.push('Crew roster status (fit / limitations / pending / unfit) and roster conflicts – never a reason.');
+    if (can('testing.dutyStatus')) out.push('Duty status changes from the testing programme – no test type or result.');
+    if (can('claim.status')) out.push('Claim status only – no costs, payer details or clinical content.');
+    if (can('advice.request')) out.push('OH advice reports after the employee has released them (work impact and adjustments).');
+    if (can('surveillance.compliance')) out.push('Health surveillance compliance (due dates and status, no results).');
+    if (canAny('campaign.unitReport', 'campaign.report')) out.push('Campaign participation for units, small numbers suppressed.');
+    if (canAny('safety.reports', 'promotion.insights', 'testing.stats')) out.push('Aggregate figures only, with cells under ' + k() + ' suppressed.');
+    if (can('referral.ehs')) out.push('EHS incident referrals you made and their case status.');
+    if (can('testing.programme')) out.push('Testing selections with masked status – results are seen only by the MRO.');
+    return out;
+  }
+
+  // =====================================================================================
+  // Screens
+  // =====================================================================================
+  var routes = {
+    home: function () {
+      var u = me();
+      var tasks = WZ.tasks().filter(function (t) { return t.link && t.link.app === APP; });
+      var notes = WZ.notifications().slice(0, 5);
+      var cards = [];
+      if (can('team.status')) {
+        var team = WZ.list('team').filter(notMe);
+        cards.push(kpi(team.length, role('HR') ? 'Staff in scope' : 'Direct reports', 'info'));
+        cards.push(kpi(team.filter(function (e) { return e.fitnessStatus === 'FIT_WITH_RESTRICTIONS'; }).length, 'Fit with restrictions', 'warn'));
+        cards.push(kpi(team.filter(function (e) { return /UNFIT/.test(e.fitnessStatus) || e.dutyStatus !== 'AVAILABLE'; }).length, 'Unfit or off duty', 'danger'));
+        cards.push(kpi(team.filter(function (e) { return e.absent; }).length, 'Absent today', ''));
+      }
+      if (can('crew.status')) {
+        var crew = WZ.list('crewStatus');
+        cards.push(kpi(crew.filter(function (c) { return c.rosterStatus === 'UNFIT'; }).length, 'Crew unfit', 'danger'));
+        cards.push(kpi(crew.filter(function (c) { return c.conflict; }).length, 'Roster conflicts', 'warn'));
+      }
+      if (can('testing.dutyStatus') && !can('team.status')) cards.push(kpi(WZ.list('dutyStatus', { notAvailable: true }).length, 'Not available for duty', 'warn'));
+      if (can('incident.status')) cards.push(kpi(WZ.list('cases').filter(function (c) { return c.status !== 'CLOSED'; }).length, 'Open EHS-linked cases', 'info'));
+      if (can('absence.earlyIntervention')) cards.push(kpi(WZ.list('earlyInterventions').filter(function (x) { return x.status === 'OPEN'; }).length, 'Early interventions open', 'warn'));
+      if (can('ergonomics.view') || can('ergonomics.manage')) cards.push(kpi(WZ.list('ergonomicActions').filter(function (a) { return a.status !== 'DONE'; }).length, 'Open ergonomic actions', ''));
+      return h`${head('Good ' + (new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening') + ', ' + u.name.split(' ')[0], u.title + ' · ' + unitName(u.orgScope))}
+        ${statusOnly('WellnessZ shows managers and HR the work-relevant status Occupational Health decides – fitness, restrictions, duty status and dates. Diagnoses, symptoms, test results and clinical notes stay with OH. Every view is logged.')}
+        ${cards.length ? h`<div class="mgr-kpis">${cards}</div>` : ''}
+        <div class="mgr-split">
+          <section>
+            <h2 style="margin-top:0">Things to do</h2>
+            ${tasks.length ? h`<div class="wz-card"><ul class="wz-list">${tasks.map(function (t) {
+              return h`<li class="wz-row"><div class="wz-grow"><strong>${t.title}</strong><div class="wz-small wz-muted">${t.detail}</div></div>
+                ${t.priority === 'URGENT' ? UI.badge('Urgent', 'danger') : t.priority === 'HIGH' ? UI.badge('Action', 'warn') : ''}
+                <a class="wz-btn small secondary" href="#/${t.link.route}">Open</a></li>`; })}</ul></div>`
+              : UI.empty('You are all caught up', 'Nothing is waiting for you.', null, '✓')}
+            <h2>Latest notifications</h2>
+            ${notes.length ? h`<div class="wz-card"><ul class="wz-list">${notes.map(noteItem)}</ul><p class="wz-small" style="margin:.6rem 0 0"><a href="#/notifications">All notifications</a></p></div>` : UI.empty('No notifications', '')}
+          </section>
+          <aside>
+            <div class="wz-card wz-accent"><h2>What you can see</h2>
+              ${perms().length ? h`<ul class="mgr-perm">${perms().map(function (p) { return h`<li>${p}</li>`; })}</ul>` : h`<p>Notifications only.</p>`}
+              <p class="mgr-note" style="margin:.7rem 0 0">Never shown here: diagnoses, symptoms, clinical notes, partner reports, test results or confidential support records.</p></div>
+            <div class="wz-card"><h3 style="margin-top:0">Quick links</h3><div class="mgr-tag-row">${NAV.filter(function (n) { return n.show() && n.route !== 'home' && n.route !== 'notifications'; }).map(function (n) { return h`<a class="wz-btn small secondary" href="#/${n.route}">${labelOf(n)}</a>`; })}</div></div>
+          </aside>
+        </div>`;
+    },
+
+    notifications: function () {
+      var notes = WZ.notifications();
+      return h`${head('Notifications', 'Status-only notices from Occupational Health and the platform.', notes.some(function (n) { return !n.read; }) ? h`<button type="button" class="wz-btn small secondary" data-act="read-all">Mark all as read</button>` : '')}
+        ${notes.length ? h`<div class="wz-card"><ul class="wz-list">${notes.map(noteItem)}</ul></div>` : UI.empty('No notifications', 'Notices about your team appear here.')}`;
+    },
+
+    team: function () {
+      var f = ui.filters.team || (ui.filters.team = { q: '', fitness: '', restricted: false });
+      var all = WZ.list('team').filter(notMe);
+      var rows = all.filter(function (e) {
+        if (f.q && (e.name + ' ' + e.id).toLowerCase().indexOf(f.q.toLowerCase()) < 0) return false;
+        if (f.fitness && e.fitnessStatus !== f.fitness) return false;
+        if (f.restricted && !(e.restrictions && e.restrictions.length)) return false;
+        return true;
+      });
+      return h`${head('Team status', role('HR') ? 'Work-relevant status for staff in your HR scope.' : 'Use this to allocate work safely. Your direct reports only.')}
+        ${statusOnly('Fitness status, duty status and functional restrictions only – what someone can and cannot do. Diagnoses, history and clinical notes stay with Occupational Health. Access to this view is logged.')}
+        <div class="mgr-kpis">
+          ${kpi(all.length, 'People', 'info')}
+          ${kpi(all.filter(function (e) { return e.fitnessStatus === 'FIT'; }).length, 'Fit', 'success')}
+          ${kpi(all.filter(function (e) { return e.fitnessStatus === 'FIT_WITH_RESTRICTIONS'; }).length, 'Fit with restrictions', 'warn')}
+          ${kpi(all.filter(function (e) { return /UNFIT/.test(e.fitnessStatus) || e.dutyStatus !== 'AVAILABLE'; }).length, 'Unfit or off duty', 'danger')}
+        </div>
+        <form class="mgr-filters" data-form="filter-team" onsubmit="return false">
+          ${UI.field({ type: 'search', name: 'q', label: 'Employee', value: f.q, autocomplete: 'off' })}
+          ${UI.field({ type: 'select', name: 'fitness', label: 'Fitness for work', value: f.fitness, options: [{ value: '', label: 'Any' }].concat(['FIT', 'FIT_WITH_RESTRICTIONS', 'TEMPORARILY_UNFIT', 'UNDER_REVIEW', 'NOT_ASSESSED'].map(function (c) { return { value: c, label: WZ.label('fitness', c) }; })) })}
+          ${UI.checkbox({ name: 'restricted', label: 'With restrictions only', checked: f.restricted })}
+        </form>
+        <p class="mgr-count">Showing ${rows.length} of ${all.length} people.</p>
+        ${UI.table([
+          { label: 'Employee', render: function (e) { return h`<a href="#/employee/${e.id}" class="mgr-name">${e.name}</a><span class="mgr-id">${e.id}</span><span class="mgr-sub">${e.jobTitle} · ${e.site}${e.safetyCritical ? ' · safety-critical' : ''}</span>`; } },
+          { label: 'Fitness for work', className: 'tight', render: function (e) { return h`${UI.status('fitness', e.fitnessStatus)}<span class="mgr-sub">since ${UI.fmtDate(e.fitnessSince)}</span>`; } },
+          { label: 'Duty status', className: 'tight', render: function (e) { return h`${dutyBadge(e.dutyStatus)}${e.dutyStatus !== 'AVAILABLE' ? h`<span class="mgr-sub">since ${UI.fmtDate(e.dutySince)}</span>` : ''}`; } },
+          { label: 'Functional restrictions', render: function (e) { return restrictionsList(e.restrictions); } },
+          { label: 'OH case', render: function (e) { return e.openCaseId ? h`${UI.status('caseStatus', e.caseStatus)}` : h`<span class="wz-muted">–</span>`; } },
+          { label: 'Return to work', render: function (e) { return e.rtwPlanId ? h`<a href="#/rtw">${WZ.label('rtw', e.rtwStatus)}</a>${role('MANAGER') && !e.rtwManagerAcked ? h`<span class="mgr-sub">${UI.badge('Awaiting you', 'warn')}</span>` : ''}` : h`<span class="wz-muted">–</span>`; } },
+          { label: 'Absence', render: function (e) { return e.absent ? h`${UI.badge('Absent', 'warn')}<span class="mgr-sub">since ${UI.fmtDate(e.absentSince)}</span>` : h`<span class="wz-muted">At work</span>`; } }
+        ], rows, { empty: 'Nobody matches the filter', caption: 'Team status' })}`;
+    },
+
+    'employee/:id': function (p) {
+      var e = WZ.get('employees', p.id);
+      if (!e || !e.fitnessStatus) return h`<p class="wz-breadcrumb"><a href="#/team">Team status</a></p>${UI.empty('Not available', 'This person is not in your team or HR scope.')}`;
+      var cases = WZ.list('cases', { employeeId: e.id }).filter(function (c) { return c.view === 'STATUS'; });
+      var plans = WZ.list('rtwPlans').filter(function (x) { return x.employeeId === e.id; });
+      var abs = WZ.list('absences').filter(function (a) { return a.employeeId === e.id; }).slice(0, 5);
+      var surv = can('surveillance.compliance') ? WZ.list('surveillance').filter(function (x) { return x.employeeId === e.id; }) : [];
+      return h`<p class="wz-breadcrumb"><a href="#/team">Team status</a> › ${e.name}</p>
+        ${head(e.name, e.jobTitle + ' · ' + e.unitName + ' · ' + e.site + (e.safetyCritical ? ' · safety-critical role' : ''))}
+        ${statusOnly('This page shows the status Occupational Health shares with ' + (role('HR') ? 'HR' : 'line managers') + '. It never shows why someone is unfit or what treatment they receive.')}
+        <div class="mgr-split">
+          <section>
+            <div class="wz-card wz-accent">${UI.dl([['Staff number', e.id], ['Fitness for work', h`${UI.status('fitness', e.fitnessStatus)} <span class="wz-small wz-muted">since ${UI.fmtDate(e.fitnessSince)}</span>`], ['Duty status', dutyBadge(e.dutyStatus)], ['Restrictions', restrictionsList(e.restrictions)], ['Line manager', e.managerName]])}</div>
+            <h2>OH case status</h2>
+            ${cases.length ? cases.map(function (c) {
+              return h`<div class="wz-card"><div class="wz-card-head"><span class="wz-card-title">${c.id}</span>${UI.status('caseStatus', c.status)}</div>
+                ${UI.dl([['Opened', UI.fmtDate(c.openedAt)], ['Fitness', UI.status('fitness', c.fitnessStatus)], ['Review by', c.reviewDate ? UI.fmtDate(c.reviewDate) : null], ['Return to work', c.rtwStatus ? WZ.label('rtw', c.rtwStatus) : null]])}
+                ${c.timeline.length ? h`<h3>Status updates</h3><ol class="wz-timeline">${c.timeline.slice().reverse().map(function (t) { return h`<li><time>${UI.fmtDateTime(t.at)}</time>${t.text}</li>`; })}</ol>` : ''}</div>`; })
+              : UI.empty('No open OH case', 'Confidential support records are never shown here.')}
+          </section>
+          <aside>
+            <div class="wz-card"><h3 style="margin-top:0">Actions</h3><div class="wz-actions" style="margin-top:0">
+              ${canAny('referral.manager', 'referral.hr') ? h`<a class="wz-btn small" href="#/refer?employee=${e.id}">Refer to OH</a>` : ''}
+              ${can('absence.record') ? h`<a class="wz-btn small secondary" href="#/absence?employee=${e.id}">Record absence</a>` : ''}
+              ${can('advice.request') ? h`<a class="wz-btn small secondary" href="#/advice?employee=${e.id}">Request OH advice</a>` : ''}
+              ${can('testing.forCause') && role('MANAGER') && e.safetyCritical ? h`<a class="wz-btn small secondary" href="#/testing?employee=${e.id}">For-cause test</a>` : ''}
+            </div></div>
+            ${plans.length ? h`<div class="wz-card"><h3 style="margin-top:0">Return-to-work plans</h3><ul class="wz-list">${plans.map(function (x) { return h`<li class="wz-row"><a href="#/rtw">${x.id}</a>${UI.status('rtw', x.status)}</li>`; })}</ul></div>` : ''}
+            ${abs.length ? h`<div class="wz-card"><h3 style="margin-top:0">Recent absences</h3><ul class="wz-list">${abs.map(function (a) { return h`<li class="wz-row"><span>${UI.fmtDate(a.start)} – ${a.end ? UI.fmtDate(a.end) : 'ongoing'}</span>${UI.status('absenceCert', (a.certificate || {}).status || 'NOT_REQUIRED')}</li>`; })}</ul></div>` : ''}
+            ${surv.length ? h`<div class="wz-card"><h3 style="margin-top:0">Health surveillance</h3><ul class="wz-list">${surv.map(function (x) { return h`<li class="wz-row"><span>${x.programmeName}<span class="mgr-sub">${x.status === 'NOT_DUE' ? 'next due ' : 'due '}${UI.fmtDate(x.dueDate)}</span></span>${UI.status('surveillance', x.status)}</li>`; })}</ul></div>` : ''}
+          </aside>
+        </div>`;
+    },
+
+    refer: function () {
+      if (isHSE()) return referEhs();
+      var q = query();
+      var opts = teamOptions();
+      return h`${head('Refer to Occupational Health', 'Ask OH to assess someone in your ' + (role('HR') ? 'HR scope' : 'team') + '.')}
+        ${resultBox()}
+        <div class="mgr-split">
+          <form class="wz-card wz-form" data-form="referral" novalidate>
+            ${UI.field({ type: 'select', name: 'employeeId', label: 'Employee', required: true, value: q.employee || '', placeholder: 'Choose a person', options: opts })}
+            ${UI.field({ type: 'select', name: 'category', label: 'Reason for the referral', value: 'OTHER', options: [
+              { value: 'OTHER', label: 'Health affecting work or attendance' }, { value: 'INJURY', label: 'Injury at work' }, { value: 'ILLNESS', label: 'Illness affecting work' }, { value: 'DECREASE_IN_FITNESS', label: 'Concern about fitness for a safety-critical role' }] })}
+            ${UI.field({ type: 'textarea', name: 'concern', label: 'What have you observed at work?', required: true, hint: 'Facts about work only – tasks, attendance, performance. Do not include diagnoses or medical details.', maxlength: 1500 })}
+            ${UI.field({ type: 'textarea', name: 'workImpact', label: 'Questions for OH', optional: true, hint: 'For example: Is she fit for night shifts? Are adjustments recommended?' })}
+            ${UI.checkbox({ name: 'discussed', required: true, label: 'I have discussed this referral with the employee.' })}
+            <p class="wz-error" data-error hidden></p>
+            <button class="wz-btn" type="submit">Send referral</button>
+          </form>
+          <aside>${UI.alert('info', 'What happens next', h`<p>An OH nurse triages the referral and contacts the employee. You will see the case status, fitness decision and any functional restrictions – never the clinical content.</p>`)}</aside>
+        </div>`;
+    },
+
+    incidents: function () {
+      var cases = WZ.list('cases');
+      return h`${head('EHS incidents', 'Cases opened from EHS incident reports, with their OH status.', h`<a class="wz-btn small" href="#/refer">Report EHS incident</a>`)}
+        ${statusOnly('You see the incident reference, recordability and case status. Clinical findings stay with Occupational Health.')}
+        ${UI.table([
+          { label: 'Incident', render: function (c) { return h`<span class="wz-mono">${c.linkedIncident || '—'}</span>`; } },
+          { label: 'Case', render: function (c) { return h`<span class="wz-mono">${c.id}</span>`; } },
+          { label: 'Employee', render: function (c) { return who(c.employeeName, c.employeeId); } },
+          { label: 'Status', render: function (c) { return UI.status('caseStatus', c.status); } },
+          { label: 'Fitness', render: function (c) { return UI.status('fitness', c.fitnessStatus); } },
+          { label: 'Recordable', render: function (c) { return c.recordable == null ? UI.badge('Not yet decided', 'neutral') : c.recordable ? UI.badge('Recordable', 'warn') : UI.badge('Not recordable', 'success'); } },
+          { label: 'Opened', render: function (c) { return UI.fmtDateTime(c.openedAt); } }
+        ], cases, { empty: 'No incident-linked cases yet', caption: 'EHS incidents' })}`;
+    },
+
+    rtw: function () {
+      var plans = WZ.list('rtwPlans').filter(notMe);
+      var active = plans.filter(function (p) { return p.status === 'ISSUED' || p.status === 'ACTIVE'; });
+      var other = plans.filter(function (p) { return !(p.status === 'ISSUED' || p.status === 'ACTIVE'); });
+      return h`${head('Return to work', 'Adjusted-duties and phased-return plans agreed by Occupational Health.')}
+        ${statusOnly('Plans list duties, hours and functional restrictions only. The plan becomes active when both the employee and the line manager have acknowledged it.')}
+        ${active.length ? active.map(rtwCard) : UI.empty('No active plans', 'Plans issued by OH for your team appear here.')}
+        ${other.length ? h`<h2>Completed and earlier plans</h2>${UI.table([
+          { label: 'Plan', render: function (p) { return h`<span class="wz-mono">${p.id}</span>`; } }, { label: 'Employee', key: 'employeeName' },
+          { label: 'Status', render: function (p) { return UI.status('rtw', p.status); } }, { label: 'Started', render: function (p) { return UI.fmtDate(p.startDate); } }], other)}` : ''}`;
+    },
+
+    absence: function () {
+      var q = query();
+      var abs = WZ.list('absences').filter(notMe);
+      var openAbs = abs.filter(function (a) { return a.open; });
+      var eis = can('absence.earlyIntervention') ? WZ.list('earlyInterventions') : [];
+      var trg = can('absence.earlyIntervention') ? WZ.list('absenceTriggers') : [];
+      var rep = attemptQuiet(function () { return WZ.report('absence'); });
+      return h`${head('Absence', 'Who is absent, since when, and whether Occupational Health is involved.')}
+        ${statusOnly('Dates, reason category and certificate status only. Certificate content and diagnoses stay with Occupational Health.')}
+        ${resultBox()}
+        <div class="mgr-kpis">
+          ${kpi(openAbs.length, 'Currently absent', 'warn')}
+          ${kpi(abs.filter(function (a) { return a.certificate && a.certificate.status === 'REQUIRED'; }).length, 'Certificates outstanding', '')}
+          ${can('absence.earlyIntervention') ? kpi(eis.filter(function (x) { return x.status === 'OPEN'; }).length, 'Early interventions open', 'danger') : ''}
+        </div>
+        ${can('absence.earlyIntervention') ? h`<h2>Absence triggers and early intervention</h2>
+          ${eis.length ? UI.table([
+            { label: 'Employee', render: function (x) { return who(x.employeeName, x.employeeId); } },
+            { label: 'Trigger', render: function (x) { var t = trg.filter(function (y) { return y.id === x.triggerId; })[0]; return t ? h`${x.note}<span class="mgr-sub">${t.detail} · ${UI.fmtDate(t.firedAt)}</span>` : h`${x.note}`; } },
+            { label: 'Status', render: function (x) { return UI.badge(x.status === 'OPEN' ? 'Open – action needed' : x.status === 'REFERRED' ? 'Referred to OH' : x.status === 'MONITOR' ? 'Monitoring' : x.status, x.status === 'OPEN' ? 'warn' : x.status === 'REFERRED' ? 'info' : 'neutral'); } },
+            { label: 'OH case / advice', render: function (x) { return x.caseId ? h`<span class="wz-mono">${x.caseId}</span><span class="mgr-sub">${x.adviceRequestId ? h`<a href="#/advice">${x.adviceRequestId}</a>` : ''}</span>` : '–'; } },
+            { label: 'Action', render: function (x) { return x.status === 'OPEN' ? h`<div class="wz-actions" style="margin:0"><button type="button" class="wz-btn small" data-act="ei-refer" data-id="${x.id}">Refer to OH</button><button type="button" class="wz-btn small secondary" data-act="ei-monitor" data-id="${x.id}">Monitor only</button></div>` : ''; } }
+          ], eis, { caption: 'Early intervention' }) : UI.empty('No absence triggers', '')}` : ''}
+        ${can('absence.record') ? h`<h2>Record an absence</h2>
+          <form class="wz-card wz-form" data-form="absence" novalidate style="max-width:720px">
+            ${UI.field({ type: 'select', name: 'employeeId', label: 'Employee', required: true, value: q.employee || '', placeholder: 'Choose a person', options: teamOptions() })}
+            <div class="wz-grid">${UI.field({ type: 'date', name: 'start', label: 'First day of absence', required: true, value: UI.isoToday() })}${UI.field({ type: 'date', name: 'end', label: 'Expected last day', optional: true })}</div>
+            ${UI.field({ type: 'select', name: 'reasonCategory', label: 'Reason category', value: ABSENCE_REASONS[0], options: ABSENCE_REASONS })}
+            <p class="wz-hint">Choose a category only – do not record symptoms or diagnoses.</p>
+            <p class="wz-error" data-error hidden></p>
+            <div><button class="wz-btn" type="submit">Record absence</button></div>
+          </form>` : ''}
+        <h2>Absence records</h2>
+        ${UI.table([
+          { label: 'Employee', render: function (a) { return who(a.employeeName, a.employeeId); } },
+          { label: 'Dates', render: function (a) { return h`${UI.fmtDate(a.start)} – ${a.end ? UI.fmtDate(a.end) : 'ongoing'}`; } },
+          { label: 'Reason category', key: 'reasonCategory' },
+          { label: 'Certificate', render: function (a) { return UI.status('absenceCert', (a.certificate || {}).status || 'NOT_REQUIRED'); } },
+          { label: 'Reported by', render: function (a) { return ({ SELF: 'Employee', MANAGER: 'Line manager', HR: 'HR', HRIS: 'HR system' })[a.source] || a.source; } },
+          { label: '', render: function (a) { return a.open && !a.end && can('absence.record') ? h`<button type="button" class="wz-btn small secondary" data-act="end-absence" data-id="${a.id}">Back at work</button>` : ''; } }
+        ], abs.slice(0, 25), { empty: 'No absences recorded', caption: 'Absence records' })}
+        ${rep ? h`<h2>Absence spells by unit</h2><p class="mgr-note">Aggregate, small cells (under ${rep.k}) suppressed.</p>${UI.table([
+          { label: 'Unit', key: 'unitName' }, { label: 'Spells recorded', className: 'num', render: function (c) { return c.suppressed ? suppressed() : c.count; } }], rep.cells)}` : ''}`;
+    },
+
+    advice: function () {
+      var q = query();
+      var list = WZ.list('adviceRequests').filter(notMe).sort(function (a, b) { return (b.requestedAt || '').localeCompare(a.requestedAt || ''); });
+      return h`${head('OH advice', 'Management advice from Occupational Health. A report is released to you only after the employee has reviewed it.')}
+        ${statusOnly('Released reports contain work impact, adjustments, likely return and review date – no diagnosis or clinical history.')}
+        ${resultBox()}
+        <div class="mgr-split">
+          <section>
+            <h2 style="margin-top:0">Advice requests and reports</h2>
+            ${list.length ? list.map(adviceCard) : UI.empty('No advice requests', 'Ask OH a work-related question about someone in your team.')}
+          </section>
+          <aside>
+            <form class="wz-card wz-form" data-form="advice" novalidate>
+              <h2 style="margin-top:0">Request OH advice</h2>
+              ${UI.field({ type: 'select', name: 'employeeId', label: 'Employee', required: true, value: q.employee || '', placeholder: 'Choose a person', options: teamOptions() })}
+              ${UI.field({ type: 'textarea', name: 'questions', label: 'Your questions (one per line)', required: true, value: 'Is the employee fit for their role?\nAre adjustments recommended?', hint: 'Work-related questions only.' })}
+              <p class="wz-error" data-error hidden></p>
+              <button class="wz-btn" type="submit">Request advice</button>
+            </form>
+          </aside>
+        </div>`;
+    },
+
+    'shared-outcomes': function () {
+      var rows = WZ.list('sharedOutcomes');
+      return h`${head('Shared outcomes', 'Outcomes your team members chose to share with you from confidential support.')}
+        ${statusOnly('Shared only by the employee’s choice. You see the fitness status (and practical adjustments, if they chose to share them) and the date – never the concern, screening, notes or diagnosis. They can stop sharing at any time.')}
+        ${UI.table([
+          { label: 'Employee', render: function (r) { return who(r.employeeName, r.employeeId); } },
+          { label: 'Fitness for work', render: function (r) { return UI.status('fitness', r.fitness); } },
+          { label: 'Adjustments', render: function (r) { return r.adjustments || h`<span class="wz-muted">Not shared</span>`; } },
+          { label: 'Shared on', render: function (r) { return UI.fmtDate(r.sharedAt); } }
+        ], rows, { empty: 'Nothing has been shared with you', caption: 'Shared outcomes' })}`;
+    },
+
+    documents: function () {
+      var docs = WZ.list('documents').filter(notMe);
+      return h`${head('Documents', 'Documents Occupational Health has shared with you.')}
+        ${statusOnly('Fitness certificates, return-to-work plans and released advice reports only. Clinical documents are never shared with managers or HR.')}
+        ${UI.table([
+          { label: 'Document', render: function (d) { return h`<strong>${d.title}</strong><span class="mgr-sub wz-mono">${d.id}</span>`; } },
+          { label: 'Employee', render: function (d) { return who(d.employeeName, d.employeeId); } },
+          { label: 'From', key: 'byName' }, { label: 'Date', render: function (d) { return UI.fmtDate(d.createdAt); } },
+          { label: '', render: function (d) { return h`<button type="button" class="wz-btn small secondary" data-act="doc" data-id="${d.id}">View</button>`; } }
+        ], docs, { empty: 'No documents shared with you', caption: 'Documents' })}`;
+    },
+
+    'duty-status': function () {
+      var f = ui.filters.duty || (ui.filters.duty = { notAvailable: true });
+      var all = WZ.list('dutyStatus');
+      var rows = f.notAvailable ? all.filter(function (r) { return r.dutyStatus !== 'AVAILABLE'; }) : all;
+      return h`${head('Duty status', role('HR') ? 'Safety-sensitive duty status for staff in your HR scope.' : 'Duty status for crew.')}
+        ${statusOnly('Duty status and the date it changed only. No reason, test type or result is ever shown here – those stay with the medical review officer and Occupational Health.')}
+        <div class="mgr-kpis">
+          ${kpi(all.filter(function (r) { return r.dutyStatus === 'REMOVED'; }).length, 'Removed from safety-sensitive duty', 'danger')}
+          ${kpi(all.filter(function (r) { return r.dutyStatus === 'RETURN_PENDING'; }).length, 'Return to duty pending', 'warn')}
+          ${kpi(all.filter(function (r) { return r.dutyStatus === 'RELIEVED' || r.dutyStatus === 'EXCLUDED'; }).length, 'Relieved or excluded', 'warn')}
+          ${kpi(all.filter(function (r) { return r.dutyStatus === 'AVAILABLE'; }).length, 'Available', 'success')}
+        </div>
+        <form class="mgr-filters" data-form="filter-duty" onsubmit="return false">${UI.checkbox({ name: 'notAvailable', label: 'Show only people not available for duty', checked: f.notAvailable })}</form>
+        ${UI.table([
+          { label: 'Employee', render: function (r) { return who(r.displayName, r.employeeId, r.unit); } },
+          { label: 'Duty status', render: function (r) { return dutyBadge(r.dutyStatus); } },
+          { label: 'Since', render: function (r) { return UI.fmtDate(r.since); } }
+        ], rows, { empty: 'Everyone is available for duty', caption: 'Duty status' })}`;
+    },
+
+    crew: function () {
+      var rows = WZ.list('crewStatus').slice().sort(function (a, b) { return (b.conflict - a.conflict) || ((b.rosterStatus === 'UNFIT') - (a.rosterStatus === 'UNFIT')) || a.name.localeCompare(b.name); });
+      var tone = { FIT: 'success', FIT_WITH_LIMITATIONS: 'warn', PENDING: 'info', UNFIT: 'danger' };
+      var text = { FIT: 'Fit', FIT_WITH_LIMITATIONS: 'Fit with limitations', PENDING: 'Pending', UNFIT: 'Unfit' };
+      return h`${head('Crew status', 'Roster fitness feed for flight and cabin crew.')}
+        ${statusOnly('Fit / fit with limitations / pending / unfit only, with roster conflicts to resolve. No reason, diagnosis or test information is given to crew scheduling.')}
+        <div class="mgr-kpis">
+          ${kpi(rows.filter(function (r) { return r.rosterStatus === 'FIT'; }).length, 'Fit', 'success')}
+          ${kpi(rows.filter(function (r) { return r.rosterStatus === 'FIT_WITH_LIMITATIONS' || r.rosterStatus === 'PENDING'; }).length, 'Limitations or pending', 'warn')}
+          ${kpi(rows.filter(function (r) { return r.rosterStatus === 'UNFIT'; }).length, 'Unfit', 'danger')}
+          ${kpi(rows.filter(function (r) { return r.conflict; }).length, 'Roster conflicts', 'danger')}
+        </div>
+        ${UI.table([
+          { label: 'Crew member', render: function (r) { return who(r.name, r.employeeId, r.jobTitle + ' · ' + r.base); } },
+          { label: 'Roster status', render: function (r) { return UI.badge(text[r.rosterStatus] || r.rosterStatus, tone[r.rosterStatus]); } },
+          { label: 'Since', render: function (r) { return UI.fmtDate(r.since); } },
+          { label: 'Next duties', render: function (r) { return r.nextDuties.length ? h`${r.nextDuties.map(function (d) { return h`<span class="mgr-sub">${UI.fmtDate(d.date)} · ${d.duty}${d.to ? ' → ' + d.to : ''}</span>`; })}` : h`<span class="wz-muted">None rostered</span>`; } },
+          { label: 'Roster conflict', render: function (r) { return r.conflict ? UI.badge('Conflict on ' + r.nextDuties[0].duty, 'danger') : h`<span class="wz-muted">–</span>`; } }
+        ], rows, { caption: 'Crew status' })}`;
+    },
+
+    testing: function () {
+      var q = query();
+      var myTests = WZ.list('tests');
+      var stats = can('testing.stats') ? attemptQuiet(function () { return WZ.report('testing'); }) : null;
+      var programme = can('testing.programme');
+      var pools = programme ? WZ.list('testPools') : [];
+      var sels = programme ? WZ.list('testSelections').slice().reverse() : [];
+      var forCauseOpts = role('MANAGER') ? WZ.list('team').filter(function (e) { return notMe(e) && e.safetyCritical; }).map(function (e) { return { value: e.id, label: e.name + ' (' + e.id + ')' }; }) : null;
+      return h`${head('Drug and alcohol testing', 'Safety-sensitive testing programme.')}
+        ${statusOnly('Results are verified by the independent medical review officer and are never shown here. ' + (programme ? 'You see selections and a masked status (notified, with the testing programme, completed).' : 'You see a masked status for tests you requested, and the duty status that follows.'))}
+        ${resultBox()}
+        ${programme ? h`<h2>Random selection</h2>
+          <div class="mgr-split"><section>${UI.table([
+            { label: 'Selection', render: function (x) { return h`<span class="wz-mono">${x.id}</span><span class="mgr-sub">${UI.fmtDateTime(x.at)}</span>`; } },
+            { label: 'Pool', key: 'poolId' }, { label: 'Selected', render: function (x) { return x.selectedNames.join(', '); } },
+            { label: 'Status', render: function (x) { return h`${x.selected.map(function (id) { var t = myTests.filter(function (y) { return y.selectionId === x.id && y.employeeId === id; })[0]; return t ? h`<span class="mgr-sub">${t.employeeName}: ${UI.status('testMasked', t.maskedStatus)}</span>` : ''; })}`; } }
+          ], sels, { empty: 'No selections yet' })}</section>
+          <aside><form class="wz-card wz-form" data-form="random" novalidate><h3 style="margin-top:0">Run a random selection</h3>
+            ${UI.field({ type: 'select', name: 'poolId', label: 'Pool', options: pools.map(function (p) { return { value: p.id, label: p.name + ' (' + p.members.length + ')' }; }) })}
+            ${UI.field({ type: 'number', name: 'count', label: 'Number to select', value: 2, min: '1' })}
+            <p class="wz-hint">Seeded and reproducible. Selected people are notified where and when to attend; collectors are dispatched.</p>
+            <button class="wz-btn" type="submit">Draw selection</button></form></aside></div>` : ''}
+        ${can('testing.forCause') ? h`<h2>For-cause testing</h2>
+          <div class="mgr-split">
+            <section>${UI.table([
+              { label: 'Request', render: function (t) { return h`<span class="wz-mono">${t.id}</span><span class="mgr-sub">${UI.fmtDateTime(t.requestedAt || t.notifiedAt)}</span>`; } },
+              { label: 'Employee', key: 'employeeName' }, { label: 'Reason', render: function (t) { return t.reason === 'FOR_CAUSE' ? 'For cause' : WZ.label('test', t.reason); } },
+              { label: 'Status', render: function (t) { return UI.status('testMasked', t.maskedStatus); } }
+            ], myTests.filter(function (t) { return t.reason === 'FOR_CAUSE' && !t.selectionId; }), { empty: 'You have not requested any tests' })}</section>
+            <aside><form class="wz-card wz-form mgr-obs" data-form="for-cause" novalidate>
+              <h3 style="margin-top:0">Request a for-cause test</h3>
+              ${forCauseOpts ? UI.field({ type: 'select', name: 'employeeId', label: 'Employee (safety-sensitive role)', required: true, value: q.employee || '', placeholder: 'Choose a person', options: forCauseOpts })
+                : UI.field({ name: 'employeeId', label: 'Staff number', required: true, hint: 'For example E1004', autocomplete: 'off' })}
+              <p class="wz-hint" style="margin:0">Record at least two specific, observed behaviours – not opinions or health information.</p>
+              ${UI.field({ name: 'obs1', id: 'f-obs1', label: 'Observation 1', required: true })}
+              ${UI.field({ name: 'obs2', id: 'f-obs2', label: 'Observation 2', required: true })}
+              ${UI.field({ name: 'obs3', id: 'f-obs3', label: 'Observation 3', optional: true })}
+              ${UI.field({ name: 'location', label: 'Where should the collector go?', optional: true, value: 'Supervisor’s office' })}
+              <p class="wz-error" data-error hidden></p>
+              <button class="wz-btn" type="submit">Request test now</button></form></aside>
+          </div>` : ''}
+        ${stats ? h`<h2>Programme statistics</h2><p class="mgr-note">Tests by reason and role group. Cells under ${stats.k} are suppressed; ${stats.total} tests in the programme.</p>
+          ${UI.table([{ label: 'Reason', render: function (c) { return WZ.label('test', c.reason).replace('Random', 'Random'); } }, { label: 'Role group', key: 'roleGroup' }, { label: 'Tests', className: 'num', render: function (c) { return c.suppressed ? suppressed() : c.count; } }], stats.cells)}` : ''}`;
+    },
+
+    compliance: function () {
+      var f = ui.filters.surv || (ui.filters.surv = { dueOnly: false });
+      var all = WZ.list('surveillance');
+      var rows = f.dueOnly ? all.filter(function (x) { return ['DUE', 'OVERDUE', 'FOLLOW_UP'].indexOf(x.status) >= 0; }) : all;
+      var upToDate = all.filter(function (x) { return x.status === 'NOT_DUE' || x.status === 'COMPLETED' || x.status === 'BOOKED'; }).length;
+      return h`${head('Health surveillance', 'Compliance with statutory and role-based health surveillance.')}
+        ${statusOnly('Programme, due date and status only. Test results (for example audiometry values) are never shown to managers or HR.')}
+        <div class="mgr-kpis">
+          ${kpi(all.length ? Math.round(100 * upToDate / all.length) + '%' : '—', 'Up to date or booked', 'success')}
+          ${kpi(all.filter(function (x) { return x.status === 'DUE'; }).length, 'Due', 'warn')}
+          ${kpi(all.filter(function (x) { return x.status === 'OVERDUE'; }).length, 'Overdue', 'danger')}
+          ${kpi(all.filter(function (x) { return x.status === 'FOLLOW_UP'; }).length, 'Follow-up with OH', 'info')}
+        </div>
+        <form class="mgr-filters" data-form="filter-surv" onsubmit="return false">${UI.checkbox({ name: 'dueOnly', label: 'Due, overdue or follow-up only', checked: f.dueOnly })}</form>
+        ${UI.table([
+          { label: 'Employee', render: function (x) { return who(x.employeeName, x.employeeId); } },
+          { label: 'Programme', key: 'programmeName' },
+          { label: 'Due date', render: function (x) { return h`${UI.fmtDate(x.dueDate)}${x.status === 'NOT_DUE' ? h`<span class="mgr-sub">next due</span>` : ''}`; } },
+          { label: 'Status', render: function (x) { return UI.status('surveillance', x.status); } }
+        ], rows, { empty: 'Nothing due', caption: 'Health surveillance compliance' })}`;
+    },
+
+    claims: function () {
+      var rows = WZ.list('claims');
+      return h`${head('Claims', 'Workers’ compensation claims for staff in your scope.')}
+        ${statusOnly('Claim status only. Costs, reserves, payer correspondence and clinical content stay with the claims coordinator and Occupational Health.')}
+        ${UI.table([
+          { label: 'Claim', render: function (c) { return h`<span class="wz-mono">${c.id}</span>`; } },
+          { label: 'Employee', render: function (c) { return who(c.employeeName, c.employeeId); } },
+          { label: 'Type', render: function (c) { return c.type === 'WORKERS_COMPENSATION' ? 'Workers’ compensation' : WZ.label('claim', c.type); } },
+          { label: 'Status', render: function (c) { return UI.status('claim', c.status); } },
+          { label: 'Opened', render: function (c) { return UI.fmtDate(c.openedAt); } },
+          { label: 'Return to work', key: 'rtwStatus' }
+        ], rows, { empty: 'No claims', caption: 'Claims' })}`;
+    },
+
+    advisories: function () {
+      var advs = WZ.list('advisories');
+      return h`${head('Travel health advisories', 'Advisories Occupational Health sent to crew rostered to a destination.')}
+        ${statusOnly('Acknowledgement counts only, never names. When fewer than ' + k() + ' people have acknowledged, the figure is suppressed so nobody can be singled out.')}
+        ${advs.length ? advs.map(function (a) {
+          var r = attemptQuiet(function () { return WZ.report('advisory', { advisoryId: a.id }); });
+          return h`<div class="wz-card" data-advisory="${a.id}"><div class="wz-card-head"><strong>${a.title}</strong>${UI.badge(a.severity === 'HIGH' ? 'High' : a.severity === 'LOW' ? 'Low' : 'Medium', a.severity === 'HIGH' ? 'danger' : 'warn')}</div>
+            <p class="wz-small wz-muted">${a.destinationName} · published ${UI.fmtDate(a.publishedAt)} by ${a.publishedByName} · ${a.targetRule}</p>
+            ${r ? UI.dl([['Recipients', r.recipients], ['Acknowledged', r.suppressed ? suppressed('fewer than ' + r.k + ' – hidden') : h`${r.acknowledged} (${r.ratePct}%)`]]) : ''}</div>`; })
+          : UI.empty('No advisories', '')}`;
+    },
+
+    campaigns: function () {
+      var camps = WZ.list('campaigns');
+      var manage = can('campaign.manage');
+      var shown = manage ? camps : camps.filter(function (c) { return c.status !== 'PLANNED'; });
+      var units = WZ.ref('orgUnits').filter(function (x) { return x.parent; });
+      return h`${head('Health campaigns', manage ? 'Plan campaigns, invite units and follow participation.' : 'Participation in health campaigns for your unit.')}
+        ${statusOnly('Participation by unit only, with groups under ' + k() + ' suppressed. Screening results go to the employee and Occupational Health – never to managers.')}
+        ${resultBox()}
+        ${manage ? h`<details class="wz-card"><summary><strong>Plan a new campaign</strong></summary>
+          <form class="wz-form" data-form="campaign" novalidate style="margin-top:.8rem">
+            ${UI.field({ name: 'title', label: 'Title', required: true })}
+            ${UI.field({ type: 'select', name: 'type', label: 'Type', options: [{ value: 'SCREENING', label: 'Screening' }, { value: 'VACCINATION', label: 'Vaccination' }, { value: 'AWARENESS', label: 'Awareness' }] })}
+            ${UI.field({ type: 'textarea', name: 'description', label: 'Description', optional: true })}
+            <div class="wz-grid">${UI.field({ type: 'date', name: 'start', label: 'Start', value: UI.isoToday(7) })}${UI.field({ type: 'date', name: 'end', label: 'End', value: UI.isoToday(37) })}</div>
+            <p class="wz-error" data-error hidden></p><div><button class="wz-btn" type="submit">Create campaign</button></div></form></details>` : ''}
+        ${shown.length ? shown.map(function (c) {
+          var r = c.status === 'PLANNED' && !c.units.length ? null : attemptQuiet(function () { return WZ.report('campaign', { campaignId: c.id }); });
+          return h`<div class="wz-card" data-campaign="${c.id}"><div class="wz-card-head"><div><strong>${c.title}</strong><span class="mgr-sub">${UI.fmtDate(c.start)} – ${UI.fmtDate(c.end)} · ${c.units.length ? c.units.map(unitName).join(', ') : 'no units invited yet'}</span></div>${UI.status('campaign', c.status)}</div>
+            <p class="wz-small">${c.description}</p>
+            ${r ? (r.rows.length ? UI.table([
+              { label: 'Unit', key: 'unitName' },
+              { label: 'Invited', className: 'num', render: function (x) { return x.suppressed ? suppressed() : x.invited; } },
+              { label: 'Took part', className: 'num', render: function (x) { return x.suppressed ? suppressed() : x.participated; } },
+              { label: 'Participation', render: function (x) { return x.suppressed ? h`<span class="mgr-note">Fewer than ${r.k} – hidden</span>` : h`<div class="mgr-bar" aria-hidden="true"><span style="width:${Math.min(100, x.pct)}%"></span></div><span class="mgr-sub">${x.pct}%</span>`; } }
+            ], r.rows) : h`<p class="mgr-note">Your unit is not invited to this campaign.</p>`) : ''}
+            ${r && manage && c.type === 'SCREENING' ? h`<p class="mgr-note" style="margin-top:.6rem">Screening: ${r.screening.map(function (s) { return (s.key === 'screened' ? 'screened ' : 'follow-up needed ') + (s.suppressed ? '(suppressed)' : s.count); }).join(' · ')}</p>` : ''}
+            ${manage && c.status !== 'CLOSED' ? h`<form class="wz-form" data-form="invite" data-id="${c.id}" style="margin-top:.8rem"><fieldset class="wz-fieldset"><legend class="wz-legend">Invite units</legend><div class="mgr-tag-row">${units.map(function (x) { return UI.checkbox({ name: 'units', id: 'u-' + c.id + '-' + x.code, value: x.id, label: x.name, checked: c.units.indexOf(x.id) >= 0 }); })}</div></fieldset><div><button class="wz-btn small" type="submit">Send invitations</button></div></form>` : ''}
+          </div>`; }) : UI.empty('No campaigns', '')}`;
+    },
+
+    wellbeing: function () {
+      var peer = attemptQuiet(function () { return WZ.report('peer'); });
+      var rate = attemptQuiet(function () { return WZ.report('supportRate'); });
+      var testing = can('testing.stats') ? attemptQuiet(function () { return WZ.report('testing'); }) : null;
+      var CAT = { WORK_STRESS: 'Work stress', FATIGUE: 'Fatigue', CRITICAL_INCIDENT: 'Critical incident', PERSONAL: 'Personal', NOT_YET_CONTACTED: 'Not yet contacted' };
+      return h`${head('Psychosocial and peer support', 'Aggregate figures for safety and wellbeing planning.')}
+        ${statusOnly('Aggregates only – no names, aliases or case details. Any cell with fewer than ' + k() + ' is suppressed, and a second cell is hidden when needed so the first cannot be worked out from a total.')}
+        <div class="wz-grid-2">
+          <section class="wz-card"><h2>Peer support contacts</h2><p class="mgr-note">By base and topic, from pseudonymous peer requests.</p>
+            ${peer ? UI.table([{ label: 'Base', key: 'base' }, { label: 'Topic', render: function (c) { return CAT[c.category] || WZ.label('x', c.category); } }, { label: 'Contacts', className: 'num', render: function (c) { return c.suppressed ? suppressed() : c.count; } }], peer.cells, { empty: 'No peer support activity' }) : UI.empty('Not available for your role', '')}</section>
+          <section class="wz-card"><h2>Confidential support rate</h2><p class="mgr-note">Support cases per 100 staff, by unit.</p>
+            ${rate ? UI.table([{ label: 'Unit', key: 'unitName' }, { label: 'Per 100 staff', className: 'num', render: function (r) { return r.suppressed ? suppressed() : r.per100; } }], rate.rows) : UI.empty('Not available for your role', '')}</section>
+        </div>
+        ${testing ? h`<h2>D&A testing programme</h2>${UI.table([{ label: 'Reason', render: function (c) { return WZ.label('test', c.reason); } }, { label: 'Role group', key: 'roleGroup' }, { label: 'Tests', className: 'num', render: function (c) { return c.suppressed ? suppressed() : c.count; } }], testing.cells)}` : ''}`;
+    },
+
+    ergonomics: function () {
+      var acts = WZ.list('ergonomicActions');
+      var today = UI.isoToday();
+      var manage = can('ergonomics.manage');
+      var myUnit = (WZ.me() || {}).orgUnit;
+      var rag = { RED: 'danger', AMBER: 'warn', GREEN: 'success' };
+      var st = { OPEN: 'Open', IN_PROGRESS: 'In progress', DONE: 'Done' };
+      return h`${head('Ergonomic actions', manage ? 'Workplace assessments and agreed actions across units.' : 'Workplace assessments and agreed actions for your unit.')}
+        ${statusOnly('Workplace findings and actions only – no individual health information.')}
+        <div class="mgr-kpis">
+          ${kpi(acts.filter(function (a) { return a.status !== 'DONE' && a.due < today; }).length, 'Overdue', 'danger')}
+          ${kpi(acts.filter(function (a) { return a.status !== 'DONE' && a.due >= today && a.due <= UI.isoToday(14); }).length, 'Due within 14 days', 'warn')}
+          ${kpi(acts.filter(function (a) { return a.status !== 'DONE'; }).length, 'Open', 'info')}
+          ${kpi(acts.filter(function (a) { return a.status === 'DONE'; }).length, 'Done', 'success')}
+        </div>
+        ${UI.table([
+          { label: 'Area', render: function (a) { return h`<strong>${a.area}</strong><span class="mgr-sub">${unitName(a.unit)} · ${a.assessment}</span>`; } },
+          { label: 'Risk', render: function (a) { return UI.badge(a.rag.charAt(0) + a.rag.slice(1).toLowerCase(), rag[a.rag]); } },
+          { label: 'Finding and action', render: function (a) { return h`${a.finding}<span class="mgr-sub"><strong>Action:</strong> ${a.action}</span>`; } },
+          { label: 'Owner', key: 'owner' },
+          { label: 'Due', render: function (a) { return h`${UI.fmtDate(a.due)}${a.status !== 'DONE' && a.due < today ? h`<span class="mgr-sub">${UI.badge('Overdue', 'danger')}</span>` : ''}`; } },
+          { label: 'Status', render: function (a) {
+            var editable = manage || (role('MANAGER') && a.unit === myUnit);
+            return editable ? h`<select class="wz-input" aria-label="${'Status of ' + a.id}" data-act-change="erg-status" data-id="${a.id}" style="min-height:34px;padding:.2rem .4rem">${['OPEN', 'IN_PROGRESS', 'DONE'].map(function (s) { return raw('<option value="' + s + '"' + (a.status === s ? ' selected' : '') + '>' + st[s] + '</option>'); })}</select>` : UI.badge(st[a.status] || a.status, a.status === 'DONE' ? 'success' : 'info'); } }
+        ], acts, { empty: 'No ergonomic actions', caption: 'Ergonomic actions' })}
+        ${manage ? h`<h2>Add an action</h2><form class="wz-card wz-form" data-form="ergo" novalidate style="max-width:720px">
+          ${UI.field({ type: 'select', name: 'unit', label: 'Unit', options: WZ.ref('orgUnits').filter(function (x) { return x.parent; }).map(function (x) { return { value: x.id, label: x.name }; }) })}
+          ${UI.field({ name: 'area', label: 'Area', required: true })}
+          ${UI.field({ type: 'select', name: 'rag', label: 'Risk rating', value: 'AMBER', options: [{ value: 'RED', label: 'Red' }, { value: 'AMBER', label: 'Amber' }, { value: 'GREEN', label: 'Green' }] })}
+          ${UI.field({ name: 'finding', label: 'Finding', optional: true })}
+          ${UI.field({ name: 'action', label: 'Action', required: true })}
+          ${UI.field({ name: 'owner', label: 'Owner', optional: true })}
+          ${UI.field({ type: 'date', name: 'due', label: 'Due', value: UI.isoToday(30) })}
+          <p class="wz-error" data-error hidden></p><div><button class="wz-btn" type="submit">Add action</button></div></form>` : ''}`;
+    }
+  };
+
+  // ---------------------------------------------------------------- fragments used by several screens
+  function attemptQuiet(fn) { try { return fn(); } catch (e) { return null; } }
+  function noteItem(n) {
+    var here = n.link && n.link.app === APP;
+    var other = n.link && !here && WZ.APPS[n.link.app];
+    return h`<li><div class="wz-row"><div class="wz-grow ${n.read ? '' : 'wz-unread'}">${n.title}</div>${n.kind === 'ACTION' ? UI.badge('Action', 'warn') : n.kind === 'URGENT' ? UI.badge('Urgent', 'danger') : ''}<time class="wz-small wz-muted">${UI.fmtRelative(n.at)}</time></div>
+      <div class="wz-small">${n.body}</div>
+      <div class="wz-actions" style="margin-top:.35rem">${here ? h`<a class="wz-link-btn" href="#/${routeFor(n.link.route)}" data-act="open-note" data-id="${n.id}">View</a>` : other ? h`<a class="wz-link-btn" href="${other.file}" target="_blank" rel="noopener">Open in ${other.short}</a>` : ''}
+      ${!n.read ? h`<button type="button" class="wz-link-btn" data-act="read" data-id="${n.id}">Mark as read</button>` : ''}</div></li>`;
+  }
+  /** Map a notification route to a screen of this app. */
+  function routeFor(r) { var base = (r || 'home').split('/')[0]; return routes[base] || base === 'employee' ? r : 'home'; }
+
+  function rtwCard(p) {
+    var mine = role('MANAGER') && !p.ack.manager && (p.status === 'ISSUED' || p.status === 'ACTIVE');
+    return h`<div class="wz-card wz-accent" data-rtw="${p.id}">
+      <div class="wz-card-head"><div><span class="wz-card-title">${p.id}</span><span class="mgr-sub">${p.employeeName} · ${p.employeeId}</span></div>${UI.status('rtw', p.status)}</div>
+      <p><strong>Goal:</strong> ${p.goal}</p>
+      ${UI.dl([['Starts', UI.fmtDate(p.startDate)], ['Review', UI.fmtDate(p.reviewDate)]])}
+      <h3>Phases</h3>
+      ${UI.table([{ label: 'Week', key: 'week', className: 'tight' }, { label: 'Hours', key: 'hours', className: 'tight' }, { label: 'Duties', key: 'duties' }], p.phases)}
+      ${p.restrictions.length ? h`<h3>Restrictions during the plan</h3>${restrictionsList(p.restrictions)}` : ''}
+      <h3>Acknowledgements</h3>
+      ${UI.dl([['Employee', p.ack.employee ? h`${UI.badge('Acknowledged', 'success')} ${UI.fmtDateTime(p.ack.employee)}` : UI.badge('Waiting', 'neutral')],
+        ['Line manager', p.ack.manager ? h`${UI.badge('Acknowledged', 'success')} ${UI.fmtDateTime(p.ack.manager)}` : UI.badge(role('MANAGER') ? 'Waiting for you' : 'Waiting', 'warn')]])}
+      ${mine ? h`<form class="wz-form" data-form="rtw-ack" data-id="${p.id}" style="margin-top:1rem">
+        ${UI.field({ type: 'textarea', name: 'comment', id: 'f-comment-' + p.id, label: 'Comment for OH', optional: true, hint: 'For example operational constraints on the duties.' })}
+        ${UI.checkbox({ name: 'agree', id: 'c-agree-' + p.id, required: true, label: 'I have read this plan and will provide the duties and restrictions described.' })}
+        <p class="wz-error" data-error hidden></p>
+        <div><button class="wz-btn" type="submit">Acknowledge plan</button></div></form>` : ''}
+    </div>`;
+  }
+
+  function adviceCard(a) {
+    var r = a.report;
+    return h`<div class="wz-card ${a.status === 'RELEASED' ? 'wz-accent' : ''}" data-advice="${a.id}">
+      <div class="wz-card-head"><div><span class="wz-card-title">${a.id}</span><span class="mgr-sub">${a.employeeName} · requested by ${a.requestedByName} on ${UI.fmtDate(a.requestedAt)}</span></div>${UI.status('advice', a.status)}</div>
+      ${a.questions && a.questions.length ? h`<p class="wz-small"><strong>Questions:</strong></p><ul class="wz-small">${a.questions.map(function (x) { return h`<li>${x}</li>`; })}</ul>` : ''}
+      ${a.status === 'RELEASED' && r ? h`<h3>Advice from Occupational Health</h3>${UI.dl([['Fitness for work', UI.status('fitness', r.fitness)], ['Work impact', r.workImpact], ['Recommended adjustments', r.adjustments], ['Likely return', r.likelyReturn], ['Review', r.review ? UI.fmtDate(r.review) : null], ['Released', UI.fmtDateTime(a.releasedAt)]])}`
+        : a.status === 'WITHHELD' ? UI.alert('warn', null, h`<p>The employee chose not to release this report. OH will advise on fitness status only.</p>`)
+        : h`<p class="mgr-note">${a.status === 'AWAITING_EMPLOYEE_REVIEW' ? 'OH has written the report; the employee is reviewing it before release.' : 'Occupational Health is preparing the report.'}</p>`}
+    </div>`;
+  }
+
+  function referEhs() {
+    return h`${head('Report an EHS incident', 'Open an Occupational Health case from a workplace incident.')}
+      ${resultBox()}
+      <div class="mgr-split">
+        <form class="wz-card wz-form" data-form="ehs" novalidate>
+          ${UI.field({ name: 'employeeId', label: 'Staff number of the injured person', required: true, hint: 'For example E1004. You do not get access to their records.', autocomplete: 'off' })}
+          <div class="wz-grid">
+            ${UI.field({ type: 'select', name: 'category', label: 'Type', value: 'INJURY', options: [{ value: 'INJURY', label: 'Injury' }, { value: 'EXPOSURE', label: 'Exposure (noise, chemical, biological)' }] })}
+            ${UI.field({ type: 'date', name: 'incidentDate', label: 'Date of the incident', value: UI.isoToday(), max: UI.isoToday() })}
+          </div>
+          ${UI.field({ name: 'incidentRef', label: 'Incident reference', optional: true, hint: 'Leave empty to create a new EHS reference.' })}
+          ${UI.field({ name: 'location', label: 'Location', optional: true, hint: 'For example Stand 12, Central Hub' })}
+          ${UI.field({ name: 'bodyPart', label: 'Body part affected', optional: true })}
+          ${UI.field({ type: 'textarea', name: 'concern', label: 'What happened?', required: true, hint: 'Describe the incident as reported.' })}
+          <p class="wz-error" data-error hidden></p>
+          <button class="wz-btn" type="submit">Send to Occupational Health</button>
+        </form>
+        <aside>${UI.alert('info', 'What happens next', h`<p>The case goes straight to the OH intake queue and the employee is told they have been referred. You can follow the incident’s case status and recordability under <a href="#/incidents">EHS incidents</a>.</p>`)}</aside>
+      </div>`;
+  }
+
+  // =====================================================================================
+  // Render loop
+  // =====================================================================================
+  var router = UI.router(routes, { default: 'home' });
+  function render(focus) {
+    if (WZ.app !== APP) { ui.pending = true; return; }   // another app context is active (tests seeding through the engine)
+    var u = me();
+    if (!u) { app.innerHTML = UI.h`<main class="wz-main">${UI.empty('No demo user', 'Choose a user in the demo toolbar.')}</main>`.toString(); return; }
+    var path = router.current();
+    var m = router.match(path) || { key: 'home', params: {} };
+    var body;
+    if (!allowed(m.key)) body = denied(m.key);
+    else { try { body = routes[m.key](m.params); } catch (e) { console.error(e); body = UI.alert('danger', 'Something went wrong', h`<p>${friendly(e)}</p>`); } }
+    var active = m.key === 'employee/:id' ? 'team' : m.key;
+    var groups = [];
+    NAV.forEach(function (n) { if (!n.show()) return; var g = groups.filter(function (x) { return x.name === n.group; })[0]; if (!g) groups.push(g = { name: n.group, items: [] }); g.items.push(n); });
+    var side = h`<nav class="wz-side" aria-label="Workspace"><div class="mgr-side-in">
+      <div class="mgr-who"><strong>${u.name}</strong><span>${u.title}</span></div>
+      ${groups.map(function (g) { return h`<h4>${g.name}</h4>${g.items.map(function (n) { var c = n.count ? n.count() : 0; return h`<a href="#/${n.route}" ${raw(n.route === active ? 'aria-current="page"' : '')}><span>${labelOf(n)}</span>${c ? UI.badge(String(c), n.route === 'notifications' ? 'info' : 'warn') : ''}</a>`; })}`; })}
+    </div></nav>`;
+    var header = UI.header({ appName: 'Manager & HR Workspace', user: { name: u.name, title: u.title }, bell: WZ.unreadCount(), bellHref: '#/notifications' }).toString()
+      .replace('<span class="wz-header-sp"></span>', '<span class="wz-header-sp"></span><span class="mgr-chip" title="Managers and HR see work-relevant status only">' + LOCK + 'STATUS ONLY</span>');
+    app.innerHTML = h`${raw(header)}
+      <div class="wz-layout">${side}
+        <div class="mgr-main"><main class="wz-main" id="main" tabindex="-1">${body}</main>
+        <footer class="wz-footer">WellnessZ demo · synthetic data, all people and organisations are fictional · status only, no clinical detail</footer></div>
+      </div>`.toString();
+    ui.dirty = false; ui.pending = false; ui.lastUser = u.username;
+    if (focus) { var h1 = app.querySelector('h1'); if (h1) h1.focus(); window.scrollTo(0, 0); }
+  }
+
+  window.addEventListener('hashchange', function () { ui.lastResult = null; render(true); });
+  WZ.subscribe(function () {
+    var u = WZ.currentUser;
+    if (WZ.app !== APP) { ui.pending = true; return; }
+    if (u && ui.lastUser && u.username !== ui.lastUser) {
+      ui.lastResult = null; ui.filters = {};
+      var m = router.match(router.current());
+      if (m && !allowed(m.key)) { location.hash = '#/home'; return; }
+      render(true); return;
+    }
+    if (ui.dirty) { ui.pending = true; return; }   // do not wipe a form the user is filling in
+    render(false);
+  });
+  app.addEventListener('input', function (e) {
+    var f = e.target.closest('form[data-form]'); if (!f) return;
+    var kind = f.getAttribute('data-form');
+    if (kind.indexOf('filter-') === 0) { applyFilter(f, kind); return; }
+    ui.dirty = true;
+  });
+
+  function applyFilter(f, kind) {
+    var d = UI.formData(f);
+    if (kind === 'filter-team') ui.filters.team = { q: d.q || '', fitness: d.fitness || '', restricted: !!d.restricted };
+    if (kind === 'filter-duty') ui.filters.duty = { notAvailable: !!d.notAvailable };
+    if (kind === 'filter-surv') ui.filters.surv = { dueOnly: !!d.dueOnly };
+    var focusName = document.activeElement && document.activeElement.name;
+    var pos = document.activeElement && document.activeElement.selectionStart;
+    render(false);
+    if (focusName) { var el = app.querySelector('form[data-form="' + kind + '"] [name="' + focusName + '"]'); if (el) { el.focus(); try { if (pos != null) el.setSelectionRange(pos, pos); } catch (x) { /* not a text input */ } } }
+  }
+
+  // ---------------------------------------------------------------- form handling
+  function showError(form, msg) { var p = form.querySelector('[data-error]'); if (p) { p.textContent = msg; p.hidden = false; } else UI.toast(msg, 'danger'); }
+  function run(form, fn, ok) {
+    try { var r = fn(); ui.dirty = false; if (ok) UI.toast(ok, 'success'); return r; }
+    catch (e) { showError(form, friendly(e)); if (window.console) console.warn(e); return undefined; }
+  }
+  function lines(text) { return String(text || '').split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean); }
+
+  app.addEventListener('change', function (e) {
+    var sel = e.target.closest('[data-act-change]');
+    if (sel && sel.getAttribute('data-act-change') === 'erg-status') attempt(function () { return WZ.updateErgonomicAction(sel.getAttribute('data-id'), { status: sel.value }); }, 'Action updated');
+  });
+
+  app.addEventListener('submit', function (e) {
+    var f = e.target.closest('form[data-form]'); if (!f) return;
+    e.preventDefault();
+    var kind = f.getAttribute('data-form'), id = f.getAttribute('data-id'), d = UI.formData(f), r;
+    if (kind === 'referral') {
+      if (!d.employeeId) return showError(f, 'Choose the employee.');
+      if (!d.concern.trim()) return showError(f, 'Describe what you have observed at work.');
+      if (!d.discussed) return showError(f, 'Please confirm you have discussed the referral with the employee.');
+      r = run(f, function () { return WZ.createReferral({ employeeId: d.employeeId, category: d.category, concern: d.concern, workImpact: d.workImpact ? d.concern + '\nQuestions: ' + d.workImpact : d.concern }); });
+      if (r) { ui.lastResult = { title: 'Referral sent to Occupational Health', body: 'Case ' + r.id + ' for ' + r.employeeName + ' is ' + r.statusLabel.toLowerCase() + '. You will see status updates only.', link: { href: '#/employee/' + r.employeeId, label: 'View status' } }; render(true); }
+    } else if (kind === 'ehs') {
+      var empId = (d.employeeId || '').trim().toUpperCase();
+      if (!/^[A-Z]\d{4}$/.test(empId)) return showError(f, 'Enter the staff number, for example E1004.');
+      if (!d.concern.trim()) return showError(f, 'Describe what happened.');
+      r = run(f, function () { return WZ.createReferral({ employeeId: empId, source: 'EHS_INCIDENT', category: d.category, concern: d.concern, incidentRef: d.incidentRef || undefined, incidentDate: d.incidentDate, location: d.location, bodyPart: d.bodyPart }); });
+      if (r) { ui.lastResult = { title: 'Incident sent to Occupational Health', body: 'Case ' + r.id + ' was opened from incident ' + (r.linkedIncident || '') + ' and is in the OH intake queue. The OH nurses have been notified.', link: { href: '#/incidents', label: 'Follow the case status' } }; render(true); }
+    } else if (kind === 'rtw-ack') {
+      if (!d.agree) return showError(f, 'Please confirm you have read the plan.');
+      r = run(f, function () { return WZ.acknowledge(id, { comment: d.comment }); });
+      if (r) { UI.toast(r.status === 'ACTIVE' ? 'Acknowledged – the plan is now active' : 'Acknowledged – waiting for the employee', 'success'); render(false); }
+    } else if (kind === 'absence') {
+      if (!d.employeeId) return showError(f, 'Choose the employee.');
+      if (!d.start) return showError(f, 'Enter the first day of absence.');
+      r = run(f, function () { return WZ.recordAbsence({ employeeId: d.employeeId, start: d.start, end: d.end || null, reasonCategory: d.reasonCategory }); });
+      if (r) {
+        var name = (WZ.get('employees', r.employeeId) || {}).name || r.employeeId;
+        ui.lastResult = r.triggers && r.triggers.length
+          ? { title: 'Absence recorded – absence trigger reached', body: name + ': ' + r.triggers.map(function (t) { return t.detail; }).join('; ') + '. HR and the OH case manager have been notified for early intervention.' }
+          : { title: 'Absence recorded', body: name + ' – from ' + UI.fmtDate(r.start) + (r.certificate.status === 'REQUIRED' ? '. A medical certificate is required.' : '.') };
+        render(true);
+      }
+    } else if (kind === 'advice') {
+      if (!d.employeeId) return showError(f, 'Choose the employee.');
+      if (!lines(d.questions).length) return showError(f, 'Add at least one question.');
+      r = run(f, function () { return WZ.requestAdvice({ employeeId: d.employeeId, questions: lines(d.questions) }); });
+      if (r) { ui.lastResult = { title: 'Advice requested', body: r.id + ' for ' + r.employeeName + ' is with the OH case manager. The employee reviews the report before it is released to you.' }; render(true); }
+    } else if (kind === 'for-cause') {
+      var obs = [d.obs1, d.obs2, d.obs3].map(function (x) { return (x || '').trim(); }).filter(Boolean);
+      var eid = (d.employeeId || '').trim().toUpperCase();
+      if (!eid) return showError(f, 'Choose the employee.');
+      if (obs.length < 2) return showError(f, 'Record at least two specific observations.');
+      r = run(f, function () { return WZ.forCauseRequest({ employeeId: eid, observations: obs, location: d.location }); });
+      if (r) { ui.lastResult = { title: 'For-cause test requested', body: r.id + ': a collector has been dispatched. You will see a masked status only; the result goes to the medical review officer.' }; render(true); }
+    } else if (kind === 'random') {
+      r = run(f, function () { return WZ.randomSelection(d.poolId, { count: Math.max(1, +d.count || 1) }); });
+      if (r) { ui.lastResult = { title: 'Selection drawn', body: r.id + ': ' + r.selectedNames.join(', ') + ' – notified where and when to attend. Collectors have been dispatched.' }; render(true); }
+    } else if (kind === 'campaign') {
+      if (!d.title.trim()) return showError(f, 'Give the campaign a title.');
+      r = run(f, function () { return WZ.createCampaign({ title: d.title, type: d.type, description: d.description, start: d.start, end: d.end }); });
+      if (r) { ui.lastResult = { title: 'Campaign planned', body: r.title + ' (' + r.id + ') – invite units to start it.' }; render(false); }
+    } else if (kind === 'invite') {
+      var units = d.units || [];
+      if (!units.length) return UI.toast('Choose at least one unit', 'danger');
+      r = run(f, function () { return WZ.campaignInvite(id, { units: units }); });
+      if (r) { UI.toast(r.invitedAdded + ' people invited (in-app)', 'success'); render(false); }
+    } else if (kind === 'ergo') {
+      if (!d.area.trim() || !d.action.trim()) return showError(f, 'Enter the area and the action.');
+      if (run(f, function () { return WZ.addErgonomicAction({ unit: d.unit, area: d.area, rag: d.rag, finding: d.finding, action: d.action, owner: d.owner, due: d.due }); }, 'Action added')) render(false);
+    }
+  });
+
+  // ---------------------------------------------------------------- click actions
+  UI.on(app, 'click', '[data-act]', function (e, el) {
+    var act = el.getAttribute('data-act'), id = el.getAttribute('data-id');
+    if (act === 'read' || act === 'open-note') WZ.markNotificationRead(id);
+    else if (act === 'read-all') WZ.markAllRead();
+    else if (act === 'dismiss-result') { ui.lastResult = null; render(false); }
+    else if (act === 'end-absence') attempt(function () { return WZ.endAbsence(id, UI.isoToday()); }, 'Return to work recorded');
+    else if (act === 'ei-monitor') {
+      UI.confirm('Monitor only?', 'No referral is made to Occupational Health. The trigger stays on record and you can refer later.', 'Monitor only').then(function (ok) { if (ok) attempt(function () { return WZ.raiseEarlyIntervention(id, { referToOh: false, note: 'Monitor – discussed with line manager' }); }, 'Marked for monitoring'); });
+    }
+    else if (act === 'ei-refer') {
+      var ei = WZ.list('earlyInterventions').filter(function (x) { return x.id === id; })[0];
+      UI.modal({ title: 'Early intervention – refer to OH', body: h`<p>${ei ? ei.employeeName : ''} reached an absence trigger. OH opens an absence case for the case manager and answers your questions in an advice report. The employee sees the report before it is released.</p>
+        <form class="wz-form" onsubmit="return false">${UI.field({ type: 'textarea', name: 'questions', id: 'f-ei-questions', label: 'Questions for OH (one per line)', value: DEFAULT_QUESTIONS.join('\n') })}${UI.field({ name: 'note', id: 'f-ei-note', label: 'Note for the case manager', optional: true, hint: 'Work facts only – no health details.' })}</form>`,
+        actions: [{ label: 'Cancel', tone: 'secondary' }, { label: 'Refer to OH', onClick: function (close, dlg) {
+          var qs = lines(dlg.querySelector('[name=questions]').value);
+          var res = attempt(function () { return WZ.raiseEarlyIntervention(id, { questions: qs, note: dlg.querySelector('[name=note]').value || undefined }); });
+          if (!res) return false;
+          ui.lastResult = { title: 'Referred to Occupational Health', body: 'Absence case ' + res.caseId + ' is in the case-management queue with advice request ' + res.adviceRequestId + '. The employee has been told.', link: { href: '#/advice', label: 'Follow the advice request' } };
+          render(false);
+        } }] });
+    }
+    else if (act === 'doc') {
+      var d = WZ.list('documents').filter(function (x) { return x.id === id; })[0];
+      if (!d) return UI.toast(friendly({ name: 'WZError', code: 'not_found' }), 'danger');
+      UI.modal({ title: d.title, body: h`<div class="wz-letter"><p><strong>WellnessZ Occupational Health</strong><br><span class="wz-small">${UI.fmtDate(d.createdAt)} · ${d.id}</span></p>
+        <p>Employee: ${d.employeeName}</p><p>${d.body || 'This document contains the work-relevant outcome only (fitness status, functional restrictions or released advice). The full document is available from Occupational Health.'}</p><p>Issued by ${d.byName}</p></div>`, actions: [{ label: 'Close' }] });
+    }
+  });
+
+  if (!location.hash) history.replaceState(null, '', '#/home');
+  render(true);
+})();
+</script>
+</body>
+</html>

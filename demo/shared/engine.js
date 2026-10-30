@@ -775,6 +775,15 @@
     if (name === 'supportCases') { var x = byId(s.supportCases, id); return x ? supportView(s, u, x, { audit: true }) : null; }
     if (name === 'tests') { var t = byId(s.testing.tests, id); if (!t) return null; var v = testView(s, u, t); if (!v && hasRole(u, 'DA_PROGRAMME_MANAGER')) auditRead(u.username, 'READ_RESULT', 'test', id, 'DENIED', 'Programme manager never sees results'); return v; }
     if (name === 'employees') { var e = emp(s, id); return e ? employeeView(s, u, e) : null; }
+    if (name === 'referrals' && u.partnerOrg) {
+      var rr = byId(s.referrals, id);
+      if (!rr) return null;
+      var rv = referralView(s, u, rr);
+      if (!rv) auditRead(u.username, 'READ_REFERRAL', 'referral', id, 'DENIED', 'Other partner organisation');
+      else auditRead(u.username, 'READ_REFERRAL', 'referral', id, rv.status === 'CONSENT_WITHDRAWN' ? 'DENIED' : 'ALLOWED',
+        rv.status === 'CONSENT_WITHDRAWN' ? 'Consent withdrawn – no personal data shown' : 'Partner read under consent');
+      return rv;
+    }
     if (name === 'peerRequests') return byId(scoped(s, u, name), id, 'code');
     var all = scoped(s, u, name);
     return byId(all, id) || null;
