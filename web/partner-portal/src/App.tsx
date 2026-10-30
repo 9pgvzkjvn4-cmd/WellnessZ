@@ -8,6 +8,7 @@ import { AccessDenied } from './screens/AccessDenied';
 import { ClaimDetail } from './screens/ClaimDetail';
 import { Claims } from './screens/Claims';
 import { Documents } from './screens/Documents';
+import { EapReferrals } from './screens/EapReferrals';
 import { Preauthorisations } from './screens/Preauthorisations';
 import { ReferralDetail } from './screens/ReferralDetail';
 import { Referrals } from './screens/Referrals';
@@ -122,6 +123,7 @@ export function App({ client }: { client: AuthClient }) {
     case 'area':
       if (!resolved.allowed) screen = <FeatureNotAvailable />;
       else if (resolved.area === 'referrals') screen = <Referrals {...props} />;
+      else if (resolved.area === 'eapReferrals') screen = <EapReferrals {...props} />;
       else if (resolved.area === 'telehealth') screen = <Telehealth {...props} />;
       else if (resolved.area === 'documents') screen = <Documents {...props} />;
       else if (resolved.area === 'claims') screen = <Claims {...props} />;

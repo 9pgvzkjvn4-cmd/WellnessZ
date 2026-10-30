@@ -1,6 +1,6 @@
 /**
  * Partner portal role gating (UX guard only – the BFF and core API enforce roles, organisation scope and MFA).
- * Contract E04-E08 §1 / §6: PARTNER_PROVIDER → referrals, telehealth, documents; TPA_ADJUSTER → claims,
+ * Contract E04-E08 §1 / §6: PARTNER_PROVIDER → referrals, telehealth, documents (+ EAP referrals, increment 5); TPA_ADJUSTER → claims,
  * pre-authorisations (and shared documents, §2.3). Any other role → "not available".
  */
 export const PARTNER_PROVIDER = 'PARTNER_PROVIDER';
@@ -27,12 +27,15 @@ export function resolveAccess(sessionRoles: readonly string[] | undefined, meRol
   return known.length === 0 ? 'mfa' : 'other';
 }
 
-export type Area = 'referrals' | 'telehealth' | 'documents' | 'claims' | 'preauthorisations';
+export type Area = 'referrals' | 'eapReferrals' | 'telehealth' | 'documents' | 'claims' | 'preauthorisations';
 
 export function canUse(area: Area, roles: readonly string[] | undefined): boolean {
   switch (area) {
     case 'referrals':
     case 'telehealth':
+    // increment 5 §3.2: EAP referrals – every partner provider gets the entry; the API lists only referrals sent to the
+    // caller's own organisation (an organisation that is not an EAP partner simply has none).
+    case 'eapReferrals':
       return isProvider(roles);
     case 'claims':
     case 'preauthorisations':
@@ -44,12 +47,13 @@ export function canUse(area: Area, roles: readonly string[] | undefined): boolea
 
 export const AREA_ROUTES: Record<Area, string> = {
   referrals: '/referrals',
+  eapReferrals: '/eap-referrals',
   telehealth: '/telehealth',
   claims: '/claims',
   preauthorisations: '/preauthorisations',
   documents: '/documents',
 };
-const NAV_ORDER: Area[] = ['referrals', 'telehealth', 'claims', 'preauthorisations', 'documents'];
+const NAV_ORDER: Area[] = ['referrals', 'eapReferrals', 'telehealth', 'claims', 'preauthorisations', 'documents'];
 
 export interface NavItem {
   area: Area;
