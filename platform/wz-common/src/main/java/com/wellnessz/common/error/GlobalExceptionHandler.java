@@ -44,6 +44,18 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.PAYLOAD_TOO_LARGE, "payload_too_large", "Uploaded file exceeds the permitted size");
     }
 
+    /** Malformed JSON, unknown enum constants, wrong value types in the body – a client error, never a 500. */
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ProblemDetail handleUnreadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "malformed_request", "The request body could not be read");
+    }
+
+    /** Path or query parameter of the wrong type (e.g. a non-UUID id, an unknown enum value). */
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ProblemDetail handleTypeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "invalid_parameter", "Parameter '" + ex.getName() + "' has an invalid value");
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
         return problem(HttpStatus.BAD_REQUEST, "bad_request", "Request could not be processed");

@@ -299,10 +299,12 @@ class Increment5SubstanceIntegrationTest extends IntegrationTestBase {
         assertThat(tests.get(0).path("ref").asString()).matches("DAT-\\d{4}-\\d{6}");
         assertThat(Instant.parse(tests.get(0).path("dueAt").asString())).isBetween(Instant.now().plus(110, ChronoUnit.MINUTES),
                 Instant.now().plus(125, ChronoUnit.MINUTES));
-        assertThat(notifications(selected.toLowerCase() + "@wellnessz.local", "testing.selection-notice")).isEqualTo(1);
+        // the draw is random: read the selected employee's address from the HRIS master (demo e-mails are not always <id>@…)
+        String selectedEmail = jdbc.queryForObject("select email from masterdata.employee where employee_id = ?", String.class, selected);
+        assertThat(notifications(selectedEmail, "testing.selection-notice")).isEqualTo(1);
         assertThat(notifications("collector1@wellnessz.local", "testing.collection-dispatch")).isGreaterThan(dispatchBefore);
         String noticeBody = jdbc.queryForObject("select body from platform.notification where address = ? and template_key = 'testing.selection-notice'",
-                String.class, selected.toLowerCase() + "@wellnessz.local");
+                String.class, selectedEmail);
         assertThat(noticeBody).doesNotContainIgnoringCase("random").doesNotContainIgnoringCase("drug");
         postJson("/api/v1/testing/selections/" + selId + "/notify", DAM, "{}", 409);
 
