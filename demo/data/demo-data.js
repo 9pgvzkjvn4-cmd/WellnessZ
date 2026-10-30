@@ -623,7 +623,7 @@
         notice: { location: 'Hub clinic, Building 7, room 2', window: 'Today before ' + '14:00' }, notifiedAt: at(0, '09:00'),
         specimen: null, lab: null, verdict: null, followUps: [] }
     ],
-    rng: 20261
+    rng: 20291 // PRNG state: the first random selection from POOL-GND-ENG (2 people) picks Bea Baggage and Rhea Rivet
   };
 
   // ---------------------------------------------------------------- travel, advisories, communicable disease
@@ -654,7 +654,7 @@
       description: 'Free 20-minute check: blood pressure, cholesterol (finger-prick), BMI and lifestyle advice.',
       units: ['/AIRLINE/GROUND'], start: day(-10), end: day(21), screeningType: 'BIOMETRIC',
       events: [{ id: 'EVT-' + YEAR + '-05', date: day(6), site: 'HUB', location: 'Hub clinic, Building 7', capacity: 30 }, { id: 'EVT-' + YEAR + '-06', date: day(8), site: 'NPT', location: 'Northport crew room', capacity: 10 }],
-      invited: ['E1003', 'E1004', 'E1005', 'E1006', 'E1007', 'E1008', 'E1009'], joined: ['E1003', 'E1005', 'E1008', 'E1009'], declined: [] },
+      invited: ['E1003', 'E1004', 'E1005', 'E1006', 'E1007', 'E1008', 'E1009'], joined: ['E1003', 'E1004', 'E1005', 'E1008', 'E1009'], declined: [] },
     { id: rid('CMP', 4), title: 'Hearing Matters', type: 'AWARENESS', status: 'PLANNED', owner: 'promo1', createdAt: at(-3, '09:00'),
       description: 'Hearing-protection fit testing and awareness sessions in the hangars.',
       units: [], start: day(14), end: day(45), screeningType: 'HEARING', events: [], invited: [], joined: [], declined: [] },

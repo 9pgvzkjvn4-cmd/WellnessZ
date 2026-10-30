@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="WellnessZ demo pack launcher – four offline demo apps sharing one synthetic session">
+<title>WellnessZ demo pack</title>
+<link rel="stylesheet" href="../shared/ui.css" data-wz-inline>
+<style>
+  .ln-hero { background: #0d3b66; color: #fff; padding: 2rem 1rem 2.4rem; }
+  .ln-hero-in { max-width: 1100px; margin: 0 auto; }
+  .ln-hero h1 { font-size: 2rem; margin-bottom: .4rem; }
+  .ln-hero p { max-width: 760px; opacity: .92; }
+  .ln-tiles { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); margin-top: -1.6rem; }
+  .ln-tile { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; padding: 1.1rem; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: .5rem; border-top: 5px solid #0d3b66; }
+  .ln-tile.partner { border-top-color: #0f6b66; }
+  .ln-tile h2 { margin: 0; font-size: 1.15rem; }
+  .ln-tile .wz-btn { margin-top: auto; }
+  .ln-users { font-size: .85rem; color: var(--c-muted); }
+  .ln-browser { display: flex; gap: .6rem; align-items: flex-start; }
+  .ln-sc li { margin-bottom: .55rem; }
+  .ln-sc .wz-small { display: block; }
+</style>
+</head>
+<body>
+<!-- wz:built-apps -->
+<div id="root"></div>
+<script src="../data/demo-data.js" data-wz-data></script>
+<script src="../shared/scenarios.js" data-wz-inline></script>
+<script src="../shared/engine.js" data-wz-inline></script>
+<script src="../shared/ui.js" data-wz-inline></script>
+<script>
+(function () {
+  'use strict';
+  var root = document.getElementById('root');
+  if (!window.WZ_DEMO_SEED || !window.WZ) {
+    root.innerHTML = '<main class="wz-main"><div class="wz-alert danger"><div class="wz-alert-title">demo-data.js not found</div><p>Keep index.html, the four app files and demo-data.js together in one folder, then open index.html again.</p></div></main>';
+    return;
+  }
+  var h = UI.h;
+  WZ.init({ app: 'launcher' });
+  var built = window.WZ_BUILT_APPS || ['employee-app', 'manager-workspace', 'oh-workspace', 'partner-portal'];
+  var TILES = [
+    { key: 'employee', file: 'employee-app', title: 'Employee & Crew App', text: 'Mobile-first app for staff and crew: report a concern, cases (status only), fitness, return to work, appointments, absence, confidential support, travel health, campaigns and privacy.' },
+    { key: 'manager', file: 'manager-workspace', title: 'Manager & HR Workspace', text: 'Line managers, HR, crew scheduling and safety: team status only, RTW acknowledgement, absence triggers, advice reports, duty status and suppressed reports.' },
+    { key: 'oh', file: 'oh-workspace', title: 'OH Clinical Workspace', text: 'OH nurses, physicians, AMEs, the named mental-health clinician, MRO, case and claims management, D&A, travel, communicable disease and health promotion.' },
+    { key: 'partner', file: 'partner-portal', title: 'Partner Portal', text: 'External hospital, physiotherapy, EAP and TPA partners – each sees only its own organisation\'s referrals and claims.', partner: true }
+  ];
+  function render() {
+    var info = WZ.sessionInfo();
+    var sc = WZ.scenarios();
+    var st = WZ.scenarioState();
+    root.innerHTML = h`
+      <header class="ln-hero"><div class="ln-hero-in">
+        <p style="margin:0 0 .3rem"><span class="wz-badge warn">DEMO</span></p>
+        <h1>WellnessZ demo pack</h1>
+        <p>Occupational health case management for an airline group – four apps working on one shared, synthetic demo session. Everything runs offline in your browser; nothing is sent anywhere.</p>
+      </div></header>
+      <main class="wz-main" id="main">
+        <div class="ln-tiles">${TILES.map(function (t) {
+          var ok = built.indexOf(t.file) >= 0;
+          var users = WZ.users(t.key);
+          return h`<section class="ln-tile ${t.partner ? 'partner' : ''}" aria-labelledby="t-${t.key}">
+            <h2 id="t-${t.key}">${t.title}</h2><p class="wz-small">${t.text}</p>
+            <p class="ln-users"><strong>${users.length} demo users:</strong> ${users.map(function (u) { return u.name; }).join(', ')}</p>
+            ${ok ? h`<a class="wz-btn" href="${t.file}.html" target="_blank" rel="noopener">Open ${t.title}</a>` : h`<span class="wz-btn secondary" aria-disabled="true">Not included in this build</span>`}
+          </section>`; })}</div>
+
+        <div class="wz-grid-2" style="margin-top:1.5rem">
+          <section class="wz-card">
+            <h2 style="margin-top:0">How to run the demo</h2>
+            <ol>
+              <li>Keep <strong>all files in one folder</strong>: <code>index.html</code>, the four app files and <code>demo-data.js</code>. Open every app from this same folder.</li>
+              <li>Use <strong>Google Chrome or Microsoft Edge</strong> (recommended). Other browsers may keep a separate store per file, so the apps would not share one session.</li>
+              <li>Open the apps in separate tabs or windows side by side. A change in one app appears in the others immediately.</li>
+              <li>Each app has a dark <strong>demo toolbar</strong>: switch between that app's demo users, follow a scenario step by step, and reset, export or import the session.</li>
+              <li>To hand a demo state to a colleague, <strong>Export</strong> the session and send them <code>wellnessz-demo-session.json</code>; they use <strong>Import</strong>.</li>
+            </ol>
+            <div class="wz-alert warn ln-browser"><div><div class="wz-alert-title">Browser note</div><p>Chrome or Edge are recommended. All apps must be opened from the same folder in the same browser profile, otherwise they do not see the same session.</p></div></div>
+          </section>
+          <section class="wz-card">
+            <h2 style="margin-top:0">Demo session</h2>
+            ${UI.dl([['Session', info.sessionId], ['Data file', 'demo-data.js version ' + info.seedVersion], ['Engine', info.engineVersion + ' (schema ' + info.schema + ')'], ['Started', UI.fmtDateTime(info.createdAt)], ['Last change', UI.fmtDateTime(info.updatedAt) + ' (revision ' + info.rev + ')'], ['Size', info.sizeKb + ' kB in localStorage']])}
+            <div class="wz-actions">
+              <button type="button" class="wz-btn" data-act="export">Export session</button>
+              <button type="button" class="wz-btn secondary" data-act="import">Import session</button>
+              <button type="button" class="wz-btn danger" data-act="reset">Reset demo</button>
+              <input type="file" accept=".json,application/json" hidden data-file>
+            </div>
+            <p class="wz-small wz-muted" style="margin-top:.8rem">All people, organisations and clinical details are synthetic and fictional.</p>
+          </section>
+        </div>
+
+        <section class="wz-card" style="margin-top:1rem">
+          <h2 style="margin-top:0">End-to-end scenarios</h2>
+          <p class="wz-muted">Start a scenario here or from any app's toolbar. The toolbar then shows the next step, which app and which user – and moves on automatically when the step is done.</p>
+          <ol class="ln-sc">${sc.map(function (s) {
+            var active = st.active && st.id === s.id; var done = st.completed.indexOf(s.id) >= 0;
+            return h`<li><strong>${s.title}</strong> ${active ? UI.badge('In progress – step ' + Math.min(st.stepIndex + 1, st.stepCount) + ' of ' + st.stepCount, 'info') : ''} ${done ? UI.badge('Completed', 'success') : ''}
+              <span class="wz-small wz-muted">${s.personas.map(function (p) { return p.role; }).join(' → ')} · ${s.steps.length} steps</span>
+              <button type="button" class="wz-link-btn wz-small" data-act="start" data-id="${s.id}">${active ? 'Restart' : 'Start'}</button></li>`; })}</ol>
+        </section>
+      </main>
+      <footer class="wz-footer">WellnessZ demo pack · synthetic data only · offline</footer>`.toString();
+  }
+  root.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-act]'); if (!el) return;
+    var act = el.getAttribute('data-act');
+    if (act === 'export') { WZ.exportSession(); UI.toast('Downloaded wellnessz-demo-session.json', 'success'); }
+    else if (act === 'import') root.querySelector('[data-file]').click();
+    else if (act === 'reset') UI.confirm('Reset the demo?', 'All changes in every app are discarded and the synthetic seed is loaded again. Export first if you want to keep them.', 'Reset demo', 'danger').then(function (ok) { if (ok) { WZ.reset(); UI.toast('Demo reset', 'success'); } });
+    else if (act === 'start') { WZ.startScenario(el.getAttribute('data-id')); UI.toast('Scenario started – follow the hint in the demo toolbar', 'success'); }
+  });
+  root.addEventListener('change', function (e) {
+    if (!e.target.matches('[data-file]')) return;
+    var f = e.target.files[0]; if (!f) return;
+    WZ.importSession(f).then(function () { UI.toast('Session imported', 'success'); }).catch(function (err) { UI.toast(UI.errorMessage(err), 'danger'); });
+    e.target.value = '';
+  });
+  WZ.subscribe(render);
+  render();
+})();
+</script>
+</body>
+</html>
