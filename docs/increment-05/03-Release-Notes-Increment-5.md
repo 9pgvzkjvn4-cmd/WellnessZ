@@ -9,7 +9,7 @@
 | **Audience** | CMO, Nursing Head, mental-health lead, MRO, DPO, Legal, HSE / Safety (SMS), Health Promotion, HR, Crew Scheduling, Cyber GRC, CIO, project sponsor, platform operations, developers |
 | **Database** | Flyway V16, V17, V18, V19, V20 (+ repeatable demo data `R__demo_e09_mentalhealth.sql`, `R__demo_e10_substance.sql`, `R__demo_e11_travelhealth.sql`, `R__demo_e12_promotion.sql`, `R__demo_reference_duties.sql` for the `local` / test profiles only) |
 | **Applications** | No new application. Four new backend modules inside `wz-core-app`; new screens in all four web apps (`web/oh-workspace`, `web/employee-app`, `web/manager-workspace`, `web/partner-portal`); BFF workspace access for two more roles |
-| **Companion documents** | 02 – Requirements Traceability Matrix · API contract `API-Contract-E09-E10-E11-E12.md` · OpenAPI `docs/api/openapi.json` (647 paths) · `deploy/environments/README.md` · `docs/developer-setup/README.md` |
+| **Companion documents** | 02 – Requirements Traceability Matrix · API contract `API-Contract-E09-E10-E11-E12.md` · OpenAPI `docs/api/openapi.json` (647 paths) · `deploy/environments/README.md` · [Client Customisation Guide](../customisation/Client-Customisation-Guide.md) · `docs/developer-setup/README.md` |
 
 ---
 
@@ -126,8 +126,10 @@ employee notice shows only where and when to report.
   `exposure.timer-alert`, `advisory.published`, `public-health.report-due`, `campaign.invitation`, `screening.follow-up`,
   `ergonomic.action-due`; the content rules refuse words such as *positive*, *negative*, *result*, *drug* and *alcohol* in
   any notification.
-* **Outbound allow-lists** – `campaign-app` (campaign publication) and `sms-safety` (quarterly peer-support figures for the
-  safety management system).
+* **Outbound allow-lists** – `campaign-app` (campaign publication to the group health-campaign application) and
+  `sms-safety`, the feed to the airline's **Safety Management System (SMS)** carrying aggregated, suppressed
+  peer-support / CISM figures (`messageId, quarter, reportRef, category, count, base`). `sms-safety` is not a text-message
+  (SMS) gateway and carries no personal data.
 * **BFF** – `/bff/api/workspace/{testing, psychosocial, campaigns, ergonomics}/**` keep their prefix; workspace roles add
   `SAFETY_MANAGER` and `CREW_SCHEDULING`.
 * **Authentication** – core API, BFF and the four web apps work with Microsoft Entra ID, Keycloak or any standards-based
@@ -283,7 +285,7 @@ longer be governed by any module. Rolling back means restoring the pre-upgrade b
 | Item | Change |
 |---|---|
 | `spring.flyway.schemas` (core) | Adds `mentalhealth, substance, travelhealth, promotion` |
-| `mentalhealth.named-clinicians` (`masterdata.config_entry`) | **Set per environment.** Default `psych1` (demo); empty = every `PSYCH_CLINICIAN` |
+| `mentalhealth.named-clinicians` (`masterdata.config_entry`) | **Must be changed per client before go-live.** V17 seeds the demo user `psych1` in **every** environment (not only `local`); set the production usernames of the named mental-health clinicians. Empty = every `PSYCH_CLINICIAN` |
 | `mentalhealth.emergency-text`, `mentalhealth.emergency-phone` | Default UK wording and `999` – **set per country / subsidiary** |
 | `mentalhealth.governance.sign-off` | `PENDING` until the CMO / mental-health lead approve instruments, protocol and signposting |
 | E09 settings | `mentalhealth.urgent-callback-hours` (4), `first-contact-working-days` (2), `eap-first-appointment-working-days` (5), `peer-callback-retention-days` (30); `cism.trigger-classes`, `cism.offer-sla-hours` (72), `cism.duty-window-hours` (2) |
@@ -294,7 +296,7 @@ longer be governed by any module. Rolling back means restoring the pre-upgrade b
 | E11 settings | `travelhealth.tracing.high-risk-minutes` (15), `max-window-days` (21), `kpi-hours` (4), `check-in.fever-threshold-c` (38.0), `exposure.alert-before-minutes` (30), `public-health.alert-before-hours` (12), `public-health.exposure-report-hours` (72), `consultation.lookahead-days` (30) |
 | E12 settings | `promotion.screening.threshold.*` (systolic ≥ 140, diastolic ≥ 90, BMI ≥ 30, glucose ≥ 7.0, cholesterol ≥ 6.5, waist ≥ 102, MSK ≥ 7, wellbeing ≤ 40 – **clinical sign-off**), `promotion.screening.follow-up-hours` (48), `promotion.ergonomics.reminder-days` (7), `closure-target-days` (60), `promotion.participation.target-pct` (40), `promotion.wearables.max-age-days` (31) |
 | `wellnessz.integration.outbound-allowlist.campaign-app` | **New:** `messageId, campaignId, title, risk, startDate, endDate, targetUnits` |
-| `wellnessz.integration.outbound-allowlist.sms-safety` | **New:** `messageId, quarter, reportRef, category, count, base` |
+| `wellnessz.integration.outbound-allowlist.sms-safety` | **New** – feed to the Safety Management System (aggregated peer-support / CISM figures; not a text-message gateway): `messageId, quarter, reportRef, category, count, base` |
 | Job schedules (UTC) | `wellnessz.mentalhealth.cism-follow-ups-cron` (08:20), `peer-callback-purge-cron` (01:40); `wellnessz.substance.follow-ups-cron` (06:15), `windows-cron` (hourly :20); `wellnessz.travelhealth.exposure-timer-cron` (every 5 min), `public-health-cron` (hourly :07), `daily-cron` (06:20); `wellnessz.promotion.ergonomic-job-cron` (02:20), `follow-up-job-cron` (hourly :15) |
 | `WZ_ANALYTICS_MIN_GROUP` | Default 5 – now also suppresses every E09–E12 aggregate |
 | Client customisation (Helm) | `customisation.client` → `WZ_CLIENT_ID`; `customisation.featureFlags` → `WZ_FEATURE_<NAME>` on core and BFF; `customisation.migrations` → `WZ_FLYWAY_EXTRA_LOCATIONS`, `WZ_FLYWAY_CLIENT_SCHEMAS`, `WZ_FLYWAY_CLIENT_TABLE` (Section 8.2) |
@@ -334,9 +336,13 @@ longer be governed by any module. Rolling back means restoring the pre-upgrade b
   step in the migration Job, or in-app through `ClientMigrationsConfig` – so client versions never collide with product
   versions.
 * **Feature flags** become `WZ_FEATURE_<NAME>` on core and BFF – see Section 10 for their current scope.
-* **Client Java code**: custom modules are added to the Maven build (see `docs/architecture/03-Developer-Guide.md` and
-  section 8 of the developer environment guide) or maintained on a client fork / branch with its own build; mounting
-  extension JARs into the core image is not supported.
+* **Client Java code**: custom modules are added to the Maven build or maintained on a client fork / branch with its own
+  build; mounting extension JARs into the core image is not supported. SPI overrides of `NotificationChannel` and
+  `SupportProgrammeReferral` need `@Order(Ordered.HIGHEST_PRECEDENCE)` (not `@Primary`).
+* The complete procedure – decision tree, client overlay, configuration and reference data, feature flags, client
+  migrations, SPI implementations and client modules – is in the
+  [Client Customisation Guide](../customisation/Client-Customisation-Guide.md); see also `deploy/environments/README.md`
+  and section 8 of the developer environment guide.
 
 ### 8.3 Developer environment guide
 
@@ -401,9 +407,11 @@ End-to-end evidence (Increment 5):
 | Client extension JARs | Mounting custom Java modules into the core image is **not implemented** (would need `PropertiesLauncher` with the layered image). Client code customisation = fork / branch with its own build, or a client module added to the Maven build; SQL migrations and configuration are supported without forking | By design for now |
 | GitHub Environments | Required reviewers and protection rules for `azure-*` / `gcp-*` environments must be configured in the repository settings – they cannot be set from code | Upgrade step 9 |
 | Dev Container | **Decision needed:** commit `.devcontainer/` at the repository root (so Codespaces finds it automatically) or keep it under `docs/developer-setup/ide/devcontainer` (current state) | Engineering lead |
-| External connectors | Still simulated or defaulted: EAP provider system (the partner portal is the channel), toxicology laboratory LIMS (bound machine client and API ready), group campaign app (outbox ready), wearable vendor APIs (internal aggregator endpoint ready), public-health authority submission (tracked by channel; outbox + e-mail default), SMS gateway | E15 integration onboarding |
+| External connectors | Still simulated or defaulted: EAP provider system (the partner portal is the channel), toxicology laboratory LIMS (bound machine client and API ready), group campaign app (outbox ready), wearable vendor APIs (internal aggregator endpoint ready), public-health authority submission (tracked by channel; outbox + e-mail default), Safety Management System import of the `sms-safety` feed (outbox ready) | E15 integration onboarding |
 | Clinical content | PHQ-9 / GAD-7 bands and urgent rule, signposting and urgent-risk protocol, testing policy cut-offs and rates, travel recommendations table, PEP and other protocol timers, screening thresholds are configurable reference data that need **Clinical Governance / MRO / Legal sign-off before go-live** | Sign-offs (document 02, Section 9) |
 | Campaign insights | Absence (E06) data is not an insight source; hearing / vision screening results are not captured in E12; no ROI metric | E17 analytics / Nursing Head decision |
+| Named clinicians (**go-live item**) | V17 sets `mentalhealth.named-clinicians` to the demo user `psych1` in every environment – until it is changed, only `psych1` can open support cases and every real `PSYCH_CLINICIAN` gets `404` | Change per client before go-live (upgrade step 5) |
+| SPI overrides | A client implementation of `NotificationChannel` or `SupportProgrammeReferral` must be annotated `@Order(Ordered.HIGHEST_PRECEDENCE)` – both are consumed as an ordered list / ordered stream (first match wins), so `@Primary` alone has no effect; prove the override with an integration test | [Client Customisation Guide](../customisation/Client-Customisation-Guide.md), Section 7 |
 | MFA | Must be enforced in the production IdP (Entra ID conditional access or Keycloak OTP / WebAuthn) for `PARTNER_PROVIDER` (now including the EAP partner) and `TPA_ADJUSTER` | Upgrade step 4 |
 | Demo data | Encrypted narrative text cannot be seeded by SQL; the seeders fill some encrypted fields in the `local` / test profiles only | By design |
 | Retention | `RESTRICTED_RECORD` and `PUBLIC_HEALTH` (10 years) proposed | DPO / Legal approval |
@@ -430,15 +438,17 @@ End-to-end evidence (Increment 5):
 4. **MFA** – enforce a second factor for every `PARTNER_PROVIDER` (incl. EAP) and `TPA_ADJUSTER` identity in the
    production IdP and verify the access-token claim (`amr`, `acr` or `acrs`); keep `WZ_MFA_REQUIRED_ROLES` at its default
    in UAT and PROD.
-5. **Restricted-class configuration** – set `mentalhealth.named-clinicians` to the production usernames of the named
-   mental-health clinicians (the shipped value `psych1` is the demo user); set `substance.acting-mro-physicians` only if an
+5. **Restricted-class configuration (go-live item)** – V17 seeds `mentalhealth.named-clinicians = psych1` (the demo
+   user) in every environment: **change it per client** to the production usernames of the named mental-health
+   clinicians before go-live; set `substance.acting-mro-physicians` only if an
    OH physician acts as MRO; set `mentalhealth.emergency-text` / `emergency-phone` per country.
 6. **Machine clients** – client-credentials `INTEGRATION` clients for: the toxicology laboratory (**fixed claim
    `org_scope=/PARTNERS/TOXLAB`** matching `substance.laboratory-code` – otherwise `404`); the rostering, shift and facility
    systems feeding `/integration/duty-assignments`, the group campaign app and the wearable aggregator (**no** `org_scope` –
    partner-bound clients are refused). Decode a token and check the claims before handing over credentials.
 7. **Outbound allow-lists** – add `campaign-app` and `sms-safety` with the field lists of Section 7 if the allow-list is
-   overridden per environment; connect the outbox relay to the campaign app and the safety management system.
+   overridden per environment; connect the outbox relay to the group campaign app and to the Safety Management System
+   (`sms-safety` carries aggregated figures only – it is not a text-message gateway).
 8. **Configuration** – set the mailboxes `substance.hr-status-email` and `notifications.crew-scheduling.email`; review
    `substance.collection-site`, `substance.breath-alcohol-cutoff` and the E11 / E12 settings; keep `WZ_FLYWAY_LOCATIONS`
    **without** `classpath:db/demo`.

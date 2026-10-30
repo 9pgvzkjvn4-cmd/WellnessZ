@@ -1179,6 +1179,7 @@ environment:
 
 | Key / data | Set to |
 |---|---|
+| `mentalhealth.named-clinicians` | **Must be changed in UAT and PROD.** Flyway V17 sets it to the demo user `psych1` in every environment. Set the comma-separated usernames (as they appear in the token) of the named mental-health clinicians who may read restricted E09 content; empty means every `PSYCH_CLINICIAN` |
 | `substance.laboratory-code` | Partner code of the contracted toxicology laboratory (default `TOXLAB`) – must equal the `org_scope` suffix of the laboratory client (section 5.6) |
 | `substance.acting-mro-physicians` | Usernames of OH physicians allowed to act as MRO (empty by default – leave empty unless the MRO contract names deputies) |
 | Testing policies (`PUT /api/v1/testing/policies/{roleGroup}`) | Approved policy per role group (rates, panels, cut-offs) – **MRO / Legal sign-off** before PROD |
@@ -1194,7 +1195,10 @@ with a reviewed SQL script as `wz_migrator` and push HRIS employees to `POST /ap
 **Client customisation.** Per-client settings (`customisation.client`, `customisation.featureFlags` →
 `WZ_FEATURE_<NAME>`, client Flyway migrations in schema `client_<client>`) go into
 `deploy/clients/<client>/values.yaml`, referenced by the Environment variable `EXTRA_VALUES_FILES` – see
-`deploy/environments/README.md`. Feature flags are delivered to core and BFF but no product feature reads them yet.
+`deploy/environments/README.md`. Feature flags are delivered to core and BFF but no product feature reads them yet. A client migration image
+(`customisation.migrations.image`) is **not** handled by `deploy-env.yml`, which signs, verifies and copies only the
+six product images: the client's own pipeline must build, sign and copy it by digest into the environment ACR before
+the release that references it.
 
 ## 12. Build, sign and deploy
 
@@ -1507,6 +1511,7 @@ evidence (ticket, screenshot or report) in the go-live record; UAT runs the same
 | 10 | Identity | [M] PROD app registrations separate from DEV/UAT; Conditional Access for guests **enabled** (not report-only); MFA enrolled for every partner, adjuster and EAP account (smoke checks 35–36, 48); workforce Conditional Access with compliant devices for `oh.` and `manager.` | CA policy export, sign-in log |
 | 11 | Access review | [M] Review of all `sg-wellnessz-*` groups for PROD – especially `sg-wellnessz-psych`, `sg-wellnessz-mro`, `sg-wellnessz-platform-admins`, `sg-wellnessz-aks-admins-prod`, `sg-wellnessz-db-admins-prod` (PIM-eligible only); GitHub `azure-prod` reviewers; Key Vault data-plane roles | Access review export |
 | 12 | Secrets | [M] Key ceremony record for `wz-master-key`, `wz-pseudonym-key`, `wz-bff-session-key` (dual control, escrow copy); client secrets with expiry ≤ 6 months and a rotation reminder | Ceremony record |
+| 12a | Restricted class | `mentalhealth.named-clinicians` no longer contains the demo user `psych1` (set by V17 in every environment) but the named PROD clinicians: `GET /api/v1/masterdata/config/mentalhealth.named-clinicians` | Config export |
 | 13 | Data | No demo data (`WZ_FLYWAY_LOCATIONS` without `db/demo`); OH staff roster and HRIS employees loaded; partner network replaced by contracted partners (EAP, TOXLAB, public-health authority) | SQL check, master-data export |
 | 14 | Clinical governance | [M] Sign-off of the configurable clinical content: PHQ-9/GAD-7 bands, testing policies and cut-offs (MRO, Legal), travel recommendations and PEP timers, screening thresholds, statutory report forms | Sign-off minutes |
 | 15 | DPIA / privacy | [M] DPIA updated for increment 5 (restricted classes, wearables, peer support); DPO mailbox `WZ_DPO_EMAIL` set; break-glass review procedure in place | DPIA, procedure |
