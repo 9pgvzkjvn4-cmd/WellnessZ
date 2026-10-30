@@ -78,10 +78,10 @@ flowchart LR
     BFF -- "bearer token (server side)" --> CORE
     M -- "bearer token" --> W --> CORE
     P -- "client credentials,<br/>Idempotency-Key" --> W
-    B -. "login redirect" .-> IDP
-    BFF -. "token endpoint" .-> IDP
+    B -.->|login redirect| IDP
+    BFF -.->|token endpoint| IDP
     CORE --> DB
-    CORE -. "CSI mount, workload identity" .-> KV
+    CORE -.->|CSI mount, workload identity| KV
     CORE -- "outbox, allow-listed fields only" --> OUT
 ```
 

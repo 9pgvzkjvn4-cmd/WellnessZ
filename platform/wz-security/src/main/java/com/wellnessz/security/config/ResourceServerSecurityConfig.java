@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
@@ -59,7 +60,8 @@ public class ResourceServerSecurityConfig {
     /** Grants access when the principal holds at least one role that is not an external role. */
     static final AuthorizationManager<RequestAuthorizationContext> INTERNAL_PRINCIPAL = (authentication, context) -> {
         var auth = authentication.get();
-        boolean internal = auth != null && auth.isAuthenticated() && auth.getAuthorities().stream()
+        boolean internal = auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)
+                && auth.getAuthorities().stream()
                 .map(a -> a.getAuthority())
                 .anyMatch(a -> a.startsWith("ROLE_") && !EXTERNAL_ROLES.contains(a));
         return new AuthorizationDecision(internal);

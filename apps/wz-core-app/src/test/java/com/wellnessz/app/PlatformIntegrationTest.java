@@ -76,6 +76,7 @@ class PlatformIntegrationTest extends IntegrationTestBase {
     void internalReferenceDataIsNotServedToExternalAccounts() throws Exception {
         for (String path : List.of("/api/v1/masterdata/org-units", "/api/v1/masterdata/job-codes", "/api/v1/masterdata/hazards",
                 "/api/v1/masterdata/fitness-standards", "/api/v1/masterdata/restrictions")) {
+            mvc.perform(get(path)).andExpect(status().isUnauthorized());
             mvc.perform(get(path).with(user("partner1", null, "/PARTNERS/CITYHOSP", "PARTNER_PROVIDER"))).andExpect(status().isForbidden());
             mvc.perform(get(path).with(user("adjuster1", null, "/PARTNERS/GULFTPA", "TPA_ADJUSTER"))).andExpect(status().isForbidden());
             mvc.perform(get(path).with(user("candidate1", null, null, "CANDIDATE"))).andExpect(status().isForbidden());

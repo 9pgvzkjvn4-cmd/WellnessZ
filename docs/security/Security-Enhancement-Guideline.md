@@ -41,7 +41,7 @@ leadership can act on:
 | 5 | How do we keep the platform secure after go-live (patching, access reviews, testing, detection)? | CISO, SOC, platform lead |
 
 The roadmap is also delivered as an epic in the client's requirements format (epic **E15 – Security Hardening and
-Assurance**: 17 high-level requirements, 17 features and 42 backlog items), so it can be planned and tracked like any
+Assurance**: 17 high-level requirements, 17 features and 46 backlog items, 256 indicative story points), so it can be planned and tracked like any
 business epic.
 
 ---
@@ -251,7 +251,7 @@ security operations (E15-F17) are in the epic as well; they support Sections 4 a
 | **Rationale** | F-01 and F-02 show that the dependency tree moves underneath a stable application. Doc 02 Section 10 set 7 days (critical) and 30 days (high); for a Tier-0 airline platform this guideline tightens the SLAs (Section 5.1). PostgreSQL 16 is supported until November 2028 (Checkov CKV_GCP_79 accepted), but a major upgrade on two clouds needs a plan. |
 | **Risk addressed** | STRIDE: Tampering, Denial of service, Elevation of privilege (through known vulnerabilities) · OWASP A06 Vulnerable and Outdated Components · SOC 2 CC7.1, CC8.1 · HITRUST CSF 07 Vulnerability Management |
 | **Effort / owner** | M – 19 SP (process 6 SP now; upgrade 13 SP later) · Platform Security + Engineering leads |
-| **Acceptance criteria** | 1. Patch SLAs of Section 5.1 approved and published; doc 02 Section 10 updated. 2. Monthly vulnerability report: open items by severity and age, SLA breaches, exceptions. 3. Exceptions carry owner, justification, compensating control and expiry, in the three suppression files only. 4. PostgreSQL 17 (or 18) upgrade plan with a tested Flyway, extension and pgaudit run in DEV and UAT, approved before the end of 2027. |
+| **Acceptance criteria** | 1. Patch SLAs of Section 5.1 approved and published; doc 02 Section 10 updated. 2. Monthly vulnerability report (open items by severity and age, SLA breaches, exceptions) and a daily re-scan of the deployed digests against new advisories. 3. Exceptions carry owner, justification, compensating control and expiry, in the three suppression files only. 4. PostgreSQL 17 (or 18) upgrade plan with a tested Flyway, extension and pgaudit run in DEV and UAT, approved before the end of 2027. |
 
 ### 3.3 Next – first 90 days
 
