@@ -7,8 +7,8 @@
 <text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">deploy/terraform/azure · values-azure.yaml</text>
 <rect x="40" y="80" width="280" height="90" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
 <text x="180.0" y="114.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Users</text>
-<text x="180.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">employees, managers, HR, OH</text>
-<text x="180.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">browsers / managed mobiles</text>
+<text x="180.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">employees, managers, HR, OH,</text>
+<text x="180.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">partners (MFA) · managed mobiles</text>
 <rect x="360" y="80" width="560" height="90" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="640.0" y="114.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Azure Front Door Premium + WAF (optional)</text>
 <text x="640.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">global edge, DRS 2.1 + Bot Manager, DDoS</text>
@@ -19,13 +19,13 @@
 <text x="1125.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">app roles, groups, Conditional Access</text>
 <rect x="1330" y="80" width="330" height="90" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
 <text x="1495.0" y="114.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">M2M / integrations</text>
-<text x="1495.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">FHIR, HL7 v2, HRIS, labs</text>
-<text x="1495.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">client-credentials via edge (api host)</text>
+<text x="1495.0" y="132.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">FHIR, HL7 v2, HRIS, labs, TOXLAB,</text>
+<text x="1495.0" y="148.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">roster feed · client credentials (api)</text>
 <rect x="40" y="200" width="1620" height="520" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
 <text x="54" y="222" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start"></text>
-<text x="54" y="712" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Resource group rg-wz-&lt;env&gt; · VNet 10.40.0.0/16 (hub-spoke ready) · private DNS zones</text>
+<text x="54" y="712" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Per environment: rg-wz-&lt;env&gt; · VNet 10.48/16 dev, 10.44/16 uat, 10.40/16 prod · private DNS zones</text>
 <rect x="70" y="245" width="330" height="450" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
-<text x="84" y="267" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">snet-appgw 10.40.2.0/24</text>
+<text x="84" y="267" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">snet-appgw (prod 10.40.2.0/24)</text>
 <rect x="90" y="290" width="290" height="120" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="235.0" y="332.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Application Gateway WAF_v2</text>
 <text x="235.0" y="350.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">zone-redundant, autoscale 2-10</text>
@@ -41,23 +41,31 @@
 <text x="100" y="600.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">TLS cert from Key Vault</text>
 <text x="100" y="615.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="start">diagnostics -&gt; Log Analytics</text>
 <rect x="430" y="245" width="790" height="450" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
-<text x="444" y="267" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">AKS (snet-aks 10.40.0.0/23, CNI Overlay + Cilium, private API)</text>
-<rect x="450" y="290" width="175" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="537.5" y="319.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">employee-portal</text>
-<text x="537.5" y="336.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080</text>
-<text x="537.5" y="351.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
-<rect x="640" y="290" width="175" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="727.5" y="319.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">manager-workspace</text>
-<text x="727.5" y="336.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080</text>
-<text x="727.5" y="351.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
-<rect x="830" y="290" width="175" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="917.5" y="319.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-bff</text>
-<text x="917.5" y="336.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">:8090 / 8081</text>
-<text x="917.5" y="351.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
-<rect x="1020" y="290" width="175" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="1107.5" y="319.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-core-app</text>
-<text x="1107.5" y="336.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">:8080 / 8081</text>
-<text x="1107.5" y="351.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
+<text x="444" y="267" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">AKS aks-wz-&lt;env&gt; (CNI Overlay + Cilium; private API in uat / prod)</text>
+<rect x="442" y="290" width="124" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="504.0" y="318.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="bold" fill="#2E7D4F" text-anchor="middle">employee-app</text>
+<text x="504.0" y="332.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080</text>
+<text x="504.0" y="347.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
+<rect x="570" y="290" width="124" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="632.0" y="318.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="bold" fill="#2E7D4F" text-anchor="middle">manager-workspace</text>
+<text x="632.0" y="332.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080</text>
+<text x="632.0" y="347.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
+<rect x="698" y="290" width="124" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="760.0" y="318.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="bold" fill="#2E7D4F" text-anchor="middle">oh-workspace</text>
+<text x="760.0" y="332.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080</text>
+<text x="760.0" y="347.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
+<rect x="826" y="290" width="124" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="888.0" y="318.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="bold" fill="#2E7D4F" text-anchor="middle">partner-portal</text>
+<text x="888.0" y="332.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080</text>
+<text x="888.0" y="347.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
+<rect x="954" y="290" width="124" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1016.0" y="318.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-bff</text>
+<text x="1016.0" y="332.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">:8090 / 8091</text>
+<text x="1016.0" y="347.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
+<rect x="1082" y="290" width="124" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1144.0" y="318.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-core-app</text>
+<text x="1144.0" y="332.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">:8080 / 8081</text>
+<text x="1144.0" y="347.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA · PDB</text>
 <rect x="450" y="395" width="365" height="80" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
 <text x="632.5" y="425.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">Flyway Job (pre-upgrade)</text>
 <text x="632.5" y="443.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">identity: migrations</text>
@@ -97,7 +105,7 @@
 <text x="50" y="853.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">OTLP collector -&gt; Azure Monitor / Sentinel · Prometheus scrape of :8081/actuator/prometheus</text>
 <text x="50" y="869.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">Application audit trail: hash-chained platform.audit_event (append-only grants)</text>
 <rect x="860" y="750" width="800" height="160" rx="8" ry="8" fill="#FDF2E2" stroke="#B45309" stroke-width="1.6"/>
-<text x="870" y="795.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#B45309" text-anchor="start">Resilience (proposed targets)</text>
+<text x="870" y="795.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#B45309" text-anchor="start">Resilience - PROD (proposed targets; DEV single zone, no HA)</text>
 <text x="870" y="813.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">RPO: 0 within region (synchronous zone-redundant standby);</text>
 <text x="870" y="829.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">      &lt;= 1 h cross-region (geo-redundant backup, restore to paired region)</text>
 <text x="870" y="845.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="start">RTO: &lt; 5 min zone failure (automatic failover, pods spread across 3 zones);</text>
@@ -108,11 +116,11 @@
 <rect x="268.28" y="228" width="63.440000000000005" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
 <text x="300" y="240" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#2E7D4F" text-anchor="middle">HTTPS 443</text>
 <path d="M 382 330 L 448 330" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
-<path d="M 1197 330 L 1268 350" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
-<rect x="1219.6" y="314" width="24.8" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
-<text x="1232" y="325" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1B365D" text-anchor="middle">TLS</text>
+<path d="M 1207 330 L 1268 350" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
+<rect x="1223.6" y="314" width="24.8" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="1236" y="325" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1B365D" text-anchor="middle">TLS</text>
 <path d="M 1197 435 L 1268 495" fill="none" stroke="#2E6DA4" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eb)"/>
-<path d="M 1125 172 L 1035 288" fill="none" stroke="#2E6DA4" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eb)"/>
-<rect x="1075.2" y="219" width="69.60000000000001" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
-<text x="1110" y="230" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#2E6DA4" text-anchor="middle">OIDC / JWKS</text>
+<path d="M 1140 172 L 1140 288" fill="none" stroke="#2E6DA4" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eb)"/>
+<rect x="1105.2" y="219" width="69.60000000000001" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="1140" y="230" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#2E6DA4" text-anchor="middle">OIDC / JWKS</text>
 </svg>

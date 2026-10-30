@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="700" viewBox="0 0 1700 700" role="img" aria-label="CI/CD pipeline">
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="740" viewBox="0 0 1700 740" role="img" aria-label="CI/CD pipeline">
 <title>CI/CD pipeline</title>
 <defs><marker id="eg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="sg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="eb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="egr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="sgr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="en" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="sn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="ea" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker></defs>
 <rect width="100%" height="100%" fill="#FFFFFF"/>
@@ -13,10 +13,10 @@
 <text x="166.0" y="205.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">JaCoCo, CycloneDX</text>
 <text x="166.0" y="221.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">SpotBugs/FindSecBugs</text>
 <rect x="288" y="120" width="212" height="140" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="394.0" y="171.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">Web x2</text>
-<text x="394.0" y="189.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">npm ci / lint / test</text>
-<text x="394.0" y="205.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">build, npm audit</text>
-<text x="394.0" y="221.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">CycloneDX SBOM</text>
+<text x="394.0" y="171.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">Web x4 (matrix)</text>
+<text x="394.0" y="189.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">employee · manager ·</text>
+<text x="394.0" y="205.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">oh-workspace · partner</text>
+<text x="394.0" y="221.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">lint, test, build, SBOM</text>
 <rect x="516" y="120" width="212" height="140" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
 <text x="622.0" y="179.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">gitleaks</text>
 <text x="622.0" y="197.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">full history</text>
@@ -38,31 +38,35 @@
 <text x="1534.0" y="179.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">CodeQL</text>
 <text x="1534.0" y="197.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">java-kotlin, js/ts</text>
 <text x="1534.0" y="213.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">security-extended</text>
-<rect x="40" y="360" width="780" height="300" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
-<text x="54" y="382" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">container.yml</text>
-<rect x="60" y="400" width="740" height="40" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="430.0" y="425.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">1. build (load)</text>
-<rect x="60" y="450" width="740" height="40" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="430.0" y="475.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">2. Trivy CRITICAL/HIGH</text>
-<rect x="60" y="500" width="740" height="40" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="430.0" y="525.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">3. push (OIDC)</text>
-<rect x="60" y="550" width="740" height="40" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="430.0" y="575.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">4. SBOM + provenance</text>
-<rect x="60" y="600" width="740" height="40" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="430.0" y="625.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">5. cosign sign</text>
-<rect x="880" y="360" width="780" height="300" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
-<text x="894" y="382" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">cd.yml -&gt; deploy-env.yml</text>
-<rect x="900" y="400" width="740" height="40" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
-<text x="1270.0" y="425.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">1. resolve tag (v* or sha-&lt;12&gt;)</text>
-<rect x="900" y="450" width="740" height="40" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
-<text x="1270.0" y="475.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">2. dev -&gt; test -&gt; prod (GitHub Environments)</text>
-<rect x="900" y="500" width="740" height="40" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
-<text x="1270.0" y="525.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">3. OIDC login AKS / GKE</text>
-<rect x="900" y="550" width="740" height="40" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
-<text x="1270.0" y="575.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">4. cosign verify all images</text>
-<rect x="900" y="600" width="740" height="40" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
-<text x="1270.0" y="625.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">5. helm upgrade --atomic --wait</text>
-<path d="M 820 510 L 878 510" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="40" y="360" width="780" height="340" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
+<text x="54" y="382" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">container.yml (6 images: wz-core-app, wz-bff, 4 web apps)</text>
+<rect x="60" y="400" width="740" height="46" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="430.0" y="428.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">1. build (load) - matrix of 6 images</text>
+<rect x="60" y="458" width="740" height="46" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="430.0" y="486.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">2. Trivy CRITICAL/HIGH gate + SARIF</text>
+<rect x="60" y="516" width="740" height="46" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="430.0" y="544.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">3. push (OIDC) sha-&lt;12&gt; / v* tags</text>
+<rect x="60" y="574" width="740" height="46" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="430.0" y="602.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">4. SBOM (CycloneDX) + SLSA provenance attestations</text>
+<rect x="60" y="632" width="740" height="46" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="430.0" y="660.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">5. cosign keyless sign (+ BinAuthz attestation on GAR)</text>
+<rect x="880" y="360" width="780" height="340" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
+<text x="894" y="382" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">cd.yml -&gt; deploy-env.yml (per cloud, per environment)</text>
+<rect x="900" y="400" width="740" height="34" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1270.0" y="422.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">1. resolve digests once + cosign verify (cd.yml)</text>
+<rect x="900" y="441" width="740" height="34" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1270.0" y="463.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">2. dev (auto) -&gt; uat -&gt; prod: GitHub Environments, required reviewers</text>
+<rect x="900" y="482" width="740" height="34" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1270.0" y="504.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">3. OIDC login AKS / GKE</text>
+<rect x="900" y="523" width="740" height="34" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1270.0" y="545.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">4. cosign verify · copy by digest · BinAuthz attestation (GKE)</text>
+<rect x="900" y="564" width="740" height="34" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1270.0" y="586.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">5. helm upgrade --install --atomic (helm-release.sh)</text>
+<rect x="900" y="605" width="740" height="34" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1270.0" y="627.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">6. smoke tests (rollout, promoted digests, SMOKE_URLS)</text>
+<rect x="900" y="646" width="740" height="34" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1270.0" y="668.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1E2933" text-anchor="middle">7. automatic helm rollback on smoke failure</text>
+<path d="M 820 530 L 878 530" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
 <path d="M 430 282 L 430 358" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
 <rect x="448.0" y="311" width="64.0" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
 <text x="480" y="322" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#2E7D4F" text-anchor="middle">main / tag</text>

@@ -1,5 +1,14 @@
 # WellnessZ OHCM – Documentation Pack
 
+**Version 1.0**
+
+*WellnessZ OHCM platform – increments 1–5*
+
+> **Programme status: increments 1–5 complete.** All five planned increments are delivered: 13 epic modules (E01–E08,
+> E09–E12, E14), 10 platform modules, four web apps (employee app, manager workspace, OH workspace, partner portal), the
+> BFF and 20 Flyway versions. Increment 5 (E09 mental health & peer support, E10 drug & alcohol testing, E11 travel
+> health & communicable disease, E12 health promotion) was the final increment.
+
 Reading order for review with Cyber GRC, the CIO and the project sponsor. Rendered PDF/DOCX copies are
 generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
 
@@ -30,6 +39,13 @@ generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
 | 23 | Increment 4 – Requirements Traceability Matrix | Project sponsor, QA, OH governance | `increment-04/02-Requirements-Traceability-Matrix.md` | – |
 | 24 | Increment 4 – Release Notes | All | `increment-04/03-Release-Notes-Increment-4.md` | – |
 | 25 | Increment 4 – API Contract E04/E08 | Engineering, integrators, partner and insurer IT | `increment-04/API-Contract-E04-E08.md` | – |
+| 26 | Increment 5 – Solution Design E09/E10/E11/E12 | Architects, OH governance, DPO, MRO, legal, engineering | `increment-05/01-Solution-Design-E09-E10-E11-E12.md` | – |
+| 27 | Increment 5 – Requirements Traceability Matrix | Project sponsor, QA, OH governance | `increment-05/02-Requirements-Traceability-Matrix.md` | – |
+| 28 | Increment 5 – Release Notes | All | `increment-05/03-Release-Notes-Increment-5.md` | – |
+| 29 | Increment 5 – API Contract E09/E10/E11/E12 | Engineering, integrators, EAP, laboratory and public-health IT | `increment-05/API-Contract-E09-E10-E11-E12.md` | – |
+| 30 | Technology Standards Comparison by Layer | CIO, architects, GRC | `architecture/04-Technology-Standards-Comparison-by-Layer.md` | – |
+| 31 | Client Customisation Guide – adding a customised feature for one client deployment | Engineering, release managers, solution architects, CAB | `customisation/Client-Customisation-Guide.md` | – |
+| 32 | Developer Environment & IDE Setup Guide (IntelliJ IDEA, VS Code, Eclipse, Dev Container; run configurations, scripts, git hook) | Developers joining the project | `developer-setup/README.md` + `developer-setup/ide/` – shipped as the separate zip `WellnessZ-Developer-Environment-Setup.zip` | – |
 | – | Design brief (contract between components) | Engineering | `00-design-brief.md` | – |
 | – | OpenAPI 3 contract of the core API | Integrators | `api/openapi.json` | – |
 
@@ -54,6 +70,17 @@ and 22 (plus module status, schemas, roles, SPIs, MFA for external users, FHIR p
 decisions and open items), doc 02 Section 14, doc 03 Section 17, doc 04 Section 20, increment-4 steps in each setup
 guide (partner portal, MFA for partner and adjuster users, new schemas and roles) and Sections 3.1, 3.4, 10.3 and the
 checklists of the CI/CD Guide. Rendered copies in `docs/dist/` must be regenerated.
+
+Documents for increment 5 (E09 mental health, psychosocial risk & peer support, E10 drug, alcohol & psychoactive
+substance testing, E11 travel health, immunisation campaigns & communicable disease / exposure management, E12 health
+promotion, wellbeing & prevention campaigns – restricted classes and health promotion): the increment-5 solution design,
+RTM, release notes and API contract (documents 26–29); doc 03 Section 18 (module wiring, the `SupportProgrammeReferral`
+SPI, the duty-assignment feed, coding rules for restricted classes) with links to the developer environment guide and
+the customisation guide; the CI/CD Guide for the DEV → UAT → PROD promotion by signed digest (`cd.yml`,
+`deploy-env.yml`, cosign, Binary Authorization, smoke tests, automatic rollback), GitHub Environments and required
+reviewers, release tagging `vX.Y.Z-rc.N` / `vX.Y.Z`, the checklist for new modules and features (section 10.5) and
+client customisation pipelines (section 10.6); new documents 30–32. Rendered copies in `docs/dist/` must be
+regenerated.
 
 Supporting material:
 
@@ -81,6 +108,13 @@ Supporting material:
   assignment, finance costs, legal, DPO claim disclosures; partner portal referral inbox and detail,
   pre-authorisations, adjuster claims, claim collaboration and shared documents; employee treatment plan and
   telehealth; HR claim status)
+* `images/screens/increment-05/` – increment-5 screenshots captured by `tools/e2e/e2e-increment5.js` (35 images: OH
+  support cases, urgent call-backs, restricted chart placeholder, peer volunteer and coordinator, CISM, psychosocial
+  register, mental-health fitness, testing selections, policies, collection, MRO and reports, contact tracing, exposure
+  timers, travel consultations, advisories, public-health reports, vaccination campaigns, promotion insights and
+  campaigns, screening, ergonomics, campaign reports; employee support, peer support, travel health, campaigns and
+  testing notices; manager psychosocial risk, HR duty status, for-cause request, ergonomics and unit campaigns; partner
+  portal EAP referrals)
 * Executive videos for C-level stakeholders and the sponsor (1080p, English subtitles), shipped in the documents
   bundle (`05-Video/`) rather than in Git:
   * `WellnessZ-Executive-Briefing.mp4` – base framework concept (6 min)
@@ -88,6 +122,10 @@ Supporting material:
   * `WellnessZ-Increment2-Executive-Briefing.mp4` – increment 2: health record, fitness for duty & return to work (6 min)
   * `WellnessZ-Increment3-Executive-Briefing.mp4` – increment 3: absence & sickness, medical surveillance, scheduling & clinic operations (6 min)
   * `WellnessZ-Increment4-Executive-Briefing.mp4` – increment 4: treatment coordination & partner referrals, claims coordination and the partner portal (6 min)
+  * `videos/WellnessZ-Increment-5-Release.mp4` – increment 5 executive video: mental health & peer support, drug &
+    alcohol testing, travel health & communicable disease, health promotion and the restricted-class safeguards
+  * `videos/WellnessZ-Full-Platform-C-Suite-Review.mp4` – comprehensive review of the full application and its set-up
+    for the C-suite: all increments 1–5 across the four apps, environments and deployment
 
 ## Verification summary (base framework)
 
@@ -148,3 +186,15 @@ Supporting material:
 | API contract | `api/openapi.json` regenerated – 509 paths (was 391) |
 | New dependency | none (new web app with the same pinned toolchain as the other apps) |
 | Not yet exercised | Increment-4 changes on AKS/GKE/hybrid; MFA enrolment in the production IdP (Entra ID Conditional Access for B2B guests or Keycloak OTP / WebAuthn) and the `amr` / `acr` / `acrs` claims it produces; the fixed `org_scope` claim on partner / insurer machine clients in the production IdP (organisation binding is enforced by the core and covered by the integration tests); real insurer, authority and ERP connectors (`ClaimsSubmissionGateway` default = outbox + e-mail); a live FHIR exchange with a partner hospital (tested with a simulated partner); a telehealth video platform (link provider + token redemption ready); e-prescribing (decision memo pending); Legal / HSE sign-off of the report forms; procurement's contracted provider network |
+
+## Verification summary (increment 5 – E09, E10, E11, E12)
+
+| Check | Result |
+|---|---|
+| Java build & tests (`./mvnw verify`) | 450 tests, 0 failures – adds `Increment5MentalHealthIntegrationTest`, `Increment5SubstanceIntegrationTest`, `Increment5TravelHealthIntegrationTest`, `Increment5PromotionIntegrationTest` and module unit tests; 22 ArchUnit rules (new: earlier increments independent of E09–E12, restricted programmes E09 / E10 independent and E10 → E09 only through `SupportProgrammeReferral`, E11 / E12 independence) |
+| SAST (SpotBugs + FindSecBugs, `-Psecurity`) | 0 findings; still 6 justified exclusions in `config/spotbugs-exclude.xml` |
+| Web apps (`npm run lint && npm test && npm run build`) | oh-workspace 769 tests, employee-app 285, manager-workspace 188, partner-portal 131 – 1,373, passing, eslint 0 warnings, all builds clean |
+| End-to-end (`tools/e2e/e2e-increment5.js`, real Keycloak logins via the BFF, four apps) | 24/24 checks (increment 1 18/18, increment 2 25/25, increment 3 32/32 and increment 4 22/22 re-run – 121 checks): confidential self-referral and urgent escalation, restricted class (named clinician only, general OH nurse `404` and a placeholder count), employee-controlled sharing, EAP partner attendance-only feedback, pseudonymous peer support, critical-incident support from the roster, psychosocial register with suppression, auditable random selection, chain of custody, MRO verification with HR status only and a confidential support referral, laboratory results from the bound laboratory client only, contact tracing within the 4-hour target, needle-stick timers, travel certificate, advisories, notifiable-disease report, campaign uptake, anonymised campaigns, screening follow-up, ergonomic assessment, consent-gated wearables |
+| API contract | `api/openapi.json` regenerated – 647 paths (was 509) |
+| Delivery pipeline | DEV → UAT → PROD promotion by signed digest (`cd.yml`, `deploy-env.yml`, `deploy/scripts/helm-release.sh`); every cloud / environment overlay linted and rendered in CI; client customisation hooks (`customisation:` values, `EXTRA_VALUES_FILES`, client Flyway migrations) |
+| Not yet exercised / decisions needed | Increment-5 changes and the promotion workflows on real AKS / GKE / hybrid environments; GitHub Environments' required reviewers (repository setting – cannot be set from code); MFA enrolment in the production IdP; real EAP, toxicology LIMS, campaign app, wearable, public-health submission and SMS connectors (simulated / default); Clinical Governance / MRO / Legal sign-off of screening instruments, cut-offs, testing policies, travel recommendations and PEP timers; MRO access to `RESTRICTED_CLINICAL` documents through the generic `/documents` API (follow-up); feature flags `WZ_FEATURE_*` are plumbing only; mounting client extension JARs is not implemented; whether to commit `.devcontainer/` at the repository root |

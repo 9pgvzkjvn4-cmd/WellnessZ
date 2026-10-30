@@ -1,117 +1,204 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1060" viewBox="0 0 1700 1060" role="img" aria-label="Component view - wz-core-app modular monolith">
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1220" viewBox="0 0 1700 1220" role="img" aria-label="Component view - wz-core-app modular monolith">
 <title>Component view - wz-core-app modular monolith</title>
 <defs><marker id="eg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="sg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5F6B7A"/></marker><marker id="eb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E6DA4"/></marker><marker id="egr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="sgr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2E7D4F"/></marker><marker id="en" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="sn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1B365D"/></marker><marker id="ea" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B45309"/></marker></defs>
 <rect width="100%" height="100%" fill="#FFFFFF"/>
 <rect x="0" y="0" width="1700" height="54" fill="#1B365D"/>
 <text x="24" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="21" font-weight="bold" fill="#FFFFFF" text-anchor="start">C4 Level 3 - Components of wz-core-app (Maven modules)</text>
-<text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">Boundaries enforced by ArchUnit (ArchitectureTest)</text>
+<text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">Boundaries enforced by ArchUnit (ArchitectureTest, 22 rules)</text>
 <rect x="30" y="70" width="1640" height="70" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
 <text x="44" y="92" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">REST API /api/v1 - RFC 9457 problem details · Bean Validation · method security @PreAuthorize · CorrelationIdFilter (X-Correlation-Id)</text>
-<rect x="30" y="160" width="1640" height="280" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
-<text x="44" y="182" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Business layer - case management (E01-E14)</text>
-<rect x="60" y="200" width="380" height="220" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="250.0" y="267.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-ehs-intake</text>
-<text x="250.0" y="285.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ExcelIncidentParser (hardened POI)</text>
-<text x="250.0" y="301.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">MailboxIngestionJob</text>
-<text x="250.0" y="317.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ImapMailboxReader · GraphMailboxReader</text>
-<text x="250.0" y="333.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">MailBodyParser</text>
-<text x="250.0" y="349.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">IncidentIntakeService (dedupe)</text>
-<text x="250.0" y="365.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">emits ehs.incident.received.v1</text>
-<rect x="470" y="200" width="520" height="220" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="730.0" y="267.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-case-kernel</text>
-<text x="730.0" y="285.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">OhCase aggregate · CaseStatus state machine</text>
-<text x="730.0" y="301.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">CaseService - ABAC + projection (StatusOnly / Clinical)</text>
-<text x="730.0" y="317.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">IncidentListener -&gt; IncidentToCaseRule (E01 seed)</text>
-<text x="730.0" y="333.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">recordFitness -&gt; fitness.status.changed.v1 (E05 seed)</text>
-<text x="730.0" y="349.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">self-referral, my cases (E13 seed)</text>
-<text x="730.0" y="365.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">CaseModule SPI · ModuleRegistry (E01-E18)</text>
-<rect x="1020" y="200" width="196" height="42" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1118.0" y="227.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">E02 triage/SLA</text>
-<rect x="1230" y="200" width="196" height="42" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1328.0" y="227.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">E03 OH record</text>
-<rect x="1440" y="200" width="196" height="42" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1538.0" y="227.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">E04 referrals</text>
-<rect x="1020" y="252" width="196" height="42" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1118.0" y="279.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">E06 absence</text>
-<rect x="1230" y="252" width="196" height="42" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1328.0" y="279.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">E07 surveillance</text>
-<rect x="1440" y="252" width="196" height="42" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1538.0" y="279.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">E08 claims</text>
-<rect x="1020" y="304" width="196" height="42" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1118.0" y="331.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">E11 travel</text>
-<rect x="1230" y="304" width="196" height="42" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1328.0" y="331.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">E12 promotion</text>
-<rect x="1440" y="304" width="196" height="42" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1538.0" y="331.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="middle">E14 scheduling</text>
-<rect x="1020" y="360" width="406" height="60" rx="8" ry="8" fill="#FDF2E2" stroke="#B45309" stroke-width="1.6"/>
-<text x="1223.0" y="386.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="bold" fill="#B45309" text-anchor="middle">E09 psych. health · E10 substance testing</text>
-<text x="1223.0" y="402.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">restricted class - planned modules</text>
-<rect x="1440" y="360" width="196" height="60" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1538.0" y="389.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#5F6B7A" text-anchor="middle">each = CaseModule bean</text>
-<text x="1538.0" y="404.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#5F6B7A" text-anchor="middle">+ AccessPolicy beans</text>
-<rect x="30" y="460" width="1640" height="330" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
-<text x="44" y="482" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Platform services (E15-E18 + notifications)</text>
-<rect x="60" y="500" width="300" height="270" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="210.0" y="584.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-integration  (E15)</text>
-<text x="210.0" y="602.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">EventBus -&gt; outbox_event (same tx)</text>
-<text x="210.0" y="618.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">OutboxRelay: SKIP LOCKED, back-off, DEAD</text>
-<text x="210.0" y="634.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">EventPublisher SPI (in-process default)</text>
-<text x="210.0" y="650.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">OutboundPayloadGuard (allow-list)</text>
-<text x="210.0" y="666.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">IdempotentConsumer · Idempotency-Key</text>
-<text x="210.0" y="682.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">FHIR R4 / HL7 v2 controllers</text>
-<text x="210.0" y="698.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">TerminologyService · ConnectorRegistry</text>
-<rect x="382" y="500" width="300" height="270" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="532.0" y="584.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-security  (E16)</text>
-<text x="532.0" y="602.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">multi-issuer JWT resource server</text>
-<text x="532.0" y="618.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">WellnessZJwtConverter / RoleClaims</text>
-<text x="532.0" y="634.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">PolicyEngine (ABAC, deny-overrides)</text>
-<text x="532.0" y="650.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">DefaultPolicies: restricted, clinician,</text>
-<text x="532.0" y="666.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">self, status-only (org scope)</text>
-<text x="532.0" y="682.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ConsentService · AuditService</text>
-<text x="532.0" y="698.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">SecurityEventAuditor · /audit/verify</text>
-<rect x="704" y="500" width="300" height="270" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="854.0" y="600.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-analytics  (E17)</text>
-<text x="854.0" y="618.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">KpiService (allow-listed dimensions)</text>
-<text x="854.0" y="634.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">analytics.v_case_facts (de-identified)</text>
-<text x="854.0" y="650.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">SmallCellSuppression (k &gt;= 3, default 5)</text>
-<text x="854.0" y="666.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">complementary suppression</text>
-<text x="854.0" y="682.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">Pseudonymizer (HMAC-SHA256)</text>
-<rect x="1026" y="500" width="300" height="270" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="1176.0" y="600.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-masterdata  (E18)</text>
-<text x="1176.0" y="618.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">org units (materialised path)</text>
-<text x="1176.0" y="634.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">job codes (safety-critical)</text>
-<text x="1176.0" y="650.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">hazard catalogue</text>
-<text x="1176.0" y="666.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ConfigService: flags, module</text>
-<text x="1176.0" y="682.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">enablement, JSON config (audited)</text>
-<rect x="1348" y="500" width="300" height="270" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="1498.0" y="600.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-notification</text>
-<text x="1498.0" y="618.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">NotificationTemplates (allow-listed</text>
-<text x="1498.0" y="634.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">placeholders) · ContentRules</text>
-<text x="1498.0" y="650.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">QuietHours (recipient TZ, URGENT</text>
-<text x="1498.0" y="666.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">bypass) · channels: Email (SMTP)</text>
-<text x="1498.0" y="682.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">SMS / push SPI (dev stand-ins)</text>
-<rect x="30" y="810" width="1640" height="150" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
-<text x="44" y="832" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Foundation</text>
-<rect x="60" y="845" width="790" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="455.0" y="884.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-common</text>
-<text x="455.0" y="902.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ApiException / GlobalExceptionHandler (RFC 9457) · DomainEvent · IntegrationEnvelope</text>
-<text x="455.0" y="918.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">DataClassification · DisclosureLevel · Roles · RoleClaims · LogSanitizer</text>
-<rect x="880" y="845" width="760" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="1260.0" y="884.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-secrets</text>
-<text x="1260.0" y="902.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">SecretsEnvironmentPostProcessor: ENC(...) / file: · MasterKey · HKDF-SHA256</text>
-<text x="1260.0" y="918.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">AesGcmCipher · FieldEncryptor (v1: versioned, blind index) · EncryptedStringConverter</text>
-<path d="M 250 422 L 250 498" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
-<rect x="196.72" y="450" width="106.56" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
-<text x="250" y="462" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#2E7D4F" text-anchor="middle">EventBus.publish</text>
-<path d="M 440 300 L 468 300" fill="none" stroke="#B45309" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ea)"/>
-<text x="455" y="290" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#B45309" text-anchor="middle">events only</text>
-<path d="M 600 422 L 600 450 L 360 450 L 360 498" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
-<path d="M 730 422 L 730 498" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
-<rect x="642.84" y="450" width="174.32000000000002" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
-<text x="730" y="462" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#2E7D4F" text-anchor="middle">PolicyEngine / AuditService</text>
-<path d="M 900 422 L 900 450 L 1290 450 L 1290 498" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
-<rect x="1029.76" y="434" width="180.48000000000002" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
-<text x="1120" y="446" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#2E7D4F" text-anchor="middle">ConfigService (module flags)</text>
-<path d="M 850 790 L 850 843" fill="none" stroke="#5F6B7A" stroke-width="1.6" marker-end="url(#eg)"/>
-<text x="1660" y="1010" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="end">Dashed = planned increment. Amber = restricted clinical class. ArchUnit: platform packages must not depend on casekernel/ehsintake; ehsintake must not depend on casekernel.</text>
+<rect x="30" y="160" width="1640" height="300" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
+<text x="44" y="182" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Epic modules (modules/*) - one Maven module, PostgreSQL schema and Flyway migrations each</text>
+<rect x="44" y="200" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="155.0" y="238.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E01 Case intake</text>
+<text x="155.0" y="255.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema intake</text>
+<text x="155.0" y="270.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">incident rule table</text>
+<text x="155.0" y="285.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">duplicates · self-referral</text>
+<rect x="276" y="200" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="387.0" y="238.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E02 Triage</text>
+<text x="387.0" y="255.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema triage</text>
+<text x="387.0" y="270.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">risk stratification · SLA</text>
+<text x="387.0" y="285.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">queues · assignment · CDS</text>
+<rect x="508" y="200" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="619.0" y="238.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E03 OH record</text>
+<text x="619.0" y="255.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema ohrecord</text>
+<text x="619.0" y="270.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">encounters · chart</text>
+<text x="619.0" y="285.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">results (HL7 ORU) · documents</text>
+<rect x="740" y="200" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="851.0" y="238.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E04 Treatment</text>
+<text x="851.0" y="255.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema treatment</text>
+<text x="851.0" y="270.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">injury &amp; illness management</text>
+<text x="851.0" y="285.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">partner referrals · telehealth</text>
+<rect x="972" y="200" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1083.0" y="238.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E05 Fitness for duty</text>
+<text x="1083.0" y="255.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema fitness</text>
+<text x="1083.0" y="270.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">decisions · restrictions</text>
+<text x="1083.0" y="285.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">RTW · roster status feed</text>
+<rect x="1204" y="200" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1315.0" y="238.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E06 Absence</text>
+<text x="1315.0" y="255.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema absence</text>
+<text x="1315.0" y="270.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">sickness episodes · triggers</text>
+<text x="1315.0" y="285.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">absence feed · LTA</text>
+<rect x="1436" y="200" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1547.0" y="238.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E07 Surveillance</text>
+<text x="1547.0" y="255.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema surveillance</text>
+<text x="1547.0" y="270.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">periodic / statutory medicals</text>
+<text x="1547.0" y="285.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">pre-employment · crew</text>
+<rect x="44" y="324" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="155.0" y="362.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E08 Claims</text>
+<text x="155.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema claims</text>
+<text x="155.0" y="394.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">workers' comp · insurer / TPA</text>
+<text x="155.0" y="409.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">authority reports · ERP costs</text>
+<rect x="276" y="324" width="222" height="112" rx="8" ry="8" fill="#FDF2E2" stroke="#B45309" stroke-width="1.6"/>
+<text x="387.0" y="362.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#B45309" text-anchor="middle">E09 Mental health</text>
+<text x="387.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema mentalhealth · RESTRICTED</text>
+<text x="387.0" y="394.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">support cases · peer support</text>
+<text x="387.0" y="409.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">CISM · psychosocial register</text>
+<rect x="508" y="324" width="222" height="112" rx="8" ry="8" fill="#FDF2E2" stroke="#B45309" stroke-width="1.6"/>
+<text x="619.0" y="362.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#B45309" text-anchor="middle">E10 Substance testing</text>
+<text x="619.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema substance · RESTRICTED</text>
+<text x="619.0" y="394.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">selection · chain of custody</text>
+<text x="619.0" y="409.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">MRO review · TOXLAB results</text>
+<rect x="740" y="324" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="851.0" y="362.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E11 Travel health</text>
+<text x="851.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema travelhealth</text>
+<text x="851.0" y="394.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">consultations · immunisation</text>
+<text x="851.0" y="409.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">contact tracing · advisories</text>
+<rect x="972" y="324" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1083.0" y="362.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E12 Health promotion</text>
+<text x="1083.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema promotion</text>
+<text x="1083.0" y="394.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">campaigns · screening</text>
+<text x="1083.0" y="409.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ergonomics · wearables</text>
+<rect x="1204" y="324" width="222" height="112" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1315.0" y="362.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E14 Scheduling</text>
+<text x="1315.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">schema scheduling</text>
+<text x="1315.0" y="394.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">clinics · bookings</text>
+<text x="1315.0" y="409.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">capacity · equipment</text>
+<rect x="1436" y="324" width="222" height="112" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1547.0" y="364.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ArchUnit: no module depends</text>
+<text x="1547.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">on a later one; E09-E12</text>
+<text x="1547.0" y="394.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">independent of each other</text>
+<text x="1547.0" y="409.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">except via kernel SPIs</text>
+<rect x="30" y="480" width="1640" height="190" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
+<text x="44" y="502" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Case kernel + kernel SPIs</text>
+<rect x="60" y="515" width="440" height="140" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="280.0" y="558.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-case-kernel</text>
+<text x="280.0" y="576.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">OhCase aggregate · CaseStatus state machine</text>
+<text x="280.0" y="592.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">CaseService - ABAC + projection (StatusOnly / Clinical)</text>
+<text x="280.0" y="608.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">CaseModule SPI · ModuleRegistry (enablement)</text>
+<text x="280.0" y="624.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">CaseTimeline · CaseRefGenerator · FitnessFeed</text>
+<rect x="524" y="515" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="613.0" y="539.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">CaseTransitionGuard</text>
+<rect x="712" y="515" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="801.0" y="539.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">DiagnosisRequiredGuard</text>
+<rect x="900" y="515" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="989.0" y="539.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">FitnessClearanceGuard</text>
+<rect x="1088" y="515" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1177.0" y="539.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">CaseAccess</text>
+<rect x="1276" y="515" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1365.0" y="539.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">EmployeeRecordAccess</text>
+<rect x="1464" y="515" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1553.0" y="539.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ChartContributor</text>
+<rect x="524" y="561" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="613.0" y="585.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ClaimContextProvider</text>
+<rect x="712" y="561" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="801.0" y="585.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">CaseCostRecorder</text>
+<rect x="900" y="561" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="989.0" y="585.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">AppointmentBooking</text>
+<rect x="1088" y="561" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1177.0" y="585.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">AppointmentStatusListener</text>
+<rect x="1276" y="561" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1365.0" y="585.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ReferralStatusListener</text>
+<rect x="1464" y="561" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1553.0" y="585.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ResultFollowUpListener</text>
+<rect x="524" y="607" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="613.0" y="631.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">AbsenceSignalListener</text>
+<rect x="712" y="607" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="801.0" y="631.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ExternalReferralGateway</text>
+<rect x="900" y="607" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="989.0" y="631.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">DeviceCalibrationCheck</text>
+<rect x="1088" y="607" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1177.0" y="631.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">CapacityDemandSource</text>
+<rect x="1276" y="607" width="178" height="36" rx="5" ry="5" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
+<text x="1365.0" y="631.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">CaseWorkService</text>
+<rect x="1464" y="607" width="178" height="36" rx="5" ry="5" fill="#FDF2E2" stroke="#B45309" stroke-width="1.6"/>
+<text x="1553.0" y="631.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">SupportProgrammeReferral</text>
+<rect x="30" y="690" width="1640" height="300" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
+<text x="44" y="712" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Platform services (platform/*)</text>
+<rect x="44" y="730" width="222" height="240" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="155.0" y="809.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-ehs-intake</text>
+<text x="155.0" y="826.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">MailboxIngestionJob</text>
+<text x="155.0" y="841.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">(IMAP / MS Graph)</text>
+<text x="155.0" y="856.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ExcelIncidentParser (hardened)</text>
+<text x="155.0" y="871.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">IncidentIntakeService (dedupe)</text>
+<text x="155.0" y="886.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">incident webhook</text>
+<text x="155.0" y="901.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">-&gt; ehs.incident.received.v1</text>
+<rect x="276" y="730" width="222" height="240" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="387.0" y="809.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-integration (E15)</text>
+<text x="387.0" y="826.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">EventBus -&gt; outbox (same tx)</text>
+<text x="387.0" y="841.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">OutboxRelay · SKIP LOCKED</text>
+<text x="387.0" y="856.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">OutboundPayloadGuard:</text>
+<text x="387.0" y="871.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">8 allow-listed destinations</text>
+<text x="387.0" y="886.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">IdempotentConsumer</text>
+<text x="387.0" y="901.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">FHIR R4 / HL7 v2 · connectors</text>
+<rect x="508" y="730" width="222" height="240" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="619.0" y="809.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-security (E16)</text>
+<text x="619.0" y="826.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">multi-issuer JWT · RoleClaims</text>
+<text x="619.0" y="841.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">MFA gate (amr / acr / acrs)</text>
+<text x="619.0" y="856.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ABAC PolicyEngine</text>
+<text x="619.0" y="871.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">restricted classes · break-glass</text>
+<text x="619.0" y="886.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ConsentService</text>
+<text x="619.0" y="901.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">hash-chained AuditService</text>
+<rect x="740" y="730" width="222" height="240" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="851.0" y="817.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-analytics (E17)</text>
+<text x="851.0" y="834.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">KpiService (allow-listed dims)</text>
+<text x="851.0" y="849.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">de-identified fact views</text>
+<text x="851.0" y="864.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">SmallCellSuppression (k = 5)</text>
+<text x="851.0" y="879.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">complementary suppression</text>
+<text x="851.0" y="894.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Pseudonymizer (HMAC-SHA256)</text>
+<rect x="972" y="730" width="222" height="240" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1083.0" y="817.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-masterdata (E18)</text>
+<text x="1083.0" y="834.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">org units · job codes · hazards</text>
+<text x="1083.0" y="849.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">partner organisations</text>
+<text x="1083.0" y="864.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">(EAP, TOXLAB, authority ...)</text>
+<text x="1083.0" y="879.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">duty_assignment roster feed</text>
+<text x="1083.0" y="894.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ConfigService: flags, modules</text>
+<rect x="1204" y="730" width="222" height="240" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1315.0" y="817.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-documents</text>
+<text x="1315.0" y="834.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">templates -&gt; signed PDF</text>
+<text x="1315.0" y="849.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">generateSigned(..., class)</text>
+<text x="1315.0" y="864.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">uploads (type allow-list)</text>
+<text x="1315.0" y="879.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">retention rules (RESTRICTED_</text>
+<text x="1315.0" y="894.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">RECORD, PUBLIC_HEALTH) · shares</text>
+<rect x="1436" y="730" width="222" height="240" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1547.0" y="817.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-notification</text>
+<text x="1547.0" y="834.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">content-free templates</text>
+<text x="1547.0" y="849.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ContentRules (forbidden</text>
+<text x="1547.0" y="864.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">words, e.g. result, drug)</text>
+<text x="1547.0" y="879.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">QuietHours (URGENT bypass)</text>
+<text x="1547.0" y="894.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Email (SMTP) · SMS / push SPI</text>
+<rect x="30" y="1010" width="1640" height="150" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
+<text x="44" y="1032" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Foundation</text>
+<rect x="60" y="1045" width="790" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="455.0" y="1084.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-common</text>
+<text x="455.0" y="1102.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ApiException / GlobalExceptionHandler (RFC 9457, no 500 leaks) · DomainEvent</text>
+<text x="455.0" y="1118.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">IntegrationEnvelope · DataClassification · DisclosureLevel · Roles · LogSanitizer</text>
+<rect x="880" y="1045" width="760" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1260.0" y="1084.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-secrets</text>
+<text x="1260.0" y="1102.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">SecretValueResolver: ENC(...) / file: · MasterKey (vault-held) · HKDF-SHA256</text>
+<text x="1260.0" y="1118.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">AesGcmCipher · FieldEncryptor · EncryptedStringConverter · EncryptCli</text>
+<path d="M 330 438 L 330 513" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="233.6" y="462" width="192.8" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="330" y="474" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#2E7D4F" text-anchor="middle">CaseModule beans · CaseService</text>
+<path d="M 990 438 L 990 513" fill="none" stroke="#B45309" stroke-width="1.6" marker-end="url(#ea)"/>
+<rect x="899.76" y="462" width="180.48000000000002" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="990" y="474" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#B45309" text-anchor="middle">implement / call kernel SPIs</text>
+<path d="M 330 657 L 330 728" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="208.95999999999998" y="685" width="242.08" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="330" y="697" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#2E7D4F" text-anchor="middle">EventBus · PolicyEngine · AuditService</text>
+<path d="M 990 653 L 990 728" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
+<rect x="865.88" y="685" width="248.24" height="18" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="990" y="697" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#2E7D4F" text-anchor="middle">documents · notifications · master data</text>
+<path d="M 850 972 L 850 1043" fill="none" stroke="#5F6B7A" stroke-width="1.6" marker-end="url(#eg)"/>
+<text x="1660" y="1192" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="end">Modules cooperate only through kernel SPIs. Amber = restricted clinical class (only the named clinician: PSYCH_CLINICIAN for E09, MRO for E10 results); SupportProgrammeReferral: E10 -&gt; E09.</text>
 </svg>

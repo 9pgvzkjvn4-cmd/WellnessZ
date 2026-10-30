@@ -4,50 +4,59 @@
 <rect width="100%" height="100%" fill="#FFFFFF"/>
 <rect x="0" y="0" width="1700" height="54" fill="#1B365D"/>
 <text x="24" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="21" font-weight="bold" fill="#FFFFFF" text-anchor="start">Deployment reference - Kubernetes (AKS / GKE / on-prem RKE2 / OpenShift)</text>
-<text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">deploy/helm/wellnessz · deploy/terraform/azure|gcp · deploy/hybrid</text>
+<text x="1676" y="34" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="normal" fill="#C9D7E8" text-anchor="end">deploy/helm/wellnessz · deploy/terraform/azure|gcp · deploy/hybrid · environments dev / uat / prod</text>
 <rect x="40" y="80" width="330" height="80" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
-<text x="205.0" y="117.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Users &amp; devices</text>
-<text x="205.0" y="135.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">browsers, PWA, managed mobile devices</text>
+<text x="205.0" y="109.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Users &amp; devices</text>
+<text x="205.0" y="127.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">browsers, PWA, managed mobiles,</text>
+<text x="205.0" y="143.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">partner users (MFA)</text>
 <rect x="420" y="80" width="470" height="80" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="655.0" y="109.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Edge security</text>
 <text x="655.0" y="127.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">Azure Front Door + App Gateway WAF_v2  |  GCP Cloud Armor + LB</text>
 <text x="655.0" y="143.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">TLS 1.2+ policy, OWASP rule sets, rate limiting</text>
 <rect x="940" y="80" width="330" height="80" rx="8" ry="8" fill="#FFFFFF" stroke="#1B365D" stroke-width="1.6"/>
 <text x="1105.0" y="117.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">M2M partners</text>
-<text x="1105.0" y="135.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">labs, HRIS, integration engines</text>
+<text x="1105.0" y="135.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">labs, TOXLAB, HRIS, roster feed</text>
 <rect x="1320" y="80" width="340" height="80" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="1490.0" y="117.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Identity provider</text>
 <text x="1490.0" y="135.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">Entra ID / Keycloak / Okta</text>
 <rect x="40" y="190" width="1180" height="520" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
-<text x="54" y="212" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Kubernetes cluster - private nodes, workload identity, Azure Policy / Binary Authorization, Defender</text>
+<text x="54" y="212" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Kubernetes cluster per environment - private nodes, policy admission</text>
 <rect x="70" y="230" width="1120" height="50" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
-<text x="630.0" y="261.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ingress-nginx (or GKE Ingress) - TLS secret wellnessz-tls - hosts employee / manager / api</text>
+<text x="630.0" y="261.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">ingress controller (AGIC / GKE Ingress / OpenShift router / nginx) - TLS - hosts employee · manager · oh · partners · api</text>
 <rect x="70" y="300" width="1120" height="390" rx="12" ry="12" fill="#FAFBFC" stroke="#AEB8C4" stroke-width="1.4" stroke-dasharray="8 5"/>
 <text x="84" y="322" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">namespace wellnessz - NetworkPolicy default deny (ingress + egress), PSS restricted-compatible pods</text>
-<rect x="100" y="340" width="240" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="220.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">employee-portal</text>
-<text x="220.0" y="397.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080 uid 101</text>
-<text x="220.0" y="413.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA 2-4 · PDB 1</text>
-<rect x="370" y="340" width="240" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="490.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">manager-workspace</text>
-<text x="490.0" y="397.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080 uid 101</text>
-<text x="490.0" y="413.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA 2-4 · PDB 1</text>
-<rect x="640" y="340" width="240" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="760.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-bff</text>
-<text x="760.0" y="397.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">JRE 21 uid 10001</text>
-<text x="760.0" y="413.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA 2-6 · PDB 1</text>
-<rect x="910" y="340" width="240" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="1030.0" y="379.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-core-app</text>
-<text x="1030.0" y="397.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">JRE 21 uid 10001</text>
-<text x="1030.0" y="413.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA 2-6 · PDB 1</text>
+<rect x="88" y="340" width="170" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="173.0" y="378.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">employee-app</text>
+<text x="173.0" y="395.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080 uid 101</text>
+<text x="173.0" y="411.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA 2-4 · PDB</text>
+<rect x="271" y="340" width="170" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="356.0" y="378.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">manager-workspace</text>
+<text x="356.0" y="395.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080 uid 101</text>
+<text x="356.0" y="411.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA 2-4 · PDB</text>
+<rect x="454" y="340" width="170" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="539.0" y="378.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">oh-workspace</text>
+<text x="539.0" y="395.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080 uid 101</text>
+<text x="539.0" y="411.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA 2-4 · PDB</text>
+<rect x="637" y="340" width="170" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="722.0" y="378.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">partner-portal</text>
+<text x="722.0" y="395.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">nginx :8080 uid 101</text>
+<text x="722.0" y="411.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA 2-4 · PDB</text>
+<rect x="820" y="340" width="170" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="905.0" y="378.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-bff</text>
+<text x="905.0" y="395.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">JRE 21 uid 10001</text>
+<text x="905.0" y="411.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA 2-6 · PDB</text>
+<rect x="1003" y="340" width="170" height="100" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
+<text x="1088.0" y="378.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">wz-core-app</text>
+<text x="1088.0" y="395.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">JRE 21 uid 10001</text>
+<text x="1088.0" y="411.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HPA 2-6 · PDB</text>
 <rect x="100" y="470" width="510" height="90" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
-<text x="355.0" y="504.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Pod hardening (all workloads)</text>
+<text x="355.0" y="504.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">Pod hardening (all six workloads)</text>
 <text x="355.0" y="522.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">runAsNonRoot · readOnlyRootFilesystem · drop ALL caps</text>
-<text x="355.0" y="538.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">seccomp RuntimeDefault · no privilege escalation</text>
+<text x="355.0" y="538.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">seccomp RuntimeDefault · images pinned by digest</text>
 <rect x="640" y="470" width="240" height="90" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
 <text x="760.0" y="504.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">Flyway Job</text>
-<text x="760.0" y="522.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">flyway/flyway 11.20.3</text>
-<text x="760.0" y="538.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">role wz_migrator</text>
+<text x="760.0" y="522.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">product V1-V20 + client</text>
+<text x="760.0" y="538.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">migrations · wz_migrator</text>
 <rect x="910" y="470" width="250" height="90" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="1035.0" y="504.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Secrets Store CSI</text>
 <text x="1035.0" y="522.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">files under /mnt/secrets</text>
@@ -56,7 +65,7 @@
 <text x="630.0" y="627.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">ServiceAccounts with workload identity</text>
 <text x="630.0" y="645.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">Azure: user-assigned identity + federated credential  |  GCP: KSA -&gt; GSA (roles/iam.workloadIdentityUser)  |  on-prem: Vault Kubernetes auth</text>
 <rect x="1250" y="190" width="410" height="520" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
-<text x="1264" y="212" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Managed services (private endpoints)</text>
+<text x="1264" y="212" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Managed services per environment</text>
 <rect x="1270" y="230" width="370" height="130" rx="8" ry="8" fill="#EEF3F8" stroke="#1B365D" stroke-width="1.6"/>
 <text x="1455.0" y="270.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">PostgreSQL 16</text>
 <text x="1455.0" y="288.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Azure Flexible Server: zone-redundant HA,</text>
@@ -69,7 +78,7 @@
 <text x="1455.0" y="448.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">CMEK via Cloud KMS (GCP)</text>
 <rect x="1270" y="490" width="370" height="90" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="1455.0" y="525.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Container registry</text>
-<text x="1455.0" y="543.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ACR / Artifact Registry - signed images</text>
+<text x="1455.0" y="543.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">6 images copied by digest (cosign copy)</text>
 <text x="1455.0" y="558.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Binary Authorization attestor (GCP)</text>
 <rect x="1270" y="600" width="370" height="90" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="1455.0" y="635.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Monitoring &amp; SIEM</text>
@@ -79,14 +88,14 @@
 <text x="54" y="762" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#5F6B7A" text-anchor="start">Hybrid option (deploy/hybrid) - PHI stays on-premises</text>
 <rect x="70" y="790" width="480" height="140" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="310.0" y="841.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Cloud edge</text>
-<text x="310.0" y="859.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">employee-portal, manager-workspace (static)</text>
-<text x="310.0" y="875.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">wz-bff (session store, no PHI persisted)</text>
+<text x="310.0" y="859.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">employee-app, manager-workspace, oh-workspace,</text>
+<text x="310.0" y="875.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">partner-portal (static) + wz-bff (session store, no PHI)</text>
 <text x="310.0" y="891.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">values-hybrid-cloud-edge.yaml</text>
 <rect x="600" y="790" width="480" height="140" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
 <text x="840.0" y="841.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">On-premises cluster (RKE2 / OpenShift)</text>
 <text x="840.0" y="859.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">wz-core-app, Flyway, integrations</text>
 <text x="840.0" y="875.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">PostgreSQL 16 via CloudNativePG (TLS 1.3, PITR)</text>
-<text x="840.0" y="891.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">values-hybrid.yaml</text>
+<text x="840.0" y="891.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">values-hybrid.yaml + environments/hybrid/&lt;env&gt;</text>
 <rect x="1130" y="790" width="500" height="140" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="1380.0" y="841.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Secrets &amp; fleet</text>
 <text x="1380.0" y="859.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1E2933" text-anchor="middle">HashiCorp Vault on-prem or Azure Key Vault via Arc</text>
@@ -98,9 +107,9 @@
 <path d="M 370 120 L 418 120" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
 <path d="M 938 120 L 892 120" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
 <path d="M 655 162 L 655 228" fill="none" stroke="#2E7D4F" stroke-width="1.6" marker-end="url(#egr)"/>
-<path d="M 1185 390 L 1268 300" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
-<rect x="1180.0" y="319" width="92.00000000000001" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
-<text x="1226" y="330" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1B365D" text-anchor="middle">TLS verify-full</text>
+<path d="M 1175 390 L 1268 300" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
+<rect x="1180.0" y="325" width="92.00000000000001" height="17" fill="#FFFFFF" fill-opacity="0.92" rx="3"/>
+<text x="1226" y="336" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1B365D" text-anchor="middle">TLS verify-full</text>
 <path d="M 1162 515 L 1268 425" fill="none" stroke="#2E6DA4" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eb)"/>
 <path d="M 1190 640 L 1268 645" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)"/>
 <path d="M 1490 162 L 1490 188" fill="none" stroke="#2E6DA4" stroke-width="1.6" marker-end="url(#eb)"/>

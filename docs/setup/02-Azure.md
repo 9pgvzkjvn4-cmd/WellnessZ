@@ -1,58 +1,83 @@
 # WellnessZ OHCM – Setup Guide 2: Microsoft Azure
 
+**Version 1.0**
+
+*WellnessZ OHCM platform – increments 1–5*
+
 | | |
 |---|---|
 | **Document** | 06 – Setup guide: Microsoft Azure (AKS, PostgreSQL Flexible Server, Key Vault, App Gateway WAF) |
-| **Audience** | Cloud platform team, DevSecOps, identity administrators |
-| **Result** | A dev, test or prod environment on Azure, deployed from CI with signed images, ready for incremental releases |
-| **Time** | 1 day for the first environment (Entra ID approvals and DNS usually dominate) |
-| **Related** | 04 – Deployment Architecture · 09 – CI/CD Guide · `deploy/terraform/azure` · `deploy/helm/wellnessz/values-azure.yaml` |
+| **Version** | 1.0 (final, after increment 5 of 5) |
+| **Audience** | Cloud platform team, DevSecOps, identity administrators, DBA, release manager |
+| **Result** | Three environments – `azure-dev`, `azure-uat`, `azure-prod` – built from the same Terraform and Helm chart with per-environment variable files, deployed by GitHub Actions with signed images promoted by digest, PROD accepted through the go-live checklist |
+| **Time** | DEV: 1 day (Entra ID approvals and DNS usually dominate). UAT: ½ day once DEV works. PROD: ½ day build + the go-live checklist (backup/DR test, penetration test, access review) |
+| **Related** | [04 – Deployment Architecture](../deployment/Deployment-Architecture.md) · [`deploy/environments/README.md`](../../deploy/environments/README.md) (authoritative matrix) · 09 – CI/CD Guide · `deploy/terraform/azure` · `deploy/helm/wellnessz/environments/azure/` |
 
 ![Azure topology](../images/09-deploy-azure.png)
 
 *Figure 1 – Azure topology (source: `docs/images/09-deploy-azure.svg`).*
 
 > **Validation status.** The Terraform code passes `terraform fmt -check` and `terraform validate` (azurerm 4.81,
-> Terraform 1.13.4). The Helm chart renders with `values-azure.yaml` and passes Kubernetes and CRD schema
-> validation. The workflows pass actionlint. **No `terraform apply` was run in a real subscription** while
-> preparing this guide; your first environment build is the acceptance test. Run it in **dev** first and expect
-> minor corrections, for example region SKU availability or tenant policy conflicts.
+> Terraform 1.13.4) with each of `environments/dev.tfvars`, `uat.tfvars` and `prod.tfvars`. The Helm chart renders
+> and lints with `values-azure.yaml` + `environments/azure/<env>.yaml` for all three environments (CI job *IaC &
+> config checks*). The workflows pass actionlint. **No `terraform apply` was run in a real subscription** while
+> preparing this guide; your first DEV build is the acceptance test. Expect minor corrections, for example region
+> SKU availability or tenant policy conflicts.
 >
-> **Increment 2** (E03 OH record, E05 fitness for duty) needs no new Azure resource. It adds the `DPO` app role and
-> group (section 5), an `org_scope` claim for partner users (5.3), gateway clients for laboratory, devices and crew
-> rostering (5.6), three schemas created by Flyway (8), new core settings including optional PDF font and OCR (11)
-> and smoke checks 18–24 (14).
->
-> **Increment 3** (E06 absence & sickness, E07 medical surveillance, E14 scheduling & clinic operations) needs no new
-> Azure resource either. It adds four app roles and groups (`CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING`,
-> `CANDIDATE`, section 5), a separate identity source for candidates (5.3), gateway clients for absence feeds,
-> industrial hygiene, dosimetry, recruiting and the IoT fridge gateway (5.6), three schemas created by Flyway (8),
-> business configuration set through the API after the first deployment (11) and smoke checks 25–32 (14).
->
-> **Increment 4** (E04 treatment coordination & partner referrals, E08 claims coordination) adds one Kubernetes
-> component – the **partner portal** on `partners.<domain>` (Helm `partnerPortal`, image `partner-portal`) – but no new
-> Azure resource: it uses the existing App Gateway (or Front Door) with its own listener, certificate and DNS record
-> (section 9). It adds five app roles and groups (section 5.1–5.2), **MFA for partner and adjuster B2B guests through
-> Conditional Access** (section 5.3a), the partner-portal redirect URI (5.4), gateway clients for partner hospitals,
-> insurer systems and the video platform (5.6), two schemas created by Flyway (8), `WZ_PARTNER_PORTAL_URL`, the MFA
-> gate and business configuration (11) and smoke checks 33–42 (14).
+> **Increments.** Increments 1–4 added roles, schemas, gateway clients, the OH workspace and the partner portal (host
+> `partners.<domain>`, MFA for external users). **Increment 5** needs no new Azure resource: it adds eight app roles
+> and groups (section 5.1–5.2), the EAP partner organisation (5.3), the TOXLAB laboratory client, the duty-assignment
+> feed and the campaign / wearable clients (5.6), four schemas created by Flyway (8), business configuration (11),
+> smoke checks 43–50 (14) and the PROD go-live checklist (17).
 
 ## 1. Overview of the steps
 
-| # | Stage | Who | Output |
+**Legend.** **[A]** = automated (Terraform, GitHub Actions, Helm, scripts in the repository).
+**[M]** = manual step that cannot be automated from this repository (portal or tenant settings, approvals,
+ceremonies) – keep evidence (screenshot, ticket) for SOC 2.
+
+Build **DEV first**, then UAT, then PROD. Every step below is repeated per environment unless marked *once*.
+
+| # | Stage | Who | DEV | UAT | PROD | Section |
+|---|---|---|---|---|---|---|
+| 1 | Workstation tools (*once*) | Engineer | [M] | – | – | 2 |
+| 2 | Landing zone: subscription per environment, providers, quotas, policy | Cloud admin | [M] | [M] | [M] | 3 |
+| 3 | Terraform state backend per environment | Cloud admin | [M] storage + [A] `backend-dev.hcl` | same | same | 4 |
+| 4 | Entra ID: groups, app registrations per environment, MFA Conditional Access | Identity admin | [M] | [M] | [M] | 5 |
+| 5 | `terraform init/plan/apply` with `environments/<env>.tfvars` | Platform team | [A] | [A] | [A] (change ticket) | 6 |
+| 6 | Secrets bootstrap (key ceremony) | Two people | [M] | [M] | [M] dual control | 7 |
+| 7 | Database bootstrap | DBA | [A] script, run [M] | same | same | 8 |
+| 8 | TLS certificates and DNS | Network team | [M] | [M] | [M] | 9 |
+| 9 | GitHub Environment `azure-<env>`: variables [A-ready], **required reviewers** [M] | DevSecOps | [M] | [M] reviewers | [M] reviewers + CAB | 10 |
+| 10 | Helm overlay `environments/azure/<env>.yaml` with Terraform outputs | Platform team | [A] edit + PR | same | same | 11 |
+| 11 | First deployment (`cd.yml` / `deploy-env.yml` / `helm-release.sh`), migrations | CI / release manager | [A] | [A] after approval | [A] after approval | 12 |
+| 12 | EHS mailbox, smoke tests, MDM | QA / OH admin | [M] | [M] | [M] | 13–15 |
+| 13 | PROD go-live checklist: backups, DR test, pen test, alerts, access review, sign-offs | Service owner, GRC | – | rehearsal | [M] | 17 |
+
+### 1.1 The three Azure environments
+
+| | `azure-dev` | `azure-uat` | `azure-prod` |
 |---|---|---|---|
-| 1 | Workstation tools | Engineer | CLIs installed |
-| 2 | Subscription preparation (providers, features, quotas) | Cloud admin | Subscription ready |
-| 3 | Terraform remote state | Cloud admin | Storage account `stwellnessztfstate…` |
-| 4 | Entra ID: groups and app registrations | Identity admin | API, BFF, mobile and mailbox apps; app roles |
-| 5 | Terraform plan/apply | Platform team | Network, AKS, PostgreSQL, Key Vault, ACR, App Gateway, logging, identities |
-| 6 | Secrets bootstrap | Two people (dual control) | Key material and client secrets in Key Vault |
-| 7 | Database bootstrap | DBA | Roles and schemas |
-| 8 | TLS certificates and DNS | Network team | `employee.`, `manager.`, `api.` hosts |
-| 9 | GitHub configuration (OIDC, environments) | DevSecOps | Pipeline can push and deploy |
-| 10 | Build, sign and push images | CI | Signed images in ACR |
-| 11 | Helm install | CI (or platform team for the first install) | Running workloads |
-| 12 | Smoke tests, EHS mailbox, MDM | QA / OH admin | Environment accepted |
+| Purpose / data | Developer integration; **synthetic data only** | Business acceptance on the production architecture; synthetic or masked data | Production; real PHI |
+| Terraform | `environments/dev.tfvars` + `dev.local.tfvars` | `environments/uat.tfvars` + `uat.local.tfvars` | `environments/prod.tfvars` + `prod.local.tfvars` |
+| State | `environments/backend-dev.hcl` | `environments/backend-uat.hcl` | `environments/backend-prod.hcl` |
+| Helm overlay | `environments/azure/dev.yaml` | `environments/azure/uat.yaml` | `environments/azure/prod.yaml` |
+| GitHub Environment | `azure-dev` (no reviewers) | `azure-uat` (**required reviewers**) | `azure-prod` (**required reviewers**, CAB) |
+| Images | every `main` build (`sha-<12>`) | release candidates `vX.Y.Z-rc.N` by digest | releases `vX.Y.Z` by signed digest |
+| Hosts | `employee.dev.<domain>`, `manager.dev.…`, `oh.dev.…`, `partners.dev.…`, `api.dev.…` | `*.uat.<domain>` | `employee.<domain>` … |
+| API audience | `api://wellnessz-api-dev` | `api://wellnessz-api-uat` | `api://wellnessz-api` |
+| VNet | `10.48.0.0/16` | `10.44.0.0/16` | `10.40.0.0/16` |
+| AKS API | public, `aks_authorized_ip_ranges` | private | private |
+| PostgreSQL | burstable, no HA, 7 days | GP D2ds_v5, zone-redundant HA, 14 days | GP D4ds_v5, zone-redundant HA, geo-redundant, 35 days |
+| WAF | Detection | Prevention | Prevention |
+| Flyway | `migrations.mode: app` | pre-upgrade Job | pre-upgrade Job |
+| `WZ_MFA_REQUIRED_ROLES` | empty (test identities) | `PARTNER_PROVIDER,TPA_ADJUSTER` | `PARTNER_PROVIDER,TPA_ADJUSTER` |
+
+Throughout this guide `ENV` is `dev`, `uat` or `prod`:
+
+```bash
+export ENV=dev
+```
 
 ## 2. Workstation prerequisites
 
@@ -77,9 +102,20 @@ az login --tenant <tenant-id>
 az account set --subscription <subscription-id> && az account show --query "{name:name, id:id, tenant:tenantId}" -o table
 ```
 
-## 3. Subscription preparation
+## 3. Landing zone and subscription preparation
 
-Register the resource providers (idempotent):
+**[M] Landing-zone prerequisites per environment** (from the client's cloud platform team):
+
+| Item | DEV | UAT | PROD |
+|---|---|---|---|
+| Subscription | non-production subscription (may be shared with other non-prod workloads) | own subscription recommended | **own subscription**, under the production management group |
+| Management-group policy | non-prod initiative | production initiative in audit mode | production initiative (deny) – allowed regions, no public IPs except the App Gateway, diagnostic settings |
+| Network | VNet `10.48.0.0/16` free and routable to the hub (optional) | `10.44.0.0/16` | `10.40.0.0/16`; hub peering / ExpressRoute for corporate access to private listeners |
+| Groups | `sg-wellnessz-aks-admins-dev`, `sg-wellnessz-db-admins-dev` | `…-uat` | `…-prod` (PIM-eligible membership only) |
+| Owner for the first apply | engineer with Owner | Owner via PIM | Owner via PIM + change ticket |
+| Budget alert | yes | yes | yes |
+
+Register the resource providers in **each** environment subscription (idempotent):
 
 ```bash
 for p in Microsoft.ContainerService Microsoft.DBforPostgreSQL Microsoft.KeyVault Microsoft.Network Microsoft.OperationalInsights Microsoft.ContainerRegistry Microsoft.Cdn Microsoft.Security Microsoft.ManagedIdentity Microsoft.Insights Microsoft.OperationsManagement Microsoft.PolicyInsights; do az provider register -n $p; done
@@ -101,45 +137,82 @@ Wait until the output is `Registered`, then run:
 az provider register -n Microsoft.Compute
 ```
 
-Check the vCPU quota for the D-series v5 family in your region. You need at least 3 system nodes + 3 user nodes ×
-4 vCPU, plus PostgreSQL.
+Check the vCPU quota for the D-series v5 family in your region. Minimum per environment (maximum node counts
+from the tfvars, plus PostgreSQL): DEV about 16 vCPU, UAT about 30 vCPU, PROD about 60 vCPU.
 
 ```bash
 az vm list-usage -l westeurope --query "[?contains(name.value,'standardDDSv5Family')]" -o table
 ```
 
-## 4. Terraform remote state
+## 4. Terraform remote state (one backend per environment)
 
-Create a dedicated, locked-down storage account. Use it for all environments, with one key per environment.
+Each environment has its own state, ideally in its own storage account inside its own subscription, with
+data-plane access only for that environment's Terraform runner. The repository ships one example per environment:
+`deploy/terraform/azure/environments/backend-{dev,uat,prod}.hcl.example` (resource group
+`rg-wellnessz-tfstate-<env>`, account `stwztfstate<env>`, container `tfstate`, key `wellnessz/<env>/azure.tfstate`,
+`use_azuread_auth = true`).
+
+**[M]** Create the storage account in the environment subscription (storage account names are global – adapt
+`stwztfstate$ENV` if taken):
 
 ```bash
-az group create -n rg-wellnessz-tfstate -l westeurope
+az group create -n rg-wellnessz-tfstate-$ENV -l westeurope
 ```
 
 ```bash
-az storage account create -n stwellnessztfstate -g rg-wellnessz-tfstate -l westeurope --sku Standard_ZRS --kind StorageV2 --min-tls-version TLS1_2 --allow-blob-public-access false --allow-shared-key-access false --require-infrastructure-encryption true --https-only true
+az storage account create -n stwztfstate$ENV -g rg-wellnessz-tfstate-$ENV -l westeurope --sku Standard_ZRS --kind StorageV2 --min-tls-version TLS1_2 --allow-blob-public-access false --allow-shared-key-access false --require-infrastructure-encryption true --https-only true
 ```
 
 ```bash
-az storage account blob-service-properties update -n stwellnessztfstate -g rg-wellnessz-tfstate --enable-versioning true --enable-delete-retention true --delete-retention-days 30 --enable-container-delete-retention true --container-delete-retention-days 30
+az storage account blob-service-properties update -n stwztfstate$ENV -g rg-wellnessz-tfstate-$ENV --enable-versioning true --enable-delete-retention true --delete-retention-days 30 --enable-container-delete-retention true --container-delete-retention-days 30
 ```
 
 ```bash
-az storage container create -n tfstate --account-name stwellnessztfstate --auth-mode login
+az storage container create -n tfstate --account-name stwztfstate$ENV --auth-mode login
 ```
 
-Grant data-plane access only to the engineers or CI identity who run Terraform:
+Grant data-plane access only to the engineers or CI identity who run Terraform for **this** environment:
 
 ```bash
-az role assignment create --assignee <object-id-of-terraform-runner> --role "Storage Blob Data Contributor" --scope $(az storage account show -n stwellnessztfstate -g rg-wellnessz-tfstate --query id -o tsv)
+az role assignment create --assignee <object-id-of-terraform-runner> --role "Storage Blob Data Contributor" --scope $(az storage account show -n stwztfstate$ENV -g rg-wellnessz-tfstate-$ENV --query id -o tsv)
 ```
 
-Expected: `az storage container list --account-name stwellnessztfstate --auth-mode login -o table` lists `tfstate`.
+PROD only: add a `CanNotDelete` lock on the state resource group:
+
+```bash
+az lock create -n do-not-delete --lock-type CanNotDelete -g rg-wellnessz-tfstate-prod
+```
+
+**[A]** Create the backend file from the example (the `.hcl` copy is git-ignored):
+
+```bash
+cd deploy/terraform/azure && cp environments/backend-$ENV.hcl.example environments/backend-$ENV.hcl
+```
+
+Edit `storage_account_name` if you changed it. Expected:
+`az storage container list --account-name stwztfstate$ENV --auth-mode login -o table` lists `tfstate`.
 
 ## 5. Entra ID configuration
 
-Create the configuration once per tenant. For dev and test you can share the app registrations and add redirect
-URIs; prod should have its own registrations.
+**[M]** Identity configuration is done by an identity administrator in the Entra ID admin centre or with the
+commands below; it cannot be applied from this repository.
+
+* **Groups** (section 5.1) are created once per tenant. Use separate membership per environment where test
+  identities must not reach PROD – recommended: suffix `-dev` / `-uat` for the groups that hold test users and keep
+  the unsuffixed groups for PROD.
+* **App registrations are per environment** so that a DEV or UAT token is never accepted by PROD: `wellnessz-api-dev`
+  (`api://wellnessz-api-dev`), `wellnessz-api-uat` (`api://wellnessz-api-uat`), `wellnessz-api` (`api://wellnessz-api`,
+  PROD); likewise `wellnessz-bff-dev`, `wellnessz-bff-uat`, `wellnessz-bff`. The Helm overlays already expect these
+  scopes (`SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_WELLNESSZ_SCOPE` in `environments/azure/<env>.yaml`). The
+  commands below use `$API_NAME` and `$BFF_NAME`:
+
+```bash
+if [ "$ENV" = prod ]; then API_NAME=wellnessz-api BFF_NAME=wellnessz-bff; else API_NAME=wellnessz-api-$ENV BFF_NAME=wellnessz-bff-$ENV; fi
+```
+
+* **MFA** for external users (section 5.3a) is a Conditional Access policy per environment's apps.
+* Prefer a separate test tenant for DEV if the client's policy forbids test accounts in the workforce tenant; the
+  steps are identical.
 
 ### 5.1 Groups (role assignment through groups)
 
@@ -150,11 +223,11 @@ URIs; prod should have its own registrations.
 | `sg-wellnessz-hr` | HR | HR partners |
 | `sg-wellnessz-oh-clinicians` | OH_CLINICIAN | OH physicians and nurses |
 | `sg-wellnessz-case-managers` | CASE_MANAGER | OH case managers |
-| `sg-wellnessz-psych` | PSYCH_CLINICIAN | Psychological health clinicians (restricted E09) |
+| `sg-wellnessz-psych` | PSYCH_CLINICIAN | Psychological health clinicians – **named individuals only**; the restricted clinical class of E09 (support cases, screening, urgent call-backs, EAP detail) |
 | `sg-wellnessz-oh-admins` | OH_ADMIN | OH service administrators |
 | `sg-wellnessz-auditors` | AUDITOR | Internal audit, GRC |
 | `sg-wellnessz-platform-admins` | PLATFORM_ADMIN | Platform operators (PIM-eligible only) |
-| `sg-wellnessz-partners` | PARTNER_PROVIDER | External providers (B2B guests; MFA required since increment 4 – section 5.3a) |
+| `sg-wellnessz-partners` | PARTNER_PROVIDER | External providers incl. EAP counsellors (B2B guests; MFA required – section 5.3a) |
 | `sg-wellnessz-oh-physicians` | OH_PHYSICIAN | OH physicians (increment 1) |
 | `sg-wellnessz-ame` | AME | Aeromedical examiners (increment 1) |
 | `sg-wellnessz-cmo` | CMO | Chief Medical Officer and deputy (increment 1; approves triage protocols) |
@@ -174,6 +247,14 @@ URIs; prod should have its own registrations.
 | `sg-wellnessz-legal` | LEGAL_COUNSEL | Legal counsel – litigation hold, privilege, medico-legal requests (increment 4) |
 | `sg-wellnessz-finance` | FINANCE | Finance – cost roll-ups by unit, budgets, ERP export; no names (increment 4) |
 | `sg-wellnessz-procurement` | PROCUREMENT | Procurement – provider directory, contracts, rates, SLAs (increment 4) |
+| `sg-wellnessz-peer-volunteers` | PEER_SUPPORT_VOLUNTEER | Trained crew peer-support volunteers – pseudonymous requests only (increment 5) |
+| `sg-wellnessz-peer-coordinators` | PEER_SUPPORT_COORDINATOR | Peer-support programme coordinators (increment 5) |
+| `sg-wellnessz-safety-managers` | SAFETY_MANAGER | Safety managers – for-cause requests, CISM and testing counts, status only (increment 5) |
+| `sg-wellnessz-da-programme` | DA_PROGRAMME_MANAGER | Drug & alcohol programme managers – policies, pools, selections, statistics; **no results** (increment 5) |
+| `sg-wellnessz-mro` | MRO | Medical review officers – **named individuals only**, restricted clinical class for test results (increment 5) |
+| `sg-wellnessz-collectors` | COLLECTOR | Specimen collectors – collection and chain of custody (increment 5) |
+| `sg-wellnessz-health-promotion` | HEALTH_PROMOTION_LEAD | Health promotion leads – insights, campaigns, screening events, aggregated reports (increment 5) |
+| `sg-wellnessz-ergonomists` | ERGONOMIST | Ergonomists – assessments and actions (increment 5) |
 | `sg-wellnessz-aks-admins` | – | AKS cluster admins (`aks_admin_group_object_ids`) |
 | `sg-wellnessz-db-admins` | – | PostgreSQL Entra admin (`postgres_entra_admin`) |
 
@@ -221,7 +302,15 @@ cat > /tmp/wz-roles.json <<'EOF'
  {"allowedMemberTypes":["User"],"displayName":"TPA adjuster","value":"TPA_ADJUSTER","description":"External adjuster - own payer claims, partner portal, MFA required","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000001b"},
  {"allowedMemberTypes":["User"],"displayName":"Legal counsel","value":"LEGAL_COUNSEL","description":"Litigation hold, privilege, medico-legal requests","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000001c"},
  {"allowedMemberTypes":["User"],"displayName":"Finance","value":"FINANCE","description":"Cost roll-ups by unit, budgets, ERP export - no names","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000001d"},
- {"allowedMemberTypes":["User"],"displayName":"Procurement","value":"PROCUREMENT","description":"Provider directory, contracts, rates, SLAs","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000001e"}
+ {"allowedMemberTypes":["User"],"displayName":"Procurement","value":"PROCUREMENT","description":"Provider directory, contracts, rates, SLAs","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000001e"},
+ {"allowedMemberTypes":["User"],"displayName":"Peer support volunteer","value":"PEER_SUPPORT_VOLUNTEER","description":"Pseudonymous peer-support requests","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-00000000001f"},
+ {"allowedMemberTypes":["User"],"displayName":"Peer support coordinator","value":"PEER_SUPPORT_COORDINATOR","description":"Peer-support programme coordination","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000020"},
+ {"allowedMemberTypes":["User"],"displayName":"Safety manager","value":"SAFETY_MANAGER","description":"For-cause requests, counts and status only","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000021"},
+ {"allowedMemberTypes":["User"],"displayName":"D&A programme manager","value":"DA_PROGRAMME_MANAGER","description":"Testing policies, pools, selections, statistics - no results","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000022"},
+ {"allowedMemberTypes":["User"],"displayName":"MRO","value":"MRO","description":"Medical review officer - restricted clinical class","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000023"},
+ {"allowedMemberTypes":["User"],"displayName":"Collector","value":"COLLECTOR","description":"Specimen collection and chain of custody","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000024"},
+ {"allowedMemberTypes":["User"],"displayName":"Health promotion lead","value":"HEALTH_PROMOTION_LEAD","description":"Insights, campaigns, screening events - aggregated only","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000025"},
+ {"allowedMemberTypes":["User"],"displayName":"Ergonomist","value":"ERGONOMIST","description":"Ergonomic assessments and actions","isEnabled":true,"id":"6f1d4a10-0000-4000-8000-000000000026"}
 ]
 EOF
 ```
@@ -229,10 +318,11 @@ EOF
 Generate your own GUIDs (`uuidgen`) for the `id` fields; the values above are examples. The last nine roles were
 added in increment 1 (E01 intake, E02 triage); `DPO` was added in increment 2 (E03, E05); `CLINIC_SCHEDULER`,
 `BIOMEDICAL`, `CREW_LICENSING` and `CANDIDATE` in increment 3 (E06, E07, E14); `CLAIMS_COORDINATOR`,
-`TPA_ADJUSTER`, `LEGAL_COUNSEL`, `FINANCE` and `PROCUREMENT` in increment 4 (E04, E08). Then create the API app:
+`TPA_ADJUSTER`, `LEGAL_COUNSEL`, `FINANCE` and `PROCUREMENT` in increment 4 (E04, E08); the last eight in increment 5
+(E09–E12) – 38 roles in total. Then create the API app of this environment:
 
 ```bash
-API_APP_ID=$(az ad app create --display-name wellnessz-api --identifier-uris api://wellnessz-api --app-roles @/tmp/wz-roles.json --query appId -o tsv) && echo $API_APP_ID
+API_APP_ID=$(az ad app create --display-name $API_NAME --identifier-uris api://$API_NAME --app-roles @/tmp/wz-roles.json --query appId -o tsv) && echo $API_APP_ID
 ```
 
 Issue v2 access tokens and expose a delegated scope `access_as_user`:
@@ -303,7 +393,15 @@ for the same person unless that person is also an OH clinician. Assign `CANDIDAT
 `TPA_ADJUSTER` and `PARTNER_PROVIDER` are for B2B guests only and require MFA (section 5.3a); if you map roles from
 group object ids, add the new groups to **both** group-role mappings.
 
-**Values to note.** The API's application (client) ID is the **audience** (`WZ_OIDC_AUDIENCE`). The issuer is
+**Existing tenant (upgrade to increment 5).** Append the eight increment-5 entries (`PEER_SUPPORT_VOLUNTEER`,
+`PEER_SUPPORT_COORDINATOR`, `SAFETY_MANAGER`, `DA_PROGRAMME_MANAGER`, `MRO`, `COLLECTOR`, `HEALTH_PROMOTION_LEAD`,
+`ERGONOMIST`) in the same way, update the registration of **each** environment and assign the eight new groups.
+`PSYCH_CLINICIAN` and `MRO` open the restricted clinical class: add named individuals only, record the approval of the
+Clinical Director / CMO, and include both groups in the quarterly access review (section 17). The programme manager
+must not also be an MRO. If you map roles from group object ids, add the new groups to **both** group-role mappings.
+
+**Values to note per environment.** The API's application (client) ID is the **audience** (`WZ_OIDC_AUDIENCE` →
+`<env-wellnessz-api-client-id>` in `environments/azure/<env>.yaml`). The issuer is
 `https://login.microsoftonline.com/<tenant-id>/v2.0`.
 
 ### 5.3 `employee_id` and `org_scope` claims
@@ -361,6 +459,11 @@ recruiting sends to `POST /api/v1/integration/pre-employment`) and `org_scope=/C
 the offer is closed; non-hired candidates' health data is purged after 12 months by the core. Until a candidate
 identity source is decided (doc 01, D17), use B2B guest accounts in `sg-wellnessz-candidates` only in dev / test.
 
+**EAP providers (increment 5).** Counsellors of the contracted employee assistance programme are B2B guests in
+`sg-wellnessz-partners` (role `PARTNER_PROVIDER`) with `org_scope=/PARTNERS/EAP_WELLBEING` – or the code of the
+contracted EAP in the partner-organisation master data. They see only the *EAP referrals* of their own organisation
+(minimal data) and return attendance only; MFA applies as for every partner (section 5.3a).
+
 **TPA adjusters (increment 4).** Adjusters are B2B guests in `sg-wellnessz-tpa-adjusters` with
 `org_scope=/PARTNERS/<PAYER>`, where `<PAYER>` is the insurer or TPA code in the partner-organisation master data (for
 example `/PARTNERS/GULFTPA`). An adjuster sees only claims and pre-authorisations where that organisation is the payer.
@@ -373,7 +476,13 @@ az rest --method POST --uri https://graph.microsoft.com/v1.0/invitations --body 
 Then add the guest to `sg-wellnessz-partners` or `sg-wellnessz-tpa-adjusters` and set the `org_scope` extension
 attribute (Option A above) on the guest user object.
 
-### 5.3a MFA for partner and adjuster guests (increment 4)
+### 5.3a MFA for partner, adjuster and EAP guests [M]
+
+> **Manual, per environment.** Conditional Access policies and MFA enrolment are tenant settings; they cannot be
+> created from this repository. In DEV the overlay leaves `WZ_MFA_REQUIRED_ROLES` empty so that test identities
+> work; UAT and PROD enforce it – create and **enable** the policy for the UAT and PROD apps before their first
+> partner sign-in. Each guest enrols a second factor at first sign-in (or brings it through cross-tenant trust) –
+> this enrolment is a user action and is part of partner onboarding.
 
 The core grants `PARTNER_PROVIDER` and `TPA_ADJUSTER` only when the access token proves MFA (`amr` contains `mfa`,
 or `acr` is one of `2`, `3`, `mfa`, `c1` – `WZ_MFA_REQUIRED_ROLES`, on by default outside the `local` profile). In
@@ -382,7 +491,8 @@ Entra ID, MFA for guests is enforced with Conditional Access:
 1. Optionally trust MFA from the partner's home tenant: *External Identities → Cross-tenant access settings → Default
    settings (or the partner organisation) → Inbound access → Trust settings → Trust multifactor authentication from
    Microsoft Entra tenants*. Without it the guest registers MFA in your tenant at first sign-in.
-2. Create the Conditional Access policy (report-only first, then on):
+2. Create the Conditional Access policy (report-only first, then on) – after sections 5.2 and 5.4, so that
+   `$API_APP_ID` and `$BFF_APP_ID` hold this environment's registrations:
 
    ```bash
    az rest --method POST --uri https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies --body "{\"displayName\":\"WellnessZ - partners and adjusters require MFA\",\"state\":\"enabledForReportingButNotEnforced\",\"conditions\":{\"clientAppTypes\":[\"all\"],\"applications\":{\"includeApplications\":[\"$BFF_APP_ID\",\"$API_APP_ID\"]},\"users\":{\"includeGuestsOrExternalUsers\":{\"guestOrExternalUserTypes\":\"b2bCollaborationGuest,b2bCollaborationMember\",\"externalTenants\":{\"membershipKind\":\"all\"}}}},\"grantControls\":{\"operator\":\"OR\",\"authenticationStrength\":{\"id\":\"00000000-0000-0000-0000-000000000002\"}},\"sessionControls\":{\"signInFrequency\":{\"value\":12,\"type\":\"hours\",\"isEnabled\":true},\"persistentBrowser\":{\"mode\":\"never\",\"isEnabled\":true}}}"
@@ -406,8 +516,14 @@ Entra ID, MFA for guests is enforced with Conditional Access:
 
 ### 5.4 BFF app registration `wellnessz-bff` (confidential web client)
 
+Set the host suffix of the environment (`.dev`, `.uat` or empty for PROD) and your domain:
+
 ```bash
-BFF_APP_ID=$(az ad app create --display-name wellnessz-bff --web-redirect-uris https://employee.wellnessz.example.com/login/oauth2/code/wellnessz https://manager.wellnessz.example.com/login/oauth2/code/wellnessz https://oh.wellnessz.example.com/login/oauth2/code/wellnessz https://partners.wellnessz.example.com/login/oauth2/code/wellnessz --query appId -o tsv) && echo $BFF_APP_ID
+DOMAIN=wellnessz.example.com; if [ "$ENV" = prod ]; then SUF=""; else SUF=".$ENV"; fi
+```
+
+```bash
+BFF_APP_ID=$(az ad app create --display-name $BFF_NAME --web-redirect-uris https://employee$SUF.$DOMAIN/login/oauth2/code/wellnessz https://manager$SUF.$DOMAIN/login/oauth2/code/wellnessz https://oh$SUF.$DOMAIN/login/oauth2/code/wellnessz https://partners$SUF.$DOMAIN/login/oauth2/code/wellnessz --query appId -o tsv) && echo $BFF_APP_ID
 ```
 
 The BFF builds the redirect URI from the host the browser used, so every web host needs its own entry. The OH
@@ -415,11 +531,11 @@ workspace host `oh.<domain>` was added in increment 1, the partner portal host `
 For an existing registration:
 
 ```bash
-az ad app update --id $BFF_APP_ID --web-redirect-uris https://employee.wellnessz.example.com/login/oauth2/code/wellnessz https://manager.wellnessz.example.com/login/oauth2/code/wellnessz https://oh.wellnessz.example.com/login/oauth2/code/wellnessz https://partners.wellnessz.example.com/login/oauth2/code/wellnessz
+az ad app update --id $BFF_APP_ID --web-redirect-uris https://employee$SUF.$DOMAIN/login/oauth2/code/wellnessz https://manager$SUF.$DOMAIN/login/oauth2/code/wellnessz https://oh$SUF.$DOMAIN/login/oauth2/code/wellnessz https://partners$SUF.$DOMAIN/login/oauth2/code/wellnessz
 ```
 
 ```bash
-az ad app update --id $BFF_APP_ID --enable-id-token-issuance false --enable-access-token-issuance false --set "web.logoutUrl=https://employee.wellnessz.example.com/"
+az ad app update --id $BFF_APP_ID --enable-id-token-issuance false --enable-access-token-issuance false --set "web.logoutUrl=https://employee$SUF.$DOMAIN/"
 ```
 
 Grant the delegated scope on the API and give admin consent:
@@ -438,7 +554,8 @@ These four Microsoft Graph scopes are `openid`, `profile`, `email` and `offline_
 az ad app permission admin-consent --id $BFF_APP_ID
 ```
 
-Create a client secret. It is stored **only** in Key Vault in section 7; do not keep a copy. Prefer a 6-month
+Create a client secret. It is stored **only** in the Key Vault **of this environment** in section 7; do not keep
+a copy. Prefer a 6-month
 expiry and rotate it.
 
 ```bash
@@ -525,6 +642,20 @@ added to the access token).
 | `wellnessz-insurer-<payer>` | `POST /integration/preauthorisations/{ref}/decision`, `POST /integration/claims/reports/{ref}/acknowledgement` | Insurer / TPA system instead of the adjuster portal |
 | `wellnessz-telehealth` (video platform) | `POST /integration/telehealth/tokens/redeem` | Only after the platform is selected (doc 01, D15) |
 
+**Clients for increment 5.** Same pattern – one registration per system and environment, certificate credential,
+`INTEGRATION` application role:
+
+| App registration (example) | Calls (all on `https://api.<domain>/api/v1`) | Binding / notes |
+|---|---|---|
+| `wellnessz-toxlab` (toxicology laboratory LIMS) | `GET /integration/testing/lab-orders`, `POST /integration/testing/lab-results` | **Must** carry the fixed claim `org_scope=/PARTNERS/TOXLAB` (or the code set in the E18 key `substance.laboratory-code`). Any other or unbound client gets `404` and an audit entry. External system – through the WAF |
+| `wellnessz-duty-feed` (one per source: crew rostering, shift planning, facility access) | `POST /integration/duty-assignments` (`source` `CREW_ROSTER`, `SHIFT`, `FACILITY`) | **Internal clients only** – no `org_scope` partner claim; reach the API through the private listener (ExpressRoute / VPN). Feeds CISM affected-crew lists, contact tracing and travel advisories |
+| `wellnessz-campaign-app` | `POST /integration/promotion/participation` | No partner claim (partner-bound clients get `403`); receives campaign publications from the `campaign-app` outbox once a connector exists |
+| `wellnessz-wearables-<vendor>` | `POST /integration/wearables/data` | Daily totals only; data without an active consented enrolment is rejected; no partner claim |
+
+The safety management system receives quarterly aggregated peer-support figures through the `sms-safety` outbox
+destination; like the other outbound destinations it is delivered by the configured publisher (logging today) – no
+inbound client is needed.
+
 Gateways in the corporate network reach the API through the App Gateway private listener (ExpressRoute / VPN) where
 possible; partner and insurer systems come from the internet through the WAF. Smoke test with a gateway token:
 
@@ -571,63 +702,99 @@ the Keycloak Operator in its own namespace, or a managed Keycloak service.
 (`WZ_OIDC_AUDIENCE`). To trust Entra ID and Keycloak side by side during a migration, use the same audience in both
 IdPs: in Keycloak, set the audience mapper's *Included Custom Audience* to the Entra API client ID.
 
-## 6. Provision the infrastructure with Terraform
+## 6. Provision the infrastructure with Terraform [A]
+
+The committed variable files hold everything that differs between environments (sizes, zones, CIDRs, retention,
+WAF mode, `migrations_mode`, GitHub trust); tenant-specific identifiers go into a git-ignored
+`environments/<env>.local.tfvars`. Never edit `variables.tf` defaults per environment.
 
 ```bash
 cd deploy/terraform/azure
 ```
 
+**Once per environment** – identifiers (no secrets) from `environments/local.tfvars.example`:
+
 ```bash
-cp backend.hcl.example backend.hcl && cp terraform.tfvars.example terraform.tfvars
+cp environments/local.tfvars.example environments/$ENV.local.tfvars
 ```
 
-Edit `backend.hcl`: set `key = "wellnessz/dev/azure.tfstate"` (one key per environment). Then edit
-`terraform.tfvars`:
-
-| Variable | Example | Notes |
+| Variable (`$ENV.local.tfvars`) | Example | Notes |
 |---|---|---|
-| `subscription_id` | `0000…` | Environment subscription |
-| `location` | `westeurope` | Must offer availability zones and PostgreSQL zone-redundant HA |
-| `environment` | `dev` / `test` / `prod` | Drives names, SKU tier and the delete lock |
-| `aks_admin_group_object_ids` | `["<sg-wellnessz-aks-admins id>"]` | Cluster admins via Azure RBAC |
-| `aks_private_cluster` | `true` (prod) / `false` + `aks_authorized_ip_ranges` (dev) | Private API needs a runner in the VNet or `az aks command invoke` |
-| `postgres_entra_admin` | `{ object_id = "<sg-wellnessz-db-admins id>", principal_name = "sg-wellnessz-db-admins" }` | Entra admin of the database |
-| `postgres_ha_enabled`, `postgres_geo_redundant_backup` | `true` in prod, `false` in dev | Geo-redundancy cannot be changed after creation |
-| `postgres_cmk_enabled` | `false` (enable for prod if required) | With geo backup, also set the paired-region key and identity |
-| `migrations_mode` | `job` | Must match Helm `migrations.mode` |
-| `key_vault_allowed_ips` | `["<runner egress IP>/32"]` | Only while Terraform runs outside the VNet |
-| `github_repository` | `OWNER/WellnessZ` | Creates the GitHub OIDC deployer identity |
-| `log_retention_days` | `365` | SOC 2 evidence |
+| `subscription_id` | `0000…` | The environment's subscription (section 3) |
+| `aks_admin_group_object_ids` | `["<sg-wellnessz-aks-admins-$ENV id>"]` | Cluster admins via Azure RBAC |
+| `postgres_entra_admin` | `{ object_id = "<id>", principal_name = "sg-wellnessz-db-admins-$ENV" }` | Entra admin of the database |
+| `github_repository` | `OWNER/WellnessZ` | Creates the GitHub OIDC deployer identity trusted by GitHub Environment `azure-$ENV` only |
+| `key_vault_allowed_ips` | `["<runner egress IP>/32"]` | Only while Terraform runs outside the VNet (needed for section 7 too) |
+| `aks_authorized_ip_ranges` | `["<corporate egress>/24", "<runner range>"]` | **DEV only** (public API server); replace the `203.0.113.0/24` placeholder in `dev.tfvars` by setting it here |
 
-Initialise against the remote state:
+Review the committed `environments/$ENV.tfvars` (excerpt of what differs):
+
+| Variable | `dev.tfvars` | `uat.tfvars` | `prod.tfvars` |
+|---|---|---|---|
+| `environment` | `dev` | `uat` | `prod` |
+| `availability_zones` / `resource_lock_enabled` | `["1"]` / `false` | `["1","2","3"]` / `true` | `["1","2","3"]` / `true` |
+| `vnet_address_space` | `10.48.0.0/16` | `10.44.0.0/16` | `10.40.0.0/16` |
+| `aks_private_cluster` / `aks_sku_tier` | `false` / `Free` | `true` / `Standard` | `true` / `Standard` |
+| `aks_user_node_min` – `max` | 1–3 | 2–5 | 3–9 |
+| `migrations_mode` | `app` | `job` | `job` |
+| `postgres_sku` | `B_Standard_B2ms` | `GP_Standard_D2ds_v5` | `GP_Standard_D4ds_v5` |
+| `postgres_ha_enabled` / `postgres_geo_redundant_backup` | `false` / `false` | `true` / `false` | `true` / `true` (immutable after creation) |
+| `postgres_backup_retention_days` | 7 | 14 | 35 |
+| `waf_mode` | `Detection` | `Prevention` | `Prevention` |
+| `log_retention_days` / `key_vault_soft_delete_days` | 30 / 7 | 90 / 30 | 365 / 90 |
+| `enable_defender_plans` | `false` | `true` | `true` |
+| `github_environments` / `github_image_publish_branches` | `["azure-dev"]` / `["main"]` | `["azure-uat"]` / `[]` | `["azure-prod"]` / `[]` |
+
+`location` is `westeurope` in all three files; change it in all three together if the client needs another region
+(it must offer availability zones and zone-redundant PostgreSQL HA). `postgres_cmk_enabled` is `false` everywhere –
+set it to `true` in `prod.tfvars` (plus the geo-backup key and identity) if the client requires customer-managed keys.
+
+Initialise against this environment's state (`-reconfigure` switches cleanly between environments in one checkout):
 
 ```bash
-terraform init -backend-config=backend.hcl
+terraform init -reconfigure -backend-config=environments/backend-$ENV.hcl
 ```
 
 Expected: `Terraform has been successfully initialized!` The provider versions and checksums come from the
 committed `.terraform.lock.hcl`.
 
 ```bash
-terraform plan -out tfplan
+terraform plan -var-file=environments/$ENV.tfvars -var-file=environments/$ENV.local.tfvars -out $ENV.tfplan
 ```
 
 Review the plan. Expect about 110 resources on the first apply. Look for anything that destroys or replaces
-PostgreSQL or Key Vault: both carry `prevent_destroy`.
+PostgreSQL or Key Vault: both carry `prevent_destroy`. For UAT and PROD attach the plan output to the change ticket
+**[M]** and have a second engineer review it.
 
 ```bash
-terraform apply tfplan
+terraform apply $ENV.tfplan && rm $ENV.tfplan
 ```
 
-Duration: 30–50 minutes. AKS and the PostgreSQL HA standby take longest. Then export the outputs:
+(The plan file is not git-ignored and may contain sensitive values – delete it after the apply.) Duration: 30–50
+minutes; AKS and the PostgreSQL HA standby take longest. Then export the outputs:
 
 ```bash
-terraform output -json > /tmp/wz-azure-outputs.json && jq 'with_entries(.value |= .value)' /tmp/wz-azure-outputs.json
+terraform output -json > /tmp/wz-azure-$ENV-outputs.json && jq 'with_entries(.value |= .value)' /tmp/wz-azure-$ENV-outputs.json
 ```
 
-Note `acr_login_server`, `key_vault_name`, `core_identity_client_id`, `bff_identity_client_id`,
-`migrator_identity_client_id`, `postgres_fqdn`, `aks_cluster_name`, `resource_group_name`,
-`application_gateway_public_ip` and `github_deployer_client_id`.
+| Output | Used for |
+|---|---|
+| `acr_login_server` | `global.imageRegistry` (`<acr_login_server>/wellnessz`), GitHub variable `IMAGE_REGISTRY` |
+| `key_vault_name` | `secrets.azure.keyVaultName`; section 7 |
+| `tenant_id` | `workloadIdentity.azure.tenantId`, `secrets.azure.tenantId`, issuer URLs, `AZURE_TENANT_ID` |
+| `core_identity_client_id`, `bff_identity_client_id`, `migrator_identity_client_id` | `workloadIdentity.azure.clientIds.{core,bff,migrations}` |
+| `postgres_fqdn` | `core.env.WZ_DB_URL` (first label = `<env-pg-server-name>`); section 8 |
+| `resource_group_name`, `aks_cluster_name` | GitHub variables `AKS_RESOURCE_GROUP`, `AKS_CLUSTER_NAME` |
+| `subnet_cidrs` | `networkPolicy.ingressController.ipBlocks` (appgw) and `networkPolicy.database.cidrs` (postgres) – already set in the overlays |
+| `application_gateway_public_ip` / `front_door_endpoint_host` | DNS (section 9) |
+| `github_deployer_client_id`, `github_environments` | GitHub variable `AZURE_CLIENT_ID` of Environment `azure-$ENV` (section 10) |
+| `aks_oidc_issuer_url`, `log_analytics_workspace_id`, `environment` | Reference / evidence |
+
+Validate locally before any PR that touches Terraform:
+
+```bash
+terraform fmt -check -recursive && terraform init -backend=false && terraform validate
+```
 
 ### 6.1 Verify
 
@@ -639,8 +806,8 @@ az aks get-credentials -g $(terraform output -raw resource_group_name) -n $(terr
 kubectl get nodes -o wide
 ```
 
-Expected: 3 `system` and at least 3 `apps` nodes across zones 1–3, all `Ready`. For a private cluster, run the same
-check through command invoke instead:
+Expected: PROD 3 `system` and at least 3 `apps` nodes across zones 1–3; UAT 2 + 2; DEV 1 + 1 in zone 1 – all
+`Ready`. UAT and PROD are private clusters: run the same check through command invoke instead:
 
 ```bash
 az aks command invoke -g <rg> -n <aks> --command "kubectl get nodes"
@@ -652,7 +819,7 @@ az postgres flexible-server show -g <rg> -n <server> --query "{state:state, ha:h
 
 Expected: `Ready`, `Healthy`, `16`, `Disabled`.
 
-## 7. Bootstrap secrets (dual control)
+## 7. Bootstrap secrets (dual control) [M]
 
 Terraform has created all Key Vault secrets. The generated DB passwords (`wz-pg-admin-password`,
 `wz-db-password`, `wz-bff-db-password`, `wz-migrator-db-password`) are written through write-only arguments and
@@ -685,8 +852,36 @@ Verify (names and versions only, never values):
 az keyvault secret list --vault-name $KV --query "[].{name:name, enabled:attributes.enabled, expires:attributes.expires}" -o table
 ```
 
-To encrypt other configuration values with `ENC(...)`, run `tools/encrypt-secret.sh` with
-`WZ_MASTER_KEY_FILE` pointing to a temporary file holding the same key. Delete the file afterwards.
+Generate **different** key material for every environment; never copy a PROD key to DEV or UAT.
+
+### 7.1 `ENC(...)` values for passwords that must live in configuration
+
+In Kubernetes the database passwords are **not** in configuration at all: the CSI driver mounts them from Key Vault
+and the chart passes `WZ_DB_PASSWORD=file:/mnt/secrets/core/wz-db-password` (`format: fileRef` in
+`values-azure.yaml`); `platform/wz-secrets` reads the file at start-up. When a password has to live in a values file
+or ConfigMap instead – for example an IMAP or SMTP relay password, or a client-specific connector in `core.extraEnv` –
+store it as an `ENC(...)` value encrypted with **this environment's** `wz-master-key`:
+
+```bash
+umask 077 && KEYFILE=$(mktemp) && az keyvault secret show --vault-name $KV -n wz-master-key --query value -o tsv > $KEYFILE
+```
+
+```bash
+WZ_MASTER_KEY_FILE=$KEYFILE ./tools/encrypt-secret.sh; rm -f $KEYFILE
+```
+
+The tool (`com.wellnessz.secrets.EncryptCli`) prompts for the value without echo and prints `ENC(…)`. Put it into the
+overlay, for example:
+
+```yaml
+core:
+  extraEnv:
+    - name: WZ_IMAP_PASSWORD
+      value: "ENC(…)"
+```
+
+The core decrypts it at start-up with `WZ_MASTER_KEY_FILE` (mounted from Key Vault). The value is useless in another
+environment, and gitleaks ignores `ENC(...)` values only because they are ciphertext – never commit a plaintext.
 
 ## 8. Bootstrap the database
 
@@ -710,15 +905,17 @@ on your workstation with `az keyvault secret show --vault-name $KV -n <name> --q
 in; do not store them in files.
 
 ```bash
-PGPASSWORD="<token>" psql "host=<pghost> dbname=wellnessz user=sg-wellnessz-db-admins sslmode=verify-full sslrootcert=system" -v migrator_pw='<wz-migrator-db-password>' -v app_pw='<wz-db-password>' -v bff_pw='<wz-bff-db-password>' -f /sql/bootstrap-managed-postgres.sql
+PGPASSWORD="<token>" psql "host=<pghost> dbname=wellnessz user=sg-wellnessz-db-admins-<env> sslmode=verify-full sslrootcert=system" -v migrator_pw='<wz-migrator-db-password>' -v app_pw='<wz-db-password>' -v bff_pw='<wz-bff-db-password>' -f /sql/bootstrap-managed-postgres.sql
 ```
 
 Expected last line:
 `WellnessZ bootstrap complete: wz_migrator owns wellnessz + schemas; wz_app/wz_bff have CONNECT only (table grants via Flyway).`
 
 The script creates the schemas `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence,
-surveillance, scheduling, treatment, claims, analytics` (`triage` since increment 1; `docs`, `ohrecord`, `fitness`
-since increment 2; `absence`, `surveillance`, `scheduling` since increment 3; `treatment`, `claims` since increment 4).
+surveillance, scheduling, treatment, claims, mentalhealth, substance, travelhealth, promotion, analytics` (`triage`
+since increment 1; `docs`, `ohrecord`, `fitness` since increment 2; `absence`, `surveillance`, `scheduling` since
+increment 3; `treatment`, `claims` since increment 4; `mentalhealth`, `substance`, `travelhealth`, `promotion` since
+increment 5). Run it once per environment, against that environment's server.
 **Upgrading an environment bootstrapped before increment 1:** Flyway V5 creates schema `triage` itself (as
 `wz_migrator`, which owns the database) and grants `USAGE` to `wz_app`, so the upgrade works without a manual step.
 Re-run the idempotent bootstrap script anyway to align ownership and the roles' `search_path` with the new schema
@@ -726,7 +923,14 @@ list. The same applies to increment 2: Flyway V6, V7 and V8 create `docs`, `ohre
 to `wz_app`; re-run the bootstrap to update `search_path`. Increment 3 is identical: Flyway V10, V11 and V12 create
 `absence`, `surveillance` and `scheduling` (V9 adds platform rows only); re-run the bootstrap once. Increment 4 is
 the same: Flyway V14 and V15 create `treatment` and `claims` (V13 adds the partner organisations and the `CLAIM_RECORD`
-retention class); re-run the bootstrap once to update `search_path`.
+retention class); re-run the bootstrap once to update `search_path`. Increment 5 likewise: Flyway V17–V20 create
+`mentalhealth`, `substance`, `travelhealth` and `promotion` (V16 adds the duty-assignment table, the partner
+organisations `EAP_WELLBEING`, `TOXLAB`, `UKHSA_LOCAL` and the retention classes `RESTRICTED_RECORD`, `PUBLIC_HEALTH`).
+
+**Who runs the migrations afterwards.** DEV (`migrations.mode: app`): core and BFF run Flyway as `wz_migrator` at
+start-up. UAT and PROD (`migrations.mode: job`): the Helm pre-install/pre-upgrade Job `wellnessz-migrations` runs
+Flyway with its own identity; the runtime pods never hold the migrator password. Migrations are forward-only –
+a `helm rollback` does not undo them (section 12.4).
 
 The pod is removed when you exit. Then delete the helper namespace:
 
@@ -736,8 +940,12 @@ kubectl delete namespace wz-admin
 
 ## 9. TLS certificates and DNS
 
-1. Obtain certificates for `employee.<domain>`, `manager.<domain>`, `oh.<domain>` (OH workspace, increment 1),
-   `partners.<domain>` (partner portal, increment 4) and `api.<domain>`, either from your public CA or with Key
+**[M]** per environment – the hosts are `employee`, `manager`, `oh`, `partners` and `api`, with the suffix
+`.dev.<domain>` (DEV), `.uat.<domain>` (UAT) or directly under `<domain>` (PROD), as set in
+`ingress.hosts` of `environments/azure/<env>.yaml`.
+
+1. Obtain certificates for the five hosts of the environment (a SAN or wildcard certificate per environment, for
+   example `*.uat.<domain>`), either from your public CA or with Key
    Vault-integrated issuance (DigiCert/GlobalSign).
 2. Import the certificate into Key Vault:
 
@@ -771,43 +979,65 @@ dig +short employee.wellnessz.example.com
 
 Expected: the App Gateway IP (or the Front Door address).
 
-## 10. GitHub configuration
+## 10. GitHub configuration: Environments, OIDC federation, required reviewers
 
-Detailed rationale is in the CI/CD Guide (document 09). Minimum for Azure:
+Detailed rationale is in the CI/CD Guide (document 09). Terraform has already created the **OIDC federation**: the
+deployer identity of each environment (output `github_deployer_client_id`) has a federated credential for
+`repo:<owner/repo>:environment:azure-<env>` only, and – in DEV only – for `…:ref:refs/heads/main` so that
+`container.yml` may push branch builds into the DEV ACR (`github_image_publish_branches = ["main"]`). No client secret
+exists anywhere.
 
-1. **Environments** `dev`, `test` and `prod` under *Settings → Environments*. Add required reviewers on `test`
-   and `prod` and the deployment branch rule `v*` on `prod`.
-2. **Environment variables** for each environment:
+### 10.1 GitHub Environments [M]
 
-   | Variable | Value |
-   |---|---|
-   | `CLOUD` | `azure` |
-   | `AZURE_CLIENT_ID` | `github_deployer_client_id` output |
-   | `AZURE_TENANT_ID` | `tenant_id` output |
-   | `AZURE_SUBSCRIPTION_ID` | Environment subscription |
-   | `AKS_RESOURCE_GROUP` | `resource_group_name` output |
-   | `AKS_CLUSTER_NAME` | `aks_cluster_name` output |
-   | `AKS_PRIVATE` | `true` / `false` |
-   | `IMAGE_REGISTRY` | `<acr_login_server>/wellnessz` |
-   | `VALUES_FILE` | `deploy/helm/wellnessz/values-azure.yaml` |
-   | `ENV_VALUES_FILE` | Per-environment overrides, for example `deploy/env/prod-azure.yaml` |
-   | `HELM_RELEASE`, `K8S_NAMESPACE` | `wellnessz` |
+> **Manual – cannot be set from code.** Environments, their protection rules and required reviewers are repository
+> settings (*Settings → Environments*). Configure them with a repository administrator and keep a screenshot as
+> SOC 2 CC8.1 evidence.
 
-3. **Repository variables:**
+| Environment | Deployment branches and tags | Required reviewers | Other protection |
+|---|---|---|---|
+| `azure-dev` | branch `main` + tags `v*` | none (automatic) | – |
+| `azure-uat` | tags `v*` | **yes** – QA lead / business acceptance lead (at least one) | *Prevent self-review* on |
+| `azure-prod` | tags `v*` | **yes** – CAB / security group (at least two people recommended) | *Prevent self-review* on; optional wait timer (for example 30 minutes); *Allow administrators to bypass* **off** |
 
-   | Variable | Value |
-   |---|---|
-   | `IMAGE_REGISTRY_KIND` | `acr` |
-   | `ACR_NAME` | The registry name, i.e. the `acr_login_server` output without `.azurecr.io` |
-   | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | Values for the registry subscription |
+### 10.2 Environment variables (no secrets) [A-ready values, entered once]
 
-4. **Secret:** `NVD_API_KEY` (OWASP dependency-check).
+Set these on **each** of the three Environments from the `terraform output` of the same environment:
 
-Terraform already created federated credentials for `repo:<owner/repo>:environment:<env>` and
-`…:ref:refs/heads/main`. No client secret is needed.
+| Variable | Value |
+|---|---|
+| `AZURE_CLIENT_ID` | `github_deployer_client_id` |
+| `AZURE_TENANT_ID` | `tenant_id` |
+| `AZURE_SUBSCRIPTION_ID` | the environment's subscription |
+| `AKS_RESOURCE_GROUP`, `AKS_CLUSTER_NAME` | `resource_group_name`, `aks_cluster_name` |
+| `AKS_PRIVATE` | `false` (DEV) / `true` (UAT, PROD – the workflow then uses `az aks command invoke`) |
+| `IMAGE_REGISTRY` | `<acr_login_server>/wellnessz` |
+| `HELM_RELEASE`, `K8S_NAMESPACE` | `wellnessz` / `wellnessz` (defaults; must match Terraform `helm_release_name` / `k8s_namespace`) |
+| `SMOKE_URLS` | optional, space separated, for example `https://employee.uat.<domain>/ https://oh.uat.<domain>/ https://partners.uat.<domain>/` |
+| `EXTRA_VALUES_FILES` | optional client overlay, for example `deploy/clients/acme/values.yaml` |
 
-Two cluster objects remain. The deployer identity holds *AKS RBAC Writer* on the namespace; it additionally needs
-the namespace itself and a Role for the CSI CRD. Create both once as a cluster admin:
+With the GitHub CLI (repository admin), for example for UAT:
+
+```bash
+gh variable set AZURE_CLIENT_ID --env azure-uat --body "$(jq -r .github_deployer_client_id.value /tmp/wz-azure-uat-outputs.json)"
+```
+
+### 10.3 Repository variables and secret
+
+| Variable | Value |
+|---|---|
+| `DEPLOY_CLOUDS` | `["azure"]` (or `["azure","gcp"]`) – clouds that `cd.yml` deploys |
+| `RELEASE_REGISTRY` | registry that `container.yml` pushes to (default `ghcr.io/<owner>/wellnessz`) |
+| `ACR_NAME` + repository-level `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | Only if `container.yml` should publish straight to the DEV ACR (manual run with `registry = acr`); the default publishes to GHCR and `deploy-env.yml` copies by digest |
+| `DEPLOY_RUNNER` | optional self-hosted runner label (alternative to `az aks command invoke` for private clusters) |
+| Secret `NVD_API_KEY` | OWASP dependency-check (the only repository secret) |
+
+Also **[M]**: branch protection on `main` (PR, 2 approvals, Code Owners, required checks `CI` and `CodeQL`, signed
+commits, linear history), secret scanning with push protection, Dependabot alerts.
+
+### 10.4 Cluster objects for the deployer [M, once per cluster]
+
+The deployer identity holds *AKS RBAC Writer* on the namespace; it additionally needs the namespace itself and a Role
+for the CSI CRD. Create both once per environment as a cluster admin (UAT/PROD through `az aks command invoke`):
 
 ```bash
 kubectl create namespace wellnessz && kubectl label namespace wellnessz pod-security.kubernetes.io/enforce=restricted
@@ -818,7 +1048,7 @@ kubectl -n wellnessz create role spc-writer --verb=get,list,watch,create,update,
 ```
 
 ```bash
-kubectl -n wellnessz create rolebinding spc-writer --role=spc-writer --user=$(jq -r '.github_deployer_client_id.value' /tmp/wz-azure-outputs.json)
+kubectl -n wellnessz create rolebinding spc-writer --role=spc-writer --user=$(jq -r '.github_deployer_client_id.value' /tmp/wz-azure-$ENV-outputs.json)
 ```
 
 With Azure RBAC for Kubernetes, the user name is the identity's object ID. Use
@@ -826,21 +1056,33 @@ With Azure RBAC for Kubernetes, the user name is the identity's object ID. Use
 
 ## 11. Per-environment Helm values
 
-Never edit `values-azure.yaml` with real identifiers in the shared repository. Copy it to an environment
-overrides file (`ENV_VALUES_FILE`) and replace every `<placeholder>`:
+The chart is layered `values.yaml` → `values-azure.yaml` → `environments/azure/<env>.yaml` (later wins) – the same
+order that `deploy/scripts/helm-release.sh` and `deploy-env.yml` use. The overlay already carries everything that
+differs per environment (replicas, PDBs, resources, hosts, `migrations.mode`, network CIDRs, log level, trace sampling,
+`WZ_MFA_REQUIRED_ROLES`, `global.requireImageDigests`). **[A]** Replace its `<placeholders>` with the outputs of the
+same environment and commit the change through a PR (identifiers only – no secrets):
 
 | Placeholder | Source |
 |---|---|
-| `<acr-name>` | `acr_login_server` |
-| `<tenant-id>` | `tenant_id` |
+| `<env-acr-name>` | `acr_login_server` |
+| `<env-tenant-id>` | `tenant_id` |
 | `<core-identity-client-id>`, `<bff-identity-client-id>`, `<migrator-identity-client-id>` | Terraform outputs |
 | `<key-vault-name>` | `key_vault_name` |
 | `<pg-server-name>` | First label of `postgres_fqdn` |
 | `<wellnessz-api-client-id>` | `$API_APP_ID` (audience) |
 | `<bff-app-registration-client-id>` | `$BFF_APP_ID` |
 | `<ehs-mailbox-app-client-id>` | Section 13 |
-| Hostnames | Your domain: `ingress.hosts.employeePortal`, `managerWorkspace`, `ohWorkspace` (increment 1), `partnerPortal` (increment 4), `ingress.api.host`; the employee / manager / OH hosts in `core.env.WZ_CORS_ORIGINS` (the partner portal needs no CORS entry – it uses the same-origin BFF) |
-| `networkPolicy.ingressController.ipBlocks`, `networkPolicy.database.cidrs` | `subnet_cidrs` output (App Gateway, PostgreSQL) |
+| Hostnames | Replace `wellnessz.example.com` with your domain in `ingress.hosts.*`, `ingress.api.host`, `core.env.WZ_CORS_ORIGINS`, the four `WZ_*_URL` notification links and `bff.env.WZ_BFF_POST_LOGOUT_URI` |
+| `networkPolicy.ingressController.ipBlocks`, `networkPolicy.database.cidrs` | Already the `subnet_cidrs` of the tfvars (`10.48/10.44/10.40` …) – change only together with the tfvars |
+
+Validate all three overlays before committing (the CI job *IaC & config checks* does the same):
+
+```bash
+for e in dev uat prod; do helm lint deploy/helm/wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-azure.yaml -f deploy/helm/wellnessz/environments/azure/$e.yaml --set-string core.image.digest=sha256:$(printf '0%.0s' $(seq 64)) --set-string bff.image.digest=sha256:$(printf '0%.0s' $(seq 64)) --set-string employeePortal.image.digest=sha256:$(printf '0%.0s' $(seq 64)) --set-string managerWorkspace.image.digest=sha256:$(printf '0%.0s' $(seq 64)) --set-string ohWorkspace.image.digest=sha256:$(printf '0%.0s' $(seq 64)) --set-string partnerPortal.image.digest=sha256:$(printf '0%.0s' $(seq 64)); done
+```
+
+(UAT and PROD set `global.requireImageDigests: true`, so rendering fails without a digest for every component – the
+dummy digests above are for linting only.)
 
 Increment 1 also adds these core settings (put them under `core.env` in the overrides file):
 
@@ -922,59 +1164,133 @@ Procurement replaces the illustrative partner network with the contracted one (`
 `PUT /api/v1/providers/{code}`, `POST /api/v1/providers/{code}/contracts`); report forms stay pending until Legal / HSE
 sign-off (`claims.forms.sign-off`).
 
+Increment 5 adds **no** required Helm value. Optional `core.extraEnv`: job schedules
+`WELLNESSZ_MENTALHEALTH_CISMFOLLOWUPSCRON`, `WELLNESSZ_MENTALHEALTH_PEERCALLBACKPURGECRON`,
+`WELLNESSZ_TRAVELHEALTH_DAILYCRON`, `WELLNESSZ_TRAVELHEALTH_EXPOSURETIMERCRON` (default every 5 minutes – keep it
+short), `WELLNESSZ_TRAVELHEALTH_PUBLICHEALTHCRON` (UTC). Keep `WZ_ANALYTICS_MIN_GROUP` at its default `5` (small-cell
+suppression) in UAT and PROD.
+
+**Business configuration after the first deployment (increment 5).** As an OH_ADMIN or PLATFORM_ADMIN user, per
+environment:
+
+| Key / data | Set to |
+|---|---|
+| `substance.laboratory-code` | Partner code of the contracted toxicology laboratory (default `TOXLAB`) – must equal the `org_scope` suffix of the laboratory client (section 5.6) |
+| `substance.acting-mro-physicians` | Usernames of OH physicians allowed to act as MRO (empty by default – leave empty unless the MRO contract names deputies) |
+| Testing policies (`PUT /api/v1/testing/policies/{roleGroup}`) | Approved policy per role group (rates, panels, cut-offs) – **MRO / Legal sign-off** before PROD |
+| `promotion.screening.threshold.*`, PHQ-9 / GAD-7 bands, travel recommendations, PEP timers | Reviewed values – **Clinical Governance sign-off** before PROD |
+| Partner organisations | Replace the illustrative `EAP_WELLBEING` / `TOXLAB` / `UKHSA_LOCAL` entries with the contracted EAP, laboratory and the competent public-health authority (`POST /api/v1/masterdata/partner-organisations`) |
+
 Do not set `WZ_FLYWAY_LOCATIONS` to include `classpath:db/demo` in any shared environment; with `migrations.mode: job`
 the migration Job reads only `db/migration`. The OH staff roster (`masterdata.staff_member`) has no import yet: load it
 with a reviewed SQL script as `wz_migrator` and push HRIS employees to `POST /api/v1/masterdata/employees`.
 
-Validate before committing:
-
-```bash
-helm lint deploy/helm/wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-azure.yaml -f deploy/env/dev-azure.yaml
-```
-
 `values.schema.json` rejects invalid values. For example, switching off the read-only root filesystem fails.
+
+**Client customisation.** Per-client settings (`customisation.client`, `customisation.featureFlags` →
+`WZ_FEATURE_<NAME>`, client Flyway migrations in schema `client_<client>`) go into
+`deploy/clients/<client>/values.yaml`, referenced by the Environment variable `EXTRA_VALUES_FILES` – see
+`deploy/environments/README.md`. Feature flags are delivered to core and BFF but no product feature reads them yet.
 
 ## 12. Build, sign and deploy
 
-### 12.1 Images (CI, recommended)
+### 12.1 Images – built once (CI) [A]
 
-Run **Actions → Container images → Run workflow** with `registry = acr`, or push to `main`. For each image the
-workflow builds, gates on Trivy (CRITICAL/HIGH), pushes to ACR with OIDC, attests the SBOM and SLSA provenance,
-and signs with cosign (keyless).
+Every push to `main` runs **Container images** (`container.yml`): six images built once, Trivy gate (CRITICAL/HIGH),
+push to the release registry (`RELEASE_REGISTRY`, default GHCR) with OIDC, SBOM and SLSA provenance attestations,
+cosign keyless signature, tag `sha-<12>`. Release tags are **not** rebuilt.
 
 Verify a signature from your workstation:
 
 ```bash
-az acr login -n <acr-name> && cosign verify <acr>.azurecr.io/wellnessz/wz-core-app:<tag> --certificate-identity-regexp "^https://github.com/OWNER/WellnessZ/.github/workflows/container.yml@" --certificate-oidc-issuer https://token.actions.githubusercontent.com
+cosign verify ghcr.io/OWNER/wellnessz/wz-core-app:sha-<12> --certificate-identity-regexp "^https://github.com/OWNER/WellnessZ/.github/workflows/container.yml@" --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-### 12.2 First install
+### 12.2 First deployment of an environment
 
-For the first install, use either path:
+Pre-conditions: sections 3–11 done for this environment, overlay committed on `main`, GitHub Environment configured.
 
-* **CD workflow:** push a tag `v0.1.0`, or run the CD workflow manually with `image_tag`.
-* **Manual** (cluster admin, public API server):
+**DEV – automatic.** When `container.yml` succeeds on `main`, `cd.yml` resolves the digests once, verifies the
+signatures and calls `deploy-env.yml` for `azure-dev` (and `gcp-dev` if `DEPLOY_CLOUDS` contains `gcp`). To deploy a
+specific build by hand: **Actions → Deploy environment → Run workflow** with cloud `azure`, environment `dev`,
+image tag `sha-<12>` – or with the CLI:
 
 ```bash
-helm upgrade --install wellnessz deploy/helm/wellnessz -n wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-azure.yaml -f deploy/env/dev-azure.yaml --set-string global.imageTag=v0.1.0 --atomic --wait --timeout 15m
+gh workflow run deploy-env.yml -f cloud=azure -f environment=dev -f image_tag=sha-<12>
 ```
 
-Expected:
+**UAT – release candidate.** Tag the commit that passed DEV; `cd.yml` deploys DEV, then waits for the **required
+reviewers** of `azure-uat` [M approval in the Actions run], then deploys UAT with the **same digests**:
 
-* `STATUS: deployed` and NOTES listing the endpoints;
-* the Flyway job `wellnessz-migrations` completed (hook);
-* all pods `Running` and `Ready`.
+```bash
+git tag -s v1.0.0-rc.1 -m "WellnessZ 1.0.0 RC1" && git push origin v1.0.0-rc.1
+```
+
+**PROD – release.** Tag the final release; `cd.yml` runs DEV → UAT → PROD, each later stage after its reviewers
+approve (PROD: CAB) [M]:
+
+```bash
+git tag -s v1.0.0 -m "WellnessZ 1.0.0" && git push origin v1.0.0
+```
+
+To start the chain at a later stage (for example re-deploy an approved release to PROD only):
+
+```bash
+gh workflow run cd.yml -f cloud=azure -f start_at=prod -f image_tag=v1.0.0
+```
+
+What each stage does (`deploy-env.yml`): checks the promotion policy (DEV `sha-*`/`v*`, UAT `vX.Y.Z[-rc.N]`, PROD
+`vX.Y.Z`), logs in with OIDC, verifies the cosign signatures, copies the images **by digest** into the environment ACR
+(`cosign copy`, signatures and attestations included), runs `helm upgrade --install --atomic` with the layered values
+and every component pinned by digest, runs the smoke tests and, if they fail, rolls back automatically.
+
+### 12.3 Operator path: `deploy/scripts/helm-release.sh`
+
+The workflow calls `deploy/scripts/helm-release.sh`; operators can use the same script with the same inputs (for
+example for a first install before GitHub is configured, or in an incident). It needs bash, helm and kubectl and a
+kube context for the environment (`az aks get-credentials`; private clusters: run it inside `az aks command invoke`
+with a `release.env` file, as the workflow does).
+
+```bash
+cat > digests.txt <<'EOF'
+wz-core-app sha256:<64 hex>
+wz-bff sha256:<64 hex>
+employee-app sha256:<64 hex>
+manager-workspace sha256:<64 hex>
+oh-workspace sha256:<64 hex>
+partner-portal sha256:<64 hex>
+EOF
+```
+
+Take the digests from the summary of the `container.yml` run (or `crane digest <registry>/wellnessz/<image>:<tag>`);
+the images must exist in the environment registry (`cosign copy` them first for UAT/PROD).
+
+```bash
+export CLOUD=azure DEPLOY_ENV=$ENV RELEASE=wellnessz NAMESPACE=wellnessz IMAGE_REGISTRY=$(jq -r .acr_login_server.value /tmp/wz-azure-$ENV-outputs.json)/wellnessz IMAGE_TAG=v1.0.0
+```
+
+```bash
+PREV=$(deploy/scripts/helm-release.sh previous); deploy/scripts/helm-release.sh upgrade && deploy/scripts/helm-release.sh smoke || { [ -n "$PREV" ] && deploy/scripts/helm-release.sh rollback "$PREV"; }
+```
+
+Expected: `STATUS: deployed`; in UAT/PROD the pre-upgrade Job `wellnessz-migrations` completed (hook); all pods
+`Running` and `Ready` with the promoted digests.
 
 ```bash
 kubectl -n wellnessz get pods,hpa,pdb,secretproviderclass,networkpolicy
 ```
 
-```bash
-kubectl -n wellnessz logs job/wellnessz-migrations -c flyway-core --tail=5
-```
+The migration Job is deleted after success (hook policy). If it failed, the release rolls back (`--atomic`) and the
+Job log shows the reason: `kubectl -n wellnessz logs job/wellnessz-migrations -c flyway-core` while it exists.
 
-The Job is deleted after success (hook policy). If it failed, the release rolls back and the log shows the
-reason.
+### 12.4 Database migrations and rollback
+
+* **Migrations** run automatically: DEV inside the core/BFF at start-up, UAT/PROD in the pre-upgrade Job before any
+  pod is replaced. A failed migration fails the Helm release, and `--atomic` keeps the previous pods running.
+* **Rollback** (`helm-release.sh rollback <revision>`, automatic after failed smoke tests, or
+  `helm rollback wellnessz <revision> -n wellnessz`) restores the previous pods and values. It does **not** revert
+  the database: Flyway migrations are forward-only and written as expand/contract, so release N-1 keeps working on
+  schema N. A data problem that needs the old schema is handled with point-in-time restore (section 17, DR test).
 
 ## 13. EHS mailbox: IMAP or Microsoft Graph
 

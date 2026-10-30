@@ -1,53 +1,58 @@
 # WellnessZ OHCM – Setup Guide 1: Local MacBook Pro
 
+**Version 1.0**
+
+*WellnessZ OHCM platform – increments 1–5*
+
 | | |
 |---|---|
 | **Document** | 05 – Setup guide: Local MacBook Pro (Apple Silicon) |
+| **Version** | 1.0 (final, after increment 5 of 5) |
 | **Audience** | Developers, testers, solution architects preparing demos |
-| **Result** | Full stack on a laptop: PostgreSQL, Keycloak, mail servers, OTel collector, core API, BFF, the four web apps (employee portal, manager workspace, OH workspace and – since increment 4 – the partner portal); ready for incremental module development |
+| **Purpose in the environment model** | The **local** target of [`deploy/environments/README.md`](../../deploy/environments/README.md): unit, integration and end-to-end testing and the developer loop. It is not a DEV/UAT/PROD environment – shared environments are built with guides 06–08 |
+| **Result** | Full stack on a laptop: PostgreSQL, Keycloak, mail servers, OTel collector, core API (modules E01–E12, E14), BFF, the four web apps (employee portal, manager workspace, OH workspace, partner portal incl. EAP referrals); all test suites runnable; demo users of increments 1–5 |
 | **Time** | About 45 minutes on a clean machine (most of it downloads) |
-| **Related** | 04 – Deployment Architecture · 03 – Developer Guide · 09 – CI/CD Guide |
+| **Related** | [04 – Deployment Architecture](../deployment/Deployment-Architecture.md) · 03 – Developer Guide · `docs/developer-setup/` (IDE set-up) · 09 – CI/CD Guide |
 
 ![Local MacBook Pro topology](../images/08-deploy-local-macbook.png)
 
 *Figure 1 – Local topology (source: `docs/images/08-deploy-local-macbook.svg`).*
 
-> **What was validated.** The following steps were executed against this repository in a Linux sandbox with the
-> same container images:
+## 0. Quick start (for the impatient)
+
+Every step is explained in sections 1–7; this is the shortest path from a clean Mac to a running, tested stack.
+
+| # | Step | Command | Section |
+|---|---|---|---|
+| 1 | Install tools | `brew install --cask temurin@21` and `brew install node@24 git jq openssl@3` + Docker Desktop or Colima | 1 |
+| 2 | Clone | `git clone https://github.com/OWNER/WellnessZ.git && cd WellnessZ` | 2 |
+| 3 | Start infrastructure | `./deploy/local/up.sh` | 3 |
+| 4 | Build and test | `./mvnw verify` (450 tests) and the web tests | 4 |
+| 5 | Run core + BFF | IDE / `java -jar` with the `local` profile, or `./deploy/local/up.sh --apps` | 5 |
+| 6 | Run the four web apps | `npm run dev` in each of `web/{employee-app,manager-workspace,oh-workspace,partner-portal}` | 6 |
+| 7 | End-to-end gate | `for n in 1 2 3 4 5; do node tools/e2e/e2e-increment$n.js \|\| break; done` (121 checks) | 7 |
+
+> **What was validated.** The stack, the build and the test suites were executed against this repository in a Linux
+> sandbox with the same container images, at every increment. Final state after increment 5:
 >
-> * `./up.sh` and `./up.sh --apps`; all containers healthy;
-> * a Keycloak client-credentials token accepted by `/api/v1/me`;
-> * BFF login redirect with PKCE S256;
-> * BFF readiness `UP`, `/actuator/env` denied;
-> * EHS e-mail ingestion via IMAP and Excel import (2 of 2 rows accepted);
-> * Flyway in both migration modes;
-> * database privilege checks.
+> * `./up.sh` and `./up.sh --apps`; all containers healthy; Flyway V1–V20 applied in both migration modes;
+> * Maven: **450 tests, 0 failures** (including `Increment5MentalHealthIntegrationTest`,
+>   `Increment5SubstanceIntegrationTest`, `Increment5TravelHealthIntegrationTest`, `Increment5PromotionIntegrationTest`
+>   and `ArchitectureTest` with 22 rules); SpotBugs + FindSecBugs (`-Psecurity`): 0 findings;
+> * web: oh-workspace 769, employee-app 285, manager-workspace 188, partner-portal 131 = **1,373 tests**; eslint 0
+>   warnings; all four builds clean;
+> * live end-to-end with real Keycloak logins through the BFF: increment 1 18/18, increment 2 25/25, increment 3
+>   32/32, increment 4 22/22, increment 5 **24/24** – 121 checks.
 >
-> The macOS-specific parts (Homebrew, Docker Desktop/Colima, IntelliJ) follow the vendors' documented procedures
-> but were not run on a Mac in the sandbox.
+> The macOS-specific parts (Homebrew, Docker Desktop/Colima, IntelliJ) follow the vendors' documented procedures but
+> were not run on a Mac in the sandbox.
 >
-> **Increment 1** (E01 intake, E02 triage) was verified on this setup: 65 Java tests, web tests (oh-workspace 151,
-> employee-app 81, manager-workspace 55) and `tools/e2e/e2e-increment1.js` with 18/18 checks passing (section 7.1).
->
-> **Increment 2** (E03 OH record, E05 fitness for duty) was verified on this setup: 128 Java tests, web tests
-> (oh-workspace 305, employee-app 138, manager-workspace 99) and `tools/e2e/e2e-increment2.js` with 25/25 checks
-> passing (section 7.2). New here: schemas `docs`, `ohrecord`, `fitness`, the `dpo1` and `partner1` users, gateway
-> smoke calls (section 8.4) and the optional PDF font and OCR (section 8.5).
->
-> **Increment 3** (E06 absence & sickness, E07 medical surveillance, E14 scheduling & clinic operations) was verified on
-> this setup: 210 Java tests, web tests (oh-workspace 463, employee-app 191, manager-workspace 154) and
-> `tools/e2e/e2e-increment3.js` with 32/32 checks passing (section 7.3). New here: schemas `absence`, `surveillance`,
-> `scheduling`, the users `scheduler1`, `biomed1`, `crewlicensing1` and `candidate1`, a test database that must be
-> recreated before every run (section 4.2), gateway smoke calls for absence feeds and fridge readings (section 8.6) and
-> manual checks for the three epics (section 8.7).
->
-> **Increment 4** (E04 treatment coordination & partner referrals, E08 claims coordination, partner portal) was
-> verified on this setup: 275 Java tests, web tests (oh-workspace 570, employee-app 223, manager-workspace 164,
-> partner-portal 119) and `tools/e2e/e2e-increment4.js` with 22/22 checks passing, plus the three earlier scripts
-> (section 7.4). New here: schemas `treatment`, `claims`, the users `claims1`, `adjuster1`, `legal1`, `finance1`,
-> `procurement1`, `physio1` (section 3.3), the partner portal on port 5176 (section 6), optional MFA rehearsal for
-> partner and adjuster users (section 6.1), FHIR / telehealth smoke calls (section 8.8) and manual checks for E04 / E08
-> (section 8.9).
+> **Increment 5** (E09 mental health & peer support, E10 drug & alcohol testing, E11 travel health & communicable
+> disease, E12 health promotion) adds schemas `mentalhealth`, `substance`, `travelhealth`, `promotion`, the users
+> `peer1`, `peercoord1`, `safety1`, `damanager1`, `mro1`, `collector1`, `promo1`, `ergo1`, `eap1` (section 3.3), the
+> EAP referrals screen of the partner portal (section 6), `tools/e2e/e2e-increment5.js` (section 7.5), gateway smoke
+> calls for the duty-assignment feed and the toxicology laboratory (section 8.10) and manual checks for E09–E12
+> (section 8.11). Earlier increments are summarised in the sections they touch (realm, demo data, tests).
 
 ## 1. Prerequisites
 
@@ -62,6 +67,7 @@
 | Git | 2.40+ | Source control |
 | kubectl, Helm, Terraform | kubectl 1.33, Helm 3.19 (Helm 4 also works), Terraform ≥ 1.11 (tested 1.13.4) | Optional locally; needed for chart testing and cloud setups |
 | az / gcloud | latest | Only for the cloud guides |
+| Playwright + Chromium | Playwright 1.x (installed on demand, section 7) | End-to-end scripts `tools/e2e/*.js` |
 | IDE | IntelliJ IDEA 2025.x or VS Code + Java extension pack | Running and debugging |
 | RAM / disk | 16 GB RAM (32 GB recommended), 20 GB free disk | Keycloak + PostgreSQL + 2 JVMs + 2 dev servers |
 
@@ -214,7 +220,7 @@ Expected: `"aud": "wellnessz-api"` and `"roles": ["INTEGRATION"]`.
 |---|---|---|
 | PostgreSQL 16.15 | `localhost:5432`, databases `wellnessz`, `keycloak` | Roles `wz_migrator` (DDL), `wz_app` (core runtime), `wz_bff` (sessions); passwords in `.env` |
 | Keycloak 26.8.1 | <http://localhost:8180/admin> | `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD` from `.env` |
-| Realm users | `employee1`, `manager1`, `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; increment 1: `nurse1`, `nurse2`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`; increment 2: `dpo1`, `partner1`; increment 3: `scheduler1`, `biomed1`, `crewlicensing1`, `candidate1`; increment 4: `claims1`, `adjuster1`, `legal1`, `finance1`, `procurement1`, `physio1` | Temporary password `ChangeMe!123`; change it at first login |
+| Realm users | `employee1`, `manager1`, `hr1`, `clinician1`, `psych1`, `auditor1`, `admin1`; increment 1: `nurse1`, `nurse2`, `physician1`, `ame1`, `cmo1`, `nursinghead1`, `hse1`, `crewsched1`, `hygiene1`, `reception1`, `firstaider1`; increment 2: `dpo1`, `partner1`; increment 3: `scheduler1`, `biomed1`, `crewlicensing1`, `candidate1`; increment 4: `claims1`, `adjuster1`, `legal1`, `finance1`, `procurement1`, `physio1`; increment 5: `peer1`, `peercoord1`, `safety1`, `damanager1`, `mro1`, `collector1`, `promo1`, `ergo1`, `eap1` | Temporary password `ChangeMe!123`; change it at first login |
 | Mailpit | UI <http://localhost:8025>, SMTP `localhost:1025` | none |
 | GreenMail | IMAP `localhost:3143`, SMTP `localhost:3025` | `ehs-feed@wellnessz.local` / `WZ_IMAP_PASSWORD` |
 | OTel collector | OTLP `localhost:4317` (gRPC) / `4318` (HTTP) | – |
@@ -252,6 +258,16 @@ mappings.
 | `legal1` (increment 4) | LEGAL_COUNSEL (`S8703`, `/AIRLINE`) | OH workspace *Legal & litigation*: litigation hold, privilege, medico-legal requests and reports |
 | `finance1` (increment 4) | FINANCE (`S8704`, `/AIRLINE`) | OH workspace *Claim & treatment costs*: roll-ups by unit (no names), budget vs actual, ERP export and reconciliation |
 | `procurement1` (increment 4) | PROCUREMENT (`S8705`, `/AIRLINE`) | OH workspace *Provider network*: directory, contracts, rates, SLAs, network gaps, scorecards |
+| `psych1` (increment 5 use) | PSYCH_CLINICIAN | The **named restricted-class clinician** for E09: support cases, urgent call-backs, EAP referrals, mental-health fitness; a general nurse sees only *1 restricted item – hidden* |
+| `peer1` (increment 5) | PEER_SUPPORT_VOLUNTEER (`S8801`, `/AIRLINE/OPS`) | OH workspace *Peer support*: own requests as alias + code, contact log without employee identity |
+| `peercoord1` (increment 5) | PEER_SUPPORT_COORDINATOR (`S8802`, `/AIRLINE/OPS`) | Volunteers, training, quarterly aggregated report to the safety management system |
+| `safety1` (increment 5) | SAFETY_MANAGER (`S8803`, `/AIRLINE`) | Manager workspace *Drug & alcohol testing*: for-cause requests for anyone; OH workspace *CISM*: counts only |
+| `damanager1` (increment 5) | DA_PROGRAMME_MANAGER (`S8804`, `/AIRLINE`) | OH workspace *Testing*: policies, pools, random selections, statistics; **no results** (MRO queue `403`) |
+| `mro1` (increment 5) | MRO (`S8805`, `/AIRLINE`) | OH workspace *Testing → MRO*: verifies results (restricted clinical class) |
+| `collector1` (increment 5) | COLLECTOR (`S8806`, `/AIRLINE`) | Collection and electronic chain-of-custody form |
+| `promo1` (increment 5) | HEALTH_PROMOTION_LEAD (`S8807`, `/AIRLINE`) | Insights, campaign planner, screening events, campaign reports (aggregated, suppressed) |
+| `ergo1` (increment 5) | ERGONOMIST (`S8808`, `/AIRLINE`) | Ergonomic assessments, photos, actions |
+| `eap1` (increment 5) | PARTNER_PROVIDER (`X8809`, `/PARTNERS/EAP_WELLBEING`) | Partner portal *EAP referrals*: minimal referral data for its own organisation, attendance-only feedback |
 
 **Increment-2 role.** The realm adds `DPO`, included in the scope mappings of `wellnessz-bff` and `wellnessz-mobile`.
 A realm imported before increment 2 has neither the role nor `dpo1` / `partner1`: run `./deploy/local/down.sh --purge`
@@ -288,6 +304,18 @@ docker compose -f deploy/local/docker-compose.yml exec -T keycloak /opt/keycloak
 
 Expected: `1`.
 
+**Increment-5 roles.** The realm adds `PEER_SUPPORT_VOLUNTEER`, `PEER_SUPPORT_COORDINATOR`, `SAFETY_MANAGER`,
+`DA_PROGRAMME_MANAGER`, `MRO`, `COLLECTOR`, `HEALTH_PROMOTION_LEAD` and `ERGONOMIST` (38 product roles in total, all in
+the scope mappings of `wellnessz-bff` and `wellnessz-mobile`) and the nine users in the table above. A realm imported
+before increment 5 has none of them: run `./deploy/local/down.sh --purge` and `./deploy/local/up.sh` to re-import it
+(this deletes local data). Check after the re-import:
+
+```bash
+docker compose -f deploy/local/docker-compose.yml exec -T keycloak /opt/keycloak/bin/kcadm.sh get roles -r wellnessz --no-config --server http://localhost:8180 --realm master --user "$KEYCLOAK_ADMIN_USER" --password "$KEYCLOAK_ADMIN_PASSWORD" --fields name | grep -cE 'PEER_SUPPORT_VOLUNTEER|PEER_SUPPORT_COORDINATOR|SAFETY_MANAGER|DA_PROGRAMME_MANAGER|"MRO"|COLLECTOR|HEALTH_PROMOTION_LEAD|ERGONOMIST'
+```
+
+Expected: `8`.
+
 The Keycloak container imports the realm only when it does not exist yet (`--import-realm`). A stack created before
 increment 1 keeps the old realm without the new roles and users: run `./deploy/local/down.sh --purge` and
 `./deploy/local/up.sh` to re-import it (this deletes local data).
@@ -316,12 +344,19 @@ an expired batch; provider scorecards for last month) and `R__demo_e08_claims.sq
 lost-time with payer `GULFTPA`, `900002` litigated and on hold, `900003` closed, `900004` notified; first reports,
 budgets and last month's ERP export). The `ClaimsDemoSeeder` bean (`local` / `test` profiles) then writes the encrypted
 E08 demo fields through the application. Demo data cannot contain encrypted narrative text otherwise – the demo
-referral `RFL-<year>-900001` therefore has no letter text.
+referral `RFL-<year>-900001` therefore has no letter text. Increment 5 adds `R__demo_e09_mentalhealth.sql`,
+`R__demo_e10_substance.sql`, `R__demo_e11_travelhealth.sql` and `R__demo_e12_promotion.sql` plus the seeders
+`MentalHealthDemoSeeder`, `SubstanceDemoSeeder`, `TravelHealthDemoSeeder` and `PromotionDemoSeeder` (encrypted values,
+`local` / `test` profiles only): last month's random selections (one test of `E1008` waiting in the MRO queue for
+`mro1`), a post-incident test of `E1004` inside the alcohol window for `collector1`, a verified positive of `E1009`
+with a return-to-duty plan, a communicable-disease case and a needle-stick exposure with timers, the flight `WZ101`
+roster for CISM, the MSK campaign and a biometric screening event tomorrow at `HQ-MC`, ergonomic assessments and a
+wearable enrolment of `E1001` with 14 days of steps.
 
 **Schemas.** `01-init-wellnessz.sh` creates `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness,
-absence, surveillance, scheduling, treatment, claims, analytics`. Load `.env` first (`set -a; source deploy/local/.env;
-set +a`) for the check below. On a database volume created before increment 2, 3 or 4, Flyway V6–V8, V10–V12 and
-V14–V15 create the new schemas themselves; `search_path` of `wz_app` is only updated by a fresh init, so prefer
+absence, surveillance, scheduling, treatment, claims, mentalhealth, substance, travelhealth, promotion, analytics`. Load `.env` first (`set -a; source deploy/local/.env;
+set +a`) for the check below. On a database volume created before increment 2, 3, 4 or 5, Flyway V6–V8, V10–V12,
+V14–V15 and V17–V20 create the new schemas themselves; `search_path` of `wz_app` is only updated by a fresh init, so prefer
 `./deploy/local/down.sh --purge` once.
 Check:
 
@@ -330,7 +365,8 @@ docker compose -f deploy/local/docker-compose.yml exec -T -e PGPASSWORD="$POSTGR
 ```
 
 Expected (after the core has started once): `docs`, `ohrecord`, `fitness`, `absence`, `surveillance`, `scheduling`,
-`treatment` and `claims` in the list, all owned by `wz_migrator`.
+`treatment`, `claims`, `mentalhealth`, `substance`, `travelhealth` and `promotion` in the list, all owned by
+`wz_migrator`.
 
 ## 4. Build and test
 
@@ -340,8 +376,22 @@ Expected (after the core has started once): `docs`, `ohrecord`, `fitness`, `abse
 ./mvnw verify
 ```
 
-Expected: `BUILD SUCCESS`. The build runs unit tests, integration tests on a real PostgreSQL 16, ArchUnit
-boundary rules, JaCoCo coverage and a CycloneDX SBOM (`target/bom.json`).
+Expected: `BUILD SUCCESS` with 450 tests and 0 failures. The build runs unit tests, integration tests on a real
+PostgreSQL 16 (including the four `Increment5*IntegrationTest` classes), the ArchUnit boundary rules (22 rules – the
+increment-5 modules are independent of each other except through kernel SPIs, and earlier modules never depend on
+E09–E12), JaCoCo coverage and a CycloneDX SBOM (`target/bom.json`).
+
+To run only one module's tests while iterating, for example E10:
+
+```bash
+./mvnw -pl modules/wz-e10-substance -am test
+```
+
+and only the increment-5 integration tests of the core application:
+
+```bash
+./mvnw -pl apps/wz-core-app -am verify -Dtest='Increment5*IntegrationTest,ArchitectureTest' -Dsurefire.failIfNoSpecifiedTests=false
+```
 
 ### 4.2 Integration-test database: Testcontainers or your local PostgreSQL
 
@@ -417,8 +467,9 @@ cd web/oh-workspace && npm ci && npm run lint && npm test && npm run build && cd
 cd web/partner-portal && npm ci && npm run lint && npm test && npm run build && cd ../..
 ```
 
-Expected test counts at the increment-4 baseline: employee-app 223, manager-workspace 164, oh-workspace 570,
-partner-portal 119 (increment 1: 81, 55, 151).
+Expected test counts at the final (increment-5) baseline: employee-app 285, manager-workspace 188, oh-workspace 769,
+partner-portal 131 – 1,373 in total; `npm run lint` reports 0 warnings. (Increment 4: 223, 164, 570, 119.) The
+employee-app build prints a Vite warning about a chunk larger than 500 kB; it is a warning, not an error.
 
 ## 5. Run core and BFF
 
@@ -574,6 +625,10 @@ WZ_BFF_TARGET=http://localhost:18090 npm run dev
 6. In another private window, open <http://localhost:5176> as `physio1`. The partner portal shows the PhysioPlus
    referral inbox; as `adjuster1` it shows the GULFTPA claims and pending pre-authorisations. An OH user (for example
    `nurse1`) sees *This portal is for WellnessZ partner organisations*.
+7. (Increment 5) Open <http://localhost:5176> as `eap1`: *EAP referrals* lists only the referrals for
+   `EAP_WELLBEING` with minimal data; the feedback form has status, attendance rows and a closure reason but no
+   free-text field. Open <http://localhost:5175> as `nurse1` and an employee chart with a support case: the chart shows
+   only *1 restricted item – hidden*; as `psych1` the support case opens.
 
 The BFF redirect URIs for the four ports (`http://localhost:517[3-6]/login/oauth2/code/wellnessz`) and the CORS
 origins (`WZ_CORS_ORIGINS`, local profile `wellnessz.security.cors-origins`) already include ports 5175 and 5176.
@@ -753,6 +808,50 @@ Then restart the core with the `local` profile (section 5.1) and run:
 ```bash
 for n in 1 2 3 4; do node tools/e2e/e2e-increment$n.js || break; done
 ```
+
+### 7.5 Increment-5 end-to-end test (E09, E10, E11, E12)
+
+`tools/e2e/e2e-increment5.js` covers increment 5 with 24 checks across all four apps:
+
+* **E09** – confidential self-referral with signposting and a PHQ-9 escalating to a same-day call; restricted class
+  (the named psych clinician sees the case, a general nurse gets `404` and a placeholder count); urgent call-back and
+  fitness-only sharing to the manager; EAP partner with minimal data and attendance-only feedback (free text
+  `422 field_not_allowed`); pseudonymous peer support; CISM from the `WZ101` roster with the safety manager seeing
+  counts only; psychosocial risk register with suppression; AME ending temporary relief with rostering receiving
+  status only;
+* **E10** – reproducible random selection (programme manager gets `403` on the MRO queue); post-incident collection
+  inside the alcohol window with the chain-of-custody form; MRO-verified positive (removed from duty, HR status only,
+  support referral); for-cause request; lab results refused from an unbound client (`404`); suppressed statistics;
+* **E11** – contact tracing from roster and shift data within 4 hours; needle-stick PEP timers; travel consultation
+  with a signed certificate; advisory to crew rostered to the destination; notifiable-disease report;
+* **E12** – influenza campaign uptake, campaign planning from hotspots, biometric screening opening a follow-up within
+  48 h, ergonomic assessment (score 54, AMBER), wearable data accepted only with consent.
+
+It needs the same setup as section 7.4 (stack, core on the `local` profile with the increment-5 demo data and the MFA
+gate off, BFF, all four dev servers) and the increment-5 realm (section 3.3).
+
+```bash
+node tools/e2e/e2e-increment5.js
+```
+
+Expected: 24 lines starting with `PASS`; exit code 0. Screenshots go to `tools/e2e/shots/` (`WZ_E2E_OUT`); the
+published set (35 images, for example `inc5-oh-03-chart-restricted-placeholder.png`,
+`inc5-partner-01-eap-referrals.png`) is in `docs/images/screens/increment-05/`. Variables as for increment 4
+(`WZ_E2E_EMPLOYEE_URL`, `WZ_E2E_WORKSPACE_URL`, `WZ_E2E_OH_URL`, `WZ_E2E_PARTNER_URL`, `WZ_E2E_IDP_URL`,
+`WZ_E2E_CORE_URL`, `WZ_E2E_INTEGRATION_SECRET`, `WZ_E2E_NEW_PASSWORD`, `WZ_E2E_OUT`). The script **consumes demo state**
+(MRO decision, collection, screening result), so the release gate is the full sequence on a freshly purged database:
+
+```bash
+./deploy/local/down.sh --purge && ./deploy/local/up.sh
+```
+
+Restart the core with the `local` profile (section 5.1), then:
+
+```bash
+for n in 1 2 3 4 5; do node tools/e2e/e2e-increment$n.js || break; done
+```
+
+Expected: 121 `PASS` lines in total (18 + 25 + 32 + 22 + 24).
 
 ## 8. EHS intake tests
 
@@ -961,9 +1060,63 @@ With the core on the `local` profile, the BFF and the four dev servers running (
 | E08 legal | `legal1` (OH workspace) | *Claims → Legal & litigation* | `CLM-…-900002` litigated, on hold and privileged; medico-legal request open |
 | E08 HR | `hr1` (manager workspace) | *Claims* | Claim status only – no costs, payer or adjuster |
 
+### 8.10 Gateway smoke calls (increment 5)
+
+The duty-assignment feed (crew roster, shift and facility systems), the toxicology laboratory, the campaign app and
+wearable vendors are machine clients with the `INTEGRATION` role (`$TOKEN` from section 5.3). Post one shift duty:
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -H "Idempotency-Key: local-$(date +%s)" http://localhost:8080/api/v1/integration/duty-assignments -d "{\"source\":\"SHIFT\",\"duties\":[{\"sourceRef\":\"SHF-$(date +%s)\",\"dutyRef\":\"CAT-LINE-2\",\"dutyDate\":\"$(date +%F)\",\"startsAt\":\"$(date -u -v-3H +%Y-%m-%dT%H:%M:%SZ)\",\"endsAt\":\"$(date -u -v-1H +%Y-%m-%dT%H:%M:%SZ)\",\"employeeRef\":\"B-1010\",\"dutyRole\":\"CATERING\",\"locationCode\":\"LHR\",\"proximityGroup\":\"LHR-CAT-LINE-2\"}]}" | jq
+```
+
+Expected: `200` with `received: 1`, `upserted: 1` and an empty `unmatched` list (`date -v` is the macOS syntax; on
+Linux use `date -u -d '-3 hours' …`). Now try to post laboratory results with the same, **unbound** client:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' http://localhost:8080/api/v1/integration/testing/lab-results -d '{"specimenId":"SPC-DEMO-9002","labRef":"LAB-SMOKE","receivedAt":"2026-10-30T09:00:00Z","validity":"VALID","results":[{"analyte":"AMPHETAMINES","cutoff":500,"value":0,"unit":"ng/mL","outcome":"NEGATIVE"}]}'
+```
+
+Expected: `404` and an audit entry – only a client carrying `org_scope=/PARTNERS/TOXLAB` (the
+code in `substance.laboratory-code`) may read lab orders and post results. To rehearse the bound laboratory locally
+(optional): in the Keycloak admin console create a confidential client `wellnessz-toxlab` with *Service accounts
+roles* on, assign it the realm role `INTEGRATION`, add an *Audience* mapper for `wellnessz-api` and a *Hardcoded
+claim* mapper `org_scope` = `/PARTNERS/TOXLAB` (access token), then repeat the call with its token: `200`.
+
+The other increment-5 machine endpoints are `GET /api/v1/integration/testing/lab-orders`,
+`POST /api/v1/integration/promotion/participation` and `POST /api/v1/integration/wearables/data` (contract:
+`docs/increment-05/API-Contract-E09-E10-E11-E12.md`). Outbound events to `campaign-app` (campaign publication) and
+`sms-safety` (quarterly aggregated peer-support figures for the safety management system) appear in the outbox
+(`GET /api/v1/integration/events` as `admin1`).
+
+### 8.11 Manual verification of E09–E12 (increment 5)
+
+With the core on the `local` profile, the BFF and the four dev servers running (section 6):
+
+| Epic | Sign in as | Do | Expected |
+|---|---|---|---|
+| E09 support | `employee1` (employee app) | *Support* | Emergency banner first, signposting, confidential self-referral |
+| E09 restricted class | `nurse1` (OH workspace), then `psych1` | Open the chart of an employee with a support case | Nurse: *1 restricted item – hidden*; `psych1`: *Support → Cases* lists the case and the urgent call-back |
+| E09 peer support | `peer1` / `peercoord1` | *Peer support* | Requests as alias + code; contact log without identity; coordinator sees volunteers and the quarterly report |
+| E09 CISM | `psych1`, then `safety1` (OH workspace) | *CISM* | Affected crew from the `WZ101` roster with offers inside 72 h; the safety manager sees counts only |
+| E10 programme | `damanager1` (OH workspace) | *Testing → Selections*, *Policies*, *Reports* | Selections reproducible via *Verify*; statistics with suppressed cells; the MRO queue is not available (`403`) |
+| E10 MRO | `mro1` | *Testing → MRO* | Test of `E1008` awaiting a decision; HR (`hr1`, manager workspace *Drug & alcohol testing*) later sees duty status only |
+| E10 collection | `collector1` | *Testing → Collection* | Post-incident test of `E1004` with the alcohol window countdown; chain-of-custody form |
+| E11 tracing | `nurse1` | *Communicable* → demo case → *Trace* | Contacts from shared duties and proximity groups; notification without naming the case |
+| E11 exposures | `nurse1` | *Exposures* → needle-stick | Protocol timers with the PEP decision due within hours |
+| E11 travel | `nurse1` / `employee1` | *Travel → Consultations*; employee *Travel health* | Destination-based recommendations; signed travel health certificate |
+| E12 campaigns | `promo1` | *Promotion → Insights*, *Campaigns*, *Reports* | Anonymised hotspots; campaign participation with groups below 5 suppressed |
+| E12 screening | `nurse1` | *Promotion → Screening* → tomorrow's event at `HQ-MC` | An abnormal blood pressure opens a follow-up case within 48 h and a result letter |
+| E12 ergonomics | `ergo1`; `manager1` | *Ergonomics*; manager *Ergonomics* | RAG-scored assessments; the manager can only mark own-unit actions done |
+
 ## 9. Secrets in configuration: `ENC(...)`
 
-Values that must live in configuration files, such as a connector password, are stored encrypted:
+Database connector passwords and other secrets are never kept in plain configuration. `platform/wz-secrets`
+decrypts any `ENC(...)` value (AES-256-GCM) with the master key from `WZ_MASTER_KEY` or `WZ_MASTER_KEY_FILE` before
+Spring binds the configuration, and resolves `file:/path` references for properties whose name contains *password*,
+*secret*, *key*, *token* or *credential* (the Kubernetes pattern). `tools/encrypt-secret.sh` wraps the command-line
+class `com.wellnessz.secrets.EncryptCli`, which reads the plaintext from the console without echo – never from
+arguments – and prints the `ENC(…)` value. Values that must live in configuration files, such as a connector
+password, are stored encrypted:
 
 ```bash
 export WZ_MASTER_KEY="$(grep ^WZ_MASTER_KEY= deploy/local/.env | cut -d= -f2-)"
@@ -974,7 +1127,15 @@ export WZ_MASTER_KEY="$(grep ^WZ_MASTER_KEY= deploy/local/.env | cut -d= -f2-)"
 ```
 
 The tool prompts for the value without echoing it and prints `ENC(…)`. Paste that into the configuration; the
-application decrypts it at start-up with the same master key. Never commit plain secrets: gitleaks blocks them in
+application decrypts it at start-up with the same master key. For example, encrypt the `wz_app` password from `.env`
+and start the core with it (section 5.1):
+
+```bash
+export WZ_DB_PASSWORD="$(printf '%s\n' "$WZ_APP_DB_PASSWORD" | java -cp platform/wz-secrets/target/classes com.wellnessz.secrets.EncryptCli)"
+```
+
+`echo $WZ_DB_PASSWORD` now shows `ENC(…)`, and the core still connects. `docs/developer-setup/ide/scripts/make-ide-env.sh`
+generates complete IDE env files in which every secret is an `ENC(...)` value (see `docs/developer-setup/`). Never commit plain secrets: gitleaks blocks them in
 CI.
 
 ## 10. Optional: test the Helm chart on a local Kubernetes
@@ -1044,6 +1205,15 @@ development.
 | Disclosure set send or pre-authorisation submit answers `422 consent_required` | No active `INSURER_SHARING` consent for the employee | Same as above with the insurer purpose |
 | `e2e-increment4.js` fails on the claim, ERP export or legal-hold checks on a second run | The first run consumed the demo state (`409 claim_exists`, `409 export_exists`) | Purge and recreate the database and run the scripts 1 → 4 in order (section 7.4) |
 | Claims, providers or costs screens are empty | Core not started with the `local` profile, so the increment-4 demo files and `ClaimsDemoSeeder` did not run | Start the core with `SPRING_PROFILES_ACTIVE=local` |
+| `peer1`, `peercoord1`, `safety1`, `damanager1`, `mro1`, `collector1`, `promo1`, `ergo1` or `eap1` cannot log in, or see *Access restricted* | Realm imported before increment 5 | `./deploy/local/down.sh --purge` and `up.sh` to re-import the realm (section 3.3) |
+| `safety1` sees an error page in the manager workspace | BFF older than increment 5 (workspace roles without `SAFETY_MANAGER` / `CREW_SCHEDULING`) | Rebuild and restart the BFF from the current source |
+| `nurse1` sees *1 restricted item – hidden* and cannot open a support case or test result | Intended: `RESTRICTED_CLINICAL` is open only to the named clinician (`psych1` for E09, `mro1` for E10 results) | Sign in as the restricted-class clinician; break-glass is logged and reviewed by the DPO |
+| Lab results answer `404` | Intended for any client without `org_scope=/PARTNERS/TOXLAB` | Use a bound laboratory client (section 8.10) |
+| EAP feedback answers `422 field_not_allowed` | Free text sent to `/partner/eap-referrals/{id}/feedback` (intended – attendance only) | Send status, attendance rows and a closure reason only |
+| Campaign, testing or psychosocial figures show *suppressed* everywhere | Groups below `WZ_ANALYTICS_MIN_GROUP` (default 5) | Intended; use the demo campaign totals, or lower the value for local experiments only |
+| Support, testing, travel or promotion screens are empty | Core not started with the `local` profile, so the increment-5 demo files and seeders did not run | Start the core with `SPRING_PROFILES_ACTIVE=local` |
+| `e2e-increment5.js` fails on the MRO, collection or screening checks on a second run | The first run consumed the demo state | Purge and recreate the database and run the scripts 1 → 5 in order (section 7.5) |
+| Notification send fails with a content-rule violation | Notification text containing result words (*positive*, *result*, *drug*, *alcohol* …) | Intended; increment-5 templates are content-free |
 
 ## 13. Teardown
 

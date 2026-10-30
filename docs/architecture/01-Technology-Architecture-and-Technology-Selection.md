@@ -451,7 +451,10 @@ ArchUnit rules (`apps/wz-core-app/src/test/java/com/wellnessz/app/ArchitectureTe
 ![Deployment reference](../images/07-deployment-reference.png)
 
 *Figure 4 – Deployment reference (source: `docs/images/07-deployment-reference.svg`). The deployment assets are
-maintained under `deploy/` and are still being finalised; this view reflects their current content.*
+maintained under `deploy/`; since increment 5 each cloud set-up exists as DEV, UAT and PROD (Terraform variable files,
+Helm overlays, GitHub Environments – `deploy/environments/README.md`). The standards used per layer and set-up are
+compared in document 04; the infrastructure code has been validated but not yet applied to a real subscription,
+project or on-premises cluster.*
 
 ## 6. Data architecture
 
@@ -763,7 +766,7 @@ OIDC discovery and validates signature (algorithms constrained by the JWKS), `ex
 |---|---|---|
 | Microsoft Entra ID | Workforce (employees, crew, managers, OH staff); increment 4: partner and adjuster users as B2B guests | App roles in `roles`; security groups in `groups` mapped by object id; v2.0 issuer `https://login.microsoftonline.com/<tenant>/v2.0`. Conditional Access and MFA are configured in Entra ID; for guests a Conditional Access policy with an authentication strength is mandatory (Section 14.30). |
 | Keycloak | Local development (realm import in `deploy/local/keycloak`), optionally a partner realm | Realm roles in `realm_access.roles`; MFA through the OTP (`CONFIGURE_TOTP`) or WebAuthn required action and a step-up flow that sets `acr` (Section 14.30). |
-| Okta, Ping, Google, others | Alternatives | Any claim path configurable. |
+| Okta, Ping, Auth0, ADFS 2019+, Google, others | Alternatives | Any claim path configurable; configuration per provider in Section 8.5. |
 
 ### 8.2 Role claim mapping
 
@@ -785,7 +788,13 @@ yet in the HRIS master – own questionnaire, consent, documents and booking onl
 `TPA_ADJUSTER` (external adjuster of the payer organisation, partner portal only), `LEGAL_COUNSEL` (litigation hold,
 privilege, medico-legal requests), `FINANCE` (cost roll-ups, budgets, ERP export – money by unit, never names) and
 `PROCUREMENT` (provider directory, contracts, rates, SLAs), and gives the existing `PARTNER_PROVIDER` its first
-access – 30 roles in total. `Roles.OH_TEAM` groups the clinical roles (`OH_CLINICIAN`, `OH_PHYSICIAN`, `AME`, `CMO`, `NURSING_HEAD`,
+access; increment 5 adds `PEER_SUPPORT_VOLUNTEER` (own pseudonymous contact log), `PEER_SUPPORT_COORDINATOR`
+(volunteer register, training, aggregated figures), `SAFETY_MANAGER` (SMS reports, CISM counts, post-incident and
+for-cause requirements – never results), `DA_PROGRAMME_MANAGER` (testing policies, pools, selections, coverage – no
+results), `MRO` (medical review officer – verification of laboratory results), `COLLECTOR` (specimen collection and
+chain of custody – no results), `HEALTH_PROMOTION_LEAD` (campaigns, screening events, anonymised analytics) and
+`ERGONOMIST` (ergonomic assessments and actions), and uses `PARTNER_PROVIDER` for the EAP partner – **38 roles in
+total**. `Roles.OH_TEAM` groups the clinical roles (`OH_CLINICIAN`, `OH_PHYSICIAN`, `AME`, `CMO`, `NURSING_HEAD`,
 `CASE_MANAGER`, `PSYCH_CLINICIAN`); `Roles.FITNESS_DECIDERS` lists who may record a fitness decision. The role
 responsibilities and segregation of duties are described in document 02, Sections 11, 12.1, 13.1 and 14.1.
 
@@ -845,8 +854,15 @@ screened by `ClinicalContentException.screen` (`422 clinical_content_not_allowed
 Coarse-grained RBAC complements ABAC: URL rules (`/api/v1/integration/**` → INTEGRATION/PLATFORM_ADMIN/OH_ADMIN;
 `/api/v1/audit/**` → AUDITOR/PLATFORM_ADMIN) and `@PreAuthorize` on controllers.
 
-**Not yet implemented:** break-glass (emergency) access with justification and alerting; delegation; time-bound access;
-an external policy decision point (OPA/Cedar) – the in-code engine is adequate for the current rule set (decision D8).
+Increment 5 adds no new disclosure level but uses `RESTRICTED_CLINICAL` for the first time at scale: `GET /api/v1/me`
+reports `RESTRICTED_CLINICAL` for `PSYCH_CLINICIAN` and `MRO`; the other new roles receive `STATUS_ONLY` or `NONE`.
+Restricted-class access is enforced in two layers – the platform `restrictedClassPolicy` on kernel cases and documents,
+and module-level access checks on the E09 and E10 endpoints (named-clinician list, MRO / acting-MRO list) – described
+in Section 8.6.
+
+**Not yet implemented:** delegation; time-bound access other than break-glass (break-glass with justification,
+4-hour validity, DPO alert and review exists since increment 2); an external policy decision point (OPA/Cedar) – the
+in-code engine is adequate for the current rule set (decision D8).
 
 ### 8.4 Consent model
 
@@ -868,6 +884,121 @@ and disclosure sets require an active `INSURER_SHARING` consent (the new share t
 `CLAIM`); joining a telehealth session requires `TELEHEALTH_CONSULTATION` (new purpose) – each answers
 `422 consent_required` otherwise. Statutory reports to an authority are a legal obligation: no consent, but a
 disclosure-log entry with the legal basis. The UIs offer consent pickers (no free-text consent ids).
+*Increment 5* uses the remaining purposes: `WEARABLE_DATA` gates wearable enrolment and every inbound daily total
+(withdrawal purges the data); EAP referrals require `EAP_REFERRAL` or `TREATMENT_SHARING_PARTNER`. In addition the
+employee records a **sharing choice** for a support case (`NOTHING` / `FITNESS_ONLY` / `FITNESS_AND_ADJUSTMENTS`,
+revocable, every change audited) that decides what the manager sees in `/workspace/psychosocial/shared-outcomes`.
+Health-campaign participation is voluntary and reported only in suppressed aggregates.
+
+### 8.5 Authentication integration options (Entra ID, Keycloak, other OIDC providers)
+
+Every component that authenticates people or machines speaks **standard OpenID Connect / OAuth 2.0** and nothing
+vendor-specific is compiled in. The same images therefore run against Microsoft Entra ID, Keycloak or any compliant
+provider (Okta, Ping Identity, Auth0, Microsoft AD FS 2019 or later, Google); changing the IdP is configuration only.
+The core accepts several issuers at the same time (`WZ_OIDC_ISSUERS`), so a migration between providers – or a
+workforce IdP plus a separate partner IdP – needs no downtime.
+
+| Component | Role in the flow | What to configure | Where |
+|---|---|---|---|
+| Core API (`wz-core-app`) | OAuth2 resource server; validates bearer tokens from the BFF, the mobile app and machine clients | `WZ_OIDC_ISSUERS` (exact `iss` values, comma-separated), `WZ_OIDC_AUDIENCE` (the API's audience / application id), `wellnessz.security.role-claims` (claim paths, default `realm_access.roles,roles,groups`), `wellnessz.security.group-role-mapping` (group id → role), `employee-id-claim` / `org-scope-claim` (default `employee_id`, `org_scope`), `WZ_MFA_REQUIRED_ROLES`, `mfa-amr-values`, `mfa-acr-values` | Helm `core.env` per environment overlay |
+| BFF (`wz-bff`) | Confidential OIDC client (authorisation code + PKCE); holds tokens server-side for the four browser apps | `WZ_BFF_ISSUER_URI`, `WZ_BFF_CLIENT_ID`, `WZ_BFF_CLIENT_SECRET` (as `file:` reference to a mounted secret, never plain), scope list (`SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_WELLNESSZ_SCOPE`, e.g. `openid,profile,email,offline_access,api://wellnessz-api/access_as_user` for Entra ID), `WZ_BFF_POST_LOGOUT_URI`, `wellnessz.bff.group-role-mapping` | Helm `bff.env`, secret store |
+| Four web apps | No OIDC code in the browser; they call `/bff/**` on their own origin | Redirect URI per host `https://<host>/login/oauth2/code/wellnessz` (employee, manager, oh, partners) and post-logout URIs registered at the IdP | IdP client registration |
+| Employee mobile app (Capacitor) | Public client, authorisation code + PKCE (S256) in the system browser | `wz.oidcIssuer`, `wz.oidcClientId`, `wz.redirectUri` through MDM managed configuration or `/config.json` | MDM / app configuration |
+| Machine clients (EHS, laboratory, rostering, insurer, EAP, campaign app) | Client-credentials tokens with role `INTEGRATION` | One client per system; external systems carry a fixed `org_scope=/PARTNERS/<CODE>` claim; certificate credentials preferred over secrets | IdP client registration |
+
+**Microsoft Entra ID (recommended for the workforce).**
+
+1. App registrations: `wellnessz-api` (exposes the scope `access_as_user` and the **app roles** – all 38 canonical
+   roles or the subset in use), `wellnessz-bff` (web, confidential – certificate or secret in Key Vault – with the four
+   redirect URIs), `wellnessz-mobile` (public client, PKCE), and one registration per machine client with application
+   permissions on `wellnessz-api` (role `INTEGRATION`).
+2. Assign app roles to security groups; alternatively emit `groups` and map object ids in `group-role-mapping`
+   (prefer app roles – group overage above 200 groups drops the `groups` claim).
+3. Emit `employee_id` and `org_scope` through directory extension attributes with optional claims or a claims-mapping
+   policy fed from the HRIS; partner guests get `/PARTNERS/<CODE>`.
+4. Conditional Access: MFA (authentication strength) for all users, compliant device or app-protection policy for the
+   mobile app, a phishing-resistant strength for guests; authentication contexts appear in the `acrs` claim, which the
+   MFA gate reads.
+5. Core: `WZ_OIDC_ISSUERS=https://login.microsoftonline.com/<tenant>/v2.0`, `WZ_OIDC_AUDIENCE=<api application id>`;
+   the Helm overlays already carry per-environment registrations (`api://wellnessz-api-dev`, `…-uat`,
+   `api://wellnessz-api`).
+
+**Keycloak (local development; option for partners or for organisations without a cloud IdP).** The repository
+ships the realm `wellnessz` (`deploy/local/keycloak/wellnessz-realm.json`) with clients `wellnessz-bff`
+(confidential, PKCE S256), `wellnessz-mobile` (public, PKCE), `wellnessz-api` (audience) and
+`wellnessz-integration` (client credentials); all 38 roles are realm roles in the scope mappings (`fullScopeAllowed=false`);
+`employee_id` and `org_scope` are admin-only user-profile attributes; brute-force protection, password policy,
+5-minute access tokens and a 15-minute SSO idle timeout are set. For production: run Keycloak highly available on its
+own database, enforce OTP / WebAuthn (required action plus a level-of-authentication flow so that `acr` = `2`, or the
+AMR mapper), use hardcoded-claim mappers for partner machine clients, and set
+`WZ_OIDC_ISSUERS=https://<host>/realms/<realm>`.
+
+**Other OIDC providers.**
+
+| Provider | Issuer to trust | Roles | ABAC attributes | MFA proof |
+|---|---|---|---|---|
+| Okta | custom authorisation server `https://<org>.okta.com/oauth2/<server-id>` (the org server cannot add custom access-token claims) | `groups` claim filtered to WellnessZ groups, or a `roles` claim; map names in `group-role-mapping` if they differ | custom claims `employee_id`, `org_scope` from profile attributes | `amr` (for example `mfa`, `otp`) – default values already accepted |
+| Ping Identity (PingFederate / PingOne) | the authorisation server's issuer | attribute contract `roles` | attribute contract `employee_id`, `org_scope` | `amr` / `acr` per policy – extend `mfa-acr-values` with the policy's ACR values |
+| Auth0 | `https://<tenant>.<region>.auth0.com/` | an Action that adds a **plain** claim name such as `roles` (claim paths are dot-separated, so URL-style namespaced claims cannot be addressed) | Action adds `employee_id`, `org_scope` | `amr` contains `mfa` after MFA |
+| Microsoft AD FS 2019 or later | `https://<adfs-host>/adfs` | issuance transform rule emitting `roles` from AD groups | issuance rules for `employee_id`, `org_scope` | `amr` / authentication method reference via access control policy requiring MFA |
+| Google Workspace / Cloud Identity | `https://accounts.google.com` | no role claim – use a broker (Keycloak or Entra ID) in front | – | – |
+
+Whatever the provider, the release checklist requires a decoded access token per environment showing the expected
+`iss`, `aud`, role, `employee_id`, `org_scope` and MFA claims before go-live (O1, O23).
+
+### 8.6 Restricted-class architecture (increment 5)
+
+Mental-health support (E09) and substance testing (E10) hold the most sensitive data of the platform. The design goal
+is that **the existence of the data is known only to the people who must act on it**, and that everyone else sees, at
+most, a status or a suppressed count. The controls are layered so that no single defect exposes the content.
+
+```mermaid
+flowchart TB
+  subgraph Readers
+    PSY[Named PSYCH_CLINICIAN]
+    MRO[MRO / acting-MRO physician]
+    OH[General OH clinician]
+    MGR[Manager / HR / crew scheduling / safety manager]
+    DA[DA programme manager / collector]
+    PEER[Peer volunteer / coordinator]
+  end
+  subgraph Core["wz-core-app"]
+    MOD[E09 / E10 module access checks<br/>named-clinician list · MRO list · 404 + DENIED audit]
+    ABAC[restrictedClassPolicy<br/>deny unless PSYCH_CLINICIAN, subject, break-glass]
+    PROJ[Status-only projections<br/>duty status · sharing choice]
+    SUP[Small-cell suppression k=5]
+  end
+  DB[(mentalhealth / substance schemas<br/>RESTRICTED_CLINICAL, field-encrypted)]
+  PSY -->|full E09 content| MOD
+  MRO -->|E10 results, chain of custody| MOD
+  OH -->|placeholder count only| MOD
+  MGR -->|duty status / shared fitness| PROJ
+  DA -->|selections, coverage – no results| MOD
+  PEER -->|alias + code, no identity| MOD
+  MOD --> ABAC --> DB
+  PROJ --> DB
+  SUP --> DB
+```
+
+| Layer | Control | Implementation |
+|---|---|---|
+| Classification | Records are `RESTRICTED_CLINICAL`, derived from the case category (`PSYCHOLOGICAL`, `SUBSTANCE`) and set explicitly on generated documents | restricted kernel cases; `DocumentService.generateSigned(..., DataClassification.RESTRICTED_CLINICAL)` |
+| Named reader | E09 content only for the clinicians in `mentalhealth.named-clinicians` (empty = every `PSYCH_CLINICIAN`); E10 results only for `MRO` or a physician listed in `substance.acting-mro-physicians` (empty by default) | `SupportAccess`, `MroService`; anyone else gets `404` (E09) or `403` (MRO queue) and a `DENIED` audit entry |
+| Platform policy | `restrictedClassPolicy` denies `RESTRICTED_CLINICAL` kernel cases and documents to everyone except `PSYCH_CLINICIAN`, the data subject and break-glass holders | `DefaultPolicies` (deny-overrides) |
+| Placeholder | General OH roles see only `{restrictedCases: n}` on the chart ("1 restricted item – hidden") | `GET /support/placeholder` |
+| Break-glass | An OH clinician with an active, justified grant reads the employee's support cases read-only (`accessBasis: BREAK_GLASS`); DPO alert and review | increment-2 break-glass service |
+| Status only | Managers, HR, crew scheduling and safety managers receive duty status (available / removed / return pending) or the fitness / adjustments the employee chose to share – never scores, conditions, test reasons or results; employee and manager views mask test states (`COLLECTED`, `COMPLETED`, `CLOSED`) | projections, `/workspace/testing/status`, `/workspace/psychosocial/shared-outcomes`; every row disclosure-logged |
+| Pseudonymity | Peer-support requests reach a trained volunteer as alias + random `PS-XXXX-XXXX` code; peer tables have no employee column; the audit entry for a contact request carries no code | `PeerSupportService`, integration test against `information_schema` |
+| Bound machine clients | Laboratory results only from the client bound to `TOXLAB` (unbound or other → `404`); EAP portal users see minimal data for their own organisation and return attendance only (free text → `422 field_not_allowed`) | `LabService`, `EapService` |
+| Aggregates | Every programme figure suppressed below `wellnessz.analytics.min-group-size` (default 5): psychosocial rates, peer-support quarterly report, testing statistics, campaign uptake, insights, advisory acknowledgements | module `Suppression` classes |
+| Notifications | Content-free templates; `ContentRules` reject *positive*, *result*, *drug*, *alcohol* and clinical terms | `NotificationRulesTest` |
+| Module isolation | E09 / E10 depend on no other clinical module; E10 reaches E09 only through `SupportProgrammeReferral` | ArchUnit rules 10–11 |
+| Analytics | Restricted-class cases excluded from `analytics.v_case_facts` and from E12 insights | view definition, `InsightRules` |
+
+**Known limitation (follow-up item O29).** The platform ABAC rule recognises `PSYCH_CLINICIAN` only. An MRO opens
+results and the chain-of-custody form through the E10 MRO endpoints, but probably **not** through the generic
+`/documents` API for `RESTRICTED_CLINICAL` documents. The safe direction (deny) applies; the fix is a restricted-class
+policy that also admits `MRO` for documents of the substance programme.
 
 ## 9. Security architecture
 
@@ -882,6 +1013,7 @@ This section summarises the technical controls; document 02 maps them to SOC 2 c
 | Workload identity | AKS workload identity (user-assigned identity + federated credential), GKE Workload Identity (KSA→GSA), Vault Kubernetes auth on-premises; no static cloud credentials in pods. CI uses GitHub OIDC federation (Terraform `github_deployer`, `github_wif`). |
 | Terraform state | Write-only arguments (`>= 1.11`) for database passwords so secrets are not stored in state; remote state with Entra ID auth (Azure) or CMEK-encrypted GCS bucket. |
 | Master key | Single 256-bit key per environment (see 6.3); stored in Key Vault / Secret Manager / Vault, mounted as file. |
+| Database connector passwords | Never in plain configuration: `file:` reference to a CSI- or External-Secrets-mounted file in Kubernetes, `ENC(...)` elsewhere; full description in Section 9.9. |
 
 ### 9.2 Transport security
 
@@ -983,18 +1115,52 @@ Binary Authorization (enforced), shielded nodes, Cloud Armor WAF.
 |---|---|---|---|
 | Unit, integration, architecture tests | JUnit 5, Spring Boot test, Testcontainers (PostgreSQL 16) or CI service DB, ArchUnit 1.5.1; Vitest 5.0.5 | Maven / npm | Implemented |
 | Coverage | JaCoCo 0.8.16 | root `pom.xml` | Implemented |
-| SAST | CodeQL (`java-kotlin`, `javascript-typescript`) on push, PR and weekly; SpotBugs 4.10.5.0 + FindSecBugs 1.14.0, effort Max (`mvn -Psecurity verify`) | `.github/workflows/codeql.yml`; `pom.xml` | Implemented (SpotBugs runs via the Maven profile, not yet as a CI job) |
+| SAST | CodeQL (`java-kotlin`, `javascript-typescript`) on push, PR and weekly; SpotBugs 4.10.5.0 + FindSecBugs 1.14.0, effort Max (`mvn -Psecurity verify`) – a CI step that fails on any finding | `.github/workflows/codeql.yml`, `ci.yml`; `pom.xml` | Implemented (0 findings, 6 justified exclusions) |
 | SCA | OWASP dependency-check 13.0.0 aggregate (fail CVSS ≥ 7, SARIF to code scanning); GitHub dependency review on PRs (fail on high); `npm audit --omit=dev --audit-level=high`; exact pins and lockfiles | `ci.yml`, `pom.xml`, `config/dependency-check-suppressions.xml` | Implemented |
 | SBOM | CycloneDX Maven plugin 2.9.3 (Java), `@cyclonedx/cyclonedx-npm` 6.0.1 (web), Syft image SBOMs; uploaded as CI artefacts and attested to images | `pom.xml`, `ci.yml`, `container.yml` | Implemented |
 | Secret scanning | gitleaks v8.30.1 (full history, SARIF) | `ci.yml` | Implemented |
 | Image & IaC scan | Trivy image gate (CRITICAL/HIGH with fix → build fails) + SARIF; Trivy config scan of Dockerfiles, Helm, Terraform; `helm lint`/template for all values files; `terraform fmt` | `container.yml`, `ci.yml` | Implemented |
 | Signing / admission | cosign keyless signing (GitHub OIDC, Fulcio/Rekor), SBOM and SLSA build-provenance attestations, Binary Authorization attestation for Artifact Registry; deploy job verifies cosign signatures before `helm upgrade` | `container.yml`, `deploy-env.yml`, Terraform `binauthz.tf` | Implemented (cluster-side admission enforced on GKE; AKS/on-prem admission policy recommended) |
 | DAST | OWASP ZAP baseline against a test deployment | – | Recommended (not yet defined) |
-| Deployment | `cd.yml` on version tags: build/scan/sign → dev → test → prod via `deploy-env.yml` (GitHub Environments, `helm upgrade --atomic`, deployment record); OIDC federation to Azure/GCP, AKS private-cluster `command invoke` path | `cd.yml`, `deploy-env.yml`, Terraform | Implemented; **required reviewers** for `test`/`prod` must be configured in GitHub Environment settings (organisation control) |
+| Deployment (increment 5) | `cd.yml`: every `main` build → DEV automatically; `vX.Y.Z-rc.N` → DEV → UAT; `vX.Y.Z` → DEV → UAT → PROD, per cloud (`DEPLOY_CLOUDS`); digests resolved and cosign-verified once and passed to every stage. `deploy-env.yml` per stage: tag policy (dev `sha-*`/`v*`, uat `vX.Y.Z[-rc.N]`, prod `vX.Y.Z`), OIDC login, cosign verify (uat/prod must be built by `container.yml` on `main`), `cosign copy` by digest into the environment registry, Binary Authorization attestation on GKE, `helm upgrade --atomic` with the environment overlay and all images pinned by digest (`global.requireImageDigests` in uat/prod), smoke tests (rollout, running digests, `SMOKE_URLS`), automatic `helm rollback`; AKS private-cluster path through `az aks command invoke` (`deploy/scripts/helm-release.sh`) | `cd.yml`, `deploy-env.yml`, `deploy/scripts/helm-release.sh`, Terraform | Implemented; **required reviewers** and protection rules for the `*-uat` / `*-prod` GitHub Environments must be configured in repository settings – they cannot be set from code (organisation control) |
 
 > All third-party actions are pinned to full commit SHAs. CI artefacts (test and coverage reports, SBOMs,
 > dependency-check and gitleaks reports, SARIF in GitHub code scanning, attestations) are the evidence sources listed in
-> document 02. Not yet in the pipeline: SpotBugs as a CI job and DAST.
+> document 02. Not yet in the pipeline: DAST. Not yet validated on real infrastructure: `cosign copy` digest preservation, the
+> `az aks command invoke` output format and the Binary Authorization attestation check (no cloud credentials in the
+> build environment).
+
+### 9.9 Database connector password management
+
+Database passwords are the credentials most often found in plain text in configuration files, container images and
+CI logs. WellnessZ removes them from every artefact; the resolver lives in `platform/wz-secrets` and runs before Spring
+binds the data source.
+
+| Mechanism | How it works | Used in |
+|---|---|---|
+| `file:` reference | For property names containing *password*, *secret*, *key*, *token* or *credential*, a value `file:/mnt/secrets/<name>` is replaced by the content of that file (`SecretValueResolver`); ordinary `file:` URLs of other properties are untouched. The file is mounted by the Secrets Store CSI driver (Azure Key Vault, GCP Secret Manager, HashiCorp Vault providers) or by External Secrets; Kubernetes Secret sync is off, so the value is not written to etcd | AKS, GKE, hybrid – Helm `secrets.<component>.files` with `format: fileRef` maps `wz-db-password` → `WZ_DB_PASSWORD=file:…`, `wz-bff-db-password`, `wz-migrator-db-password`, BFF client secret |
+| `ENC(...)` value | AES-256-GCM ciphertext with the HKDF sub-key `wellnessz/config/v1` and associated data `wellnessz-config`; produced by `EncryptCli` / `tools/encrypt-secret.sh` (plaintext read without echo, never from arguments); decrypted at start-up by `SecretsEnvironmentPostProcessor` into an in-memory property source of highest precedence; values never logged | VM / on-premises installations without CSI, developer machines (IDE env files hold every secret as `ENC(...)`), client values files |
+| Master key | 256-bit key from `WZ_MASTER_KEY_FILE` (preferred) or `WZ_MASTER_KEY`; mounted from Key Vault / Secret Manager / Vault; the application refuses to start without it. The BFF has its own key (session encryption), never the core key | all environments |
+| Generation | Terraform creates application and migrator passwords as ephemeral random values and writes them with write-only arguments (`>= 1.11`), so they never enter state; PostgreSQL uses SCRAM-SHA-256 | `deploy/terraform/azure/postgres.tf`, `deploy/terraform/gcp/sql.tf` |
+| Workload identity | Pods read their secrets with an Azure user-assigned identity, a GCP service account (Workload Identity) or a Vault Kubernetes-auth role – no static cloud credentials; each secret is readable only by its component | Terraform `identity.tf` / `iam.tf`, `deploy/hybrid/external-secrets` |
+| Human access | DBA access through Entra ID authentication (Azure) or Cloud SQL IAM database authentication (GCP), not shared passwords | Terraform |
+| Least privilege | `wz_migrator` owns schemas and runs DDL only; `wz_app` gets per-table DML from the migrations; `wz_bff` reaches the `bff` schema only | Flyway grants, `deploy/sql/bootstrap-managed-postgres.sql` |
+| Clinical columns | Separate from connector passwords: field-level AES-256-GCM via `EncryptedStringConverter` with HKDF-derived, versioned keys (Section 6.3) | JPA entities |
+
+Rotation: a new password is written to the secret store; the CSI driver refreshes the mounted file (Azure rotation
+polling every 2 minutes) and pods pick it up on the next restart (rolling restart, no downtime). Every secret read is
+logged by the store (Key Vault `AuditEvent`, Secret Manager Data Access logs, Vault audit device). Residual
+dependency: the master key protects every `ENC(...)` value of an environment – envelope encryption with a KMS-wrapped
+key remains decision D5.
+
+### 9.10 Error handling without information leakage (increment 5)
+
+`GlobalExceptionHandler` (`wz-common`) maps every failure to an RFC 9457 problem with a stable `code` and the
+correlation id, never a stack trace, SQL or exception message. Increment 5 closed a gap found during testing: a
+malformed JSON body (including an unknown enum value) previously surfaced as `500`; it now answers
+**`400 malformed_request`**, and a path or query parameter of the wrong type (for example a non-UUID id) answers
+**`400 invalid_parameter`** naming the parameter only. This removes misleading `500` alerts, keeps WAF and SIEM
+signal clean and prevents parser messages from reaching clients (SOC 2 CC7.1 / CC8.1, OWASP API8).
 
 ## 10. Analytics and reporting architecture
 
@@ -1020,6 +1186,13 @@ person-level dimension. Roll-ups, budget versus actual and the ERP export count 
 (`ESTIMATE` and `RESERVE` are exposure on the claim) and convert amounts to `claims.base-currency` (GBP) with
 `claims.fx-rates`; E04 cost and KPI views sum base-currency amounts only (`treatment.base-currency`).
 
+Increment 5: each programme module applies the same minimum group size (`wellnessz.analytics.min-group-size`) in a
+small module-local `Suppression` class rather than depending on `wz-analytics` (module isolation). E12 insights apply
+complementary suppression (when only one cell of a series is hidden, the next smallest is hidden too) and exclude the
+restricted class entirely; mental-wellbeing insights come only from E12 wellbeing screenings, never from E09 cases.
+Participation reports hide `invited`, `participated` and the rate when fewer than *k* were invited or between 1 and
+*k*−1 took part; the UIs leave suppressed rows out of totals so that they cannot be recovered by subtraction.
+
 Two clarifications for GRC: (1) the seeded configuration key `analytics.min-group-size` in `masterdata.config_entry`
 is informational – `KpiService` reads the application property; (2) the KPI endpoint is open to MANAGER and HR at
 organisation-wide level; suppression is the control, not org scope.
@@ -1029,7 +1202,7 @@ organisation-wide level; suppression is the control, not org scope.
 | Signal | Implementation |
 |---|---|
 | Metrics | Micrometer with Prometheus registry on management port (`/actuator/prometheus`), tag `application`; Helm `ServiceMonitor` optional. |
-| Traces | OpenTelemetry via `spring-boot-starter-opentelemetry`, OTLP export (`OTEL_EXPORTER_OTLP_ENDPOINT`), sampling 10 % by default (`WZ_TRACE_SAMPLING`), 100 % locally; collector `otel/opentelemetry-collector-contrib:0.164.0` in the local stack. |
+| Traces | OpenTelemetry via `spring-boot-starter-opentelemetry`, OTLP/HTTP export (`OTEL_EXPORTER_OTLP_ENDPOINT` is used as the full URL including `/v1/traces`, as set in the Helm values), sampling 10 % by default (`WZ_TRACE_SAMPLING`), per environment since increment 5 (DEV 1.0, UAT 0.25, PROD 0.05 through `observability.traceSampling`), 100 % locally; collector `otel/opentelemetry-collector-contrib:0.164.0` in the local stack. |
 | Logs | JSON to stdout → Log Analytics / Cloud Logging → SIEM (Sentinel, Chronicle, Splunk). |
 | Correlation | `X-Correlation-Id` accepted if well-formed (`[A-Za-z0-9._-]{8,64}`), otherwise generated; propagated by the BFF, stored on outbox events and audit rows, returned in problem responses. |
 | Health | Liveness/readiness probes on management port; details hidden; startup probe allows Flyway on first start. |
@@ -1045,6 +1218,7 @@ organisation-wide level; suppression is the control, not org scope.
 | Database HA | Azure Flexible Server zone-redundant HA (standby zone 2), Cloud SQL `REGIONAL`, CNPG 3 instances with at least one synchronous standby (`dataDurability: required`). |
 | Backups | Azure: 35-day retention, geo-redundant backup (default on), CMK; GCP: 30 retained backups, 7 days of transaction logs (PITR); CNPG: continuous WAL archiving + scheduled base backups to object storage. |
 | Region failure | Not automated in the current IaC (single region). |
+| Per-environment profile (increment 5) | DEV: one zone, no database HA, 7-day backups, 1–2 core replicas; UAT: three zones, zone-redundant / `REGIONAL` database, 14-day backups, 2–4 replicas, PDB `minAvailable: 1`; PROD: three zones, HA, Azure 35-day geo-redundant / GCP 30 backups with 7-day PITR, 3–10 replicas, PDB `minAvailable: 2`, `DoNotSchedule` zone spread, resource locks / deletion protection (`deploy/environments/README.md`, document 04). |
 
 **Proposed targets (decision D9):**
 
@@ -1079,6 +1253,36 @@ fitness-for-duty decisions during an outage.
 
 Each table records the options assessed and why the repository's choice was made. Versions are those pinned in the
 repository.
+
+**Selection summary (Version 1.0).** One line per technology choice of the whole platform; the detailed assessment is
+in the subsection named in the last column. "Rejected because" states the decisive reason – most alternatives are
+viable products that lost on fit, cost, operating effort or risk for this system.
+
+| Layer / concern | Selected | Alternatives considered | Rejected because | Detail |
+|---|---|---|---|---|
+| Architecture style | Modular monolith (one core deployable, 23 Maven modules, ArchUnit boundaries) | Microservices per epic; serverless functions; packaged OH product | Microservices multiply PHI data stores, network hops, IAM and audit surface for a workload of hundreds of concurrent users; serverless fragments transactions and the outbox; packaged products did not meet the status-only and restricted-class rules | 14.31 |
+| Language / framework | Java 21 LTS, Spring Boot 4.1.2 (Spring Security 7, Hibernate 7) | Quarkus, Micronaut, Jakarta EE, .NET 8, Node.js | Spring has multi-issuer resource server, OIDC client and JDBC sessions out of the box and the largest skills market; .NET / Node would split the HL7 / FHIR / PDF library base | 14.1 |
+| Database | PostgreSQL 16 | SQL Server, Oracle, MySQL, document stores | Licence cost and lower portability (SQL Server, Oracle); weaker `SKIP LOCKED` / row-security / extension story (MySQL); document stores lack the transactional guarantees the outbox and audit chain rely on | 14.2 |
+| Schema migration | Flyway (versioned SQL, owner role, `ddl-auto: validate`) | Liquibase, Hibernate auto-DDL, hand-run scripts | Liquibase adds an abstraction layer the SQL-literate team does not need; auto-DDL and manual scripts are not auditable change control | 14.32 |
+| Messaging | Transactional outbox + in-process delivery; broker via `EventPublisher` SPI | Kafka, Azure Service Bus, Google Pub/Sub as the primary bus | Every broker still needs an outbox for atomicity; choose one per hosting decision (D3) | 14.4 |
+| Interoperability | HAPI FHIR R4 structures, HAPI HL7 v2 (library only) | FHIR server (HAPI JPA, Azure Health Data Services, Google Healthcare API); integration engine in the core | A FHIR server is a second PHI store; MLLP and routing belong to an integration engine in front | 14.5, 14.27 |
+| Web front ends | React 19, TypeScript 6, Vite 8, no UI framework | Angular, Vue, Next.js (SSR), webpack | No decisive advantage (Angular, Vue); SSR puts a Node runtime holding sessions in the PHI path; webpack is slower with no benefit | 14.7 |
+| Browser authentication | Backend-for-Frontend (confidential client, encrypted server-side session) | Tokens in the SPA (public client + PKCE), API gateway token handler | Tokens reachable by XSS in the SPA pattern; the IETF browser-apps guidance recommends a BFF for sensitive data | 14.7 |
+| Mobile | Capacitor 8 + PWA from the same React code | Flutter, React Native, native Swift / Kotlin | Second codebase and skills set for a form- and status-centric app | 14.6 |
+| Identity | Any OIDC provider; Entra ID primary for the workforce; Keycloak locally and optionally for partners | Proprietary SDKs, SAML-only integration, application-managed passwords | Vendor lock-in; SAML does not serve APIs and mobile; local passwords fail MFA / joiner-mover-leaver controls | 14.3, 8.5 |
+| Authorisation | In-code ABAC with deny-overrides + endpoint RBAC | OPA / Rego, AWS Cedar, Keycloak Authorization Services | An external decision point adds a network hop and policy-language skills for a rule set that fits in reviewed, tested code (D8) | 8.3 |
+| Field encryption | AES-256-GCM per column, HKDF-derived versioned keys, blind index | Database TDE only, `pgcrypto`, cloud client-side encryption SDKs | TDE does not protect against DBA, dump or replica access; `pgcrypto` puts keys in SQL sessions; SDKs are cloud-specific | 6.3, 14.36 |
+| Secrets | CSI-mounted files + `ENC(...)` + workload identity | Kubernetes Secrets only, environment variables from CI, Vault agent injector everywhere | Secrets in etcd and CI logs; injector ties every set-up to Vault | 9.1, 9.9, 14.36 |
+| Container platform | Managed Kubernetes (AKS, GKE) or RKE2 / OpenShift on-premises | Azure Container Apps, Cloud Run, VMs, Nomad | PaaS runtimes differ per cloud and limit NetworkPolicy, CSI and admission control; VMs need bespoke hardening and scaling | 14.8 |
+| Packaging | Helm chart with schema-validated values and environment overlays | Kustomize, raw manifests, Operators | No values schema / typed validation (Kustomize, raw); an Operator is over-sized | 14.33 |
+| Infrastructure as code | Terraform `>= 1.11` (write-only arguments) | Bicep / ARM, Pulumi, Crossplane, OpenTofu | Azure-only (Bicep); general-purpose code and smaller ops footprint (Pulumi); cluster-hosted control plane (Crossplane); OpenTofu is a drop-in alternative if the BSL licence is a concern | 14.9 |
+| CI/CD | GitHub Actions with environments and OIDC federation | Azure DevOps, GitLab CI, Jenkins | Supported alternative (ADO); not the client's platform (GitLab); self-hosted controller and plug-in supply-chain risk (Jenkins) | 14.10, 14.38 |
+| Supply chain | cosign keyless signing, SLSA provenance, CycloneDX SBOMs, Binary Authorization on GKE | Notary v2 / Notation, Docker Content Trust, unsigned images with scanning only | Notation viable but weaker keyless / transparency-log story; DCT deprecated in practice; scanning alone does not prove origin | 14.34 |
+| Security testing | CodeQL, SpotBugs + FindSecBugs, OWASP dependency-check, gitleaks, Trivy | Commercial SAST / SCA suites | Licence cost; the open toolchain produces SARIF evidence in code scanning; a commercial suite can be added without changing the gates | 9.8 |
+| Observability | OpenTelemetry (OTLP), Micrometer / Prometheus, JSON logs | Vendor agents (Application Insights SDK, Datadog, Dynatrace), Zipkin / Jaeger clients | Vendor agents lock the code to one back end; OTLP reaches Azure Monitor, Cloud Trace, Tempo or a commercial APM through the collector | 14.35 |
+| Documents | Apache PDFBox | iText, commercial engines, headless Chromium | AGPL / licence cost; native browser binary in the PHI image | 14.15 |
+| Scheduling of jobs | Database-backed timers and `JobRunGuard` | Quartz, ShedLock, Kubernetes CronJobs, workflow engines | Extra tables / infrastructure or loss of transactional coupling with the business change | 14.12 |
+| Restricted classes | Same platform (separate schemas, named readers, ABAC deny, suppression) | Separate system or database instance for mental health and testing | Duplicates identity, audit, encryption and operations; the layered controls give equivalent separation with one evidence base | 14.37 |
 
 ### 14.1 Language and application framework
 
@@ -1175,6 +1379,13 @@ hosting decision; the adapter is a small component implementing `EventPublisher`
 | Bundle and dependency surface | small (only React + React DOM at runtime) | larger |
 | **Verdict** | **Selected** | Valid alternative; no decisive advantage here |
 
+| Build tool / language | Selected | Alternatives | Why the alternatives were not chosen |
+|---|---|---|---|
+| Build | Vite 8 (ES modules dev server, Rollup-based production build) | webpack, Parcel, Create React App | webpack: slower builds and larger configuration surface; CRA is unmaintained; Parcel: smaller ecosystem |
+| Language | TypeScript 6 (strict) | JavaScript, Flow | Types on every API mapper catch contract drift at build time (the mappers whitelist response fields); Flow has little community support |
+| Rendering | Client-side SPA served by unprivileged nginx with strict CSP | Server-side rendering (Next.js, Remix) | SSR adds a Node runtime that would hold sessions and render PHI on the server, a second hardened runtime for no user benefit in an authenticated line-of-business app |
+| Testing | Vitest + Testing Library, ESLint (0 warnings), Playwright for live E2E | Jest, Cypress | Vitest shares the Vite pipeline; Playwright drives real Keycloak logins through the BFF across all four apps |
+
 | Criterion | BFF (selected) | SPA holds tokens (public client + PKCE in browser) |
 |---|---|---|
 | Token theft via XSS | tokens not reachable by JavaScript | access/refresh tokens exposed to XSS |
@@ -1191,7 +1402,7 @@ hosting decision; the adapter is a small component implementing `EventPublisher`
 | Supply-chain enforcement | Azure Policy, Defender, image integrity (preview features) | Binary Authorization (configured) | OpenShift policy / Kyverno, sigstore |
 | Managed PostgreSQL alongside | Flexible Server | Cloud SQL | CloudNativePG (self-operated) |
 | Data residency / PHI on-prem | EU regions | EU regions | full control |
-| Repository support | `deploy/terraform/azure`, `values-azure.yaml` | `deploy/terraform/gcp`, `values-gcp.yaml` | `deploy/hybrid`, `values-hybrid.yaml` |
+| Repository support | `deploy/terraform/azure` (+ `environments/{dev,uat,prod}.tfvars`), `values-azure.yaml`, `environments/azure/*.yaml` | `deploy/terraform/gcp` (+ `environments/*.tfvars`), `values-gcp.yaml`, `environments/gcp/*.yaml` | `deploy/hybrid`, `values-hybrid.yaml`, `environments/hybrid/*.yaml`, `values-hybrid-cloud-edge.yaml` |
 | **Verdict** | Default if Microsoft-centric | Equivalent alternative | Hybrid option where PHI must remain on-premises |
 
 Helm chart `0.1.0` requires Kubernetes `>= 1.30`.
@@ -1218,6 +1429,9 @@ Helm chart `0.1.0` requires Kubernetes `>= 1.30`.
 | Security tooling (CodeQL, secret scanning, Dependabot) | native (GitHub Advanced Security) | via extensions / GHAzDO | native (Ultimate) |
 | Environments with approvals | yes | yes | yes |
 | **Verdict** | **Selected** | Supported alternative where the airline standardises on ADO | Not selected |
+
+Since increment 5 the pipeline promotes **one signed digest** through DEV, UAT and PROD (Section 14.38); Jenkins was
+also considered and rejected (self-hosted controller, plug-in supply-chain risk, no native OIDC federation).
 
 ### 14.11 Version summary
 
@@ -1603,6 +1817,140 @@ External users reach patient-identifiable data from devices the airline does not
 `local` profile. Workforce roles are not gated by the core (MFA for employees remains an Entra ID Conditional Access
 decision of the airline).
 
+### 14.31 Architecture style – modular monolith versus microservices
+
+**Choice:** a **modular monolith**: one core deployable (`apps/wz-core-app`) composed of ten platform and 13 business
+Maven modules, plus a separately deployed BFF and four static web apps. Module boundaries are compile-time Maven
+dependencies and 22 ArchUnit rules; business modules communicate only through kernel SPIs and transactional events.
+
+| Criterion | Modular monolith (selected) | Microservices per epic | Serverless functions |
+|---|---|---|---|
+| PHI data stores to secure, back up, audit | one PostgreSQL database, schema per module, one key hierarchy | one database per service (13+), each with its own credentials, backups and encryption | many functions sharing stores; hard to evidence data flows |
+| Consistency (case + timeline + audit + outbox in one transaction) | local ACID transactions | sagas / distributed transactions, compensations | same as microservices, with cold starts |
+| Security surface | one resource server, one ABAC engine, one audit chain | service-to-service authentication, mTLS mesh, policy per service | per-function IAM, gateway configuration |
+| Operating effort for an airline OH workload (tens of thousands of employees, hundreds of concurrent users) | small – 2–10 replicas | high – platform team for mesh, tracing, contract testing | medium, cloud-specific |
+| Change isolation | enforced by ArchUnit; modules can be switched off by configuration | strongest | strong |
+| Extraction path | any module can become a service later: it already talks through SPIs and events | – | – |
+| **Verdict** | **Selected** | Rejected for now – cost and attack surface without a scaling need | Rejected – vendor-specific, weak fit for long transactions |
+
+Trade-off accepted: a defect in one module can affect the shared JVM; mitigated by per-module tests, ArchUnit,
+virtual threads, readiness probes and rolling updates. Reconsider extraction only if one module needs a different
+scaling profile or release cadence.
+
+### 14.32 Schema migration – Flyway
+
+**Choice:** Flyway with versioned, immutable SQL migrations (`V1`–`V20` product, repeatable `R__demo_*` for local /
+test only), run by the owner role `wz_migrator` either in the application (`migrations.mode=app`, DEV) or as a Helm
+pre-upgrade Job (`flyway/flyway:11.20.3-alpine`, UAT / PROD); Hibernate validates only. Client-specific migrations run
+afterwards in their own schema and history table (Section 23.6).
+
+| Criterion | Flyway (selected) | Liquibase | Hibernate `ddl-auto=update` | Manual DBA scripts |
+|---|---|---|---|---|
+| Change format | plain SQL reviewed like code; grants to `${app_role}` in the same file | XML / YAML / SQL change sets | generated at runtime | ad hoc |
+| Audit evidence (SOC 2 CC8.1) | `flyway_schema_history` with checksums | `DATABASECHANGELOG` | none | change tickets only |
+| Separation of owner and runtime role | yes | yes | no – runtime role needs DDL | depends |
+| Expand / contract with rollback by redeploy | supported (forward-only discipline) | supported, plus rollback scripts | no | depends |
+| **Verdict** | **Selected** | Viable; abstraction not needed | Rejected – no change control | Rejected – not reproducible |
+
+### 14.33 Kubernetes packaging – Helm
+
+**Choice:** one Helm chart (`deploy/helm/wellnessz`, chart `0.1.0`, Kubernetes `>= 1.30`) with a JSON schema
+(`values.schema.json`) that makes the hardening settings impossible to switch off, cloud values files
+(`values-{azure,gcp,hybrid,local}.yaml`) and, since increment 5, nine environment overlays
+(`environments/{azure,gcp,hybrid}/{dev,uat,prod}.yaml`); `global.requireImageDigests` makes rendering fail when a
+UAT / PROD image is not pinned by digest.
+
+| Option | Assessment |
+|---|---|
+| Helm (selected) | Typed values with schema validation, `--atomic` upgrades and `rollback`, widely supported by AKS, GKE, OpenShift and Arc / GKE Enterprise GitOps |
+| Kustomize | Good for overlays, but no values schema and no release history / rollback primitive |
+| Raw manifests | Unmaintainable across four platforms and three environments |
+| Kubernetes Operator | Over-sized for a stateless application; the database operator (CloudNativePG) is used where an operator adds value |
+
+### 14.34 Software supply chain – cosign, SLSA provenance and SBOM
+
+**Choice:** every image is built once by `container.yml`, gated by Trivy (CRITICAL / HIGH with a fix → fail), pushed,
+given CycloneDX SBOMs (Syft for images, CycloneDX plugins for Maven and npm) and SLSA build-provenance attestations,
+and signed **keyless** with cosign (GitHub OIDC identity, Fulcio certificate, Rekor transparency log). The deploy job
+verifies the signature and the signer identity (UAT / PROD: `container.yml` on `main`) before copying the image by
+digest; GKE additionally enforces Binary Authorization with a KMS-backed attestor (dry-run in DEV, enforced in UAT /
+PROD).
+
+| Option | Assessment |
+|---|---|
+| cosign keyless + SLSA provenance + SBOM attestations (selected) | No long-lived signing keys to protect; signatures and attestations travel with the image (`cosign copy`); verifiable by Binary Authorization, Kyverno or the Sigstore policy-controller |
+| cosign with a KMS key | Option for air-gapped hybrid sites that cannot reach the public transparency log |
+| Notary v2 / Notation | Viable (Azure-native signing with Key Vault); weaker keyless story; would need a second verification path on GKE |
+| Scanning only, no signatures | Does not prove origin or prevent a substituted image – rejected |
+
+Residual: admission enforcement of signatures is configured on GKE only; AKS and on-premises need Azure Policy image
+integrity, Ratify / Kyverno or the Sigstore policy-controller (risk R7, document 04).
+
+### 14.35 Observability – OpenTelemetry
+
+**Choice:** vendor-neutral instrumentation – Micrometer metrics with a Prometheus endpoint on the management port,
+OpenTelemetry traces over OTLP to a collector, JSON logs with correlation, trace and span ids – and a back end chosen per
+hosting set-up (Azure Monitor / Managed Prometheus, Cloud Logging / Cloud Trace / Managed Prometheus, or
+Prometheus / Tempo / Loki on-premises).
+
+| Option | Assessment |
+|---|---|
+| OpenTelemetry + Micrometer (selected) | CNCF standard; the collector can redact attributes and fan out to any back end; Spring Boot 4 starter |
+| Vendor agents (Application Insights Java agent, Datadog, Dynatrace) | Richer out-of-the-box dashboards but binds the code or image to one vendor; can still be fed from the collector |
+| Logs only | Insufficient to diagnose cross-component latency (BFF → core → database) |
+
+PHI rule: traces and logs carry identifiers and metadata only; the collector is the place to add attribute redaction
+before export to a SaaS back end.
+
+### 14.36 Secrets and key management
+
+**Choice:** secrets live in the platform secret store (Key Vault, Secret Manager, Vault) and reach pods as files
+through the Secrets Store CSI driver or External Secrets; applications read them via `file:` references or
+`WZ_MASTER_KEY_FILE`; non-Kubernetes installations use `ENC(...)` values (Section 9.9). Field-level encryption uses an
+application master key with HKDF-derived, versioned sub-keys (Section 6.3).
+
+| Option | Assessment |
+|---|---|
+| CSI-mounted files + `ENC(...)` + workload identity (selected) | Same application contract on all four set-ups; no secret in etcd, images, Terraform state or CI logs |
+| Kubernetes Secrets (base64 in etcd) | Rejected as primary – etcd exposure and wide RBAC reach; External Secrets sync used only where an operator needs a Secret (CloudNativePG roles, backups) |
+| Vault agent injector / Vault-only | Strong, but forces Vault on Azure and GCP where native stores exist |
+| Envelope encryption with KMS-wrapped data keys | Recommended next step for the field-encryption master key (decision D5, risk R1) |
+
+### 14.37 Restricted-class enforcement (increment 5)
+
+**Choice:** keep mental-health and substance-testing data **inside the same platform**, in their own schemas
+(`mentalhealth`, `substance`), with layered controls: restricted classification, named readers, the platform deny
+policy, status-only projections, pseudonymity, bound machine clients, suppression and module isolation (Section 8.6).
+
+| Option | Assessment |
+|---|---|
+| Same platform, layered controls (selected) | One identity, audit, encryption and operating model; evidence collected once; the employee's OH journey (fitness, roster status, support referral) works without cross-system integration |
+| Separate application and database for restricted classes | Strongest physical separation but duplicates IdP integration, audit chain, key management, backups and SOC 2 evidence; integration with fitness and rostering would reintroduce data flows |
+| Separate database instance, same application | Adds operational cost; access is still decided by the application, so it adds little beyond schema separation and field encryption |
+
+Residual: the platform ABAC rule admits `PSYCH_CLINICIAN` but not yet `MRO` for restricted documents (O29); the case
+`category` column is not encrypted (R28).
+
+### 14.38 Environment promotion and client customisation (increment 5)
+
+**Choice:** environments differ only in **Terraform variable files** (`deploy/terraform/{azure,gcp}/environments/{dev,uat,prod}.tfvars`
+with a separate back end per environment), **Helm overlays** and **GitHub Environments** (`azure-dev` … `gcp-prod`); the
+same image digest moves DEV → UAT → PROD. Client-specific settings are a small values file
+(`deploy/clients/<client>/values.yaml`, passed through `EXTRA_VALUES_FILES`) with a `customisation:` block – client id,
+feature flags delivered as `WZ_FEATURE_<NAME>` to core and BFF, client SQL migrations in schema `client_<client>` with
+history table `flyway_schema_history_client`, and `core.extraEnv` – so no chart fork is needed.
+
+| Option | Assessment |
+|---|---|
+| Overlays + promotion by signed digest (selected) | Configuration drift is visible in Git; what was tested in UAT is byte-identical in PROD; rollback is a Helm revision |
+| Rebuild per environment | Rejected – PROD would run an untested artefact |
+| GitOps controller (Argo CD, Flux, Config Sync) | Compatible alternative, recommended for hybrid fleets (GKE Enterprise Config Sync, Arc GitOps); the overlays are usable unchanged |
+| Client extension JARs mounted into the core image | **Not implemented** – would require the `PropertiesLauncher` and a signed-extension policy; client Java code is a fork / branch with its own build or a client module in the Maven build |
+
+Limitations stated in the release notes: feature flags are plumbing only (no product feature reads them yet); GitHub
+Environment required reviewers and protection rules must be set in repository settings; real `terraform plan /
+apply` and workflow runs on GitHub were not possible in the build environment.
+
 ## 15. Verification evidence
 
 The following results were produced against the baseline described on the cover and can be reproduced from the
@@ -1724,6 +2072,40 @@ increment-4 E2E run).*
 *Figure 20 – Partner portal, TPA adjuster view of a claim: RTW status and milestones, shared tasks and secure messages,
 no clinical content (increment-4 E2E run).*
 
+**Increment 5 (E09, E10, E11, E12, environments).** Results of the final verification run on 2026-10-30:
+
+| Check | Result | How to reproduce |
+|---|---|---|
+| Java tests | **450 tests, 0 failures** – including `Increment5MentalHealthIntegrationTest` (11), `Increment5SubstanceIntegrationTest` (6), `Increment5TravelHealthIntegrationTest` (14), `Increment5PromotionIntegrationTest` (13), `ClientMigrationsConfigTest` (5) and **22 ArchUnit rules**; module unit tests E09 48, E11 26, E12 24 and the E10 selection, window, MRO, follow-up and suppression tests | `./mvnw verify` (with `WZ_TEST_DB_URL`: recreate the test database first – Section 21.5) |
+| SAST – SpotBugs + FindSecBugs | **0 findings**; still **6** justified exclusions | `./mvnw -Psecurity -DskipTests -Ddependency-check.skip=true verify` (also a CI step) |
+| Web unit tests (Vitest) | oh-workspace **769**, employee-app **285**, manager-workspace **188**, partner-portal **131** – **1,373**, all passing; ESLint 0 warnings; four builds clean | `npm test` in each app |
+| IaC | `terraform fmt` / `validate` for Azure and GCP; `helm lint` + kubeconform on 21 value combinations (4 base, 9 environment overlays, 6 hybrid-edge, 2 customisation); rendering without a digest fails in UAT / PROD as intended; `actionlint` with shellcheck on all workflows | CI job *IaC & config checks*; `deploy/environments/README.md` |
+| End-to-end (Playwright, real Keycloak logins through the BFF) | **24 / 24 checks** of `tools/e2e/e2e-increment5.js`; regressions 18/18, 25/25, 32/32, 22/22 – **121 checks** green. Highlights: restricted class (named clinician sees the case, general nurse `404` + placeholder), fitness-only sharing, EAP free text `422 field_not_allowed`, pseudonymous peer support, CISM counts only for the safety manager, reproducible random selection with the programme manager denied the MRO queue (`403`), MRO-verified positive → duty removed, HR status only, support referral, unbound laboratory client `404`, contact tracing in 1.03 h against the 4-hour target, suppressed uptake, participation and statistics, wearable data rejected without consent | `node tools/e2e/e2e-increment5.js`; 35 screenshots in `docs/images/screens/increment-05/` |
+| Defect found and fixed | Malformed JSON enum values answered `500`; now `400 malformed_request` / `400 invalid_parameter` (Section 9.10) | Release notes |
+| OpenAPI | **647 paths** in `docs/api/openapi.json` (was 509) | `GET /v3/api-docs` (local profile) |
+
+Not validated in the build environment (no cloud credentials, no live cluster): real `terraform plan` / `apply`,
+workflow runs on GitHub, `cosign copy` digest preservation, the `az aks command invoke` output format, the Binary
+Authorization attestation listing and client migrations against a real database.
+
+![Restricted placeholder on the chart](../images/screens/increment-05/inc5-oh-03-chart-restricted-placeholder.png)
+
+*Figure 21 – OH workspace, employee chart seen by a general OH nurse: only a placeholder count of restricted items
+(increment-5 E2E run).*
+
+![MRO review queue](../images/screens/increment-05/inc5-oh-12-testing-mro.png)
+
+*Figure 22 – OH workspace, MRO review queue – results visible only to the medical review officer (increment-5 E2E run).*
+
+![HR duty status](../images/screens/increment-05/inc5-mgr-02-hr-duty-status.png)
+
+*Figure 23 – Manager workspace, HR view of testing: duty status only, no reasons or results (increment-5 E2E run).*
+
+![EAP referrals in the partner portal](../images/screens/increment-05/inc5-partner-01-eap-referrals.png)
+
+*Figure 24 – Partner portal, EAP referrals: minimal data for the own organisation and attendance-only feedback
+(increment-5 E2E run).*
+
 ## 16. Risks, assumptions and open items
 
 ### 16.1 Architecture risks
@@ -1735,7 +2117,7 @@ no clinical content (increment-4 E2E run).*
 | R4 | DB owner could rewrite audit chain | Low | High | External hash anchoring, SIEM streaming, separation of duties for DB owner role (O2) |
 | R5 | Outbound guard checks field names, not values | Low | High | Flat payloads enforced (nested objects/arrays rejected), allow-list review by DPO, contract tests per destination |
 | R6 | Mobile refresh token in memory only until secure-storage plugin registered; MAM SDK not integrated | Medium (functional) | Medium | Register Keychain/Keystore plugin and MAM SDK in native projects before store release |
-| R7 | Supply-chain gaps: SpotBugs not a CI job, no DAST, admission enforcement only on GKE | Medium | Medium | Add SpotBugs job and ZAP baseline; Kyverno/Ratify or Azure policy for signature verification on AKS/on-prem |
+| R7 | Supply-chain gaps: no DAST, signature admission enforcement only on GKE (SpotBugs became a CI step – closed) | Medium | Medium | ZAP baseline against UAT; Kyverno / Ratify / Sigstore policy-controller or Azure Policy image integrity on AKS and on-premises |
 | R8 | Single-region deployment | Low | High | Cross-region replica and DR runbook (D9) |
 | R9 | Audit advisory lock serialises writers – throughput ceiling | Low | Medium | Load test; partitioned chains per shard if needed |
 | R10 | Authentication-failure audit writes per invalid token could be abused to amplify load | Medium | Low | WAF rate limiting; sampling or aggregation of failure events |
@@ -1754,6 +2136,15 @@ no clinical content (increment-4 E2E run).*
 | R25 | Increment 4: over-disclosure to insurers (wrong document in a disclosure set, unredacted clinical detail) | Low | High | Allowed document types, provider / external reports only by OH roles, privileged and medico-legal material excluded, redacted copies, consent check per send, revocation, DPO disclosure report |
 | R26 | Increment 4: statutory deadlines missed because authority and insurer connectors are not built (default outbox + e-mail) and form mappings await sign-off | Medium | High | Deadline dashboard and hourly reminders, manual submission channel, sign-off of the three forms (E08-BL-003), connectors (D18) |
 | R27 | Increment 4: partner network data, rates and SLAs are illustrative; scorecards and network gaps are only as good as procurement's data | High (until replaced) | Medium | Procurement loads the contracted network (master data API, contracts endpoint) before go-live |
+| R28 | Increment 5: restricted-class existence visible to database readers (`oh_case.category`, schema names) although content is encrypted | Low | Medium | DBA access through IdP-authenticated, audited accounts only; encrypt the category of restricted rows or move restricted kernel cases to a separate schema |
+| R29 | Increment 5: MRO cannot open `RESTRICTED_CLINICAL` documents through the generic `/documents` API (ABAC admits `PSYCH_CLINICIAN` only) – risk of a workaround that widens access | Medium | Medium | MRO uses the E10 endpoints; add `MRO` to the restricted-class policy for substance-programme documents (O29) |
+| R30 | Increment 5: clinical reference content (PHQ-9 / GAD-7 cut-offs, urgent-risk protocol, testing cut-offs, travel recommendations, PEP timers) used without governance sign-off | Medium | High | Configurable reference data marked pending; Clinical Governance, MRO and Legal sign-off before go-live (O31) |
+| R31 | Increment 5: real connectors (EAP system, toxicology LIMS, campaign app, wearable vendors, public-health authority, SMS gateway) are simulated – manual workarounds may leak data by e-mail | High (until built) | Medium | Content-free e-mail defaults, partner portal for the EAP, bound laboratory client ready; connector projects per partner with DPAs (O30) |
+| R32 | Increment 5: an urgent self-harm screening answer not followed up in time | Low | High | Server-side urgent rule, same-day call-back item with countdown, named clinician notification, governance view; operating procedure and cover rota (organisation) |
+| R33 | Increment 5: re-identification from small programme aggregates (testing statistics, peer-support figures, campaign uptake) | Low | High | Suppression below k = 5 everywhere, complementary suppression for insights, UIs exclude suppressed rows from totals; DPO review of new reports |
+| R34 | Increment 5: GitHub Environment protection (required reviewers, prevent self-review, tag rules) not configured – promotion to PROD without approval | Medium | High | Configure in repository settings before the first UAT deployment; quarterly evidence export (O33) |
+| R35 | Increment 5: `WZ_FEATURE_*` flags and client migrations misunderstood as tested product features; client SQL could weaken grants | Medium | Medium | Flags documented as plumbing only; client migrations run in their own schema and history table, reviewed like product migrations (O34) |
+| R36 | Increment 5: promotion pipeline steps not yet executed against real clouds (`cosign copy`, private-AKS command invoke, Binary Authorization) | Medium | Medium | First DEV / UAT deployment is the acceptance test; dry-run the pipeline in a sandbox subscription / project |
 
 ### 16.2 Open items
 
@@ -1764,7 +2155,7 @@ no clinical content (increment-4 E2E run).*
 | O5 | Add a scheduler lock (e.g. ShedLock) for mailbox polling. |
 | O6 | Decide on in-cluster mTLS (service mesh) vs NetworkPolicies only. |
 | O7 | Add a read-only reporting DB role for warehouse extraction. |
-| O8 | Define DAST in the pipeline (ZAP baseline) and add SpotBugs as a CI job. |
+| O8 | Define DAST in the pipeline (ZAP baseline). SpotBugs runs as a CI step since the environment-engineering change (closed). |
 | O9 | Increment 1: the OH staff roster (`masterdata.staff_member` – usernames, roles, sites, languages, caseload caps) has no API or HRIS feed yet; it is loaded by SQL (demo rows only in the `local` profile). Define the source of truth (IdP group membership or HRIS) and an import before go-live. |
 | O10 | Increment 1: SLA targets are elapsed minutes; a business / site calendar (working days, public holidays per station) is needed in E18. |
 | O11 | Increment 1: the 13 triage protocols, advice texts (en/ar/fr) and recordability mapping are draft content; CMO / Nursing Head approval and a clinical safety case are required before clinical use. |
@@ -1785,6 +2176,40 @@ no clinical content (increment-4 E2E run).*
 | O26 | Increment 4: e-prescribing decision memo (E04-BL-013) and telehealth video platform procurement (D15, D19); confirm the "video and sound are not stored" statement of the employee consent text with the chosen platform. |
 | O27 | Increment 4: procurement replaces the illustrative provider network (25 organisations, profiles, contracts, rates, SLAs); DPO approval of the retention class `CLAIM_RECORD` (10 years); exchange rates (`claims.fx-rates`) and employer reference per environment. |
 | O28 | Increment 4: demo data cannot hold encrypted narrative text (referral reason and question, data set, justification, chat) – demo referral `RFL-2026-900001` has no letter; `ClaimsDemoSeeder` fills E08 encrypted demo fields in `local` / `test` only. |
+| O29 | Increment 5: extend the platform restricted-class ABAC policy so that `MRO` can open `RESTRICTED_CLINICAL` documents of the substance programme through `/documents` (today only through the E10 MRO endpoints). |
+| O30 | Increment 5: build the real connectors – EAP provider system, toxicology laboratory LIMS (bound client and API ready), campaign app, wearable vendor APIs, public-health authority submission (default outbox + e-mail), SMS gateway, rostering duty feed. |
+| O31 | Increment 5: Clinical Governance / MRO / Legal sign-off of PHQ-9 / GAD-7 cut-offs and bands, the urgent-risk protocol, signposting texts, testing policy cut-offs and panels, the travel recommendations table, exposure pathways and PEP timers, screening thresholds and ergonomic checklists. |
+| O32 | Increment 5: enforce MFA enrolment in the production IdP (Entra ID Conditional Access authentication strength, or Keycloak OTP / WebAuthn); include the new external user type (EAP counsellors) in the partner MFA scope. |
+| O33 | Increment 5: configure GitHub Environments `azure-dev` … `gcp-prod` – required reviewers for UAT and PROD (PROD: CAB / security group, prevent self-review), tag rules, variables; these cannot be set from code. |
+| O34 | Increment 5: decide whether client features read `WZ_FEATURE_*` flags and how flags are governed; extension JAR mounting is not implemented (client Java code = fork / branch or a client module in the Maven build). |
+| O35 | Increment 5: decide whether to commit `.devcontainer/` at the repository root (the developer guide ships it under `docs/developer-setup/ide/devcontainer`). |
+| O36 | Increment 5: DPO / CMO approval of the retention classes `RESTRICTED_RECORD` and `PUBLIC_HEALTH` (10 years each, proposed); E09 / E11 / E12 module flags enforcement (extends O17). |
+| O37 | Increment 5: demo data cannot contain encrypted narrative text; the four increment-5 demo seeders fill encrypted fields in the `local` and `test` profiles only. |
+
+### 16.3 Consolidated risk register for GRC (Version 1.0)
+
+The register consolidates the architecture risks of all five increments into the view the Cyber GRC team needs for
+the risk committee: inherent and residual rating, the controls already in the product, the owner and the framework
+references (SOC 2 Trust Services Criteria; ISO/IEC 27001:2022 Annex A). Ratings use likelihood × impact on a
+three-point scale (L / M / H); *residual* assumes the product controls listed and the organisation controls in
+document 02, Section 10 and the increment sections.
+
+| ID | Risk | Source IDs | Inherent | Product controls in place | Residual | Treatment / next step | Owner (proposed) | SOC 2 | ISO 27001:2022 |
+|---|---|---|---|---|---|---|---|---|---|
+| G1 | Unauthorised disclosure of special-category health data to managers, HR or operations | R19, R23, R25, R33 | H | Status-only projections, ABAC deny-overrides, outbound allow-lists, clinical-text guard, content-free notifications, disclosure log | L | Monitor DPO disclosure reports; review each new destination | DPO + OH service owner | CC6.1, C1.1, P6.1 | A.5.12, A.5.34, A.8.3 |
+| G2 | Exposure of restricted-class data (mental health, substance testing) | R28, R29, R32 | H | Named readers, `restrictedClassPolicy`, placeholder, break-glass review, pseudonymous peer support, bound lab client, suppression, ArchUnit isolation | L–M | Fix O29 (MRO documents), encrypt restricted category (R28), quarterly access review of PSYCH_CLINICIAN / MRO | CMO + DPO | CC6.1, CC6.3, C1.1 | A.5.15, A.8.2, A.8.3 |
+| G3 | Account takeover of external users (partners, adjusters, EAP counsellors) | R23, R24, RR29–RR30 | H | MFA at the IdP and MFA gate in the core (`amr` / `acr` / `acrs`), organisation isolation (`404`), WAF and rate limits, BFF without browser tokens | M until enrolment verified | Enforce MFA enrolment (O23, O32); phishing-resistant strength for partners | IAM | CC6.1, CC6.2 | A.5.16, A.5.17, A.8.5 |
+| G4 | Compromise or loss of the field-encryption master key | R1, R15 | H | Key in Key Vault / Secret Manager / Vault, file-mounted, workload identity, audit of every read, HKDF purpose separation | M | Envelope encryption with KMS / HSM and re-encryption job (D5); key ceremony with dual control | Security architecture | CC6.1, C1.1 | A.8.24 |
+| G5 | Retention non-compliance (OH records kept indefinitely or destroyed too early) | R3, R14 | H | Retention schedule with legal hold, DPO review list, three automatic purges (pre-employment, peer call-back phones, wearable data), no `DELETE` grant on documents | M | Approve retention classes (D6, O12, O22, O27, O36); reviewed destruction procedure | DPO | C1.2, P4.2 | A.5.33, A.8.10 |
+| G6 | Tampering with or repudiation of audit evidence | R4, R9 | M | Hash-chained append-only audit with verification API, `REQUIRES_NEW`, advisory-lock ordering | L–M | External hash anchoring and SIEM streaming (O2) | SOC | CC7.2, CC4.1 | A.8.15, A.8.16 |
+| G7 | Software supply-chain compromise (malicious dependency or image) | R7, R36 | H | SCA gates, CodeQL, SpotBugs, gitleaks, Trivy gate, SBOMs, SLSA provenance, keyless signing, verify-before-deploy, Binary Authorization on GKE, digests required in UAT / PROD | L–M | Admission enforcement on AKS / on-premises; DAST (O8); first pipeline run as acceptance test | Platform team | CC7.1, CC8.1 | A.8.8, A.8.25, A.8.28, A.8.30 |
+| G8 | Unauthorised or untested change reaching production | R34, R35 | H | Promotion by signed digest, tag policy per stage, `helm --atomic`, smoke tests and automatic rollback, Flyway history | M until GitHub Environment protection is configured | Configure required reviewers and protection rules (O33); CAB evidence | Release manager | CC8.1 | A.8.32 |
+| G9 | Service unavailability or data loss | R8, R9 | M | Zone-redundant HA in UAT / PROD, PITR backups, PDBs, HPA, outbox replay, job run guard | M | Approve RPO / RTO (D9); cross-region replica; quarterly restore test | Infrastructure | A1.2, A1.3 | A.5.30, A.8.13, A.8.14 |
+| G10 | Clinical safety: decisions based on unapproved reference content or missed urgent follow-up | R30, R32, O11, O14, O19 | H | Versioned content with DRAFT / APPROVED status, server-side urgency rules, SLA timers, countdowns, escalation | M | Clinical Governance / MRO / Legal sign-off (O31); clinical safety case | CMO | PI1.2 | A.5.8 |
+| G11 | Statutory and third-party obligations missed because connectors are simulated | R26, R31 | M | Deadline timers and escalation, outbox + content-free e-mail, manual channels, reference-only payloads | M | Build connectors (O24, O30) with DPAs | Integration lead | CC7.2, CC9.2 | A.5.19, A.5.20 |
+| G12 | Configuration error in identity claims (wrong `org_scope`, missing roles, MFA gate disabled) | R24, RR30, RR33 | M | Strict role-name pattern, issuer allow-list before network calls, gate on by default, `404` on organisation mismatch | L–M | Decoded-token checks per environment in the release checklist (Section 8.5); alert on configuration change | IAM | CC6.1, CC8.1 | A.8.9 |
+| G13 | Infrastructure code defects on first apply (never applied to a real subscription or project) | R36, deployment doc item 1 | M | `terraform validate`, kubeconform, Trivy config scan, separate state per environment, DEV first | L–M | Treat the first DEV build as acceptance test; record defects as change requests | Infrastructure | CC8.1 | A.8.9, A.8.32 |
+| G14 | Mobile device data leakage | R6 | M | No PHI caching, in-memory tokens, MDM configuration hook, WebView hardening | M | Secure-storage and MAM SDK plug-ins before store release (D4) | Mobile lead | CC6.7 | A.8.1 |
 
 ## 17. Decisions requested from the steering committee
 
@@ -1809,6 +2234,47 @@ no clinical content (increment-4 E2E run).*
 | D17 | Candidate identity (increment 3) | local accounts in a candidate realm / External ID tenant · recruiting-system federation | Separate candidate identity with short-lived accounts; never in the workforce directory |
 | D18 | Insurer, authority and ERP transport (increment 4) | outbox + e-mail (today) · direct API connectors in the core · integration platform consuming the outbox · SFTP file transfer (ERP) | Integration platform on the broker of D3; keep payloads reference-only (Section 14.29) |
 | D19 | E-prescribing route (increment 4) | paper / own doctor (today) · national e-prescription service · partner pharmacy | Decide after the Legal / CMO decision memo (E04-BL-013); implement as an `EPrescribingGateway` |
+| D20 | MRO access to restricted documents (increment 5) | E10 endpoints only (today) · extend the platform restricted-class policy to `MRO` for substance-programme documents | Extend the policy, scoped to documents of the substance programme (O29) |
+| D21 | Restricted-class connectors (increment 5) | simulated / portal (today) · EAP system API · toxicology LIMS API · public-health authority API · SMS provider | Prioritise the LIMS (bound client ready) and the authority submission; EAP stays portal-first until the provider offers an API; DPA per partner |
+| D22 | Client customisation model (increment 5) | configuration + SQL migrations + feature flags (today) · client extension JARs mounted into the core image · client fork / module | Keep configuration and SQL without forking; client Java code as a client module in the Maven build; extension JARs only with signing and a launcher change |
+| D23 | Developer container location (increment 5) | under `docs/developer-setup/ide/devcontainer` (today) · committed `.devcontainer/` at the repository root | Commit at the root if Codespaces / one-click containers are wanted; otherwise keep it in the guide |
+| D24 | GitOps for hybrid fleets (increment 5) | pipeline push with `helm --atomic` (today) · Argo CD / Flux / Config Sync pulling the same overlays | Pipeline push for cloud set-ups; GitOps (Arc / GKE Enterprise) for the on-premises cluster |
+
+### 17.1 Architecture decision log (ADR summary)
+
+Decisions already taken and embodied in the code (*Accepted*), decisions proposed for confirmation (*Proposed*) and
+decisions explicitly left open (*Open*, see the table above). Each entry is short; the reasoning is in the referenced
+section.
+
+| ADR | Decision | Status | Increment | Alternatives rejected | Consequence | Reference |
+|---|---|---|---|---|---|---|
+| ADR-01 | Modular monolith with ArchUnit-enforced module boundaries | Accepted | 0 | microservices, serverless | one database and audit chain; module extraction possible later | 14.31, 5.2 |
+| ADR-02 | Java 21 + Spring Boot 4.1 | Accepted | 0 | Quarkus, Micronaut, Jakarta EE, .NET | security features out of the box; widest skills market | 14.1 |
+| ADR-03 | PostgreSQL 16, schema per module, Flyway with separate owner and runtime roles | Accepted | 0 | SQL Server, Oracle, Liquibase, auto-DDL | portable; least-privilege grants per table | 14.2, 14.32 |
+| ADR-04 | Transactional outbox as reliability boundary; broker behind `EventPublisher` | Accepted (broker Open – D3) | 0 | direct broker publishing | no dual writes; broker chosen per hosting decision | 7.1, 14.4 |
+| ADR-05 | Multi-issuer OIDC resource server; any OIDC IdP | Accepted | 0 | vendor SDKs, SAML | IdP change is configuration; several IdPs at once | 8.1, 8.5 |
+| ADR-06 | BFF for all browser apps; tokens never in the browser | Accepted | 0 | SPA with tokens | extra service and session store; CSRF tokens required | 9.3, 14.7 |
+| ADR-07 | In-code ABAC with deny-overrides and projection types per disclosure level | Accepted (externalisation Open – D8) | 0 | OPA, Cedar | policies reviewed and tested with the code | 8.3 |
+| ADR-08 | Field-level AES-256-GCM with HKDF-derived versioned keys; blind index for search | Accepted (envelope encryption Proposed – D5) | 0, 2 | TDE only, pgcrypto | DBA / backup access does not reveal clinical text | 6.3, 14.17 |
+| ADR-09 | Hash-chained, append-only audit trail | Accepted (external anchoring Proposed – O2) | 0 | log files only | tamper evidence verifiable by API | 9.5 |
+| ADR-10 | Secrets as CSI-mounted files, `ENC(...)` values and workload identity; Terraform write-only arguments | Accepted | 0, 5 | Kubernetes Secrets, CI variables | no secret in etcd, images, state or logs | 9.1, 9.9, 14.36 |
+| ADR-11 | Status-only boundary enforced three times (projection, allow-list, notification rules) | Accepted | 0 | field filtering in controllers | structural guarantee rather than convention | 3, 7.3 |
+| ADR-12 | Rules, protocols and templates as versioned data with clinical approval | Accepted | 1–2 | Drools, code-only rules | changes without release; governance status per version | 14.13, 14.14 |
+| ADR-13 | Database-backed timers and `JobRunGuard` for SLAs and jobs | Accepted | 1–3 | Quartz, external schedulers | atomic with the business change; replica-safe | 14.12 |
+| ADR-14 | Apache PDFBox and simple electronic signature with SHA-256 integrity | Accepted (qualified signature Open – D12) | 2 | iText, Chromium | no copyleft or native binaries | 14.15, 14.16 |
+| ADR-15 | Kernel SPIs for every cross-module interaction | Accepted | 1–5 | direct module calls | earlier modules never depend on later ones | 19–23 |
+| ADR-16 | Consent as gate for every external sharing flow; legal basis logged for statutory reports | Accepted | 2–5 | implicit consent | `422 consent_required`; disclosure log | 8.4 |
+| ADR-17 | MFA verified in the core for external roles | Accepted | 4 | trust the IdP alone | resilient against an IdP policy misconfiguration | 8.2, 14.30 |
+| ADR-18 | Machine clients of external partners bound to their organisation (`org_scope`) | Accepted | 4–5 | role-only authorisation | `404` for any other organisation's records | 14.27, 8.6 |
+| ADR-19 | Restricted classes inside the platform with layered controls | Accepted | 5 | separate system | one evidence base; MRO document gap (D20) | 8.6, 14.37 |
+| ADR-20 | Pseudonymous peer support without employee identity in the data model | Accepted | 5 | encrypted identity column | identity cannot leak because it is never stored | 8.6 |
+| ADR-21 | Small-cell suppression (k = 5, floor 3) on every aggregate, implemented per module | Accepted | 0–5 | central reporting service only | module isolation preserved; consistent threshold | 10 |
+| ADR-22 | `400 malformed_request` / `invalid_parameter` instead of `500` for client errors | Accepted | 5 | default framework errors | no parser detail leaks; clean alerting | 9.10 |
+| ADR-23 | Environments as Terraform variable files + Helm overlays + GitHub Environments; promotion by signed digest | Accepted | 5 | rebuild per environment | PROD runs the artefact tested in UAT | 14.38 |
+| ADR-24 | Keyless cosign signing, SLSA provenance, SBOM attestations; digests required in UAT / PROD | Accepted (admission on AKS / on-prem Proposed) | 0, 5 | unsigned images | origin verifiable before deployment | 14.34 |
+| ADR-25 | Client customisation through values, feature-flag environment variables and client SQL migrations in their own schema | Accepted (extension JARs Open – D22) | 5 | chart fork | no fork for configuration and SQL | 14.38 |
+| ADR-26 | OpenTelemetry and Micrometer as the only instrumentation APIs | Accepted | 0 | vendor agents | back end chosen per hosting set-up | 14.35 |
+| ADR-27 | Managed Kubernetes on Azure / GCP, RKE2 / OpenShift with CloudNativePG for hybrid | Accepted (primary hosting Open – D1) | 0 | PaaS runtimes, VMs | same chart and controls on all set-ups | 14.8, document 04 |
 
 ## 18. Roadmap of increments
 
@@ -1816,11 +2282,11 @@ no clinical content (increment-4 E2E run).*
 |---|---|---|
 | **0 – Base framework** (this repository) | Platform services, EHS intake, case kernel, BFF, employee app, workspace, deployment assets, CI/CD workflows | outbox encryption & purge, module flag enforcement, flat-payload guard, BFF group mapping (done) |
 | **1 – E01 intake & E02 triage** (delivered, Section 19) | E01 case intake and incident-triggered case initiation; E02 clinical triage, risk stratification, triage queue, SLA and case assignment; OH workspace | `triage` schema, nine new roles, SKIP LOCKED SLA poller, EHS webhook with DLQ, case kernel SPIs (`CaseTransitionGuard`), HRIS employee master |
-| **1b – Production readiness** (rescheduled; runs alongside the next increments) | SpotBugs CI job + DAST, envelope encryption + re-encryption job, versioned blind-index key, audit anchoring, secure-storage & MAM plugins, broker adapter (D3), rostering transport, HRIS sync, DR runbook | pen test, SOC 2 readiness assessment |
+| **1b – Production readiness** (rescheduled; runs alongside the next increments; SpotBugs CI step done) | DAST, envelope encryption + re-encryption job, versioned blind-index key, audit anchoring, secure-storage & MAM plugins, broker adapter (D3), rostering transport, HRIS sync, DR runbook | pen test, SOC 2 readiness assessment |
 | **2 – Core pathway** (delivered, Section 20) | E03 OH record & encounters (FHIR mapping), E05 full fitness/RTW, retention jobs (E01 and E02 were pulled forward into increment 1) | terminology server, notification triggers from events; delivered: document service (PDFBox), DPO role, break-glass, disclosure log, retention schedule with legal hold (flagging, no deletion), schemas `docs` / `ohrecord` / `fitness` |
 | **3 – Prevention, absence & clinic operations** (delivered, Section 21) | E06 absence & sickness (feed, triggers, certificates, LTA, advice), E07 surveillance / statutory medicals / immunisation (hazard-driven recall, pre-employment, crew certificates), E14 scheduling & clinic operations (pulled forward from increment 5) | delivered: seven kernel SPIs, clinic sites, four roles, schemas `absence` / `surveillance` / `scheduling`, first automatic purge (pre-employment), IoT and telehealth extension points; E11 travel health moved to increment 4 |
 | **4 – Treatment, claims & external parties** (delivered, Section 22) | E04 injury & illness management, treatment coordination & partner referrals (provider network, pre-authorisation, clinic medication, outcomes, telehealth), E08 workers' compensation, insurance & claims coordination, partner portal | delivered: MFA gate for external roles, consent enforcement for partner / insurer / telehealth flows, four kernel SPIs, partner organisations, schemas `treatment` / `claims`, `INSURER` shares, case-level legal hold, reference-only insurer / authority / ERP destinations; E09, E10, E11 moved to increment 5 |
-| **5 – Restricted classes & health promotion** (final increment) | E09 psychological health & peer support, E10 substance testing, E11 travel health, E12 health promotion & wearables, E13 extended self-service, warehouse/BI feed, governed predictive models | restricted-class controls, pseudonymised extracts, model governance; production connectors (E15) alongside |
+| **5 – Restricted classes & health promotion** (delivered, final increment, Section 23) | E09 mental health, psychosocial risk & peer support, E10 drug, alcohol & substance testing, E11 travel health, immunisation campaigns & communicable disease / exposure management, E12 health promotion, wellbeing & prevention (including wearables); E13 self-service extended in the employee and manager apps | delivered: restricted-class controls, duty-assignment feed, `SupportProgrammeReferral`, schemas `mentalhealth` / `substance` / `travelhealth` / `promotion`, eight roles, `400` error handling, DEV / UAT / PROD environment engineering with signed-digest promotion, client customisation hooks. Not delivered (open items): warehouse / BI feed and governed predictive models, real external connectors (O30), MRO document access (O29) |
 
 ## 19. Increment 1 – E01 intake and E02 triage on the framework
 
@@ -2306,6 +2772,153 @@ base (per-run keys, Section 21.5). The end-to-end script `tools/e2e/e2e-incremen
 with real Keycloak logins; like the increment-3 script it consumes demo state (referrals, claims, exports), so run it
 on a freshly purged local database after the earlier scripts.
 
+## 23. Increment 5 – E09, E10, E11 and E12 on the framework (final increment)
+
+Increment 5 adds the restricted-class programmes (mental health, substance testing), travel health and communicable
+disease, and health promotion, and completes the platform with DEV / UAT / PROD environment engineering. The
+endpoints, roles and rules are in the [API Contract E09/E10/E11/E12](../increment-05/API-Contract-E09-E10-E11-E12.md).
+This section records the architectural facts for the CIO and Cyber GRC.
+
+### 23.1 Module map
+
+| Layer | Component | Increment-5 content |
+|---|---|---|
+| Business modules (`modules/`) | `wz-e09-mentalhealth` → `wz-e05-fitness`, `wz-documents` | Support cases, screening and urgent-risk protocol, EAP, peer support, CISM, psychosocial register, relief and fitness; schema `mentalhealth` (V17) |
+| | `wz-e10-substance` → `wz-e05-fitness`, `wz-documents` – **not** E09 | Policies, pools, random selection, triggers, collection and chain of custody, laboratory, MRO, pathway and return to duty, statistics; schema `substance` (V18) |
+| | `wz-e11-travelhealth` → `wz-e07-surveillance`, `wz-documents` | Travel consultations, communicable disease and contact tracing, exposure pathways, vaccination campaigns, advisories, public-health reports; schema `travelhealth` (V19) |
+| | `wz-e12-promotion` → `wz-e03-record`, `wz-documents` | Insights, campaigns, screening events, education, ergonomics, wearables; schema `promotion` (V20) |
+| Case kernel | `wz-case-kernel` (`casekernel.support`) | SPI `SupportProgrammeReferral` (implemented by E09, called by E10 – and available to E11) |
+| Platform services | `wz-common`, `wz-security`, `wz-masterdata`, `wz-documents`, `wz-notification`, `wz-integration` | Eight roles; `GlobalExceptionHandler` `400` codes; duty assignments (V16); partners `EAP_WELLBEING`, `TOXLAB`, `UKHSA_LOCAL`; restricted-class documents and four templates, two upload types, retention classes `RESTRICTED_RECORD`, `PUBLIC_HEALTH`; content-free templates and stricter `ContentRules`; allow-lists `campaign-app`, `sms-safety` |
+| BFF | `wz-bff` | Workspace resources `/workspace/testing`, `/workspace/psychosocial`, `/workspace/campaigns`, `/workspace/ergonomics`; workspace gate admits `SAFETY_MANAGER` and `CREW_SCHEDULING` |
+| Front ends | all four web apps | OH workspace (support, peer support, CISM, psychosocial, testing, travel, communicable disease, exposures, campaigns, advisories, public health, promotion, ergonomics, chart placeholder); employee app (support with emergency banner, peer support, travel health, campaigns, workplace-check notices, check-ins); manager workspace (psychosocial risk, testing duty status for HR, for-cause request, ergonomics, unit campaigns); partner portal (EAP referrals) |
+| Delivery | Terraform `environment` = `dev` / `uat` / `prod` with per-environment variable files and back ends; nine Helm overlays; `cd.yml` / `deploy-env.yml` promotion; `deploy/scripts/helm-release.sh`; `customisation:` values and `ClientMigrationsConfig` | `deploy/environments/README.md`, document 04 |
+
+```mermaid
+flowchart LR
+  subgraph Kernel["wz-case-kernel SPIs"]
+    SPR[SupportProgrammeReferral]
+    AB[AppointmentBooking]
+    PF[CaseService.publishFitness<br/>status-only roster / HR feed]
+  end
+  INC[(ehs.incident.received.v1)]
+  DUTY[(masterdata.duty_assignment)]
+  E09[E09 mental health<br/>restricted]
+  E10[E10 substance testing<br/>restricted]
+  E11[E11 travel health]
+  E12[E12 promotion]
+  E05[E05 fitness]
+  E07[E07 immunisation]
+  E03[E03 record]
+  E09 -.implements.-> SPR
+  E10 -->|positive / refusal| SPR
+  E09 -->|relief, fitness| PF
+  E10 -->|removed from duty| PF
+  E11 -->|exclusion| PF
+  E11 -->|vaccines| E07
+  E12 -->|audiometry, record access| E03
+  E09 --> E05
+  E10 --> E05
+  E11 -->|campaign bookings| AB
+  E12 -->|screening bookings| AB
+  INC --> E09
+  INC --> E10
+  INC --> E11
+  DUTY --> E09
+  DUTY --> E11
+```
+
+Events added (identifiers and status only): `substance.duty-status.v1` (E10), `peer-support.quarterly-report.v1`
+(E09, to `sms-safety`), `promotion.campaign.published.v1` (E12, to `campaign-app`), `promotion.screening.follow-up.v1`
+(E12); fitness and exclusion changes reuse the kernel status-only roster and HR feed.
+
+### 23.2 Main runtime flows
+
+1. **Confidential self-referral and urgent risk.** The employee self-refers from the employee app (signposting and an
+   emergency banner are shown first, even before data has loaded); a PHQ-9 / GAD-7 screen is scored on the server and
+   any self-harm answer creates an urgent item with a same-day call-back for the named clinician. The case is a
+   restricted kernel case; a general OH nurse sees `404` and the chart placeholder count only.
+2. **Sharing choice and EAP.** The employee decides what the manager sees (`FITNESS_ONLY` in the E2E run – no
+   screening, no notes). An EAP referral reaches `EAP_WELLBEING`; counsellors see minimal data for their own
+   organisation and return attendance only (free text `422 field_not_allowed`); every partner read is
+   disclosure-logged.
+3. **Peer support and CISM.** Crew request a peer as alias + code; the request is routed to a trained, available
+   volunteer; the contact log has no identity. A fume event on flight WZ101 opens a CISM event; affected crew come from
+   the duty roster and receive offers within 72 h; the safety manager sees counts only. The AME can relieve a crew
+   member from flight duties – rostering receives status only.
+4. **Random selection to MRO decision.** The programme manager runs a random selection from the role-group pool
+   (seed, pool hash and commitment stored – `/verify` reproduces it) and never sees results; the collector records
+   collection with a signed chain-of-custody form; the bound `TOXLAB` client posts results; the MRO verifies. A
+   positive removes the employee from safety-sensitive duty, HR and crew scheduling see status only, a confidential
+   support referral opens through `SupportProgrammeReferral` and a draft return-to-duty plan with unannounced
+   follow-up tests is created.
+5. **Contact tracing.** A confirmed communicable-disease case is excluded (status only to rostering / HR; food handlers
+   through E05) and traced from shared duties and proximity groups within the 4-hour KPI (1.03 h in the E2E run);
+   contacts are notified without naming the case and complete symptom check-ins.
+6. **Exposure pathway.** An EHS needle-stick incident opens a pathway with protocol timers (PEP decision within hours);
+   the five-minute timer job alerts before and at the due time.
+7. **Travel, advisories and public health.** Travel consultations produce recommendations and a signed certificate;
+   advisories reach crew rostered to the destination with suppressed acknowledgement counts; notifiable-disease reports
+   go to the health protection team within the statutory time with correspondence logged.
+8. **Health promotion.** Campaigns are planned from anonymised hotspots, published to the campaign app and reported
+   with suppression; a biometric screening with abnormal blood pressure opens a follow-up case within 48 h and a result
+   letter; ergonomic assessments are scored with RAG and actions tracked to closure; wearable data is accepted only for
+   consented enrolments as daily totals.
+
+### 23.3 Scheduled jobs added
+
+All jobs run in the core with cron expressions in UTC and once per run key across replicas (`JobRunGuard`).
+
+| Job | Property (default) | Purpose |
+|---|---|---|
+| `cism-follow-ups` | `wellnessz.mentalhealth.cism-follow-ups-cron` (`0 20 8 * * *`) | CISM follow-up offers |
+| `peer-callback-purge` | `wellnessz.mentalhealth.peer-callback-purge-cron` (`0 40 1 * * *`) | Clear peer call-back phone numbers after `mentalhealth.peer-callback-retention-days` (30) |
+| `substance-follow-ups` | `wellnessz.substance.follow-ups-cron` (`0 15 6 * * *`) | Notify follow-up tests whose random date has arrived |
+| `substance-windows` | `wellnessz.substance.windows-cron` (`0 20 * * * *`) | Move uncollected tests to `WINDOW_MISSED` when the window closes |
+| `exposure-timers` | `wellnessz.travelhealth.exposure-timer-cron` (`0 */5 * * * *`) | Protocol timer alerts (due soon, overdue) |
+| `public-health-deadlines` | `wellnessz.travelhealth.public-health-cron` (`0 7 * * * *`) | Statutory report deadline reminders |
+| `travelhealth-daily` | `wellnessz.travelhealth.daily-cron` (`0 20 6 * * *`) | Check-in reminders, advisory re-targeting, consultation-due reminders |
+| `ergonomic-actions` | `wellnessz.promotion.ergonomic-job-cron` (`0 20 2 * * *`) | Ergonomic action due reminders |
+| `screening-follow-up` | `wellnessz.promotion.follow-up-job-cron` (`0 15 * * * *`) | Open follow-up cases for abnormal results without one |
+
+### 23.4 Configuration keys added
+
+| Keys (E18 configuration, seeded by migration) | Purpose |
+|---|---|
+| `modules.e09.enabled`, `mentalhealth.named-clinicians`, `mentalhealth.urgent-callback-hours`, `mentalhealth.first-contact-working-days`, `mentalhealth.eap-first-appointment-working-days`, `mentalhealth.emergency-text`, `mentalhealth.emergency-phone`, `mentalhealth.peer-callback-retention-days`, `mentalhealth.governance.sign-off`, `cism.trigger-classes`, `cism.offer-sla-hours`, `cism.duty-window-hours` (V17) | E09 named readers, response times, emergency guidance, CISM triggers |
+| `modules.e10.enabled`, `substance.laboratory-code`, `substance.acting-mro-physicians`, `substance.breath-alcohol-cutoff`, `substance.collection-site`, `substance.hr-status-email` (V18) | E10 laboratory binding, MRO delegation, cut-offs |
+| `travelhealth.tracing.high-risk-minutes`, `travelhealth.tracing.kpi-hours`, `travelhealth.tracing.max-window-days`, `travelhealth.exposure.alert-before-minutes`, `travelhealth.public-health.alert-before-hours`, `travelhealth.public-health.exposure-report-hours`, `travelhealth.check-in.fever-threshold-c`, `travelhealth.consultation.lookahead-days` (V19) | E11 tracing rules, timers, deadlines |
+| `promotion.screening.threshold.systolic` / `.diastolic` / `.bmi`, `promotion.screening.follow-up-hours`, `promotion.ergonomics.closure-target-days`, `promotion.ergonomics.reminder-days`, `promotion.participation.target-pct`, `promotion.wearables.max-age-days` (V20) | E12 thresholds and targets |
+| `wellnessz.integration.outbound-allowlist.{campaign-app,sms-safety}` (`application.yml`) | Outbound destinations (Section 7.3) |
+| `wellnessz.flyway.client.*` (`WZ_FLYWAY_EXTRA_LOCATIONS`, `WZ_FLYWAY_CLIENT_SCHEMAS`, `WZ_FLYWAY_CLIENT_TABLE`) | Client migrations (Section 23.6) |
+| `WZ_CLIENT_ID`, `WZ_FEATURE_<NAME>` | Client id and feature flags from Helm `customisation:` (plumbing only) |
+
+Clinical values among these keys are reference data awaiting sign-off (O31).
+
+### 23.5 Testing note
+
+The four increment-5 integration tests run on the shared integration base (per-run keys, Section 21.5). The demo
+seeders write encrypted demo values only in the `local` and `test` profiles. `tools/e2e/e2e-increment5.js` drives all
+four browser apps with real Keycloak logins (users `psych1`, `peer1`, `peercoord1`, `safety1`, `damanager1`, `mro1`,
+`collector1`, `promo1`, `ergo1`, `eap1` and earlier users) and consumes demo state; run it on a freshly purged local
+database after the earlier scripts.
+
+### 23.6 Environments and client customisation
+
+* **Terraform:** `environment` must be `dev`, `uat` or `prod` (no default; `test` was renamed to `uat`). Each
+  environment has its own variable file and back-end configuration; network ranges never overlap so all can peer with
+  a hub; GitHub OIDC trusts only the environment's own GitHub Environment; only DEV accepts image pushes from `main`.
+* **Helm:** nine overlays set replicas, HPA / PDB, resources, hosts, OIDC issuer / audience / scope, MFA roles (off in
+  DEV), log level and trace sampling, namespace default-deny (off in DEV only), migration mode (in-app in DEV, Job in
+  UAT / PROD) and network-policy ranges matching Terraform; `global.requireImageDigests` in UAT / PROD.
+* **Promotion:** Section 9.8 and Section 14.38.
+* **Client customisation:** `customisation.client` (`WZ_CLIENT_ID` and label `wellnessz.io/client`),
+  `customisation.featureFlags` (`WZ_FEATURE_<NAME>` on core and BFF – not yet read by any feature),
+  `customisation.migrations` (SQL from an extension image or a ConfigMap, `*.sql` only, run after the product
+  migrations in schema `client_<client>` – default `client_ext` in the application – with history table
+  `flyway_schema_history_client`; job mode: extra `flyway-client` step; app mode: `ClientMigrationsConfig`),
+  `core.extraEnv` / `bff.extraEnv`; per-client values in `deploy/clients/<client>/values.yaml` through
+  `EXTRA_VALUES_FILES`. Not implemented: mounting extension JARs into the core image.
+
 ## Appendix A – API surface of the base framework
 
 | Method & path | Roles | Module |
@@ -2424,6 +3037,37 @@ entries:
 | `POST\|DELETE /api/v1/claims/{id}/legal-hold`, `POST /claims/{id}/legal-requests` | LEGAL_COUNSEL (requests also CLAIMS_COORDINATOR) | wz-e08-claims |
 | `GET /api/v1/workspace/claims` | HR within org scope (status only) | wz-e08-claims |
 
+Increment 5 adds endpoints under `/api/v1/support/**`, `/api/v1/peer-support/**`, `/api/v1/cism/**`,
+`/api/v1/psychosocial/**`, `/api/v1/testing/**`, `/api/v1/travel/**`, `/api/v1/communicable/**`,
+`/api/v1/exposures/**`, `/api/v1/vaccination-campaigns/**`, `/api/v1/advisories/**`, `/api/v1/public-health/**`,
+`/api/v1/promotion/**`, `/api/v1/ergonomics/**`, `/api/v1/me/{support,peer-support,cism,testing,travel,check-ins,vaccination-campaigns,advisories,campaigns,wearables}`,
+`/api/v1/workspace/{psychosocial,testing,campaigns,ergonomics}`, `/api/v1/partner/eap-referrals`,
+`/api/v1/masterdata/duty-assignments` and the machine endpoints `/api/v1/integration/duty-assignments`,
+`/integration/testing/**`, `/integration/promotion/participation` and `/integration/wearables/data` (**647 paths** in
+total). The authoritative list with roles is the
+[API Contract E09/E10/E11/E12](../increment-05/API-Contract-E09-E10-E11-E12.md); selected entries:
+
+| Method & path | Roles | Module |
+|---|---|---|
+| `GET /api/v1/support/cases`, `GET /support/cases/{id}` | named PSYCH_CLINICIAN (others `404` + `DENIED` audit) | wz-e09-mentalhealth |
+| `GET /api/v1/support/placeholder?employeeId=` | OH roles (count only) | wz-e09-mentalhealth |
+| `GET\|PUT /api/v1/me/support/sharing` | EMPLOYEE | wz-e09-mentalhealth |
+| `GET /api/v1/partner/eap-referrals`, `POST /partner/eap-referrals/{id}/feedback` | PARTNER_PROVIDER of `EAP_WELLBEING` (MFA; attendance only) | wz-e09-mentalhealth |
+| `POST /api/v1/me/peer-support/contact-request`; `GET /peer-support/my-requests` | EMPLOYEE; PEER_SUPPORT_VOLUNTEER (alias + code) | wz-e09-mentalhealth |
+| `GET\|POST /api/v1/cism/events` | PSYCH_CLINICIAN, SAFETY_MANAGER (counts only) | wz-e09-mentalhealth |
+| `POST /api/v1/testing/selections`, `GET /testing/selections/{id}/verify` | DA_PROGRAMME_MANAGER (verify also AUDITOR) | wz-e10-substance |
+| `POST /api/v1/testing/tests/{id}/collection` | COLLECTOR | wz-e10-substance |
+| `GET /api/v1/testing/mro/queue`, `POST /testing/tests/{id}/mro-decision` | MRO, configured acting-MRO physician | wz-e10-substance |
+| `GET /api/v1/integration/testing/lab-orders`, `POST /integration/testing/lab-results` | INTEGRATION bound to `TOXLAB` | wz-e10-substance |
+| `GET /api/v1/workspace/testing/status` | HR, CREW_SCHEDULING within scope (duty status only) | wz-e10-substance |
+| `POST /api/v1/communicable/cases/{id}/trace`, `/contacts/notify` | clinicians | wz-e11-travelhealth |
+| `POST /api/v1/exposures`, `POST /exposures/{id}/tasks/{code}/complete` | clinicians | wz-e11-travelhealth |
+| `POST /api/v1/public-health/reports/{id}/submit` | OH_PHYSICIAN, CMO | wz-e11-travelhealth |
+| `GET /api/v1/promotion/insights`, `GET /promotion/campaigns/{id}/report` | HEALTH_PROMOTION_LEAD, CMO (NURSING_HEAD insights) | wz-e12-promotion |
+| `POST /api/v1/promotion/screening-events/{id}/results` | clinicians (record-level access check) | wz-e12-promotion |
+| `POST /api/v1/me/wearables/enrolments`; `POST /integration/wearables/data` | EMPLOYEE (`WEARABLE_DATA` consent); INTEGRATION | wz-e12-promotion |
+| `POST /api/v1/integration/duty-assignments` | INTEGRATION (internal clients only) | wz-masterdata |
+
 ## Appendix B – Glossary
 
 | Term | Meaning |
@@ -2455,3 +3099,15 @@ entries:
 | TPA | Third-party administrator handling claims on behalf of an insurer or self-insured employer |
 | Litigation hold | Legal hold on all documents of a case while a claim is litigated – retention is suspended |
 | Small-group suppression | Not publishing an aggregate whose group is smaller than the minimum group size (k) |
+| CISM | Critical-incident stress management – structured support offers after a traumatic event (for example a fume event) |
+| EAP | Employee assistance programme – external counselling partner |
+| MRO | Medical review officer – physician who verifies laboratory test results before an outcome is recorded |
+| Chain of custody | Signed, append-only record of every hand-over of a specimen from collection to laboratory |
+| PHQ-9 / GAD-7 | Public-domain screening questionnaires for depression and anxiety; scored on the server, cut-offs pending sign-off |
+| PEP | Post-exposure prophylaxis after a needle-stick or body-fluid exposure, with protocol timers |
+| Restricted class | `RESTRICTED_CLINICAL` data (mental health, substance testing) readable only by named clinicians or the MRO |
+| Pseudonymous peer support | Peer contact by alias and random code; the data model has no employee identity |
+| RAG | Red / amber / green rating, used for ergonomic and psychosocial risk scores |
+| ADR | Architecture decision record – a short entry recording a decision, its alternatives and consequences |
+| UAT | User acceptance test environment (between DEV and PROD) |
+| SBOM / SLSA | Software bill of materials (CycloneDX) / Supply-chain Levels for Software Artifacts provenance attestation |

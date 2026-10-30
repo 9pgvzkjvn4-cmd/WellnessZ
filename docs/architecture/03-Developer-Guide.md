@@ -1,14 +1,21 @@
 # WellnessZ OHCM – Developer Guide: Adding Modules Incrementally
 
+**Version 1.0**
+
+*WellnessZ OHCM platform – increments 1–5*
+
 | | |
 |---|---|
 | **Document** | 03 – Developer Guide |
 | **Audience** | Developers and technical leads building business modules E01–E14 and integrations |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increments 1–4 (E01, E02 – Section 14; E03, E05 – Section 15; E06, E07, E14 – Section 16; E04, E08 and the partner portal – Section 17) |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increments 1–5 (E01, E02 – Section 14; E03, E05 – Section 15; E06, E07, E14 – Section 16; E04, E08 and the partner portal – Section 17; E09, E10, E11, E12, restricted classes and the duty-assignment feed – Section 18) |
 | **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
 | **Increment 3 documents** | [Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md) · [Requirements Traceability Matrix](../increment-03/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-03/03-Release-Notes-Increment-3.md) · [API Contract](../increment-03/API-Contract-E06-E07-E14.md) |
 | **Increment 4 documents** | [Solution Design E04/E08](../increment-04/01-Solution-Design-E04-E08.md) · [Requirements Traceability Matrix](../increment-04/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-04/03-Release-Notes-Increment-4.md) · [API Contract](../increment-04/API-Contract-E04-E08.md) |
-| **Companion documents** | 01 – Technology Architecture and Technology Selection · 02 – Security and SOC 2 Control Mapping |
+| **Increment 5 documents** | [Solution Design E09/E10/E11/E12](../increment-05/01-Solution-Design-E09-E10-E11-E12.md) · [Requirements Traceability Matrix](../increment-05/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-05/03-Release-Notes-Increment-5.md) · [API Contract](../increment-05/API-Contract-E09-E10-E11-E12.md) |
+| **Companion documents** | 01 – Technology Architecture and Technology Selection · 02 – Security and SOC 2 Control Mapping · [04 – Technology Standards Comparison by Layer](04-Technology-Standards-Comparison-by-Layer.md) · [CI/CD Guide](../cicd/CI-CD-Guide.md) (section 10.5: checklist for a new module or feature) |
+| **Workstation set-up** | [Developer Environment & IDE Setup Guide](../developer-setup/README.md) – JDK, Node, Docker, IntelliJ IDEA / VS Code / Eclipse / Dev Container, run configurations, scripts and the git hook (shipped separately as `WellnessZ-Developer-Environment-Setup.zip`) |
+| **Client-specific work** | [Client Customisation Guide](../customisation/Client-Customisation-Guide.md) – configuration, feature flags, client migrations, SPI implementations in client modules, branching, promotion and governance |
 
 This guide explains how to add a business module (an *E-number* from the logical architecture) to the base framework
 without weakening its security properties. The running example is **E07 – Surveillance, statutory medicals &
@@ -16,6 +23,11 @@ immunisation**; replace names as appropriate. Everything referenced exists in th
 *recommended*. Since increment 3, E07 exists for real (`modules/wz-e07-surveillance`, package `com.wellnessz.e07`):
 Sections 2–9 keep the simplified teaching layout (`com.wellnessz.surveillance`), and Section 16 shows how E06, E07 and
 E14 were actually built. Section 17 covers E04, E08, the increment-4 SPIs and the partner portal for external users.
+Section 18 covers increment 5 – the final increment: E09 mental health and peer support, E10 drug and alcohol testing,
+E11 travel health and communicable disease, E12 health promotion, the `SupportProgrammeReferral` SPI, the
+duty-assignment feed and the coding rules for restricted classes. To set up a workstation first, follow the
+[Developer Environment & IDE Setup Guide](../developer-setup/README.md); for work that only one client needs, read the
+[Client Customisation Guide](../customisation/Client-Customisation-Guide.md) before writing code.
 
 ## 1. Orientation
 
@@ -31,10 +43,14 @@ E14 were actually built. Section 17 covers E04, E08, the increment-4 SPIs and th
 | `modules/wz-e03-record`, `modules/wz-e05-fitness` | Business modules of increment 2 (OH record, fitness for duty) – the worked example in Section 15 |
 | `modules/wz-e06-absence`, `modules/wz-e07-surveillance`, `modules/wz-e14-scheduling` | Business modules of increment 3 (absence & sickness, medical surveillance, scheduling & clinic operations) – the worked example in Section 16 |
 | `modules/wz-e04-treatment`, `modules/wz-e08-claims` | Business modules of increment 4 (treatment coordination & partner referrals, claims coordination) – the worked example in Section 17 |
+| `modules/wz-e09-mentalhealth`, `modules/wz-e10-substance`, `modules/wz-e11-travelhealth`, `modules/wz-e12-promotion` | Business modules of increment 5 (mental health & peer support, drug & alcohol testing, travel health & communicable disease, health promotion) – the worked example in Section 18 |
 | `web/employee-app`, `web/manager-workspace`, `web/oh-workspace`, `web/partner-portal` | React front-ends (the OH clinical workspace was added in increment 1, the partner portal for external providers and adjusters in increment 4) |
-| `tools/e2e` | Playwright end-to-end scripts: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, Section 14.7), `e2e-increment2.js` (E03/E05, Section 15.12), `e2e-increment3.js` (E06/E07/E14, Section 16.10), `e2e-increment4.js` (E04/E08 and the partner portal, Section 17.8) |
+| `tools/e2e` | Playwright end-to-end scripts: `e2e.js` (base framework), `e2e-increment1.js` (E01/E02, Section 14.7), `e2e-increment2.js` (E03/E05, Section 15.12), `e2e-increment3.js` (E06/E07/E14, Section 16.10), `e2e-increment4.js` (E04/E08 and the partner portal, Section 17.8), `e2e-increment5.js` (E09–E12, Section 18.9) |
 | `deploy/local` | Docker Compose: PostgreSQL, Keycloak (realm import), Mailpit, GreenMail, OpenTelemetry collector |
 | `config/` | SpotBugs exclusions and dependency-check suppressions (justification required) |
+| `deploy/scripts/helm-release.sh`, `deploy/environments/README.md` | Helm release operations used by the DEV → UAT → PROD promotion (`cd.yml`, `deploy-env.yml`) and the environment matrix (CI/CD Guide, section 7) |
+| `docs/developer-setup/` | Developer Environment & IDE Setup Guide and ready-made IDE files (IntelliJ IDEA, VS Code, Eclipse, Dev Container), scripts and the git hook |
+| `docs/customisation/` | Client Customisation Guide |
 
 Where a new business module fits:
 
@@ -44,6 +60,9 @@ Where a new business module fits:
 depend only on platform modules; they talk to other business modules through events.*
 
 ### 1.2 Local environment
+
+The short version follows; the full, IDE-specific walk-through (prerequisites per operating system, run and debug
+configurations, scripts, troubleshooting) is the [Developer Environment & IDE Setup Guide](../developer-setup/README.md).
 
 ```bash
 # 1. infrastructure (PostgreSQL 5432, Keycloak 8180, Mailpit 8025/1025, GreenMail IMAP 3143, OTel)
@@ -67,6 +86,9 @@ Test users in the local Keycloak realm `wellnessz` (password `ChangeMe!123`, tem
 `adjuster1` (TPA_ADJUSTER, `/PARTNERS/GULFTPA`), `legal1` (LEGAL_COUNSEL), `finance1` (FINANCE), `procurement1`
 (PROCUREMENT) and `physio1` (PARTNER_PROVIDER, `/PARTNERS/PHYSIOPLUS`; `partner1` is `/PARTNERS/CITYHOSP`). Partner and
 adjuster users sign in on the partner portal (5176); the `local` profile switches the MFA gate off (Section 17.6).
+Since increment 5 also `peer1` (PEER_SUPPORT_VOLUNTEER), `peercoord1` (PEER_SUPPORT_COORDINATOR), `safety1`
+(SAFETY_MANAGER), `damanager1` (DA_PROGRAMME_MANAGER), `mro1` (MRO), `collector1` (COLLECTOR), `promo1`
+(HEALTH_PROMOTION_LEAD), `ergo1` (ERGONOMIST) and `eap1` (PARTNER_PROVIDER, `/PARTNERS/EAP_WELLBEING`, partner portal).
 The `local` profile loads synthetic HRIS
 employees, the OH staff roster and the module demo data from `db/demo` (never enabled in shared environments).
 
@@ -80,6 +102,10 @@ employees, the OH staff roster and the module demo data from `db/demo` (never en
    non-OH destinations.**
 5. **Clinical free text is stored with `EncryptedStringConverter`.**
 6. **Schema changes only via Flyway**, with explicit least-privilege grants to `${app_role}`.
+7. **Restricted classes stay restricted** (since increment 5): `RESTRICTED_CLINICAL` content is opened only by the named
+   restricted-class clinician; everybody else gets `404`, at most a placeholder count, or status only (Section 18.4).
+8. **Client-specific code never goes into product modules** – it lives in a client module of a client build
+   (Client Customisation Guide).
 
 ## 2. Creating the Maven module
 
@@ -554,7 +580,9 @@ Mandatory integration cases for any module handling OH data:
 
 ### 9.3 ArchUnit rules for a new module
 
-Extend `apps/wz-core-app/src/test/java/com/wellnessz/app/ArchitectureTest.java`:
+Extend `apps/wz-core-app/src/test/java/com/wellnessz/app/ArchitectureTest.java` (22 rules after increment 5; the
+increment-5 rules are shown in Section 18.1, the rules for client packages in the Client Customisation Guide,
+section 11.1):
 
 ```java
 // platform must not depend on the new module
@@ -670,7 +698,9 @@ cloud secret store via Terraform/External Secrets.
 | Notifications | Use approved templates only (`NotificationTemplates`); placeholders allow-listed; content must stay a content-free nudge. |
 | Dependencies | Exact versions; managed in the root `pom.xml`; justify every new dependency (licence, maintenance, CVEs); update SBOM. |
 | Front-end | No `dangerouslySetInnerHTML`; no inline scripts/styles (CSP); no PHI in caches, URLs or logs. |
-| Restricted class | Separate schema, `RESTRICTED_CLINICAL` classification, no analytics inclusion without OH governance approval. |
+| Restricted class | Separate schema, `RESTRICTED_CLINICAL` classification, no analytics inclusion without OH governance approval; named-clinician check with `404` for everyone else, placeholder counts only, status-only outputs, restricted documents via `generateSigned(…, DataClassification.RESTRICTED_CLINICAL)`, disclosure log for every status crossing the boundary – full rules in Section 18.4. |
+| Aggregates | Every grouped output passes small-cell suppression (`wellnessz.analytics.min-group-size`, default 5; `SmallCellSuppression`); suppressed cells carry no numbers. |
+| Client-specific behaviour | Never `if (client == "acme")` in product code; use configuration, feature flags read by the feature (`WZ_FEATURE_*`) or an SPI implemented in a client module (Client Customisation Guide). |
 
 ## 13. Definition of Done for a module increment
 
@@ -686,7 +716,7 @@ cloud secret store via Terraform/External Secrets.
 | 8 | CI green (`ci.yml`, `codeql.yml`); `mvn -Psecurity verify` clean or exceptions recorded with owner and expiry; no new Trivy/dependency-check findings. |
 | 9 | Threat model (doc 02, Section 7) extended for new flows; DPIA screening done; retention period for new data defined. |
 | 10 | Operational readiness: metrics/alerts for new jobs, runbook entries (dead letters, replay), configuration documented, MDM keys documented if any. |
-| 11 | Documentation updated: module status in doc 01, control mapping in doc 02 if controls change; an end-to-end script and screenshots for the increment (`tools/e2e/`, `docs/images/screens/increment-NN/`). |
+| 11 | Documentation updated: module status in doc 01, control mapping in doc 02 if controls change; an end-to-end script and screenshots for the increment (`tools/e2e/`, `docs/images/screens/increment-NN/`); `docs/api/openapi.json` regenerated; the CI/CD Guide checklist (section 10.5) completed. |
 | 12 | Peer review by a second developer and, for changes to security components, by the security champion. |
 
 ## 14. Worked example: how E01 and E02 plug in (increment 1)
@@ -1488,3 +1518,172 @@ script it **consumes demo state** (it opens claim `CLM-2026-000001`, exports the
 hold), and the increment-3 script consumes its own; run the scripts in order 1 → 4 on a **freshly purged** database
 (`./deploy/local/down.sh --purge`, `./deploy/local/up.sh`, restart the core). Run all four increment scripts before a
 release (CI/CD Guide, Section 3.1).
+
+## 18. Worked example: E09, E10, E11, E12, restricted classes and the duty-assignment feed (increment 5)
+
+Increment 5 – the final increment – added four business modules for **restricted classes and health promotion**:
+E09 mental health, psychosocial risk and peer support; E10 drug, alcohol and psychoactive substance testing; E11 travel
+health, immunisation campaigns and communicable disease / exposure management; E12 health promotion, wellbeing and
+prevention campaigns. The design point that matters for every developer is the **restricted class**: mental-health
+and substance-programme records are `RESTRICTED_CLINICAL`, opened only by a named restricted-class clinician, while
+managers, HR, rostering and safety managers see status only and every aggregate is suppressed below the minimum group
+size. Design background: [Solution Design E09/E10/E11/E12](../increment-05/01-Solution-Design-E09-E10-E11-E12.md);
+endpoints, roles and rules: [API Contract E09–E12](../increment-05/API-Contract-E09-E10-E11-E12.md); requirement
+coverage: [Requirements Traceability Matrix](../increment-05/02-Requirements-Traceability-Matrix.md); changes and
+known limitations: [Release Notes](../increment-05/03-Release-Notes-Increment-5.md).
+
+### 18.1 Module wiring
+
+| Step | E09 (`modules/wz-e09-mentalhealth`) | E10 (`modules/wz-e10-substance`) | E11 (`modules/wz-e11-travelhealth`) | E12 (`modules/wz-e12-promotion`) |
+|---|---|---|---|---|
+| Package | `com.wellnessz.e09` | `com.wellnessz.e10` | `com.wellnessz.e11` | `com.wellnessz.e12` |
+| Maven dependencies (business) | `wz-e05-fitness`, `wz-documents` | `wz-e05-fitness`, `wz-documents` | `wz-e07-surveillance` (immunisation registry), `wz-documents` | `wz-e03-record`, `wz-documents` |
+| Registration | `E09Module` | `E10Module` | `E11Module` | `E12Module` |
+| Schema / migration | `mentalhealth` (V17) | `substance` (V18) | `travelhealth` (V19) | `promotion` (V20) |
+| Platform migration | V16 – `masterdata.duty_assignment`, partners `EAP_WELLBEING`, `TOXLAB`, `UKHSA_LOCAL`, retention classes `RESTRICTED_RECORD`, `PUBLIC_HEALTH` | | | |
+| Demo data (`db/demo`) | `R__demo_e09_mentalhealth.sql` + `MentalHealthDemoSeeder` | `R__demo_e10_substance.sql` + `SubstanceDemoSeeder` | `R__demo_e11_travelhealth.sql` | `R__demo_e12_promotion.sql` |
+| Jobs (`JobRunGuard.tryStart`) | `cism-follow-ups`, `peer-callback-purge` | `substance-follow-ups`, `substance-windows` | `exposure-timers`, `public-health-deadlines`, `travelhealth-daily` | `screening-follow-up`, `ergonomic-actions` |
+| Integration test | `Increment5MentalHealthIntegrationTest` (11) | `Increment5SubstanceIntegrationTest` (7) | `Increment5TravelHealthIntegrationTest` (14) | `Increment5PromotionIntegrationTest` (13) |
+
+ArchUnit (`ArchitectureTest`, now **22 rules**) gained five rules, and the four packages were added to the package
+lists of the platform, kernel and document-service rules:
+
+| Rule | Meaning |
+|---|---|
+| `earlierIncrementsDoNotDependOnIncrement5` | E01–E08 and E14 never depend on E09–E12 |
+| `restrictedProgrammesAreIndependent` | E09 / E10 never depend on E03, E04, E06, E07, E08, E11, E12 or E14 (their Maven dependency is E05 for fitness publication) – restricted programmes keep their own records |
+| `restrictedProgrammesDoNotDependOnEachOther` | E10 reaches E09 **only** through the kernel SPI `SupportProgrammeReferral` |
+| `travelHealthAndPromotionAreIndependent` | E11 builds on E07, E12 on E03; neither depends on E04, E06, E08, E09, E10, E14 (bookings go through `AppointmentBooking`) |
+| `promotionDoesNotDependOnTravelHealth` | E12 never depends on E11 |
+
+### 18.2 Kernel SPI: `SupportProgrammeReferral`
+
+When the MRO verifies a positive result (or a refusal) in E10, the employee must be offered confidential support in
+E09 – without E10 knowing anything about E09 and without clinical detail crossing the boundary.
+
+```java
+// platform/wz-case-kernel/.../support/SupportProgrammeReferral.java
+public interface SupportProgrammeReferral {
+    /** reason: SUBSTANCE_POSITIVE | SUBSTANCE_REFUSAL | CRITICAL_INCIDENT | EXPOSURE | OTHER – a code, never clinical text.
+     *  @return the confidential support case id, empty when the programme module is not deployed */
+    Optional<UUID> refer(String actor, String employeeId, UUID relatedCaseId, String reason, String sourceType, String sourceRef);
+}
+```
+
+| | |
+|---|---|
+| Provider | E09 `SupportProgrammeReferralAdapter` (`com.wellnessz.e09.casework`): idempotent per `sourceType` + `sourceRef`; opens a restricted support case with source `PROGRAMME_REFERRAL` and sends the content-free `support.urgent-callback` notification to the named clinicians |
+| Consumer | E10 `PathwayService` after MRO verification: `ObjectProvider<SupportProgrammeReferral>`, `orderedStream().findFirst()`, call `refer(actor, employeeId, caseId, "SUBSTANCE_POSITIVE" \| "SUBSTANCE_REFUSAL", "DA_TEST", testRef)` |
+| No implementation deployed | E10 audits `DA_SUPPORT_REFERRAL` with outcome `FAILURE` ("support programme module not deployed") and carries on – removal from duty and the return-to-duty plan do not depend on E09 |
+| Crossing the SPI | employee id, related case id, reason code, source type and reference – no result, substance, cut-off or note |
+
+Follow the SPI rules of Sections 16.2 and 17.2 (optional by construction, identifiers only, resolve lazily, audit as
+`MODULE`). Other future callers (an E11 exposure or a critical incident) use the same reason codes. A client module can
+supply its own implementation (for example a different EAP routing); because E10 takes the first bean in order, it
+must declare `@Order(Ordered.HIGHEST_PRECEDENCE)` and be proven by an integration test (Client Customisation Guide,
+section 7.2).
+
+### 18.3 Platform: the duty-assignment feed (`masterdata.duty_assignment`)
+
+Crew rosters, shifts and facility access are needed by three increment-5 features: E09 critical-incident support
+(affected crew from the flight roster), E11 contact tracing (shared duties and proximity groups) and E11 travel
+advisories (crew rostered to a destination). They share one platform table instead of three module copies.
+
+| Aspect | Detail |
+|---|---|
+| Table (V16) | `masterdata.duty_assignment`: `source` (`CREW_ROSTER` \| `SHIFT` \| `FACILITY`), `source_ref` (unique per source – upsert key), `duty_ref` (flight / shift / facility), `duty_date`, `starts_at`, `ends_at`, `employee_id`, optional `duty_role`, `location_code`, `destination_code`, `proximity_group`; indexes on employee, duty, proximity group and destination |
+| Ingest | `POST /api/v1/integration/duty-assignments` – role `INTEGRATION`, **internal machine clients only**: a client bound to a partner organisation (`CurrentUser.partnerOrganisation() != null`) is refused. Body `{source, duties:[{sourceRef, dutyRef, dutyDate, startsAt, endsAt, employeeRef (id or badge), …}]}` → `{received, upserted, unmatched[]}` |
+| Read | `GET /api/v1/masterdata/duty-assignments?employeeId=&from=&to=` – OH roles, `SAFETY_MANAGER`, `CREW_SCHEDULING`; window ≤ 62 days |
+| Module access | Inject `DutyAssignmentRepository` (platform, so allowed by ArchUnit): `findForEmployee(employeeId, from, to)`, `findOnDuties(dutyRefs, from, to)` (co-workers on the same flight / shift), `findInProximityGroups(groups, from, to)` |
+| Rules | Duties are operational data, not clinical data, but combined with a case they reveal who is affected: never return a co-worker list to non-OH roles; contact notices are content-free (`tracing.contact-notice`, no condition, no index case); the safety manager sees counts only |
+
+### 18.4 Coding rules for restricted classes
+
+These rules are enforced by code review, the integration tests and – where possible – ArchUnit. They apply to E09 and
+E10 today and to any future module or client module that handles `RESTRICTED_CLINICAL` data.
+
+| # | Rule | How it is done in increment 5 |
+|---|---|---|
+| R1 | **Classify** restricted records as `DataClassification.RESTRICTED_CLINICAL` and keep them on restricted kernel cases (`PSYCHOLOGICAL` / `MENTAL_HEALTH`, `SUBSTANCE`) in their own schema | E09 support cases, screening, call-backs, EAP clinical detail; E10 results |
+| R2 | **Named clinician only.** Check the restricted role **and** the named list in the service, not only with `@PreAuthorize`: E09 content for `PSYCH_CLINICIAN` users in `mentalhealth.named-clinicians` (empty = every `PSYCH_CLINICIAN`); E10 results for `MRO` (and `OH_PHYSICIAN` listed in `substance.acting-mro-physicians`) | Everybody else – including a general OH nurse or physician – gets **`404`** for a restricted record (a `403` would confirm that it exists) and an audited `DENIED`; role-gated functions without record context may answer `403` (for example the MRO queue for the programme manager) |
+| R3 | **Placeholder counts only** outside the restricted team | `GET /support/placeholder?employeeId=` → `{restrictedCases}`; the OH chart shows "1 restricted item – hidden", nothing on zero |
+| R4 | **Break-glass** is the only override for other clinicians; it is time-limited, logged and reviewed by the DPO (increment 2, `BreakGlassService`) | ABAC `DefaultPolicies` |
+| R5 | **Status only** for managers, HR, rostering and safety managers: duty status (available / removed from safety-sensitive duty / return pending), counts – never scores, conditions, test reasons, results or counselling content | `GET /workspace/testing/status` (fields `employeeId`, `displayName`, `dutyStatus`, `since`); fitness publication through E05 |
+| R6 | **Employee-controlled sharing** for E09: `NOTHING` \| `FITNESS_ONLY` \| `FITNESS_AND_ADJUSTMENTS`, revocable; check it at read time, not at write time | `GET`/`PUT /me/support/sharing`, `GET /workspace/psychosocial/shared-outcomes` |
+| R7 | **Pseudonymity** where the requirement demands it: peer-support requests travel as alias + contact code; the contact log holds no employee identity; call-back phone numbers are purged after 30 days | `peer-callback-purge` job |
+| R8 | **Disclosure log** for every status or document that crosses the restricted boundary (HR, crew scheduling, manager) | `DisclosureLogService` in `PathwayService` |
+| R9 | **Restricted documents** are generated with `DocumentService.generateSigned(actor, template, employeeId, caseId, fields, DataClassification.RESTRICTED_CLINICAL)`; templates `AUTHORITY_FITNESS_REPORT`, `CHAIN_OF_CUSTODY_FORM` | Known limitation: the MRO opens results and the chain-of-custody form through the E10 MRO endpoints; opening `RESTRICTED_CLINICAL` documents through the generic `/documents` API is recognised for `PSYCH_CLINICIAN` only (follow-up item in the release notes) |
+| R10 | **Content-free notifications.** Templates (`support.*`, `cism.*`, `testing.*`, `tracing.*`, …) must pass `ContentRules`, which reject clinical text and words such as *positive*, *negative*, *result*, *drug*, *alcohol* | `NotificationRulesTest` renders every template |
+| R11 | **Small-cell suppression** on every aggregate (psychosocial register, testing statistics, campaign uptake, insights, advisory acknowledgement counts): `wellnessz.analytics.min-group-size` (default 5) via `SmallCellSuppression` / the module's `minGroupSize()`; suppressed cells carry no numbers | integration tests assert suppression |
+| R12 | **Bound machine clients.** External systems may only touch their own organisation's records: laboratory results only from the client bound to `TOXLAB` (unbound or other client → `404`); the EAP partner sees minimal referral data for its own organisation and returns attendance only – free text is refused with `422 field_not_allowed` | `CurrentUser.partnerOrganisation()` checks in the services |
+| R13 | **Consent-gated data** (wearables): only consented enrolments, daily totals only; consent withdrawal stops processing (`ConsentWithdrawalListener`) | E12 `WearableConsentListener` |
+| R14 | **Never** include restricted-class data in analytics, exports, events to enterprise destinations, logs, problem details or audit reasons; events carry identifiers and status codes only | E10 `DutyStatusChanged(employeeId, dutyStatus, since)` |
+| R15 | **Clinical content is configuration** that needs sign-off: screening instruments (PHQ-9, GAD-7) and cut-offs, testing policy cut-offs, travel recommendations, PEP timers | reference data, Clinical Governance / MRO / Legal sign-off before go-live |
+
+Every restricted endpoint needs negative integration tests: a general OH user gets `404` and sees only the
+placeholder, a manager sees status only, an unbound machine client gets `404`, and suppressed aggregates carry no
+numbers below the minimum group size.
+
+### 18.5 BFF and web apps
+
+* BFF: the workspace allow-list in `apps/wz-bff/src/main/java/com/wellnessz/bff/ApiProxyController.java` gained
+  `/workspace/testing`, `/workspace/psychosocial`, `/workspace/campaigns` and `/workspace/ergonomics`; the workspace
+  roles gained `SAFETY_MANAGER` and `CREW_SCHEDULING`. Restricted `/support/**` and MRO paths go through the normal
+  proxy – the core decides, the BFF never filters clinical content itself.
+* OH workspace: support cases, urgent call-backs, the restricted chart placeholder, peer-support volunteer and
+  coordinator pages, CISM, psychosocial register, mental-health fitness, testing (selections, policies, collection,
+  MRO, reports), contact tracing, exposure timers, travel consultations, advisories, public-health reports,
+  vaccination campaigns, promotion insights, campaign planner, screening events, ergonomics and campaign reports. Role
+  routing in `roles.ts`: general OH roles never see support content.
+* Employee app: Support (signposting and emergency banner), Peer support, Travel health, Campaigns, Workplace checks
+  (testing notices – only where and when to report).
+* Manager workspace: Psychosocial risk, Drug & alcohol testing (HR duty status), For-cause request, Ergonomics, Unit
+  campaigns. Mappers whitelist fields (for example for-cause requests show "With the testing programme" after
+  collection; observations and results are dropped).
+* Partner portal: EAP referrals for `PARTNER_PROVIDER` users of `/PARTNERS/EAP_WELLBEING`.
+
+### 18.6 Outbound destinations and gateways
+
+New allow-listed destinations: `campaign-app` (E12 campaign publication) and `sms-safety` (urgent call-back and tracing
+contact). Real external connectors are still simulated or defaulted – EAP provider system, toxicology laboratory LIMS
+(bound machine client and API ready), campaign app, wearable vendor APIs, public-health authority submission (outbox +
+e-mail by default) and the SMS gateway. A client that brings its own gateway implements the relevant SPI in a client
+module (Client Customisation Guide, section 14 shows an SMS gateway end to end).
+
+### 18.7 Configuration keys introduced or used
+
+| Key | Default | Purpose |
+|---|---|---|
+| `mentalhealth.named-clinicians` (E18 `ConfigService`, seeded by V17) | `psych1` – the demo user, seeded in **every** environment | Named restricted-class clinicians for E09 (usernames, comma separated); empty = every `PSYCH_CLINICIAN`. Set it per client in the configuration screens before go-live |
+| `substance.acting-mro-physicians` (E18 `ConfigService`) | empty | `OH_PHYSICIAN` users allowed to act as MRO |
+| `wellnessz.analytics.min-group-size` (`WZ_ANALYTICS_MIN_GROUP`) | 5 | Small-cell suppression for every aggregate – never lower it |
+| `WZ_MFA_REQUIRED_ROLES` | `PARTNER_PROVIDER,TPA_ADJUSTER` | MFA gate for external roles (EAP users included) |
+| `WZ_FEATURE_*` | none | Client feature flags from the Helm `customisation.featureFlags` (plumbing only – no product feature reads them yet) |
+
+### 18.8 Future enhancements and client-specific features
+
+* A new module or a new feature in an existing module follows the CI/CD Guide checklist (section 10.5): Maven module,
+  next Flyway version (`V21` after increment 5), ArchUnit rule, BFF resource, web app screens, E2E script, docs and
+  OpenAPI regeneration.
+* A seam that other modules or clients need becomes a kernel or module SPI with a default that keeps today's
+  behaviour – the pattern of `SupportProgrammeReferral`, `ExternalReferralGateway` and `ClaimsSubmissionGateway`.
+* A feature that only one client needs is built as described in the
+  [Client Customisation Guide](../customisation/Client-Customisation-Guide.md): configuration, reference data,
+  feature flags, client SQL migrations in `client_<client>`, or an SPI implementation in a client module of a client
+  build. Mounting extension JARs into the product image is not implemented.
+
+### 18.9 Running the increment-5 end-to-end test
+
+`tools/e2e/e2e-increment5.js` drives E09–E12 across all four apps through real Keycloak logins and the BFF and prints
+24 `PASS`/`FAIL` lines (exit code 1 on any failure). Prerequisites as in Section 17.8; a realm imported before
+increment 5 lacks the eight new roles and the users `peer1`, `peercoord1`, `safety1`, `damanager1`, `mro1`,
+`collector1`, `promo1`, `ergo1`, `eap1`: run `./deploy/local/down.sh --purge` and `./deploy/local/up.sh` once.
+
+```bash
+node tools/e2e/e2e-increment5.js
+```
+
+The 35 published screenshots are in `docs/images/screens/increment-05/` (for example
+`inc5-oh-03-chart-restricted-placeholder.png`, `inc5-oh-12-testing-mro.png`, `inc5-mgr-02-hr-duty-status.png`,
+`inc5-partner-01-eap-referrals.png`). Like the earlier scripts it consumes demo state; run all five increment scripts
+in order 1 → 5 on a freshly purged database before a release (121 checks – CI/CD Guide, section 3.1).

@@ -8,14 +8,14 @@
 <rect x="20" y="66" width="1660" height="196" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
 <text x="34" y="88" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Intake (wz-ehs-intake) and transactional outbox (wz-integration)</text>
 <rect x="20" y="276" width="1660" height="208" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
-<text x="34" y="298" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Relay and OH domain (wz-case-kernel) - clinical data stays here</text>
+<text x="34" y="298" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Relay and OH domain (E01 rules, case kernel, E05 fitness) - clinical data stays here</text>
 <rect x="20" y="498" width="1660" height="206" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
 <text x="34" y="520" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Disclosure boundary - status-only outputs</text>
 <rect x="20" y="718" width="1660" height="186" rx="12" ry="12" fill="#F7F9FC" stroke="#C9D3DE" stroke-width="1.4"/>
 <text x="34" y="740" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1B365D" text-anchor="start">Analytics and other consumers</text>
 <rect x="40" y="96" width="250" height="72" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="165.0" y="129.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">EHS incident system</text>
-<text x="165.0" y="147.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">alert e-mail or .xlsx attachment</text>
+<text x="165.0" y="147.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">alert e-mail, .xlsx or webhook</text>
 <rect x="40" y="178" width="250" height="76" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
 <text x="165.0" y="206.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">OH administrator</text>
 <text x="165.0" y="224.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">POST /intake/ehs/excel</text>
@@ -70,12 +70,13 @@
 <text x="1530.0" y="419.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">IntegrationEnvelope with</text>
 <text x="1530.0" y="434.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">messageId)</text>
 <rect x="1060" y="306" width="300" height="166" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
-<text x="1210.0" y="356.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">IncidentListener</text>
-<text x="1210.0" y="374.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">IdempotentConsumer.handleOnce</text>
-<text x="1210.0" y="389.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">(platform.processed_message)</text>
-<text x="1210.0" y="404.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">IncidentToCaseRule beans: exposure,</text>
-<text x="1210.0" y="419.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">injury, severity &gt;= MEDIUM</text>
-<text x="1210.0" y="434.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">openFromTrigger - idempotent</text>
+<text x="1210.0" y="348.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="bold" fill="#2E7D4F" text-anchor="middle">E01 IncidentIntakeListener</text>
+<text x="1210.0" y="365.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">IdempotentConsumer.handleOnce</text>
+<text x="1210.0" y="380.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">(platform.processed_message)</text>
+<text x="1210.0" y="395.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">rule table: AUTO_CREATE /</text>
+<text x="1210.0" y="410.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">SUGGEST / IGNORE (reconciled)</text>
+<text x="1210.0" y="425.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">also consumed by E09 CISM,</text>
+<text x="1210.0" y="440.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">E10 post-incident test, E11 exposure</text>
 <rect x="690" y="306" width="330" height="166" rx="8" ry="8" fill="#EEF3F8" stroke="#1B365D" stroke-width="1.6"/>
 <text x="855.0" y="356.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#1B365D" text-anchor="middle">casemgmt.oh_case</text>
 <text x="855.0" y="374.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">category -&gt; classification</text>
@@ -84,11 +85,11 @@
 <text x="855.0" y="419.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">clinical_summary AES-256-GCM (v1:...)</text>
 <text x="855.0" y="434.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">status · fitness status · restriction date</text>
 <rect x="330" y="306" width="320" height="166" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
-<text x="490.0" y="364.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">OH clinician</text>
-<text x="490.0" y="382.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">POST /cases/{id}/fitness</text>
-<text x="490.0" y="397.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">OH_CLINICIAN / PSYCH_CLINICIAN</text>
+<text x="490.0" y="364.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">OH clinician / AME</text>
+<text x="490.0" y="382.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">E05 fitness decision + sign-off</text>
+<text x="490.0" y="397.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">POST /cases/{id}/fitness-decisions</text>
 <text x="490.0" y="412.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ABAC require CLINICAL</text>
-<text x="490.0" y="427.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">audit FITNESS_RECORDED</text>
+<text x="490.0" y="427.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">audited</text>
 <path d="M 1530 256 L 1530 304" fill="none" stroke="#1B365D" stroke-width="1.6" marker-end="url(#en)"/>
 <circle cx="1552" cy="280" r="11" fill="#1B365D"/>
 <text x="1552" y="284" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFFFFF" text-anchor="middle">4</text>
@@ -111,13 +112,15 @@
 <text x="1210.0" y="595.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">fitness.status.changed.v1</text>
 <text x="1210.0" y="610.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">Kafka / Service Bus / Pub/Sub</text>
 <text x="1210.0" y="625.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">adapter = extension point</text>
-<text x="1210.0" y="640.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">(logging stand-in today)</text>
+<text x="1210.0" y="640.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">(logging stand-in by default)</text>
 <text x="1210.0" y="655.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">receiver dedupes on messageId</text>
 <rect x="1400" y="528" width="260" height="166" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
-<text x="1530.0" y="593.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Crew rostering</text>
-<text x="1530.0" y="611.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">caseRef, employeeId,</text>
-<text x="1530.0" y="626.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">fitnessStatus, restrictionUntil,</text>
-<text x="1530.0" y="641.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">effectiveFrom - nothing else</text>
+<text x="1530.0" y="578.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">Crew rostering</text>
+<text x="1530.0" y="596.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">employeeId, fitnessStatus,</text>
+<text x="1530.0" y="611.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">rosterStatus, restrictionUntil,</text>
+<text x="1530.0" y="626.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">validFrom / validUntil,</text>
+<text x="1530.0" y="641.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">operational limitations,</text>
+<text x="1530.0" y="656.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">effectiveFrom - nothing else</text>
 <rect x="330" y="528" width="320" height="166" rx="8" ry="8" fill="#E5F3EA" stroke="#2E7D4F" stroke-width="1.6"/>
 <text x="490.0" y="578.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E7D4F" text-anchor="middle">PolicyEngine + projection</text>
 <text x="490.0" y="596.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">MANAGER / HR within org_scope</text>
@@ -156,16 +159,16 @@
 <rect x="760" y="748" width="420" height="146" rx="8" ry="8" fill="#FFFFFF" stroke="#AEB8C4" stroke-width="1.6"/>
 <text x="970.0" y="795.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1B365D" text-anchor="middle">Classification (wz-common DataClassification)</text>
 <text x="970.0" y="811.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">ehs_incident row: CONFIDENTIAL; description CLINICAL (encrypted)</text>
-<text x="970.0" y="826.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">oh_case: CLINICAL or RESTRICTED_CLINICAL</text>
+<text x="970.0" y="826.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">oh_case: CLINICAL or RESTRICTED_CLINICAL (E09 / E10 data)</text>
 <text x="970.0" y="841.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">rostering / HR feed: status + dates only</text>
 <text x="970.0" y="856.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">KPI output: aggregated, suppressed</text>
-<rect x="1400" y="748" width="260" height="146" rx="8" ry="8" fill="#F3F5F8" stroke="#AEB8C4" stroke-width="1.6" stroke-dasharray="6 4"/>
-<text x="1530.0" y="803.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#5F6B7A" text-anchor="middle">HR systems / catering</text>
-<text x="1530.0" y="821.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#5F6B7A" text-anchor="middle">allow-list configured</text>
-<text x="1530.0" y="836.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#5F6B7A" text-anchor="middle">(hr-systems) - producer</text>
-<text x="1530.0" y="851.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#5F6B7A" text-anchor="middle">planned</text>
+<rect x="1400" y="748" width="260" height="146" rx="8" ry="8" fill="#E7F0FA" stroke="#2E6DA4" stroke-width="1.6"/>
+<text x="1530.0" y="803.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="bold" fill="#2E6DA4" text-anchor="middle">HR systems / catering</text>
+<text x="1530.0" y="821.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">allow-lists hr-systems,</text>
+<text x="1530.0" y="836.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">catering-hygiene - status only</text>
+<text x="1530.0" y="851.5" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1E2933" text-anchor="middle">producers E05 / E06 / E07</text>
 <path d="M 720 474 L 720 820 L 652 820" fill="none" stroke="#5F6B7A" stroke-width="1.6" marker-end="url(#eg)"/>
 <path d="M 328 820 L 292 820" fill="none" stroke="#5F6B7A" stroke-width="1.6" marker-end="url(#eg)"/>
-<path d="M 1215 696 L 1215 820 L 1398 820" fill="none" stroke="#5F6B7A" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#eg)"/>
+<path d="M 1215 696 L 1215 820 L 1398 820" fill="none" stroke="#B45309" stroke-width="1.6" marker-end="url(#ea)"/>
 <text x="1680" y="950" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="normal" fill="#5F6B7A" text-anchor="end">1 receive  2 validate &amp; persist  3 outbox in same transaction  4 relay  5 idempotent rule evaluation  6 clinical update  7 guarded status-only event  8 ABAC status-only read</text>
 </svg>
