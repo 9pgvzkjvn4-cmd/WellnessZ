@@ -26,9 +26,10 @@ resource "google_sql_database_instance" "main" {
     }
 
     ip_configuration {
-      ipv4_enabled                                  = false
-      private_network                               = google_compute_network.main.id
-      ssl_mode                                      = "ENCRYPTED_ONLY"
+      ipv4_enabled    = false
+      private_network = google_compute_network.main.id
+      # TLS required for every connection; client certificates are not used (IAM database authentication instead)
+      ssl_mode                                      = "ENCRYPTED_ONLY" # nosemgrep: gcp-sql-database-ssl-insecure-value-postgres-mysql
       enable_private_path_for_google_cloud_services = true
     }
 

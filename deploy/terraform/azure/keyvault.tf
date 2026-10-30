@@ -148,6 +148,9 @@ resource "azurerm_role_assignment" "app_mode_migrator_read" {
 # ---------------------------------------------------------------------------
 # Customer-managed key for PostgreSQL (optional)
 # ---------------------------------------------------------------------------
+# Expiry is governed by rotation_policy (expire_after P1Y, automatic rotation 30 days before) rather than a fixed
+# expiration_date, which would break automatic rotation.
+# nosemgrep: azure-key-no-expiration-date, keyvault-ensure-key-expires
 resource "azurerm_key_vault_key" "postgres" {
   count        = var.postgres_cmk_enabled ? 1 : 0
   name         = "cmk-postgres"

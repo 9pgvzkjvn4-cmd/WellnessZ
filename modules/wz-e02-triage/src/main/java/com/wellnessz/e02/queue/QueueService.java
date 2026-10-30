@@ -95,6 +95,8 @@ public class QueueService {
         requireOh(user);
         List<Object> args = new ArrayList<>();
         String where = where(user, queue, f, args);
+        // where() appends only constant SQL fragments; every filter value is a bound parameter in args
+        // nosemgrep: java.spring.security.injection.tainted-sql-string.tainted-sql-string, spring-sqli
         Long total = jdbc.queryForObject("select count(*) " + BASE + where, Long.class, args.toArray());
         List<Object> pageArgs = new ArrayList<>(args);
         int s = Math.min(Math.max(size, 1), 200);
@@ -102,6 +104,7 @@ public class QueueService {
         pageArgs.add(s);
         pageArgs.add((long) p * s);
         Instant now = clock.instant();
+        // nosemgrep: spring-sqli – constant fragments only, values bound as parameters (see where())
         List<CaseSummary> items = jdbc.query("""
                 select c.*, s.display_name owner_name, t.milestone t_milestone, t.status t_status, t.due_at t_due, t.amber_at t_amber,
                        t.started_at t_started, t.paused_remaining_seconds t_paused,

@@ -108,10 +108,16 @@ function withQuery(p, op) {
 
 const toBff = (corePath) => '/bff/api' + corePath.slice('/api/v1'.length);
 
-async function get(ctx, base, p) {
+/** Accept header from the operation's success media types (exports produce CSV / PDF), JSON first. */
+function acceptFor(op) {
+  const types = Object.keys(Object.values(op?.responses || {})[0]?.content || {}).filter((t) => t !== '*/*');
+  return [...new Set(['application/json', ...types])].join(', ') + ', */*;q=0.1';
+}
+
+async function get(ctx, base, p, accept = 'application/json') {
   const t0 = Date.now();
   try {
-    const r = await ctx.request.get(base + p, { headers: { Accept: 'application/json' }, maxRedirects: 0, timeout: 30000 });
+    const r = await ctx.request.get(base + p, { headers: { Accept: accept }, maxRedirects: 0, timeout: 30000 });
     const body = await r.body();
     let json;
     try { json = JSON.parse(body.toString('utf8')); } catch { json = undefined; }
@@ -237,14 +243,17 @@ async function discoverObjects(sessions, byName) {
   const objs = [];
   const orgUnits = (await g('clinician1', '/masterdata/org-units')).json || [];
   const orgPath = (code) => (orgUnits.find((o) => o.code === code) || {}).path;
-  // employee1's own case + an out-of-scope (ground) case, read by the OH clinician
-  const ohCases = (await g('clinician1', '/cases?limit=500')).json || [];
+  // employee1's own case, a case outside manager1's org scope and (if any) a restricted-class case
+  const ohCases = (await g('psych1', '/cases?limit=500')).json || [];
+  // list views omit the classification: read each case once as the psych clinician (who may see every class)
+  for (const c of ohCases) c.classification = ((await g('psych1', '/cases/' + c.id)).json || {}).classification || c.classification;
   const caseInfo = (c) => ({ id: c.id, ref: c.caseRef, employeeId: c.employeeId, classification: c.classification || 'CLINICAL',
     orgPath: orgPath(c.orgUnitCode) || orgPath(c.departmentCode) });
-  const own = ohCases.find((c) => c.employeeId === byName.employee1.employeeId);
-  const ground = ohCases.find((c) => (caseInfo(c).orgPath || '').startsWith('/AIRLINE/GROUND'));
-  const restricted = ((await g('psych1', '/cases?limit=500')).json || []).find((c) => c.classification === 'RESTRICTED_CLINICAL');
-  for (const [label, c] of [['employee1 case (/AIRLINE/CATERING)', own], ['out-of-scope ground case', ground], ['restricted-class case', restricted]]) {
+  const mgrScope = byName.manager1?.orgScope || '/AIRLINE/CATERING';
+  const own = ohCases.find((c) => c.employeeId === byName.employee1.employeeId && caseInfo(c).classification !== 'RESTRICTED_CLINICAL');
+  const outside = ohCases.find((c) => { const i = caseInfo(c); return i.orgPath && !(i.orgPath + '/').startsWith(mgrScope + '/') && i.classification !== 'RESTRICTED_CLINICAL'; });
+  const restricted = ohCases.find((c) => caseInfo(c).classification === 'RESTRICTED_CLINICAL');
+  for (const [label, c] of [['employee1 own case, manager1 scope', own], ['case outside manager1 scope ' + (outside ? caseInfo(outside).orgPath : ''), outside], ['restricted-class case', restricted]]) {
     if (!c) continue;
     const info = caseInfo(c);
     for (const [suffix, minimum, where] of [['', 'STATUS_ONLY', 'CaseService.get → CaseAccess.decide (404 when denied)'],
@@ -338,7 +347,7 @@ async function discoverObjects(sessions, byName) {
     for (const [via, base, p] of [['BFF', BFF, toBff(target)], ['core', CORE, target]]) {
       try {
         const r = await anon.request.fetch(base + p, { method: o.method, maxRedirects: 0, timeout: 30000,
-          headers: { Accept: 'application/json', ...(via === 'BFF' && xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}) } });
+          headers: { Accept: acceptFor(o.op), ...(via === 'BFF' && xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}) } });
         const body = await r.body();
         res[via] = { status: r.status(), bytes: body.length, location: r.headers().location };
       } catch (err) {
@@ -386,7 +395,7 @@ async function discoverObjects(sessions, byName) {
     const rows = await pool(getOps, CONCURRENCY, async (o) => {
       const exp = expectation('GET', o.path, u);
       const tested = withQuery(o.path, o.op);
-      const res = await get(s.ctx, s.app, toBff(tested));
+      const res = await get(s.ctx, s.app, toBff(tested), acceptFor(o.op));
       return { user: u.username, roles: u.roles, app: primaryApp(u), method: 'GET', path: o.path, tested: toBff(tested),
         expectedAllow: exp.allow, basis: exp.basis, scoped: exp.scoped, status: res.status, bytes: res.bytes, hasData: hasData(res),
         errorCode: res.json && typeof res.json === 'object' && !Array.isArray(res.json) ? (res.json.code || res.json.error || undefined) : undefined,
