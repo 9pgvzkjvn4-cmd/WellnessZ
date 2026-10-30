@@ -393,7 +393,7 @@ boundary content.
 | `wz-integration` (E15) | `com.wellnessz.integration` | security, secrets | `EventBus`, `OutboxRelay`, `EventPublisher`, `OutboundPayloadGuard`, `IdempotentConsumer`, `IdempotencyService`, `FhirController`, `Hl7v2Controller`, `TerminologyService`, `ConnectorRegistry` |
 | `wz-notification` | `com.wellnessz.notification` | common | `NotificationService`, `NotificationTemplates`, `ContentRules`, `QuietHours`, `NotificationChannel` |
 | `wz-analytics` (E17) | `com.wellnessz.analytics` | security | `KpiService`, `SmallCellSuppression`, `Pseudonymizer`, `AnalyticsController` |
-| `wz-case-kernel` | `com.wellnessz.casekernel` | masterdata, integration, security, secrets | `OhCase`, `CaseService`, `CaseViews`, `CaseModule`, `ModuleRegistry`; increment 1: `OpenCaseCommand`, `CaseRefGenerator`, `CaseTimeline`, `CaseWorkService` (tasks, links, attachments), `CaseAccess`, **`CaseTransitionGuard` SPI**; increment 3: seven SPIs (Section 21.1); increment 4: **`CaseCostRecorder`, `ExternalReferralGateway`, `ReferralStatusListener`, `ClaimContextProvider`** |
+| `wz-case-kernel` | `com.wellnessz.casekernel` | masterdata, integration, security, secrets | `OhCase`, `CaseService`, `CaseViews`, `CaseModule`, `ModuleRegistry`; increment 1: `OpenCaseCommand`, `CaseRefGenerator`, `CaseTimeline`, `CaseWorkService` (tasks, links, attachments), `CaseAccess`, **`CaseTransitionGuard` SPI**; increment 3: seven SPIs (Section 21.1); increment 4: **`CaseCostRecorder`, `ExternalReferralGateway`, `ReferralStatusListener`, `ClaimContextProvider`**; increment 5: **`SupportProgrammeReferral`** |
 | `wz-ehs-intake` | `com.wellnessz.ehsintake` | integration, security, secrets | `ExcelIncidentParser`, `MailboxIngestionJob`, `ImapMailboxReader`, `GraphMailboxReader`, `IncidentIntakeService`; increment 1: `IncidentWebhookService`, `DeadLetterController` |
 | `wz-e01-intake` (increment 1) | `com.wellnessz.e01` | case-kernel, ehs-intake, notification | `E01Module`, `IncidentIntakeListener`, `RuleEngine`, `IntakeRule`, `ReferralService`, `TemplateCatalog`, `EncounterService`, `TriggerService`, `DuplicateService`, `RecordabilityService` (a `CaseTransitionGuard`), `ReconciliationService`, `IntakeNotificationDispatcher`, **`RecipientResolver` SPI** |
 | `wz-e02-triage` (increment 1) | `com.wellnessz.e02` | e01-intake (only for the `RecipientResolver` SPI and notification types) | `E02Module`, `ProtocolCatalog`, `ProtocolEvaluator`, `TriageService`, `SlaService`, `AssignmentEngine`, `AssignmentService`, `QueueService`, `EscalationService`, `ComplexityService`, `SafetyService` (a `CaseTransitionGuard`), `TriageAuditService`, `OhRecipientResolver` |
@@ -405,33 +405,46 @@ boundary content.
 | `wz-e14-scheduling` (increment 3) | `com.wellnessz.e14` | e02-triage, documents | `E14Module`, `CatalogueService`, `SlotEngine` / `BookingRules`, `AppointmentService`, `AppointmentBookingAdapter` (`AppointmentBooking`), `StatusNotifier`, `ClinicQueueService`, `CampaignService` / `CampaignPlanner`, `EquipmentService` / `EquipmentRules`, `EquipmentCalibrationCheck` (`DeviceCalibrationCheck`), `CapacityService`, `SchedulingJobs` |
 | `wz-e04-treatment` (increment 4) | `com.wellnessz.e04` | e03-record, e05-fitness, documents | `E04Module`, `PlanService` / `PlanMaths`, `EReferralService` / `ReferralCore` / `DataSetValidator` / `ChaseRules` / `FhirMapper` (implements `ExternalReferralGateway`), `PartnerReferralService`, `ProviderDirectoryService` / `ScorecardMaths`, `PreauthService` / `InvoiceMatcher` (calls `CaseCostRecorder`, `ClaimContextProvider`), `MedicationAdminService` / `MedicationChecks`, `EPrescribingGateway` (SPI, no-op default), `OutcomeService`, `OutcomeClosureGuard` (`CaseTransitionGuard`), `TelehealthService` / `TokenWindow` + `TelehealthProvider` SPI, `TreatmentChartContributor`, `TreatmentAppointmentListener`, `TreatmentJobs` |
 | `wz-e08-claims` (increment 4) | `com.wellnessz.e08` | e05-fitness (RTW status), documents | `E08Module`, `ClaimService` / `ClaimWorkflow` (implements `ClaimContextProvider`), `NurseAssignmentService`, `ReportService` / `ReportDeadlines` + `ClaimsSubmissionGateway` SPI (`DefaultClaimsSubmissionGateway`), `DisclosureSetService` / `DisclosureRules` / `Redaction`, `CollaborationService`, `CostService` / `CostMath` / `ErpExport` (implements `CaseCostRecorder`), `LegalService` (implements `ReferralStatusListener` for `CLAIM_IME`), `ClaimsJobs`, `ClaimsDemoSeeder` (local / test only) |
+| `wz-e09-mentalhealth` (increment 5) | `com.wellnessz.e09` | e05-fitness (fitness / roster status), documents | `E09Module`, `SupportCaseService` / `SupportAccess` (named-clinician check, placeholder, break-glass), `PathwayService` (`Screening`, urgent-risk protocol), `EapService`, `SupportProgrammeReferralAdapter` (implements `SupportProgrammeReferral`), `PeerSupportService` (`ContactCodes`), `CismService` / `CismIncidentListener` (`CismRules`), `PsychosocialService` (`PsychosocialScoring`, `Suppression`), `ReliefService`, `MhFitnessService`, `MentalHealthJobs`, `MentalHealthDemoSeeder` (local / test only) |
+| `wz-e10-substance` (increment 5) | `com.wellnessz.e10` | e05-fitness, documents – **not** e09 (support referral only through the kernel SPI) | `E10Module`, `PolicyService`, `SelectionEngine` / `SelectionService` / `CoverageMath`, `TriggerService` / `IncidentTestListener` / `PostIncidentRules` / `TestWindows`, `CollectionService` / `CustodyLog`, `LabService` (bound `TOXLAB` client), `MroService` / `MroStateMachine`, `PathwayService` (calls `SupportProgrammeReferral`), `RtdService` / `FollowUpScheduler`, `StatisticsService` / `Suppression`, `SubstanceJobs`, `SubstanceDemoSeeder` (local / test only) |
+| `wz-e11-travelhealth` (increment 5) | `com.wellnessz.e11` | e07-surveillance (immunisation registry; E05 food-handler service through E07's dependency chain), documents | `E11Module`, travel consultations and `TravelRecommendations`, communicable-disease cases with `TracingRules`, exposure pathways with `ProtocolTimers`, vaccination campaigns (`UptakeMaths`, GS1 lots), advisories (`AdvisoryTargeting`), public-health reports, `TravelHealthJobs`, `TravelHealthDemoSeeder` (local / test only) |
+| `wz-e12-promotion` (increment 5) | `com.wellnessz.e12` | e03-record (audiometry results, `EmployeeRecordAccess`), documents | `E12Module`, `PromotionCampaignService`, `PromotionAnalyticsService` (`InsightRules`, `Suppression`), `ScreeningService` (`ScreeningThresholds`), `EducationService`, `ErgonomicsService` (`ErgonomicScoring`), `WearableService` / `WearableConsentListener` (`WearableGate`), `PromotionJobs`, `PromotionDemoSeeder` (local / test only) |
 
-ArchUnit rules (`apps/wz-core-app/src/test/java/com/wellnessz/app/ArchitectureTest.java`, 17 rules since increment 4):
+ArchUnit rules (`apps/wz-core-app/src/test/java/com/wellnessz/app/ArchitectureTest.java`, **22 rules** since increment 5):
 
 1. Platform packages must not depend on `casekernel`, `ehsintake`, `documents` or any business module (`e01`–`e14`).
 2. `casekernel` must not depend on any business module or on `documents` – modules plug into the kernel through SPIs
-   (`CaseModule`, `CaseTransitionGuard`, `ChartContributor`, the increment-3 and increment-4 SPIs) and events, never
-   the reverse.
+   (`CaseModule`, `CaseTransitionGuard`, `ChartContributor`, the increment-3, increment-4 and increment-5 SPIs) and
+   events, never the reverse.
 3. `documents` must not depend on any business module (increment 2).
 4. `e03` must not depend on `e05` (increment 2).
 5. `e05` must not depend on `e03` (increment 2).
-6. `e01` / `e02` must not depend on any later module (increments 2–4, including `e04` and `e08`).
+6. `e01` / `e02` must not depend on any later module (increments 2–5).
 7. `e03` / `e05` must not depend on `e06`, `e07` or `e14` – they call increment-3 behaviour only through
    `DeviceCalibrationCheck`, `ResultFollowUpListener` and `FitnessClearanceGuard` (increment 3).
 8. `e03`, `e05`, `e06`, `e07`, `e14` must not depend on `e04` or `e08` – increment-4 modules plug in through
    `ExternalReferralGateway`, `CaseCostRecorder` and `ClaimContextProvider` (increment 4).
-9. `e04` must not depend on `e08`, `e06`, `e07` or `e14` – it posts costs through `CaseCostRecorder` and reads the
-   claim context through `ClaimContextProvider` (increment 4).
-10. `e08` must not depend on `e04`, `e03`, `e06`, `e07` or `e14` – **claims never read the clinical record**; IMEs go
+9. **Earlier modules (`e01`–`e08`, `e14`) must not depend on `e09`–`e12`** – increment-5 modules plug in through
+   kernel SPIs (`SupportProgrammeReferral`) and in-process events (increment 5).
+10. **`e09` / `e10` must not depend on `e03`, `e04`, `e06`, `e07`, `e08`, `e11`, `e12` or `e14`** – restricted-class
+    programmes keep their own records (increment 5).
+11. **`e10` must not depend on `e09`** – the testing programme refers into the support programme only through the
+    kernel SPI (increment 5).
+12. **`e11` / `e12` must not depend on `e04`, `e06`, `e08`, `e09`, `e10` or `e14`** – E11 builds on the E07
+    immunisation registry, E12 on the E03 record; bookings go through `AppointmentBooking` (increment 5).
+13. **`e12` must not depend on `e11`** (increment 5).
+14. `e04` must not depend on `e08`, `e06`, `e07` or `e14` – it posts costs through `CaseCostRecorder` and reads the
+    claim context through `ClaimContextProvider` (increment 4).
+15. `e08` must not depend on `e04`, `e03`, `e06`, `e07` or `e14` – **claims never read the clinical record**; IMEs go
     through `ExternalReferralGateway` (increment 4).
-11. `e06` must not depend on `e07` or `e14` (increment 3).
-12. `e07` must not depend on `e06` or `e14` (increment 3).
-13. `e14` must not depend on `e03`, `e05`, `e06` or `e07` – scheduling never reads clinical content (increment 3).
-14. `e01` must not depend on `e02` – E02 depends on E01 through the `RecipientResolver` SPI; the reverse would create
+16. `e06` must not depend on `e07` or `e14` (increment 3).
+17. `e07` must not depend on `e06` or `e14` (increment 3).
+18. `e14` must not depend on `e03`, `e05`, `e06` or `e07` – scheduling never reads clinical content (increment 3).
+19. `e01` must not depend on `e02` – E02 depends on E01 through the `RecipientResolver` SPI; the reverse would create
     a cycle (increment 1).
-15. `ehsintake` must not depend on `casekernel` – the two communicate only via `ehs.incident.received.v1`.
-16. `common` must not depend on Spring Security.
-17. No code outside `com.wellnessz.secrets` (the CLI) may use `System.out`/`System.err`.
+20. `ehsintake` must not depend on `casekernel` – the two communicate only via `ehs.incident.received.v1`.
+21. `common` must not depend on Spring Security.
+22. No code outside `com.wellnessz.secrets` (the CLI) may use `System.out`/`System.err`.
 
 ### 5.3 Deployment view
 
@@ -461,6 +474,10 @@ All schemas live in one PostgreSQL 16 database; the BFF uses its own schema and 
 | `scheduling` (increment 3) | `appointment_type`, `resource`, `diary_template`, `campaign`, `appointment`, `campaign_slot`, `waitlist_entry`, `equipment`, `calibration`, `temperature_reading`, `excursion` (V12) | E14 service catalogue, resources and diaries, appointments, campaigns, waitlist, equipment register, calibration certificates (`bytea` + SHA-256), cold-chain readings and excursions | CONFIDENTIAL (who has which appointment type when; no clinical content by design); equipment and cold-chain data INTERNAL |
 | `treatment` (increment 4) | `ref_sequence`, `plan_template`, `treatment_plan`, `follow_up`, `variance_alert`, `service_catalogue`, `referral`, `referral_history`, `provider_profile`, `provider_contract`, `provider_scorecard`, `preauth`, `invoice`, `formulary_item`, `stock_batch`, `administration`, `outcome`, `telehealth_session`, `telehealth_token`, `telehealth_message` (V14) | E04 treatment plans and follow-ups, variance alerts, e-referrals and history, provider profiles / contracts / scorecards, pre-authorisations, invoices, clinic formulary, stock and administrations, outcomes, telehealth sessions, tokens and chat | CLINICAL (plan goals and interventions, referral reason, question, data set, report summary and FHIR payload, pre-auth justification, administration dose and allergy override, outcome and follow-up notes, chat text encrypted); telehealth participant tokens stored as hashes only; provider contracts and rates INTERNAL |
 | `claims` (increment 4) | `ref_counter`, `claim`, `claim_history`, `report_form`, `first_report`, `disclosure_set`, `disclosure_set_document`, `claim_task`, `claim_message`, `message_read`, `cost_entry`, `budget`, `cost_export`, `legal_request`, `legal_report` (V15) | E08 claims and lifecycle history, report forms and first reports, disclosure sets, adjuster tasks and messages, cost ledger, budgets, ERP exports, legal requests and medico-legal report versions | CONFIDENTIAL (claim status, payer, amounts); CLINICAL for encrypted free text (claim notes, first-report fields, messages, legal questions); medico-legal reports live in `docs` and are restricted to the legal access set |
+| `mentalhealth` (increment 5) | `ref_counter`, `support_case`, `support_note`, `support_contact`, `support_event`, `instrument`, `instrument_item`, `instrument_option`, `instrument_band`, `screen_result`, `urgent_item`, `protocol`, `signposting`, `eap_referral`, `peer_volunteer`, `peer_training`, `peer_contact_request`, `peer_contact`, `trusted_referral`, `sms_report`, `relief`, `cism_event`, `cism_affected`, `psychosocial_assessment`, `psychosocial_action`, `fitness_assessment` (V17) | E09 support cases, notes, screening instruments and results, urgent items, EAP referrals, peer volunteers and pseudonymous contacts, CISM, psychosocial register, relief and fitness assessments | **RESTRICTED_CLINICAL** (notes, screening detail, urgent items, EAP clinical detail, contact phones encrypted); peer tables have **no employee column** (verified against `information_schema` in the integration test); psychosocial register is INTERNAL at unit level |
+| `substance` (increment 5) | `ref_counter`, `panel`, `policy`, `pool_exclusion`, `selection`, `test`, `specimen`, `custody_event`, `duty_status`, `rtd_plan`, `post_incident_rule` (V18) | E10 policies, selections (seed, pool hash, commitment), tests, specimens, chain-of-custody events, duty status, return-to-duty plans | **RESTRICTED_CLINICAL** (laboratory results, breath readings, MRO interview notes, treatment provider encrypted); `custody_event` append-only (no `UPDATE` / `DELETE` grant, trigger rejects changes even for the owner); `duty_status` is CONFIDENTIAL status only |
+| `travelhealth` (increment 5) | `ref_counter`, `destination`, `consultation`, `consultation_reminder`, `condition`, `cd_case`, `contact`, `check_in`, `pathway`, `chemical`, `exposure`, `exposure_task`, `campaign`, `campaign_invitation`, `campaign_decline`, `adverse_event`, `advisory`, `advisory_target`, `ph_report`, `ph_correspondence` (V19) | E11 destinations and consultations, communicable-disease cases, contacts and check-ins, exposure pathways and tasks, vaccination campaigns, advisories, public-health reports | CLINICAL (consultation advice and prophylaxis, exposure details, task notes, decline reasons, adverse-event actions, correspondence summaries encrypted); destination and condition tables INTERNAL |
+| `promotion` (increment 5) | `campaign`, `campaign_invitation`, `participation`, `screening_event`, `screening_participant`, `screening_result`, `education_attendance`, `ergonomic_checklist`, `ergonomic_assessment`, `ergonomic_photo`, `ergonomic_action`, `wearable_enrolment`, `wearable_daily` (V20) | E12 campaigns and participation, screening events and results, education, ergonomic assessments, photos and actions, wearable enrolments and daily totals | CLINICAL (screening measures and flags encrypted); wearable data CONFIDENTIAL, daily totals only, purged on withdrawal; campaign and ergonomic action data INTERNAL |
 | `analytics` | view `v_case_facts` (V2) | De-identified case facts | INTERNAL (aggregate) |
 | `bff` | `spring_session`, `spring_session_attributes` (`db/bff/V1`) | Browser sessions including OAuth2 tokens | CONFIDENTIAL (attributes encrypted) |
 
@@ -500,7 +517,20 @@ clinic formulary) and V15 (schema `claims`, report forms). Each module migration
 `R__demo_e08_claims.sql` and `ClaimsDemoSeeder` (a `local` / `test` bean that fills the encrypted demo fields of E08,
 which SQL cannot do). The schema list in all five places named above now reads
 `platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, treatment,
-claims, analytics`.
+claims, analytics` (extended by increment 5, below).
+
+Increment 5 adds migrations V16 (platform: `masterdata.duty_assignment`, partner organisations `EAP_WELLBEING`,
+`TOXLAB`, `UKHSA_LOCAL`, retention classes `RESTRICTED_RECORD` and `PUBLIC_HEALTH`), V17 (schema `mentalhealth`, with
+signposting, PHQ-9 / GAD-7 items and bands, the urgent-risk protocol and configuration keys), V18 (schema `substance`,
+panels, post-incident rules), V19 (schema `travelhealth`: 15 destinations, 9 conditions, 5 exposure pathways with
+timers, 6 chemicals with safety-data-sheet links) and V20 (schema `promotion`: five planned portfolio campaigns, three
+ergonomic checklists). Demo data for the `local` and `test` profiles only: `R__demo_reference_duties.sql` (flight,
+shift and facility rosters), `R__demo_e09_mentalhealth.sql`, `R__demo_e10_substance.sql`,
+`R__demo_e11_travelhealth.sql`, `R__demo_e12_promotion.sql` and four `*DemoSeeder` beans that write the encrypted demo
+values (SQL cannot). The schema list in all five places named above now reads
+`platform, masterdata, intake, casemgmt, analytics, triage, docs, ohrecord, fitness, absence, surveillance, scheduling,
+treatment, claims, mentalhealth, substance, travelhealth, promotion`. Client-specific migrations run after these in
+their own schema and history table (Section 23.6).
 
 Flyway migrations (`apps/wz-core-app/src/main/resources/db/migration`) run as an owner role (`WZ_DB_MIGRATOR_USERNAME`,
 `wz_migrator` in Terraform/CNPG). Each migration grants the runtime role (`${app_role}`, the value of
@@ -518,7 +548,7 @@ retention:
 | `INTERNAL` | Internal operational data | org hierarchy, hazard catalogue, suppressed aggregates | authenticated access |
 | `CONFIDENTIAL` | Personal data that is not health data | employee id, name, notification address, consent records | authenticated, role-based, TLS, storage encryption |
 | `CLINICAL` | OH clinical data; never leaves the OH domain | case clinical summary, incident narrative, lab results | + field-level AES-256-GCM, ABAC `CLINICAL`, status-only projection for non-OH roles, outbound allow-list |
-| `RESTRICTED_CLINICAL` | Special-category clinical data (psychological health, substance testing) | cases of category `PSYCHOLOGICAL`, `SUBSTANCE` | + visible only to `PSYCH_CLINICIAN` and the data subject; excluded from analytics view |
+| `RESTRICTED_CLINICAL` | Special-category clinical data (psychological health, substance testing) | cases of category `PSYCHOLOGICAL`, `SUBSTANCE`; since increment 5 E09 support cases, screening, urgent call-backs, EAP clinical detail, E10 results and chain-of-custody forms (documents generated with `DataClassification.RESTRICTED_CLINICAL`) | + visible only to the named `PSYCH_CLINICIAN` (E09), the `MRO` through the E10 endpoints (results), break-glass holders (read-only, reviewed) and the data subject; count-only placeholder for general OH; excluded from the analytics view and from E12 insights (Section 8.6) |
 
 The case classification is derived from the category (`CaseCategory.classification()`), so it cannot be set
 inconsistently by a client.
@@ -552,7 +582,9 @@ To set expectations precisely: the following columns rely on storage encryption 
 
 | Column(s) | Content | Mitigation / recommendation |
 |---|---|---|
-| `oh_case.employee_id`, `employee_display_name`, `org_unit_*`, `category`, `status`, `fitness_status` | Identifiers and status needed for queries and status-only views | ABAC on every read; `category` reveals the restricted class – consider encrypting category for RESTRICTED rows in E09/E10 |
+| `oh_case.employee_id`, `employee_display_name`, `org_unit_*`, `category`, `status`, `fitness_status` | Identifiers and status needed for queries and status-only views | ABAC on every read; `category` reveals the restricted class to a database reader (E09 / E10 cases exist as restricted kernel cases) – the API exposes only a count to general OH roles; encrypting the category of restricted rows remains a recommendation (R28) |
+| `masterdata.duty_assignment` (increment 5) | Employee, duty, date, times, location, destination, proximity group | Read only by OH roles, `SAFETY_MANAGER`, `CREW_SCHEDULING`; contact-tracing notices never name the index case |
+| `substance.selection` (increment 5) | Role group, period, seed, pool hash, selected employees | Programme manager and auditor read selections and verification, never results |
 | `ehs_incident.employee_name`, `location`, `incident_type`, `severity`, `injury` | Incident metadata | Description (free text) is encrypted and not exposed in list API |
 | `idempotency_record.response_body` | Stored API responses | Purged after 7 days by `IdempotencyService.purge()` |
 | `notification.address`, `body` | Recipient address and content-free message | Body is content-free by construction |
@@ -609,6 +641,15 @@ which puts every document of the case on legal hold, so the retention job no lon
 releases them again. Medico-legal reports stay in the legal access set (legal counsel and physicians). No new
 automatic purge.
 
+**Increment 5 update.** Two proposed retention classes were added (pending DPO / CMO approval): `RESTRICTED_RECORD`
+10 years from the last encounter (mental-health and substance-programme records, reviewed by the DPO and the CMO) and
+`PUBLIC_HEALTH` 10 years from the document date (notifiable-disease, contact-tracing and exposure reports and authority
+correspondence). Two further **automatic purges** of personal data exist: the daily `peer-callback-purge` job clears
+peer-support call-back phone numbers after 30 days (`mentalhealth.peer-callback-retention-days`), and withdrawing a
+wearable enrolment or the `WEARABLE_DATA` consent purges that employee's wearable daily totals immediately
+(`WearableConsentListener`). OH records of the new modules follow the document approach (flagging, legal hold, no
+automatic deletion). Chain-of-custody events are immutable by design.
+
 ## 7. Integration architecture
 
 ![Data flow EHS intake to status-only feed](../images/04-dataflow-ehs-intake.png)
@@ -620,7 +661,7 @@ automatic purge.
 | Concern | Implementation |
 |---|---|
 | Publishing | `EventBus.publish(event[, destination])` requires an active transaction (`Propagation.MANDATORY`) and inserts into `platform.outbox_event` in the **same transaction** as the business change – no dual-write problem. |
-| Envelope | `IntegrationEnvelope(messageId, eventType, aggregateType, aggregateId, payload, headers{correlationId}, occurredAt)`; event types are versioned (`ehs.incident.received.v1`, `case.opened.v1`, `fitness.status.changed.v1`, `integration.inbound.received.v1`; increment 1: `case.assigned.v1`, `case.triaged.v1`, `case.escalated.v1`, `sla.at-risk.v1`, `sla.breached.v1`; increments 2–4: Sections 20.1, 21.1 and 22.1). |
+| Envelope | `IntegrationEnvelope(messageId, eventType, aggregateType, aggregateId, payload, headers{correlationId}, occurredAt)`; event types are versioned (`ehs.incident.received.v1`, `case.opened.v1`, `fitness.status.changed.v1`, `integration.inbound.received.v1`; increment 1: `case.assigned.v1`, `case.triaged.v1`, `case.escalated.v1`, `sla.at-risk.v1`, `sla.breached.v1`; increments 2–5: Sections 20.1, 21.1, 22.1 and 23.1). |
 | Relay | `OutboxRelay` every `PT2S` on every replica; claims due rows with `FOR UPDATE SKIP LOCKED` (batch 50) so replicas never deliver the same row concurrently. |
 | Delivery semantics | At-least-once. Failures increment `attempts`, back-off `2^attempts` seconds capped at one hour; after `max-attempts` (10) the row becomes `DEAD`. |
 | Destinations | `internal` → `InProcessEventPublisher` (Spring application event); any other destination → an `EventPublisher` adapter. Today `LoggingExternalPublisher` (metadata only) stands in. Kafka / Azure Service Bus / Google Pub/Sub adapters are **extension points**. |
@@ -644,6 +685,9 @@ automatic purge.
 | `GET /api/v1/integration/referrals/{id}/fhir`, `POST /integration/referrals/fhir/document-reference` (increment 4) | E04 FHIR R4 partner exchange: the partner hospital system reads the referral as a `ServiceRequest` and returns its report as a `DocumentReference` (`context.related` = ServiceRequest id, base64 attachment) → stored as `PROVIDER_REPORT`, referral `REPORT_RECEIVED`. Role `INTEGRATION`. |
 | `POST /api/v1/integration/preauthorisations/{ref}/decision`, `/integration/claims/reports/{ref}/acknowledgement` (increment 4) | Insurer / TPA systems decide a pre-authorisation (same body as the adjuster in the portal) and acknowledge or reject a submitted first report. Role `INTEGRATION`. |
 | `POST /api/v1/integration/telehealth/tokens/redeem` (increment 4) | The video platform redeems a single-use participant token (hash compared, window 15 minutes before start to the end) and learns the session reference and role – no clinical content. Role `INTEGRATION`. |
+| `POST /api/v1/integration/duty-assignments` (increment 5) | Crew roster, shift and facility duties (`source` `CREW_ROSTER` / `SHIFT` / `FACILITY`), upserted by source reference; unmatched employees reported back. Role `INTEGRATION`, internal clients only (a client with a partner `org_scope` is refused). |
+| `GET /api/v1/integration/testing/lab-orders`, `POST /integration/testing/lab-results` (increment 5) | E10 laboratory interface; only the client bound to `org_scope=/PARTNERS/TOXLAB` (configurable `substance.laboratory-code`); others get `404` and an audit entry; the lab client may also record the `LAB_RECEIVED` custody event. |
+| `POST /api/v1/integration/promotion/participation`, `/integration/wearables/data` (increment 5) | E12 campaign participation (`{received, accepted, duplicates, unmatched, rejected}`) and wearable daily aggregates (only for consented enrolments; rejected with reason codes otherwise). Role `INTEGRATION`, clients bound to a partner organisation refused with `403`. |
 
 All inbound messages are stored encrypted in `platform.inbound_message` with the authenticated client as `received_by`
 and audited (`INBOUND_<format>`). FHIR profile validation (e.g. ODH profiles), patient matching and mapping to clinical
@@ -656,7 +700,7 @@ external destination a list of permitted top-level JSON fields is configured; an
 transaction (`disclosure_violation`), and a destination without a list is refused (`destination_not_allowed`).
 
 ```yaml
-wellnessz.integration.outbound-allowlist:          # as shipped after increment 4
+wellnessz.integration.outbound-allowlist:          # as shipped after increment 5
   crew-rostering:   [messageId, employeeId, fitnessStatus, rosterStatus, restrictionUntil, validFrom, validUntil,
                      operationalLimitations, effectiveFrom]                                  # roster feed: increment 2
   hr-systems:       [caseRef, employeeId, fitnessStatus, restrictionUntil, effectiveFrom,
@@ -668,6 +712,9 @@ wellnessz.integration.outbound-allowlist:          # as shipped after increment 
   insurer-gateway:   [messageId, claimRef, reportRef, formCode, payerCode, employeeId, incidentDate, submittedAt, deadlineAt]
   authority-gateway: [messageId, reportRef, formCode, jurisdiction, employerRef, incidentDate, submittedAt, deadlineAt]
   erp-finance:       [messageId, batchId, month, costCentre, subsidiaryCode, category, amount, currency, entryCount, checksum]
+  # increment 5: campaign publication (E12) and suppressed peer-support figures to the safety management system (E09)
+  campaign-app:      [messageId, campaignId, title, risk, startDate, endDate, targetUnits]
+  sms-safety:        [messageId, quarter, reportRef, category, count, base]
 ```
 
 The integration test `fitnessOutcomeIsPublishedToRosteringAsStatusOnly` verifies that a fitness decision produces a

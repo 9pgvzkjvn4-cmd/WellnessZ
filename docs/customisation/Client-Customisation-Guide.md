@@ -71,7 +71,7 @@ flowchart TD
     D -- no --> F{Is it product behaviour that should<br/>be on for some clients only?}
     F -- yes --> G[3. Feature flag<br/>WZ_FEATURE_* read by the feature]
     F -- no --> H{Does it need own tables or<br/>client-only data structures?}
-    H -- yes --> I[4. Client SQL migrations<br/>schema client_&lt;client&gt;]
+    H -- yes --> I[4. Client SQL migrations<br/>schema client_CLIENT]
     H -- no --> J{Does a kernel or module SPI<br/>cover the seam?}
     I --> J
     J -- yes --> K[5. SPI implementation in a<br/>client module, @Primary / @Order]
@@ -496,15 +496,15 @@ static final ArchRule clientCodeUsesPlatformAndSpisOnly = noClasses()
 @ArchTest
 static final ArchRule clientsAreIndependent = noClasses()
         .that().resideInAPackage("com.wellnessz.client.acme..")
-        .should().dependOnClassesThat().resideInAPackage("com.wellnessz.client..")
-        .andShould().dependOnClassesThat().resideOutsideOfPackages("com.wellnessz.client.acme..", "java..", "javax..",
-                "jakarta..", "org..", "com.fasterxml..", "com.wellnessz..")
-        .allowEmptyShould(true);
+        .should().dependOnClassesThat(JavaClass.Predicates.resideInAPackage("com.wellnessz.client..")
+                .and(JavaClass.Predicates.resideOutsideOfPackage("com.wellnessz.client.acme..")))
+        .because("one client's code never depends on another client's code");
 ```
 
-Adjust the second rule where a module SPI lives in a module package (for example implementing
-`com.wellnessz.e08.report.ClaimsSubmissionGateway` needs that one type – allow it explicitly with
-`.and().haveFullyQualifiedName(...)` exceptions rather than opening the whole package). Restricted programmes
+Adjust the second rule where a module SPI lives in a module package: implementing
+`com.wellnessz.e08.report.ClaimsSubmissionGateway`, for example, needs that one type. Allow exactly that type with a
+predicate (`dependOnClassesThat(resideInAnyPackage(…).and(not(type(ClaimsSubmissionGateway.class))))`) rather than
+opening the whole package. Restricted programmes
 (`com.wellnessz.e09..`, `com.wellnessz.e10..`) are never a dependency of client code.
 
 ### 11.2 Integration and unit tests
