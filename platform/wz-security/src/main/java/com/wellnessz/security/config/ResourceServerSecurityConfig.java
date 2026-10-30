@@ -3,6 +3,7 @@ package com.wellnessz.security.config;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -10,6 +11,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -46,6 +50,21 @@ import com.wellnessz.security.identity.WellnessZJwtConverter;
 @EnableConfigurationProperties(WellnessZSecurityProperties.class)
 public class ResourceServerSecurityConfig {
 
+    /** Roles held by people outside the airline group (external portals, job candidates). */
+    static final Set<String> EXTERNAL_ROLES = Set.of("ROLE_PARTNER_PROVIDER", "ROLE_TPA_ADJUSTER", "ROLE_CANDIDATE");
+
+    static final String[] INTERNAL_REFERENCE_DATA = {"/api/v1/masterdata/org-units", "/api/v1/masterdata/job-codes",
+        "/api/v1/masterdata/hazards", "/api/v1/masterdata/fitness-standards", "/api/v1/masterdata/restrictions"};
+
+    /** Grants access when the principal holds at least one role that is not an external role. */
+    static final AuthorizationManager<RequestAuthorizationContext> INTERNAL_PRINCIPAL = (authentication, context) -> {
+        var auth = authentication.get();
+        boolean internal = auth != null && auth.isAuthenticated() && auth.getAuthorities().stream()
+                .map(a -> a.getAuthority())
+                .anyMatch(a -> a.startsWith("ROLE_") && !EXTERNAL_ROLES.contains(a));
+        return new AuthorizationDecision(internal);
+    };
+
     @Bean
     SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, WellnessZSecurityProperties props,
                                                JwtIssuerAuthenticationManagerResolver issuerResolver) throws Exception {
@@ -59,6 +78,8 @@ public class ResourceServerSecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll()
                 .requestMatchers("/api/v1/integration/**").hasAnyRole("INTEGRATION", "PLATFORM_ADMIN", "OH_ADMIN")
                 .requestMatchers("/api/v1/audit/**").hasAnyRole("AUDITOR", "PLATFORM_ADMIN")
+                // organisation structure and internal reference data: not for external partner / TPA / candidate accounts
+                .requestMatchers(HttpMethod.GET, INTERNAL_REFERENCE_DATA).access(INTERNAL_PRINCIPAL)
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().denyAll())
             .oauth2ResourceServer(oauth -> oauth.authenticationManagerResolver(issuerResolver))

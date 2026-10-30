@@ -214,6 +214,8 @@ const leaks = (t) => /(Exception|at com\.|at org\.|\.java:\d+|SQLState|PSQLExcep
   const partner = await session(browser, APPS.partner, 'partner1');
   const partnerCases = await api(partner.page, 'GET', '/queues/TEAM');
   record('AC-06', 'Access control', 'a partner organisation user cannot read internal case queues', 'A01; API1, API5; ASVS 4.1.3', 'CC6.3', partnerCases.status === 403 || partnerCases.status === 404, `HTTP ${partnerCases.status}`);
+  const partnerOrg = await api(partner.page, 'GET', '/masterdata/org-units');
+  record('AC-08', 'Information disclosure', 'external partner accounts cannot read the organisation structure or internal reference data', 'A01; API3; ASVS 4.1.3', 'C1.1', partnerOrg.status === 403, `HTTP ${partnerOrg.status}`);
   const mass = await api(emp.page, 'PUT', '/me/support/sharing', { scope: 'FITNESS_ONLY', employeeId: 'E9999', classification: 'PUBLIC' });
   record('AC-07', 'Mass assignment', 'unexpected fields (owner, classification) are ignored or rejected', 'A01, A08; API3; ASVS 5.1.2', 'PI1.2', mass.status < 500 && !/E9999/.test(mass.text), `HTTP ${mass.status}`);
 

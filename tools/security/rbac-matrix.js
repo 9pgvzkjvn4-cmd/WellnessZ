@@ -13,7 +13,7 @@
 //   WZ_E2E_EMPLOYEE_URL / WZ_E2E_WORKSPACE_URL / WZ_E2E_OH_URL / WZ_E2E_PARTNER_URL   (5173 / 5174 / 5175 / 5176)
 //   WZ_E2E_IDP_URL (http://localhost:8180)  WZ_E2E_CORE_URL (http://localhost:8080)  WZ_E2E_BFF_URL (http://localhost:8090)
 //   WZ_E2E_NEW_PASSWORD  WZ_RBAC_USERS (comma-separated subset)  WZ_RBAC_CONCURRENCY (6)
-// Output: <out>/rbac-results.json
+// Output: <out>/rbac-results.json (default target/rbac, git-ignored)
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -26,7 +26,7 @@ const arg = (name, dflt) => {
   return i > 0 ? process.argv[i + 1] : dflt;
 };
 const POLICY_FILE = arg('policy', process.env.WZ_RBAC_POLICY);
-const OUT = arg('out', process.env.WZ_RBAC_OUT || path.join(__dirname, 'out'));
+const OUT = arg('out', process.env.WZ_RBAC_OUT || path.join(REPO, 'target', 'rbac'));
 if (!POLICY_FILE) {
   console.error('usage: node tools/security/rbac-matrix.js --policy <expected-policy.json> [--out <dir>]');
   process.exit(2);

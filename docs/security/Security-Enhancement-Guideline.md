@@ -432,7 +432,7 @@ flowchart LR
 | Trivy image scan | Every image build | HIGH/CRITICAL with fix |
 | CodeQL `security-extended`, SpotBugs + FindSecBugs | Every pull request, CodeQL weekly | Any finding |
 | Base-image refresh | Monthly, or on a critical base-image advisory | Rebuild and redeploy |
-| Re-scan of deployed digests against new advisories | Daily (SEC-E02 / SEC-E08) | Alert into the vulnerability queue |
+| Re-scan of deployed digests against new advisories | Daily (SEC-E13) | Alert into the vulnerability queue |
 
 ### 5.2 Access reviews
 
