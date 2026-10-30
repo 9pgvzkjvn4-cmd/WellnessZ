@@ -45,8 +45,9 @@ export function timerView(t: Pick<ExposureTimer, 'dueAt' | 'status' | 'completed
   const due = Date.parse(t.dueAt);
   if (Number.isNaN(due)) return { tone: t.status === 'OVERDUE' ? 'red' : 'muted', label: t.status === 'OVERDUE' ? 'Overdue' : 'No due time', overdue: t.status === 'OVERDUE', done: false };
   const ms = due - now;
-  const minutesLeft = ms >= 0 ? Math.floor(ms / MIN) : -Math.ceil(-ms / MIN);
-  if (ms < 0 || t.status === 'OVERDUE') return { tone: 'red', label: ms < 0 ? `Overdue by ${formatDuration(Math.max(1, -minutesLeft))}` : 'Overdue', overdue: true, done: false, minutesLeft };
+  // Whole minutes, truncated towards zero like the hh:mm:ss clock; anything overdue shows at least 1 min.
+  const minutesLeft = ms >= 0 ? Math.floor(ms / MIN) : -Math.max(1, Math.floor(-ms / MIN));
+  if (ms < 0 || t.status === 'OVERDUE') return { tone: 'red', label: ms < 0 ? `Overdue by ${formatDuration(-minutesLeft)}` : 'Overdue', overdue: true, done: false, minutesLeft };
   if (ms <= TIMER_WARNING_MINUTES * MIN) return { tone: 'amber', label: `${formatDuration(minutesLeft)} left`, overdue: false, done: false, minutesLeft };
   return { tone: 'muted', label: `${formatDuration(minutesLeft)} left`, overdue: false, done: false, minutesLeft };
 }

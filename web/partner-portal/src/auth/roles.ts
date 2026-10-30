@@ -31,10 +31,10 @@ export type Area = 'referrals' | 'eapReferrals' | 'telehealth' | 'documents' | '
 
 export function canUse(area: Area, roles: readonly string[] | undefined): boolean {
   switch (area) {
-    case 'referrals':
-    case 'telehealth':
     // increment 5 §3.2: EAP referrals – every partner provider gets the entry; the API lists only referrals sent to the
     // caller's own organisation (an organisation that is not an EAP partner simply has none).
+    case 'referrals':
+    case 'telehealth':
     case 'eapReferrals':
       return isProvider(roles);
     case 'claims':

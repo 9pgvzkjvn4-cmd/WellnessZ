@@ -4,8 +4,8 @@ import { canUse, currentArea, homeRoute, portalNav, resolveAccess, resolveRoute 
 const paths = (roles: string[]) => portalNav(roles).map((n) => n.path);
 
 describe('role-based navigation', () => {
-  it('gives partner providers referrals, telehealth and documents', () => {
-    expect(paths(['PARTNER_PROVIDER'])).toEqual(['/referrals', '/telehealth', '/documents']);
+  it('gives partner providers referrals, EAP referrals, telehealth and documents', () => {
+    expect(paths(['PARTNER_PROVIDER'])).toEqual(['/referrals', '/eap-referrals', '/telehealth', '/documents']);
     expect(homeRoute(['ROLE_partner_provider'])).toBe('/referrals');
   });
 
@@ -15,7 +15,7 @@ describe('role-based navigation', () => {
   });
 
   it('gives an account with both roles the union, documents once', () => {
-    expect(paths(['TPA_ADJUSTER', 'PARTNER_PROVIDER'])).toEqual(['/referrals', '/telehealth', '/claims', '/preauthorisations', '/documents']);
+    expect(paths(['TPA_ADJUSTER', 'PARTNER_PROVIDER'])).toEqual(['/referrals', '/eap-referrals', '/telehealth', '/claims', '/preauthorisations', '/documents']);
   });
 
   it.each([[[]], [['EMPLOYEE']], [['OH_CLINICIAN']], [['CLAIMS_COORDINATOR']], [['PARTNER']]])('gives %j nothing', (roles) => {
@@ -60,5 +60,17 @@ describe('access decision (MFA)', () => {
   it('tells other WellnessZ roles that the portal is for partners', () => {
     expect(resolveAccess(['EMPLOYEE'], ['EMPLOYEE'])).toBe('other');
     expect(resolveAccess(['OH_CLINICIAN'], ['OH_CLINICIAN', 'CLAIMS_COORDINATOR'])).toBe('other');
+  });
+});
+
+describe('EAP referrals (increment 5)', () => {
+  it('is a partner-provider area; adjusters are blocked', () => {
+    expect(canUse('eapReferrals', ['PARTNER_PROVIDER'])).toBe(true);
+    expect(canUse('eapReferrals', ['TPA_ADJUSTER'])).toBe(false);
+    expect(resolveRoute('/eap-referrals', ['PARTNER_PROVIDER'])).toEqual({ kind: 'area', area: 'eapReferrals', allowed: true });
+    expect(resolveRoute('/eap-referrals', ['TPA_ADJUSTER'])).toEqual({ kind: 'area', area: 'eapReferrals', allowed: false });
+    expect(resolveRoute('/eap-referrals/e1', ['PARTNER_PROVIDER'])).toEqual({ kind: 'notFound' });
+    expect(currentArea('/eap-referrals')).toBe('eapReferrals');
+    expect(homeRoute(['PARTNER_PROVIDER'])).toBe('/referrals');
   });
 });

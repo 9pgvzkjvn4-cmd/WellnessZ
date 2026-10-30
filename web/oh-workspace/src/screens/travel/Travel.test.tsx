@@ -228,7 +228,7 @@ describe('Exposures', () => {
     const link = await screen.findByRole('link', { name: 'EXP-2026-000001' });
     expect(link.closest('tr')?.className).toBe('row-breached');
     expect(within(screen.getByRole('group', { name: 'Pathway KPIs' })).getByText('Overdue tasks').previousSibling?.textContent).toBe('1');
-    await user.selectOptions(screen.getByLabelText(/^Pathway/), 'CHEMICAL_DGR');
+    await user.selectOptions(screen.getByRole('combobox', { name: /^Pathway/ }), 'CHEMICAL_DGR');
     await user.click(screen.getByRole('button', { name: 'Start pathway' }));
     const summary = screen.getByRole('alert');
     expect(within(summary).getByText('Choose the employee.')).toBeTruthy();

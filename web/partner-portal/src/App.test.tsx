@@ -28,7 +28,7 @@ describe('partner portal shell', () => {
     render(<App client={api.client} />);
     await waitFor(() => expect(window.location.hash).toBe('#/referrals'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Referral inbox' })).toBeTruthy();
-    expect(navLinks()).toEqual(['Referrals', 'Telehealth', 'Shared documents']);
+    expect(navLinks()).toEqual(['Referrals', 'EAP referrals', 'Telehealth', 'Shared documents']);
     expect(screen.getByRole('banner').textContent).toContain('CITYHOSP');
     expect(screen.getByRole('link', { name: 'Referrals' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByLabelText('Confidentiality').textContent).toContain('CITYHOSP');

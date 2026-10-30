@@ -85,3 +85,23 @@ export const preauth = (over: Record<string, unknown> = {}) => ({
   justification: 'SECRET justification',
   ...over,
 });
+
+/** EAP referral as listed for the partner (increment 5 §3.2) plus fields outside the partner data set. */
+export const eapRaw = (over: Record<string, unknown> = {}) => ({
+  id: 'e1',
+  ref: 'EAP-2026-000001',
+  displayName: 'Rami Ramp',
+  contactPhone: '+44 7700 900123',
+  preferredContact: 'phone',
+  sessionsAuthorised: 6,
+  urgency: 'PRIORITY',
+  status: 'SENT',
+  sentAt: '2026-10-20T09:00:00Z',
+  // outside the partner data set – must be dropped
+  caseId: 'sup-secret',
+  concern: 'LOW_MOOD',
+  risk: 'HIGH',
+  screens: [{ instrument: 'PHQ9', score: 19 }],
+  employeeId: 'E1004',
+  ...over,
+});
