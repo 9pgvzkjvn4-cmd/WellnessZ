@@ -765,6 +765,13 @@
       .slice().sort(function (a, b) { return b.at.localeCompare(a.at); }).map(clone);
   }
 
+  /** Open AME hand-offs (employeeId -> {ref, at, by}); visible to the AME and the named clinician only. */
+  function ameHandoffs() {
+    var s = session(), u = requireUser();
+    if (!(hasRole(u, 'AME') || isNamedClinician(s, u))) return {};
+    return clone(s.ameHandoffs || {});
+  }
+
   /** List a collection as the current user may see it. */
   function list(name, filter) { var u = requireUser(); return scoped(session(), u, name, filter); }
 
@@ -1705,11 +1712,29 @@
     if (o.status === 'TEMPORARILY_UNFIT' && sr.safetyCritical) { e.dutyStatus = 'RELIEVED'; e.dutySince = today(); x.status = 'RELIEF'; }
     else if (e.dutyStatus === 'RELIEVED') { e.dutyStatus = 'AVAILABLE'; e.dutySince = today(); if (x.status === 'RELIEF') x.status = 'ACTIVE'; }
     x.fitnessContribution = { status: o.status, at: nowIso(), by: u.username, reviewDate: o.reviewDate || null };
+    if (hasRole(u, 'AME') && s.ameHandoffs) delete s.ameHandoffs[x.employeeId];
     x.notes.push({ at: nowIso(), by: u.username, text: 'Fitness recorded: ' + label('fitness', o.status) + '.' });
     if (isCrew(s, e)) notifyRole(s, 'CREW_SCHEDULING', 'Crew roster status changed', e.name + ' – ' + label('fitness', o.status) + ' (no reason given).', { app: 'manager', route: 'crew' });
     notifyEmployee(s, x.employeeId, 'Fitness status recorded', 'Your fitness for work: ' + label('fitness', o.status) + '. Your manager sees this only if you choose to share it.', 'support');
     writeAudit(s, u.username, 'SUPPORT_FITNESS', 'support', x.id, 'ALLOWED', o.status);
     return { supportCaseId: x.id, fitness: o.status };
+  });
+
+  // Hand-off from the named clinician to the AME: reference only (no case content), kept in the shared demo session.
+  defineAction('requestAmeRelief', 'support.clinical', function (s, u, supportCaseId) {
+    var x = clinicianSupport(s, u, supportCaseId);
+    s.ameHandoffs = s.ameHandoffs || {};
+    s.ameHandoffs[x.employeeId] = { ref: x.id, at: nowIso(), by: u.username };
+    notifyRole(s, 'AME', 'Relief decision requested', 'A named clinician asks for a fitness / relief decision for ' + empName(s, x.employeeId) + ' (reference ' + x.id + ', no clinical content).', { app: 'oh', route: 'chart/' + x.employeeId });
+    writeAudit(s, u.username, 'AME_HANDOFF', 'support', x.id, 'ALLOWED', 'reference only');
+    return clone(s.ameHandoffs[x.employeeId]);
+  });
+
+  defineAction('clearAmeHandoff', ['support.fitness', 'support.relief'], function (s, u, employeeId) {
+    ensure(isNamedClinician(s, u) || hasRole(u, 'AME'), 'forbidden', 'Only the named clinician or the AME');
+    if (s.ameHandoffs) delete s.ameHandoffs[employeeId];
+    writeAudit(s, u.username, 'AME_HANDOFF_CLEARED', 'employee', employeeId, 'ALLOWED', '');
+    return true;
   });
 
   defineAction('setSupportSharing', 'support.self', function (s, u, supportCaseId, level, adjustments) {
@@ -2400,7 +2425,7 @@
     unreadCount: function () { return notificationsFor(session(), requireUser()).filter(function (n) { return !n.read; }).length; },
     suppressCells: suppressCells, suppressRate: suppressRate, isSmallCell: isSmallCell,
     label: label, maskTestStatus: maskTestStatus,
-    scenarios: scenarios, scenarioState: scenarioState, startScenario: startScenario, stopScenario: stopScenario, stepScenario: stepScenario,
+    ameHandoffs: ameHandoffs, scenarios: scenarios, scenarioState: scenarioState, startScenario: startScenario, stopScenario: stopScenario, stepScenario: stepScenario,
     mountToolbar: mountToolbar, actions: function () { return clone(ACTIONS); },
     Error: WZError, _setApp: function (app) { ctx.app = app; }
   });

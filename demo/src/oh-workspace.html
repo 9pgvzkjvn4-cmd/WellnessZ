@@ -12,7 +12,7 @@
   .wz-header-in { max-width: none; padding-left: 1.25rem; padding-right: 1.25rem; }
   .wz-table .wz-mono, .wz-card-title { white-space: nowrap; }
   .wz-layout { min-height: calc(100vh - 100px); }
-  .wz-side .oh-nav-n { float: right; font-size: .72rem; padding: 0 .45rem; }
+  .wz-side .oh-nav-n { float: right; font-size: .72rem; padding: 0 .45rem; margin-left: .35rem; }
   .oh-main { max-width: 1240px; width: 100%; min-width: 0; }
   .oh-sub { color: var(--c-muted); margin: -.2rem 0 1rem; }
   .oh-tabs { display: flex; flex-wrap: wrap; gap: .1rem; border-bottom: 1px solid var(--c-border); margin: 1.1rem 0 1rem; }
@@ -83,7 +83,6 @@
   // ---------------------------------------------------------------- local UI state (not part of the session)
   var ui = { dirty: false, pending: false, lastUser: null, queueQ: '', queueCode: '', empQ: '', empSafety: false, survAll: false,
     diarySite: 'HUB', diaryType: '', auditOutcome: '', auditQ: '', lastSelection: null, lastTrace: null, lastFollowUp: null };
-  var HANDOFF_KEY = 'wellnessz-oh-ame-handoff';   // app-local hand-off from the named clinician to the AME (reference only)
 
   // ---------------------------------------------------------------- reference labels
   var QUEUE_LABEL = { INTAKE: 'Intake', OH_NURSE: 'OH nurse', PHYSICIAN: 'Physician', AEROMEDICAL: 'Aeromedical (AME)', FOOD_SAFETY: 'Food safety', CASE_MANAGEMENT: 'Case management', MENTAL_HEALTH: 'Mental health (restricted)', MRO: 'MRO (restricted)' };
@@ -147,8 +146,8 @@
   function priorityBadge(p) { return p === 'URGENT' ? UI.badge('Urgent', 'danger') : p === 'HIGH' ? UI.badge('High', 'warn') : UI.badge('Normal', 'neutral'); }
   function ragBadge(r) { return UI.badge(r === 'RED' ? 'Red' : r === 'GREEN' ? 'Green' : 'Amber', r === 'RED' ? 'danger' : r === 'GREEN' ? 'success' : 'warn'); }
   function errorBox() { return raw('<p class="wz-error" data-error hidden></p>'); }
-  function readHandoff() { try { return JSON.parse(localStorage.getItem(HANDOFF_KEY) || '{}') || {}; } catch (e) { return {}; } }
-  function writeHandoff(o) { try { localStorage.setItem(HANDOFF_KEY, JSON.stringify(o)); return true; } catch (e) { return false; } }
+  // AME hand-off (reference only) lives in the shared demo session via the engine
+  function readHandoff() { try { return WZ.ameHandoffs() || {}; } catch (e) { return {}; } }
 
   // =====================================================================================
   // Navigation and access (only what the signed-in user can use)
@@ -1182,7 +1181,7 @@
 
   window.addEventListener('hashchange', function () { ui.dirty = false; render(true); });
   WZ.subscribe(function (evt) {
-    if (evt && (evt.type === 'reset' || evt.type === 'import')) { try { localStorage.removeItem(HANDOFF_KEY); } catch (e) { /* storage blocked */ } }
+    // AME hand-offs are part of the shared session (reset / import replace them)
     if (WZ.app !== 'oh') return;
     var u = U();
     if (u && ui.lastUser && u.username !== ui.lastUser) {
@@ -1263,7 +1262,7 @@
       case 'ame-relief':
         if (!d.ref.trim()) return showError(f, 'Enter the confidential case reference from the named clinician.');
         run(f, function () { return WZ.recordSupportFitness(d.ref.trim(), { status: d.status, reviewDate: d.reviewDate || null }); }, 'Aviation fitness recorded – crew scheduling sees the status only', function () {
-          var ho = readHandoff(); delete ho[f.getAttribute('data-emp')]; writeHandoff(ho); render(false); }); break;
+          try { WZ.clearAmeHandoff(f.getAttribute('data-emp')); } catch (e) { UI.toast(e.message, 'error'); } render(false); }); break;
       case 'advice':
         if (!d.workImpact.trim()) return showError(f, 'Describe the work impact.');
         run(f, function () { return WZ.writeAdviceReport(id, { fitness: d.fitness, workImpact: d.workImpact, adjustments: d.adjustments, likelyReturn: d.likelyReturn, review: d.review || null }); }, 'Report sent to the employee for review'); break;
@@ -1360,9 +1359,8 @@
           return run(null, function () { return WZ.breakGlass(id, j); }, 'Break-glass access granted – the DPO has been alerted') ? undefined : false; } }] });
     }
     else if (act === 'ame-handoff') {
-      var ho = readHandoff(); ho[el.getAttribute('data-emp')] = { ref: id, at: nowIso(), by: U().username };
-      if (writeHandoff(ho)) { UI.toast('Reference ' + id + ' shared with the AME (reference only – no content)', 'success'); render(false); }
-      else UI.toast('Could not save the hand-off in this browser. Give the AME the reference ' + id + ' directly.', 'warn');
+      try { WZ.requestAmeRelief(id); UI.toast('Reference ' + id + ' shared with the AME (reference only – no content)', 'success'); render(false); }
+      catch (e) { UI.toast(e.message, 'error'); }
     }
     else if (act === 'ei-refer') { run(null, function () { return WZ.raiseEarlyIntervention(id, { referToOh: true }); }, function (r) { return 'Case ' + r.caseId + ' and advice request ' + r.adviceRequestId + ' opened'; }); }
     else if (act === 'ei-monitor') { run(null, function () { return WZ.raiseEarlyIntervention(id, { referToOh: false }); }, 'Set to monitor'); }
