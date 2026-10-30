@@ -1,4 +1,8 @@
 resource "google_sql_database_instance" "main" {
+  #checkov:skip=CKV_GCP_6:ssl_mode ENCRYPTED_ONLY rejects unencrypted connections; IAM database authentication instead of client certificates
+  #checkov:skip=CKV_GCP_79:PostgreSQL 16 supported until 2028 and identical on both clouds; upgrade planned (SEC-E13)
+  #checkov:skip=CKV_GCP_111:log_statement would log statement text with health data or passwords; pgaudit ddl,role audits with redaction
+  #checkov:skip=CKV2_GCP_13:log_duration adds a log line per statement with no audit value; latency from Query Insights and metrics
   name                = "sql-${local.name}"
   region              = var.region
   database_version    = "POSTGRES_16"

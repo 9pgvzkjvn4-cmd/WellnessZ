@@ -8,6 +8,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $comp) }}
+  namespace: {{ $.Release.Namespace }}
   labels:
     {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
     {{- with $root.Values.serviceMonitor.labels }}

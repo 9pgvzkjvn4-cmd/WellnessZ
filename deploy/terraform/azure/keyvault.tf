@@ -1,4 +1,5 @@
 resource "azurerm_key_vault" "main" {
+  #checkov:skip=CKV_AZURE_189:public access evaluates to false unless an IP allow-list is configured; private endpoint used
   name                          = "kv-${local.compact_name}"
   location                      = azurerm_resource_group.main.location
   resource_group_name           = azurerm_resource_group.main.name

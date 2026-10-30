@@ -25,6 +25,7 @@ resource "google_artifact_registry_repository_iam_member" "nodes_pull" {
 }
 
 resource "google_container_cluster" "main" {
+  #checkov:skip=CKV_GCP_12:Dataplane V2 (ADVANCED_DATAPATH) enforces NetworkPolicy natively; legacy network_policy block cannot be combined
   provider = google-beta
   name     = "gke-${local.name}"
   location = var.region

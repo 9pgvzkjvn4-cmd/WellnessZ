@@ -48,6 +48,7 @@ resource "google_iam_workload_identity_pool" "github" {
 }
 
 resource "google_iam_workload_identity_pool_provider" "github" {
+  #checkov:skip=CKV_GCP_125:attribute_condition restricts repository and exact subjects (generated expression the scanner cannot parse)
   count                              = var.github_repository == "" ? 0 : 1
   workload_identity_pool_id          = google_iam_workload_identity_pool.github[0].workload_identity_pool_id
   workload_identity_pool_provider_id = "github"

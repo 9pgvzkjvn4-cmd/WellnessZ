@@ -1,4 +1,8 @@
 resource "azurerm_container_registry" "main" {
+  #checkov:skip=CKV_AZURE_233:zone_redundancy_enabled = local.zone_redundant (true in uat/prod); dev single-zone by design
+  #checkov:skip=CKV_AZURE_164:Docker Content Trust is deprecated; images are signed with cosign (keyless) and verified before deploy
+  #checkov:skip=CKV_AZURE_166:no ACR quarantine scanner; Trivy gate in container.yml and signature verification in deploy-env.yml
+  #checkov:skip=CKV_AZURE_139:GitHub-hosted runners push images; Entra-only auth, admin user disabled; private ACR is enhancement SEC-E04
   name                          = "acr${local.compact_name}"
   location                      = azurerm_resource_group.main.location
   resource_group_name           = azurerm_resource_group.main.name

@@ -28,7 +28,7 @@ migrations:
   mode: job
   job:
     image:
-      fullName: <region>-docker.pkg.dev/<uat-project-id>/wellnessz/flyway/flyway:11.20.3-alpine
+      fullName: <region>-docker.pkg.dev/<uat-project-id>/wellnessz/flyway/flyway@sha256:<digest-of-mirrored-flyway-11.20.3-alpine>  # pin by digest (go-live item)
     dbUrl: "jdbc:postgresql://<uat-cloudsql-private-ip>:5432/wellnessz?sslmode=verify-ca&sslrootcert=/mnt/secrets/migrations/cloudsql-server-ca.pem"
 
 topologySpread:

@@ -8,6 +8,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "wellnessz.componentName" $ctx }}
+  namespace: {{ $.Release.Namespace }}
   labels:
     {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
   {{- $ann := deepCopy (default (dict) $comp.service.annotations) }}

@@ -16,6 +16,7 @@ resource "azurerm_public_ip" "appgw" {
 }
 
 resource "azurerm_web_application_firewall_policy" "main" {
+  #checkov:skip=CKV_AZURE_135:Microsoft_DefaultRuleSet 2.1 (successor of CRS 3.2) includes the Log4j rule 944240; check only recognises OWASP 3.x
   name                = "wafp-${local.name}"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
@@ -75,6 +76,7 @@ locals {
 }
 
 resource "azurerm_application_gateway" "main" {
+  #checkov:skip=CKV_AZURE_217:port-80 listener is a bootstrap object replaced by AGIC; ssl-redirect enforced for every Ingress
   name                = "agw-${local.name}"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name

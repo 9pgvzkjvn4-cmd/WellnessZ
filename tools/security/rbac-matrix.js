@@ -75,6 +75,9 @@ function expectation(method, corePath, u) {
     return { allow: false, basis: 'BFF /bff/api/workspace/** requires ' + WORKSPACE_ROLES.join(','), scoped: false, policy: e };
   }
   const allowed = e.coreAllowed;
+  if (e.internalOnly && u.roles.every((r) => (policy.externalRoles || []).includes(r))) {
+    return { allow: false, basis: 'internal principals only (URL rule INTERNAL_REFERENCE_DATA)', scoped: false, policy: e };
+  }
   if (allowed === 'ANY_AUTHENTICATED') {
     return { allow: true, basis: 'any authenticated user' + (e.dataScope.length ? '; ' + e.dataScope.join('; ') : '; data scope in service'),
       scoped: true, policy: e };

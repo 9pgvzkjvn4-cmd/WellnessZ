@@ -142,6 +142,8 @@ flowchart LR
     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll()
     .requestMatchers("/api/v1/integration/**").hasAnyRole("INTEGRATION", "PLATFORM_ADMIN", "OH_ADMIN")
     .requestMatchers("/api/v1/audit/**").hasAnyRole("AUDITOR", "PLATFORM_ADMIN")
+    // organisation structure and internal reference data: not for external partner / TPA / candidate accounts
+    .requestMatchers(HttpMethod.GET, INTERNAL_REFERENCE_DATA).access(INTERNAL_PRINCIPAL)
     .requestMatchers("/api/**").authenticated()
     .anyRequest().denyAll())
 ```
@@ -493,7 +495,8 @@ the limit it answers `429` with `Retry-After` and an RFC 9457 body with `code = 
 | Machine clients | `wellnessz.security.integration-rate-limit-per-minute` | `WZ_INTEGRATION_RATE_LIMIT_PER_MINUTE` | 6000 |
 | Burst | `wellnessz.security.rate-limit-burst` | `WZ_RATE_LIMIT_BURST` | 120 |
 
-Developer rules: never set a limit to `0` outside local load tests (guardrail GR-16); web clients must handle `429` by
+Developer rules: never set a limit to `0` outside local test runs such as load tests or the full access-matrix run
+(guardrail GR-16); web clients must handle `429` by
 honouring `Retry-After` instead of retrying in a loop; design expensive operations (exports, audit packs, bulk
 imports) as asynchronous jobs with their own concurrency limit. Buckets are per pod today – cluster-wide and
 cost-based limits are SEC-E07.
@@ -598,7 +601,7 @@ environment (`python3 -m venv .venv-sec && . .venv-sec/bin/activate`, kept out o
 | **npm audit** | Vulnerable npm packages per web app | `cd web/<app> && npm ci --ignore-scripts && npm audit --omit=dev --audit-level=high` | High or critical |
 | **OSV-Scanner** | Known vulnerabilities across Maven and npm lockfiles from the OSV database | `osv-scanner scan source -r .` (or `--lockfile web/<app>/package-lock.json`) | Triage all; fix within the patch SLA |
 | **Trivy image** | OS and library CVEs in a built image | `docker build -f deploy/docker/Dockerfile.core -t wz-core-app:dev .` then `docker run --rm -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/aquasecurity/trivy:0.76.1 image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 1 wz-core-app:dev` | HIGH/CRITICAL with a fix |
-| **Security verification suite** | 60 dynamic checks against the running local stack (headers, token attacks, anonymous access to all operations, CORS, redirects, cookies, CSRF, injection, XXE, path traversal, restricted classes, mass assignment, rate limit, logout) | See below | Any `FAIL` |
+| **Security verification suite** | More than 60 dynamic checks against the running local stack (headers, token attacks, anonymous access to all operations, CORS, redirects, cookies, CSRF, injection, XXE, path traversal, restricted classes, mass assignment, rate limit, logout) | See below | Any `FAIL` |
 | **Access-control matrix** | Every human demo role × every documented `GET` endpoint, object-level checks, unauthenticated sweep | See below | Any unexpected allow, or a deny where access is expected |
 
 **Dynamic tools.** Both scripts drive real Keycloak logins with Playwright and must only ever run against the local
@@ -611,17 +614,21 @@ npm install --prefix /tmp/wz-sec playwright@1 && npx --prefix /tmp/wz-sec playwr
 
 # local stack with the four apps (Developer Guide 1.2), then:
 NODE_PATH=/tmp/wz-sec/node_modules WZ_SEC_OUT=/tmp/wz-sec/results \
-  node tools/security/security-verification.js            # writes the JSON result file into WZ_SEC_OUT
+  node tools/security/security-verification.js            # keep the rate limit on: check RATE-01 needs it
 
+# access matrix: start the core with WZ_RATE_LIMIT_PER_MINUTE=0 for this run only (local stack)
+python3 tools/security/rbac-extract-policy.py . target/rbac            # expected policy from the controllers
 NODE_PATH=/tmp/wz-sec/node_modules \
-  node tools/security/rbac-matrix.js --policy /path/to/expected-policy.json --out /tmp/wz-sec/rbac
+  node tools/security/rbac-matrix.js --policy target/rbac/expected-policy.json --out target/rbac
+python3 tools/security/rbac-build-workbook.py target/rbac               # access-matrix workbook (.xlsx)
 #   optional: WZ_RBAC_USERS=manager1,clinician1  WZ_RBAC_CONCURRENCY=6
 ```
 
 Base URLs default to the local ports (core 8080, management 8081, BFF 8090, Keycloak 8180, web apps 5173–5176) and
-can be overridden with the `WZ_SEC_*` and `WZ_E2E_*` variables listed at the top of each script. The expected policy
-for the matrix is extracted statically from the controllers' `@PreAuthorize` expressions, the URL rules and the BFF
-workspace gating; committing the extractor under `tools/security/` and running both tools in CI is backlog item
+can be overridden with the `WZ_SEC_*` and `WZ_E2E_*` variables listed at the top of each script and in
+`tools/security/README.md`. The expected policy for the matrix is extracted statically by
+`tools/security/rbac-extract-policy.py` from the controllers' `@PreAuthorize` expressions, the URL rules and the BFF
+workspace gating; output goes to the git-ignored `target/rbac`. Running both tools as a CI gate is backlog item
 SEC-E12.
 
 ---
@@ -636,7 +643,8 @@ Every new endpoint gets **three things**: a role-matrix row, positive tests and 
    `docs/increment-05/API-Contract-E09-E10-E11-E12.md`), stating the roles **and** the data scope (own record, org
    scope, partner organisation, named clinician).
 2. Make the code say the same thing: the `@PreAuthorize` expression must match the roles column exactly. The access
-   matrix derives its expectation from that annotation; an endpoint without `@PreAuthorize` is treated as "any
+   matrix derives its expectation from that annotation (`tools/security/rbac-extract-policy.py`) – re-run the
+   extractor and check that your endpoint appears with the intended roles; an endpoint without `@PreAuthorize` is treated as "any
    authenticated user – data scope in service", which is only acceptable for self-service (`/me/...`) or
    service-scoped endpoints.
 3. If the endpoint takes a record id, add an object-level case to `discoverObjects` in `tools/security/rbac-matrix.js`

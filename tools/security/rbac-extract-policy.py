@@ -423,6 +423,13 @@ proxy_src = open(os.path.join(REPO, 'apps/wz-bff/src/main/java/com/wellnessz/bff
 cw = re.search(r'CORE_WORKSPACE_RESOURCES\s*=\s*java\.util\.List\.of\(([^;]*)\);', proxy_src, re.S).group(1)
 CORE_WORKSPACE = re.findall(r'"([^"]+)"', strip_comments(cw))
 core_sec = open(os.path.join(REPO, 'platform/wz-security/src/main/java/com/wellnessz/security/config/ResourceServerSecurityConfig.java')).read()
+_ird = re.search(r'INTERNAL_REFERENCE_DATA\s*=\s*\{([^}]*)\}', core_sec, re.S)
+INTERNAL_ONLY_PATHS = re.findall(r'"([^"]+)"', _ird.group(1)) if _ird else []
+_ext = re.search(r'EXTERNAL_ROLES\s*=\s*Set\.of\(([^)]*)\)', core_sec, re.S)
+EXTERNAL_ROLES = [r.replace('ROLE_', '') for r in re.findall(r'"([^"]+)"', _ext.group(1))] if _ext else []
+if INTERNAL_ONLY_PATHS:
+    core_url_rules.insert(4, {'pattern': 'GET ' + ', '.join(INTERNAL_ONLY_PATHS),
+                              'rule': 'internal principals only (not solely ' + ','.join(EXTERNAL_ROLES) + ')'})
 
 
 def url_roles(path):
@@ -443,6 +450,7 @@ def bff_path(path):
 for e in endpoints:
     r = e['roles']
     ur = url_roles(e['path'])
+    e['internalOnly'] = e['method'] == 'GET' and e['path'] in INTERNAL_ONLY_PATHS
     eff = r
     notes = []
     if ur:
@@ -492,7 +500,7 @@ policy = dict(
         {'pattern': '/bff/api/workspace/**', 'rule': 'hasAnyRole(' + ','.join(WORKSPACE_ROLES) + ')'},
         {'pattern': '/bff/api/**', 'rule': 'authenticated'},
         {'pattern': 'any other request', 'rule': 'denyAll'}],
-    workspaceRoles=WORKSPACE_ROLES, coreWorkspaceResources=CORE_WORKSPACE,
+    workspaceRoles=WORKSPACE_ROLES, externalRoles=EXTERNAL_ROLES, coreWorkspaceResources=CORE_WORKSPACE,
     mfaRequiredRoles=['PARTNER_PROVIDER', 'TPA_ADJUSTER'],
     mfaNote='Production default strips PARTNER_PROVIDER / TPA_ADJUSTER unless amr/acr proves MFA; the local profile sets WZ_MFA_REQUIRED_ROLES empty.',
     roleDescriptions=role_desc, allRoles=ALL_ROLES, endpoints=endpoints)

@@ -8,6 +8,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "wellnessz.componentName" $ctx }}
+  namespace: {{ $.Release.Namespace }}
   labels:
     {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
 spec:

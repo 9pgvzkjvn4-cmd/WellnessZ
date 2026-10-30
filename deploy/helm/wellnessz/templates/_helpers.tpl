@@ -159,7 +159,9 @@ core bff employeePortal managerWorkspace ohWorkspace partnerPortal
      (dict "root" $ "set" "core|bff" "cfg" $mig.job.<set> "secretsOn" .. "secretDir" ..) */}}
 {{- define "wellnessz.flywayContainer" -}}
 {{- $mig := .root.Values.migrations -}}
-image: {{ default (printf "%s:%s" $mig.job.image.repository $mig.job.image.tag) $mig.job.image.fullName | quote }}
+{{- $img := $mig.job.image -}}
+{{- $ref := ternary (printf "%s@%s" $img.repository $img.digest) (printf "%s:%s" $img.repository $img.tag) (not (empty $img.digest)) -}}
+image: {{ default $ref $img.fullName | quote }}
 imagePullPolicy: {{ .root.Values.global.imagePullPolicy }}
 command: ["sh", "-c"]
 args:

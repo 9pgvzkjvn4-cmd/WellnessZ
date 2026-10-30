@@ -10,6 +10,7 @@ apiVersion: cloud.google.com/v1
 kind: BackendConfig
 metadata:
   name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $comp) }}
+  namespace: {{ $.Release.Namespace }}
   labels:
     {{- include "wellnessz.componentLabels" (dict "root" $root "component" $comp.name) | nindent 4 }}
 spec:
@@ -47,6 +48,7 @@ apiVersion: networking.gke.io/v1beta1
 kind: FrontendConfig
 metadata:
   name: {{ include "wellnessz.fullname" . }}-frontend
+  namespace: {{ $.Release.Namespace }}
   labels:
     {{- include "wellnessz.labels" . | nindent 4 }}
 spec:
@@ -63,6 +65,7 @@ apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
 metadata:
   name: {{ include "wellnessz.fullname" . }}-web
+  namespace: {{ $.Release.Namespace }}
   labels:
     {{- include "wellnessz.labels" . | nindent 4 }}
 spec:
@@ -78,6 +81,7 @@ apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
 metadata:
   name: {{ include "wellnessz.fullname" . }}-api
+  namespace: {{ $.Release.Namespace }}
   labels:
     {{- include "wellnessz.labels" . | nindent 4 }}
 spec:

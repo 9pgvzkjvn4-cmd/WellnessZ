@@ -145,7 +145,10 @@ migrations:
     image:
       repository: flyway/flyway
       tag: 11.20.3-alpine
-      fullName: ""   # overrides repository:tag when set (e.g. mirrored image)
+      # sha256 digest of the (mirrored) Flyway image; set it in UAT/PROD so the migration Job is pinned like the
+      # product images (go-live item, security assessment 2026-10). Takes precedence over tag.
+      digest: ""
+      fullName: ""   # overrides repository:tag / @digest when set (e.g. mirrored image)
     # Location of SQL migrations inside the images (Spring Boot layered extraction)
     core:
       locationInImage: /app/BOOT-INF/classes/db/migration

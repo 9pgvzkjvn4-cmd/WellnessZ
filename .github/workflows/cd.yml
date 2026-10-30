@@ -23,6 +23,7 @@
 # =============================================================================
 name: CD
 
+# checkov:skip=CKV_GHA_7: deploys already-built signed images only; inputs are choices or tag-pattern validated, passed via env, gated by environment reviewers
 on:
   workflow_run:
     workflows: ["Container images"]

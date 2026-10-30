@@ -66,30 +66,30 @@ business epic.
 | SCA – web | `npm audit` for employee app, manager workspace, OH workspace, partner portal | **0 vulnerabilities** in all four apps |
 | Secrets | detect-secrets on all tracked files; pattern scan of the full git history (96 commits) | 47 candidates, all false positives; **0 real secrets** in history |
 | IaC | Checkov (Terraform Azure and GCP, Dockerfiles, GitHub Actions) | 32 failed checks → 16 fixed, 16 accepted with residual risk |
-| Dynamic verification | `tools/security/security-verification.js` (Node + Playwright, real Keycloak logins through the BFF) | 60 checks: headers, token validation (`alg=none`, algorithm confusion, forged signature, untrusted issuer, expired, malformed), anonymous access to all 754 documented API operations, actuator exposure, TRACE, CORS, open redirect, cookie flags, CSRF, SQL injection (including time-based), XXE, path traversal, mass assignment, restricted classes, rate limit, logout invalidation |
+| Dynamic verification | `tools/security/security-verification.js` (Node + Playwright, real Keycloak logins through the BFF) | 61 checks: headers, token validation (`alg=none`, algorithm confusion, forged signature, untrusted issuer, expired, malformed), anonymous access to all 754 documented API operations, actuator exposure, TRACE, CORS, open redirect, cookie flags, CSRF, SQL injection (including time-based), XXE, path traversal, mass assignment, restricted classes, rate limit, logout invalidation |
 | Access-control matrix | `tools/security/rbac-matrix.js` | Every human demo role × documented `GET` endpoints, plus object-level checks with real identifiers and unauthenticated calls to every operation through the BFF and directly |
 | Regression | Maven (450+ tests incl. 22 ArchUnit rules), 1,373 web tests, 121 end-to-end checks | All green on the remediated build |
 | Not possible in the sandbox | Trivy image scanning and Docker Hub base-image checks (download blocked, rate-limited); OWASP ZAP | Trivy runs as a HIGH/CRITICAL gate in `.github/workflows/container.yml` on every image build – the CI reports become release evidence (SEC-E02). ZAP-equivalent checks are in the verification suite; authenticated crawling at scale is part of SEC-E01 |
 
 ### 2.2 Headline result
 
-> **No open findings.** 17 findings were raised: 1 High, 3 Medium, 7 Low and 6 Informational.
-> **11 are fixed and verified, 4 are accepted with documented residual risk, 2 were false positives.**
-> The verification suite passed 59/59 checks on its first full run after harness corrections; the new rate-limit
-> check `RATE-01` was added afterwards, and the final 60-check run is to be recorded on the release build.
+> **No open findings.** 19 findings were raised: 1 High, 4 Medium, 8 Low and 6 Informational.
+> **13 are fixed and verified, 4 are accepted with documented residual risk, 2 were false positives.**
+> One Medium finding (F-19) was a regression introduced while fixing F-18 and was caught by the verification
+> suite before release. The final run on the remediated build passed **61/61** checks (including `RATE-01` and `AC-08`).
 
 ```mermaid
 pie showData
-    title Findings by severity (17)
+    title Findings by severity (19)
     "High" : 1
-    "Medium" : 3
-    "Low" : 7
+    "Medium" : 4
+    "Low" : 8
     "Informational" : 6
 ```
 
 | Status | Count | Findings |
 |---|---|---|
-| Fixed and verified | 11 | F-01 … F-11 |
+| Fixed and verified | 13 | F-01 … F-11, F-18, F-19 |
 | Accepted (residual risk documented, enhancement planned) | 4 | F-12, F-14, F-16, F-17 |
 | False positive | 2 | F-13, F-15 |
 | Open | **0** | – |
@@ -115,6 +115,8 @@ pie showData
 | F-15 | Info | 47 secret candidates | detect-secrets | False positive | Placeholders (`REPLACE-ME`), hashes in tests, configuration keywords and the documented local-only demo client secret `change-me-local-only`; git history clean |
 | F-16 | Info | The MRO cannot open `RESTRICTED_CLINICAL` documents through the generic `/documents` API, only through the E10 MRO endpoints | Known limitation | Accepted – enhancement | Fails closed (denies) – no data exposure. Enhancement **SEC-E05** |
 | F-17 | Info | `mentalhealth.named-clinicians` is seeded with the demo user `psych1` in every environment (migration `V17`) | Known limitation | Accepted – go-live configuration item | Fails closed (real clinicians receive `404` until configured). Go-live checklist item; **SEC-E06** adds a startup guard that refuses demo identities outside the `local` profile |
+| F-18 | Low | Organisation structure and internal reference data (org units, job codes, hazards, fitness standards, restriction catalogue) readable by external partner, TPA and candidate accounts – no personal data | Role-based access matrix (observation) | Fixed | URL rule in `ResourceServerSecurityConfig` (`INTERNAL_REFERENCE_DATA`, internal principals only); integration test `PlatformIntegrationTest.internalReferenceDataIsNotServedToExternalAccounts`; live check `AC-08` |
+| F-19 | Medium (CVSS 5.3) – never released | Regression while fixing F-18: the anonymous principal counted as "internal", so the five reference endpoints answered anonymous calls | Verification check `AUTH-08` on the remediated build, before release | Fixed | `AnonymousAuthenticationToken` excluded; anonymous case added to the integration test; `AUTH-08` 754/754 operations refuse anonymous calls on the final build. Shows why **SEC-E12** (run the suite in CI) matters |
 
 ### 2.4 Conditions for go-live
 
@@ -295,10 +297,10 @@ security operations (E15-F17) are in the epic as well; they support Sections 4 a
 
 | | |
 |---|---|
-| **Rationale** | `security-verification.js` (60 checks) and `rbac-matrix.js` (role × endpoint and object-level checks) proved their value in the assessment but run only by hand. The expected policy for the matrix is extracted statically from the `@PreAuthorize` annotations by a script that currently lives outside the repository. Without automation, a future endpoint can silently miss its role gate. |
+| **Rationale** | `security-verification.js` (61 checks) and `rbac-matrix.js` (role × endpoint and object-level checks) proved their value in the assessment but run only by hand. The expected policy for the matrix is extracted statically from the `@PreAuthorize` annotations by `tools/security/rbac-extract-policy.py` (now versioned with the other tools). Without automation, a future endpoint can silently miss its role gate. |
 | **Risk addressed** | STRIDE: Elevation of privilege, Information disclosure · OWASP A01, API1, API5 · SOC 2 CC7.1, CC8.1 · HITRUST CSF 07 Vulnerability Management, 06 Configuration Management |
 | **Effort / owner** | M – 21 SP · Platform / DevOps + QA |
-| **Acceptance criteria** | 1. Policy extractor committed under `tools/security/` with tests. 2. A CI workflow starts an ephemeral stack (Docker Compose, generated secrets only), runs both tools nightly and on release branches, and fails on any `FAIL` or unexpected allow. 3. Results are uploaded as artefacts and summarised in the job summary. 4. A new endpoint without a matching expected-policy entry fails the gate. 5. Never pointed at UAT or PROD. |
+| **Acceptance criteria** | 1. Policy extractor `tools/security/rbac-extract-policy.py` covered by unit tests and its baseline reviewed. 2. A CI workflow starts an ephemeral stack (Docker Compose, generated secrets only), runs both tools nightly and on release branches, and fails on any `FAIL` or unexpected allow. 3. Results are uploaded as artefacts and summarised in the job summary. 4. A new endpoint without a matching expected-policy entry fails the gate. 5. Never pointed at UAT or PROD. |
 
 #### SEC-E14 – Threat-model refresh per increment and abuse-case tests
 
