@@ -56,6 +56,8 @@ generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
 | 40 | Security verification tools (verification suite, role-based access matrix, SOC workbook builder) | Engineering, SOC | `../tools/security/README.md` | – |
 | 41 | Platform Enhancement Strategy – beyond increment 5 (scorecard, three-horizon roadmap, robustness engineering, data and assistant governance, interoperability, operating model, OKRs, risks, decisions S1–S10) | C-suite, CIO, CMO, Cyber GRC, product and engineering | `strategy/Platform-Enhancement-Strategy.md` | – |
 | 42 | Epic catalogue and roadmap (E01–E31) and new epic workbooks E20–E31 in the client's format | Product owners, PMO, architects | `strategy/epics/Epic-Catalogue-and-Roadmap.xlsx`, `strategy/epics/E2x_*.xlsx`, `strategy/epics/E3x_*.xlsx`, `strategy/epics/README.md` | – |
+| 43 | Remaining Epics Build Plan (what is left, dependencies to generate code, build order and module scaffold blueprint) | Developers, architects, PMO | `strategy/Remaining-Epics-Build-Plan.md`, `strategy/epics/Remaining-Epics-Dependency-Matrix.xlsx` | – |
+| 44 | Demo Pack – four standalone HTML apps with synthetic data in one shared session, demo guide workbook, recorder | Sales, product, trainers, client stakeholders | `../demo/README.md` (shipped as `WellnessZ-Demo-Pack.zip`) | – |
 | – | Design brief (contract between components) | Engineering | `00-design-brief.md` | – |
 | – | OpenAPI 3 contract of the core API | Integrators | `api/openapi.json` | – |
 
