@@ -144,7 +144,7 @@ migrations:
   job:
     image:
       repository: flyway/flyway
-      tag: 11.20.3-alpine
+      tag: 13.11.1
       # sha256 digest of the (mirrored) Flyway image; set it in UAT/PROD so the migration Job is pinned like the
       # product images (go-live item, security assessment 2026-10). Takes precedence over tag.
       digest: ""
