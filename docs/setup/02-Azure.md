@@ -680,7 +680,8 @@ the Keycloak Operator in its own namespace, or a managed Keycloak service.
      workspace and – since increment 4 – `partners.<domain>`);
    * keep the client **scope mappings** of `wellnessz-bff` and `wellnessz-mobile` complete: both clients have
      `fullScopeAllowed=false`, so every role (including the nine increment-1 roles) must be listed there or it is
-     dropped from tokens;
+     dropped from tokens (38 roles after increment 5, including `PEER_SUPPORT_VOLUNTEER`, `PEER_SUPPORT_COORDINATOR`,
+     `SAFETY_MANAGER`, `DA_PROGRAMME_MANAGER`, `MRO`, `COLLECTOR`, `HEALTH_PROMOTION_LEAD`, `ERGONOMIST`);
    * set `sslRequired: all`;
    * configure SMTP;
    * enable OTP/WebAuthn for privileged roles, and **require** it for every `PARTNER_PROVIDER` / `TPA_ADJUSTER`
@@ -691,7 +692,10 @@ the Keycloak Operator in its own namespace, or a managed Keycloak service.
      Section 6.1).
 4. Map federated users to realm roles through group mappers. Set `employee_id` and `org_scope` through the user
    profile (admin-only) or identity-provider mappers.
-5. Configure the core and BFF:
+5. Use one realm (or one Keycloak instance) **per environment** – `https://login.dev.<domain>/realms/wellnessz`,
+   `https://login.uat.<domain>/realms/wellnessz`, `https://login.<domain>/realms/wellnessz` – so that test users never
+   exist in the PROD realm. For the TOXLAB client add a *Hardcoded claim* mapper `org_scope` = `/PARTNERS/TOXLAB`.
+6. Configure the core and BFF in `environments/azure/<env>.yaml`:
    * `WZ_OIDC_ISSUERS=https://login.<domain>/realms/wellnessz`;
    * `WZ_OIDC_AUDIENCE=wellnessz-api`;
    * `WZ_BFF_ISSUER_URI` set to the same issuer;
@@ -1084,7 +1088,7 @@ for e in dev uat prod; do helm lint deploy/helm/wellnessz -f deploy/helm/wellnes
 (UAT and PROD set `global.requireImageDigests: true`, so rendering fails without a digest for every component – the
 dummy digests above are for linting only.)
 
-Increment 1 also adds these core settings (put them under `core.env` in the overrides file):
+Increment 1 also adds these core settings (put them under `core.env` in the environment overlay):
 
 | Variable | Value |
 |---|---|
@@ -1146,7 +1150,7 @@ Increment 4 adds these core settings (`core.env`):
 | `WELLNESSZ_TREATMENT_VARIANCEJOBCRON`, `WELLNESSZ_TREATMENT_CHASEJOBCRON`, `WELLNESSZ_TREATMENT_SCORECARDJOBCRON`, `WELLNESSZ_CLAIMS_REPORTDEADLINESCRON` (`core.extraEnv`) | Optional job schedules (UTC); defaults in doc 01, Section 22.3 |
 
 The partner portal component is enabled by default (`partnerPortal.enabled: true`, two replicas, HPA 2–4, PDB);
-set `ingress.hosts.partnerPortal` in the overrides file. To keep it off in an environment that has no partners yet,
+set `ingress.hosts.partnerPortal` in the environment overlay. To keep it off in an environment that has no partners yet,
 set `partnerPortal.enabled: false`.
 
 **Business configuration after the first deployment (increment 4).** As an OH_ADMIN or PLATFORM_ADMIN user:
@@ -1359,6 +1363,13 @@ section 8.2, through the workspace or `POST /api/v1/intake/ehs/excel`. The respo
 
 ## 14. Smoke tests and acceptance
 
+The pipeline's own smoke test (rollout, running digests, `SMOKE_URLS`) runs on every deployment. The checks below
+are the **acceptance** of a newly built environment and of each release in UAT; run them in DEV first. Checks marked
+*DEV only* use the end-to-end scripts, which need the local demo users and demo data – never load demo data into UAT
+or PROD; in UAT use named test accounts with the same roles instead. In PROD run checks 1–7, 9–14, 33, 35–37, 43–47
+with dedicated, MFA-enrolled smoke-test accounts that hold no clinical access beyond what each check needs, and remove
+their access after go-live.
+
 | # | Check | Command / action | Expected |
 |---|---|---|---|
 | 1 | Pods healthy | `kubectl -n wellnessz get pods` | All `Running`, readiness `1/1` |
@@ -1377,14 +1388,14 @@ section 8.2, through the workspace or `POST /api/v1/intake/ehs/excel`. The respo
 | 14 | New roles in tokens | Decode an access token of a CMO test user (<https://jwt.ms>) | `"roles"` contains `CMO` |
 | 15 | EHS webhook | Section 5.6 smoke call | `202`; repeating with the same key returns `Idempotent-Replayed: true` |
 | 16 | Status-only APIs | `GET https://api.<domain>/api/v1/status/crew?employeeIds=<id>` with a crew-scheduling token | Rows with `fitnessStatus`, `restrictionUntil` only |
-| 17 | Increment-1 end-to-end (dev/test only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment1.js` | Requires dedicated test accounts with the local user names and an adapted login step for Entra; 18 `PASS` lines |
+| 17 | Increment-1 end-to-end (DEV only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment1.js` | Requires dedicated test accounts with the local user names and an adapted login step for Entra; 18 `PASS` lines |
 | 18 | Increment-2 schemas | Bootstrap pod (section 8): `psql … -c '\dn'` | `docs`, `ohrecord`, `fitness` owned by `wz_migrator` |
 | 19 | Modules (increment 2) | `GET /api/v1/modules` with any user token | E03 and E05 `IMPLEMENTED` |
 | 20 | DPO segregation | Browser login on `https://oh.<domain>` as a DPO test account; then open an employee chart URL | *Break-glass reviews*, *Disclosures* and *Retention* load; the chart is not shown (the API answers `403` or `404`) |
 | 21 | Break-glass alert | As a clinician test account, declare break-glass on a test employee | E-mail to `WZ_DPO_EMAIL` without clinical content; review item visible to the DPO |
 | 22 | Documents | Generate and sign a fitness certificate for a test employee (OH workspace) and download it | PDF opens; Arabic names render if a font is configured |
 | 23 | Gateway pull queue | Section 5.6 smoke call with a gateway token | `200`; the same call with a user token returns `403` |
-| 24 | Increment-2 end-to-end (dev/test only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment2.js` | Requires test accounts with the local user names (including `dpo1`, `ame1`, `cmo1`, `crewsched1`) and an adapted login step for Entra; 25 `PASS` lines |
+| 24 | Increment-2 end-to-end (DEV only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment2.js` | Requires test accounts with the local user names (including `dpo1`, `ame1`, `cmo1`, `crewsched1`) and an adapted login step for Entra; 25 `PASS` lines |
 | 25 | Increment-3 schemas | Bootstrap pod (section 8): `psql … -c '\dn'` | `absence`, `surveillance`, `scheduling` owned by `wz_migrator` |
 | 26 | Modules (increment 3) | `GET /api/v1/modules` with any user token | E06, E07 and E14 `IMPLEMENTED` |
 | 27 | New roles in tokens | Decode access tokens of scheduler, biomedical and crew-licensing test users | `"roles"` contains `CLINIC_SCHEDULER`, `BIOMEDICAL`, `CREW_LICENSING` respectively |
@@ -1392,7 +1403,7 @@ section 8.2, through the workspace or `POST /api/v1/intake/ehs/excel`. The respo
 | 29 | Upload through the BFF | Employee test account uploads a sick certificate (photo) in the employee portal | Upload succeeds (a `400` points to a BFF with multipart parsing enabled – keep the shipped default) |
 | 30 | Calibration block | Record a device result (OH workspace or device gateway) with a device that is overdue in *Equipment & cold chain* | `422 device_out_of_calibration`; accepted after a passing calibration is recorded |
 | 31 | Cold-chain gateway | `POST https://api.<domain>/api/v1/integration/cold-chain/readings` with the IoT gateway token and a registered fridge id | `200` with `accepted: 1`; a value outside 2–8 °C opens an excursion and sends the urgent, content-free `coldchain.excursion` notice to the site's clinicians and the Nursing Head |
-| 32 | Increment-3 end-to-end (dev/test only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment3.js` | Requires the increment-3 demo data (dev only – never `db/demo` in shared environments, so run it against a dev database prepared with the demo files), test accounts with the local user names (including `scheduler1`, `biomed1`, `crewlicensing1`, `candidate1`) and an adapted login step; 32 `PASS` lines |
+| 32 | Increment-3 end-to-end (DEV only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment3.js` | Requires the increment-3 demo data (dev only – never `db/demo` in shared environments, so run it against a dev database prepared with the demo files), test accounts with the local user names (including `scheduler1`, `biomed1`, `crewlicensing1`, `candidate1`) and an adapted login step; 32 `PASS` lines |
 | 33 | Partner portal | `curl -sI https://partners.<domain>/` | `200` with HSTS and `Content-Security-Policy`; `kubectl -n wellnessz get deploy wellnessz-partner-portal` ready 2/2 |
 | 34 | Increment-4 schemas and modules | Bootstrap pod: `psql … -c '\dn'`; `GET /api/v1/modules` | `treatment`, `claims` owned by `wz_migrator`; E04 and E08 `IMPLEMENTED` |
 | 35 | MFA gate – positive | Partner test guest (in `sg-wellnessz-partners`, `org_scope=/PARTNERS/<CODE>`) signs in on `https://partners.<domain>` with MFA | Referral inbox of that organisation; `https://partners.<domain>/bff/api/me` lists `PARTNER_PROVIDER` |
@@ -1402,7 +1413,15 @@ section 8.2, through the workspace or `POST /api/v1/intake/ehs/excel`. The respo
 | 39 | Non-clinical roles | Claims, finance, legal and procurement test accounts on `https://oh.<domain>` | Their menus only; an employee chart URL is not shown (`403`/`404`) |
 | 40 | FHIR partner endpoint | `GET https://api.<domain>/api/v1/integration/referrals/<id>/fhir` with the token of the referral's provider system (`org_scope=/PARTNERS/<provider>`) | `200` with `"resourceType": "ServiceRequest"`; another partner's or an unbound gateway client's token gets `404`, user tokens get `403` |
 | 41 | Notifications | Send a test referral to a partner test organisation | Content-free `referral.sent` e-mail with a link to `https://partners.<domain>/#/referrals/<id>` (a `partners.wellnessz.example.com` or `partners.wellnessz.local` link means `WZ_PARTNER_PORTAL_URL` was not overridden with your domain) |
-| 42 | Increment-4 end-to-end (dev/test only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_PARTNER_URL=https://partners.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment4.js` | Requires a fresh dev database with the increment-3 and increment-4 demo data (the increment-3 and increment-4 scripts consume demo state – run the scripts 1 → 4 in order), test accounts with the local user names (including `claims1`, `adjuster1`, `legal1`, `finance1`, `procurement1`, `physio1`), an adapted login step for Entra **with MFA** (or a dev core with `WZ_MFA_REQUIRED_ROLES` unset for partner test accounts only in dev); 22 `PASS` lines |
+| 42 | Increment-4 end-to-end (DEV only) | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_OH_URL=https://oh.<domain> WZ_E2E_PARTNER_URL=https://partners.<domain> WZ_E2E_CORE_URL=https://api.<domain> node tools/e2e/e2e-increment4.js` | Requires a fresh dev database with the increment-3 and increment-4 demo data (the increment-3 and increment-4 scripts consume demo state – run the scripts 1 → 4 in order), test accounts with the local user names (including `claims1`, `adjuster1`, `legal1`, `finance1`, `procurement1`, `physio1`), an adapted login step for Entra **with MFA** (or a dev core with `WZ_MFA_REQUIRED_ROLES` unset for partner test accounts only in dev); 22 `PASS` lines |
+| 43 | Increment-5 schemas and modules | Bootstrap pod: `psql … -c '\dn'`; `GET /api/v1/modules` | `mentalhealth`, `substance`, `travelhealth`, `promotion` owned by `wz_migrator`; E09, E10, E11 and E12 `IMPLEMENTED` |
+| 44 | New roles in tokens | Decode access tokens of MRO, programme-manager and health-promotion test users | `"roles"` contains `MRO`, `DA_PROGRAMME_MANAGER`, `HEALTH_PROMOTION_LEAD` respectively |
+| 45 | Restricted clinical class | A general OH clinician test account opens the chart of a test employee with a support case; then the named psych-clinician test account | Clinician: placeholder *1 restricted item – hidden*, the case URL answers `404`; psych clinician: the case opens; any break-glass shows in the DPO review |
+| 46 | Programme manager without results | Programme-manager test account opens *Testing → MRO* | `403`; selections and statistics load, small cells suppressed |
+| 47 | Laboratory binding | `POST https://api.<domain>/api/v1/integration/testing/lab-results` with the TOXLAB client token, then with another gateway token | Bound client: `200` (or `422` for an unknown specimen); other client: `404` and an audit entry |
+| 48 | EAP partner | EAP test guest (`/PARTNERS/<EAP code>`) signs in with MFA on `https://partners.<domain>` → *EAP referrals* | Only its organisation's referrals with minimal data; feedback with a free-text field → `422 field_not_allowed` |
+| 49 | Duty-assignment feed | `POST https://api.<domain>/api/v1/integration/duty-assignments` with the internal roster client token (one test duty) | `200` with `upserted: 1`; a partner-bound client is refused |
+| 50 | Increment-5 end-to-end (DEV only) | `WZ_E2E_EMPLOYEE_URL=https://employee.dev.<domain> WZ_E2E_WORKSPACE_URL=https://manager.dev.<domain> WZ_E2E_OH_URL=https://oh.dev.<domain> WZ_E2E_PARTNER_URL=https://partners.dev.<domain> WZ_E2E_CORE_URL=https://api.dev.<domain> node tools/e2e/e2e-increment5.js` | Requires a fresh DEV database with the demo data of increments 3–5 (scripts 1 → 5 in order), test accounts with the local user names (including `psych1`, `mro1`, `collector1`, `damanager1`, `promo1`, `ergo1`, `eap1`) and an adapted login step for Entra; 24 `PASS` lines |
 
 ## 15. Mobile app and MDM onboarding
 
@@ -1457,22 +1476,60 @@ Details: `web/employee-app/README.md`, section *Runtime configuration & MDM*.
 | App Gateway backend unhealthy | NetworkPolicy blocks health probes on 8081 | `networkPolicy.ingressController.allowHealthChecks=true` and the App Gateway subnet in `ipBlocks` |
 | `cd.yml` cannot reach a private API server | GitHub-hosted runner | `AKS_PRIVATE=true` (uses command invoke) or a self-hosted runner via `DEPLOY_RUNNER` |
 | Graph mailbox `403` | RBAC for Applications scope missing or still replicating | `Test-ServicePrincipalAuthorization`; allow up to 2 hours for replication |
+| `terraform plan` wants to replace everything after switching environment | Initialised against another environment's state | `terraform init -reconfigure -backend-config=environments/backend-$ENV.hcl` before every plan |
+| `terraform plan`: `Invalid value for variable "environment"` | Old value `test` | Use `uat`; an existing `test` stack needs a state move / rename (`deploy/environments/README.md`) |
+| `deploy-env.yml` fails at the policy check | Wrong tag for the stage (for example `v1.0.0-rc.1` to PROD, `sha-…` to UAT) | DEV `sha-*`/`v*`, UAT `vX.Y.Z[-rc.N]`, PROD `vX.Y.Z` |
+| `deploy-env.yml` waits forever on `azure-uat` / `azure-prod` | Required reviewers have not approved | Approve in the Actions run (*Review deployments*); self-approval is blocked by design |
+| `azure/login` fails with `AADSTS70021` (no matching federated identity) | GitHub Environment name differs from Terraform `github_environments`, or the job runs without `environment:` | Use exactly `azure-dev` / `azure-uat` / `azure-prod`; re-apply Terraform after renaming |
+| Helm render fails: image digest required | UAT/PROD overlay sets `global.requireImageDigests: true` and a component has no digest | Deploy through `deploy-env.yml` / `helm-release.sh upgrade` with all six digests |
+| Smoke test failed and the release was rolled back | A pod did not become ready or runs another digest; a `SMOKE_URLS` entry did not return 2xx | Check the workflow log and `kubectl -n wellnessz get events`; fix and re-run the same tag |
+| MRO, psych clinician or programme manager sees *Access restricted* | Increment-5 app role missing or group not assigned in **this** environment's registration | Section 5.2 (upgrade to increment 5) |
+| General OH users cannot see a support case or test result | Intended: restricted clinical class | Only the named `PSYCH_CLINICIAN` / `MRO`; break-glass is logged and reviewed |
+| TOXLAB results answer `404` | Laboratory client token without `org_scope=/PARTNERS/<code>` or the code differs from `substance.laboratory-code` | Section 5.6 (increment 5) and section 11 |
+| `safety1`-type users (SAFETY_MANAGER only) get an error page in the manager workspace | BFF image older than increment 5 | Deploy the current release |
 
-## 17. Teardown
+## 17. PROD go-live checklist
+
+Complete every item **before** the first real user signs in to `azure-prod`. Items marked [M] are manual and need
+evidence (ticket, screenshot or report) in the go-live record; UAT runs the same checklist as a rehearsal.
+
+| # | Area | Item | Evidence |
+|---|---|---|---|
+| 1 | Change | CAB approval for the PROD build and the release `vX.Y.Z`; the same digests passed UAT acceptance (section 14) and business sign-off [M] | CAB record, UAT test report |
+| 2 | Infrastructure | `terraform plan` for PROD shows no changes after the apply; resource lock `do-not-delete` present; `prevent_destroy` on PostgreSQL and Key Vault intact | Plan output |
+| 3 | Backups | PostgreSQL backups visible with 35-day retention and geo-redundancy: `az postgres flexible-server backup list -g rg-wz-prod -n <server> -o table`; Key Vault purge protection on | Command output |
+| 4 | DR test | [M] Point-in-time restore into a **new** server (`az postgres flexible-server restore --source-server <server> --restore-time <UTC> -n <server>-drtest -g rg-wz-prod`), core of a scratch namespace pointed at it, `GET /api/v1/audit/verify` valid, row counts recorded; measured RTO/RPO compared with doc 04, Section 10.2; geo-restore rehearsed into the paired region once a year; delete the test server afterwards | DR test report (SOC 2 A1.3) |
+| 5 | HA | [M] Planned failover of PostgreSQL (`az postgres flexible-server restart --failover Planned`) and a node drain in one zone; application stays available | Test log |
+| 6 | Security testing | [M] External penetration test of `employee.`, `partners.`, `api.` (and `manager.`/`oh.` if internet-facing) against UAT or PROD before go-live; high and critical findings fixed or risk-accepted by the CISO | Pen-test report, remediation record |
+| 7 | WAF | `waf_mode = Prevention`; no rule in exclusion without a ticket; rate limits on `/oauth2/` and `/login/` | WAF policy export |
+| 8 | Monitoring alerts | [M] Alerts of doc 04, Section 12 created in Azure Monitor / Sentinel with an on-call action group: WAF spikes, DB failover, Key Vault access by unexpected principals, pod restarts/OOM, readiness failures, audit-chain failure, certificate expiry < 30 days, `exposure-timers` / `public-health-deadlines` not run, break-glass on restricted records, smoke-test rollback | Alert rule list, test notification |
+| 9 | Logging | Log Analytics retention 365 days; diagnostic settings on every resource; logs contain no PHI in clear text (sample query) | Query output |
+| 10 | Identity | [M] PROD app registrations separate from DEV/UAT; Conditional Access for guests **enabled** (not report-only); MFA enrolled for every partner, adjuster and EAP account (smoke checks 35–36, 48); workforce Conditional Access with compliant devices for `oh.` and `manager.` | CA policy export, sign-in log |
+| 11 | Access review | [M] Review of all `sg-wellnessz-*` groups for PROD – especially `sg-wellnessz-psych`, `sg-wellnessz-mro`, `sg-wellnessz-platform-admins`, `sg-wellnessz-aks-admins-prod`, `sg-wellnessz-db-admins-prod` (PIM-eligible only); GitHub `azure-prod` reviewers; Key Vault data-plane roles | Access review export |
+| 12 | Secrets | [M] Key ceremony record for `wz-master-key`, `wz-pseudonym-key`, `wz-bff-session-key` (dual control, escrow copy); client secrets with expiry ≤ 6 months and a rotation reminder | Ceremony record |
+| 13 | Data | No demo data (`WZ_FLYWAY_LOCATIONS` without `db/demo`); OH staff roster and HRIS employees loaded; partner network replaced by contracted partners (EAP, TOXLAB, public-health authority) | SQL check, master-data export |
+| 14 | Clinical governance | [M] Sign-off of the configurable clinical content: PHQ-9/GAD-7 bands, testing policies and cut-offs (MRO, Legal), travel recommendations and PEP timers, screening thresholds, statutory report forms | Sign-off minutes |
+| 15 | DPIA / privacy | [M] DPIA updated for increment 5 (restricted classes, wearables, peer support); DPO mailbox `WZ_DPO_EMAIL` set; break-glass review procedure in place | DPIA, procedure |
+| 16 | Operations | Runbooks (deploy, rollback, restore, key rotation), on-call rota, support contacts in `WZ_OH_CONTACT`; GitHub Environment protection screenshots filed | Runbook links |
+
+## 18. Teardown
 
 Production resources are protected: a resource-group delete lock (prod), `prevent_destroy` on PostgreSQL, the
-database and the CMK, and Key Vault purge protection. For dev and test environments:
+database and the CMK, and Key Vault purge protection. For DEV and UAT environments:
 
 ```bash
 helm uninstall wellnessz -n wellnessz
 ```
 
 Before destroying, delete or comment out the `lifecycle { prevent_destroy = true }` blocks in `postgres.tf` (two)
-and `keyvault.tf` (CMK), on a throwaway branch only.
+and `keyvault.tf` (CMK), on a throwaway branch only. Make sure Terraform points at the right environment:
 
 ```bash
-terraform destroy
+terraform init -reconfigure -backend-config=environments/backend-$ENV.hcl && terraform destroy -var-file=environments/$ENV.tfvars -var-file=environments/$ENV.local.tfvars
 ```
+
+UAT has `resource_lock_enabled = true`: remove the lock first (`az lock delete -n do-not-delete -g rg-wz-uat`). Never
+destroy PROD without a decommissioning decision and a final backup export.
 
 Key Vault remains soft-deleted for 90 days because of purge protection; this is expected and cannot be bypassed.
 Remove the Entra app registrations, groups and DNS records if they are not shared with other environments.
