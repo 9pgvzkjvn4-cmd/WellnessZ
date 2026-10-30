@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# =============================================================================
+# WellnessZ pre-commit hook (local only - install with
+#   docs/developer-setup/ide/scripts/install-ide-files.sh hook)
+#
+# 1. refuses staged env/key/state files (.env, *.local.env, *.pem, *.key, ...)
+# 2. gitleaks on the staged changes (same image and config as CI)
+# 3. ESLint (--max-warnings 0) for every web app with staged changes
+#
+# Skip a step in an emergency with WZ_HOOK_SKIP=gitleaks,eslint (never skip 1).
+# =============================================================================
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+SKIP=",${WZ_HOOK_SKIP:-},"
+
+staged="$(git diff --cached --name-only --diff-filter=ACMR)"
+[[ -n $staged ]] || exit 0
+
+# 1. Files that must never be committed (mirrors .gitignore; catches 'git add -f')
+blocked="$(printf '%s\n' "$staged" | grep -E '(^|/)\.env$|\.local\.env$|\.env\.local$|\.(pem|key|p12|jks|tfstate)$|\.tfvars$|(^|/)master\.key$' || true)"
+if [[ -n $blocked ]]; then
+  echo "pre-commit: refusing to commit secret-bearing files:" >&2
+  printf '  %s\n' "$blocked" >&2
+  exit 1
+fi
+
+# 2. gitleaks (needs Docker)
+if [[ $SKIP != *,gitleaks,* ]]; then
+  if command -v docker >/dev/null && docker info >/dev/null 2>&1; then
+    docker run --rm -v "$ROOT:/repo:ro" ghcr.io/gitleaks/gitleaks:v8.30.1 \
+      git /repo --pre-commit --staged --config /repo/.gitleaks.toml --redact --no-banner
+  else
+    echo "pre-commit: Docker not running - gitleaks skipped (CI will still scan)" >&2
+  fi
+fi
+
+# 3. ESLint for touched web apps
+if [[ $SKIP != *,eslint,* ]]; then
+  for app in employee-app manager-workspace oh-workspace partner-portal; do
+    if printf '%s\n' "$staged" | grep -q "^web/$app/"; then
+      if [[ -d "$ROOT/web/$app/node_modules" ]]; then
+        (cd "$ROOT/web/$app" && npm run -s lint)
+      else
+        echo "pre-commit: web/$app has no node_modules - run npm ci there; lint skipped" >&2
+      fi
+    fi
+  done
+fi

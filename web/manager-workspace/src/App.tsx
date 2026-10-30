@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SIGNED_OUT, type AuthClient, type Session } from './auth/AuthClient';
-import { hasWorkspaceAccess, resolveFeatureRoute, resolveReferralRoute, workspaceNav } from './auth/roles';
+import { hasWorkspaceAccess, homeRoute, resolveFeatureRoute, resolveReferralRoute, workspaceNav } from './auth/roles';
 import { Alert, Loading } from './components/ui';
 import { useHashRoute } from './routing/useHashRoute';
 import { Absence } from './screens/Absence';
@@ -22,6 +22,10 @@ import { ReferralNotAvailable } from './screens/Referral';
 import { RtwPlans } from './screens/RtwPlans';
 import { TeamCases } from './screens/TeamCases';
 import { TeamRestrictions } from './screens/TeamRestrictions';
+import { Ergonomics } from './screens/Ergonomics';
+import { Psychosocial } from './screens/Psychosocial';
+import { Testing } from './screens/Testing';
+import { UnitCampaigns } from './screens/UnitCampaigns';
 import { startIdleTimer } from './security/idleTimeout';
 import { errorName, log } from './security/log';
 
@@ -30,7 +34,7 @@ type Notice = 'idle' | 'expired' | undefined;
 export function App({ client }: { client: AuthClient }) {
   const [session, setSession] = useState<Session>();
   const [notice, setNotice] = useState<Notice>();
-  const route = useHashRoute();
+  const hashRoute = useHashRoute();
 
   useEffect(() => {
     client.init().then(setSession, (e: unknown) => {
@@ -86,6 +90,8 @@ export function App({ client }: { client: AuthClient }) {
   }
 
   const props = { client, session, onSessionExpired };
+  // Sessions without a case role (safety manager, crew scheduling) start on their testing screen.
+  const route = hashRoute === '/' ? homeRoute(session.roles) : hashRoute;
   const caseMatch = /^\/cases\/([^/]+)$/.exec(route);
   const referral = resolveReferralRoute(route, session.roles);
   const feature = resolveFeatureRoute(route, session.roles);
@@ -101,6 +107,10 @@ export function App({ client }: { client: AuthClient }) {
   else if (feature?.feature === 'compliance') screen = <Compliance {...props} />;
   else if (feature?.feature === 'preEmployment') screen = <PreEmployment {...props} />;
   else if (feature?.feature === 'claims') screen = <Claims {...props} />;
+  else if (feature?.feature === 'testing') screen = <Testing {...props} />;
+  else if (feature?.feature === 'psychosocial') screen = <Psychosocial {...props} />;
+  else if (feature?.feature === 'campaigns') screen = <UnitCampaigns {...props} />;
+  else if (feature?.feature === 'ergonomics') screen = <Ergonomics {...props} />;
   else if (feature?.feature === 'jobOffers' && feature.caseId) screen = <JobOffers {...props} caseId={feature.caseId} />;
   else if (feature?.feature === 'ihr' && feature.caseId) screen = <IhrAssessments {...props} caseId={feature.caseId} />;
   else if (caseMatch?.[1]) screen = <CaseStatus {...props} caseId={decodeURIComponent(caseMatch[1])} />;

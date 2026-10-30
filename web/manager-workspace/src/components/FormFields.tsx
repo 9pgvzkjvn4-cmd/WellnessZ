@@ -54,7 +54,7 @@ export function InputField(p: {
   label: string;
   value: string;
   onChange: (v: string) => void;
-  type?: 'text' | 'date' | 'number' | 'email';
+  type?: 'text' | 'date' | 'number' | 'email' | 'datetime-local';
   required?: boolean;
   hint?: ReactNode;
   error?: string;

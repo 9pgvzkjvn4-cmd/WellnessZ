@@ -12,6 +12,10 @@ const WHO = {
   compliance: 'managers and HR',
   preEmployment: 'HR business partners',
   claims: 'HR business partners',
+  testing: 'line managers, safety managers, HR and crew scheduling',
+  psychosocial: 'line managers',
+  campaigns: 'line managers',
+  ergonomics: 'line managers',
 } as const;
 
 /** Shown when an increment-2 / increment-3 / increment-4 route is opened without the required role. */

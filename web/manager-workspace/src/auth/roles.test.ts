@@ -48,6 +48,10 @@ describe('increment 2 role gating (E05 / E03)', () => {
       '/absence',
       '/advice-requests',
       '/compliance',
+      '/testing',
+      '/psychosocial',
+      '/campaigns',
+      '/ergonomics',
       '/analytics',
     ]);
   });
@@ -69,6 +73,7 @@ describe('increment 2 role gating (E05 / E03)', () => {
       '/compliance',
       '/pre-employment',
       '/claims',
+      '/testing',
       '/analytics',
     ]);
   });
@@ -153,5 +158,43 @@ describe('increment 3 role gating (E06 / E07)', () => {
     expect(resolveFeatureRoute('/claims', ['HR'])).toEqual({ feature: 'claims', allowed: true });
     expect(resolveFeatureRoute('/claims', ['MANAGER'])).toEqual({ feature: 'claims', allowed: false });
     expect(resolveFeatureRoute('/claims/CLM-2026-000001', ['HR'])).toBeUndefined();
+  });
+});
+
+describe('increment 5 role gating (E09 / E10 / E12)', () => {
+  it('lets safety managers and crew scheduling into the workspace – testing screen only', async () => {
+    const { hasCaseAccess, homeRoute, workspaceNav } = await import('./roles');
+    for (const role of ['SAFETY_MANAGER', 'CREW_SCHEDULING', 'ROLE_crew_scheduling']) {
+      expect(hasWorkspaceAccess([role])).toBe(true);
+      expect(hasCaseAccess([role])).toBe(false);
+      expect(workspaceNav([role])).toEqual([{ path: '/testing', label: 'Testing' }]);
+      expect(homeRoute([role])).toBe('/testing');
+    }
+    expect(homeRoute(['MANAGER'])).toBe('/');
+    expect(hasWorkspaceAccess(['DA_PROGRAMME_MANAGER'])).toBe(false);
+    expect(hasWorkspaceAccess(['MRO'])).toBe(false);
+  });
+
+  it('testing sections: for-cause for MANAGER / SAFETY_MANAGER, duty status for HR / CREW_SCHEDULING', async () => {
+    const { testingSections, canUse } = await import('./roles');
+    expect(testingSections(['MANAGER'])).toEqual({ forCause: true, dutyStatus: false });
+    expect(testingSections(['SAFETY_MANAGER'])).toEqual({ forCause: true, dutyStatus: false });
+    expect(testingSections(['HR'])).toEqual({ forCause: false, dutyStatus: true });
+    expect(testingSections(['CREW_SCHEDULING'])).toEqual({ forCause: false, dutyStatus: true });
+    expect(testingSections(['MANAGER', 'HR'])).toEqual({ forCause: true, dutyStatus: true });
+    for (const roles of [['OH_CLINICIAN'], ['CASE_MANAGER'], ['PSYCH_CLINICIAN'], [] as string[]]) expect(canUse('testing', roles)).toBe(false);
+  });
+
+  it('psychosocial, campaigns and ergonomics are for line managers only', async () => {
+    const { canUse, resolveFeatureRoute, workspaceNav } = await import('./roles');
+    for (const f of ['psychosocial', 'campaigns', 'ergonomics'] as const) {
+      expect(canUse(f, ['MANAGER'])).toBe(true);
+      for (const roles of [['HR'], ['SAFETY_MANAGER'], ['CREW_SCHEDULING'], ['OH_CLINICIAN']]) expect(canUse(f, roles)).toBe(false);
+    }
+    expect(workspaceNav(['HR']).map((n) => n.path)).not.toContain('/psychosocial');
+    expect(resolveFeatureRoute('/psychosocial', ['HR'])).toEqual({ feature: 'psychosocial', allowed: false });
+    expect(resolveFeatureRoute('/testing', ['CREW_SCHEDULING'])).toEqual({ feature: 'testing', allowed: true });
+    expect(resolveFeatureRoute('/ergonomics', ['ROLE_manager'])).toEqual({ feature: 'ergonomics', allowed: true });
+    expect(workspaceNav(['MANAGER', 'HR']).filter((n) => n.path === '/testing')).toHaveLength(1);
   });
 });

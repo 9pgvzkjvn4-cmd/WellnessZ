@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Vite dev server on http://localhost:5175 (strictPort); proxies /bff, /oauth2, /login, /logout to the BFF (WZ_BFF_TARGET, default http://localhost:8090) -->
+  <configuration default="false" name="Vite: OH workspace (5175)" type="js.build_tools.npm" folderName="Web">
+    <package-json value="$PROJECT_DIR$/web/oh-workspace/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="dev" />
+    </scripts>
+    <node-interpreter value="project" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

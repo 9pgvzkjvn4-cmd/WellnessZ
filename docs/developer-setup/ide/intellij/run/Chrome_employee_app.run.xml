@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Debug the Employee app in Chrome (start "Vite: Employee app (5173)" first) - Ultimate / WebStorm only -->
+  <configuration default="false" name="Chrome: Employee app" type="JavascriptDebugType" uri="http://localhost:5173" folderName="Web">
+    <method v="2" />
+  </configuration>
+</component>

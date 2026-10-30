@@ -1,0 +1,37 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Same as the CI SAST step; fails on any finding. Remove -Ddependency-check.skip=true and set NVD_API_KEY to include OWASP dependency-check -->
+  <configuration default="false" name="mvn -Psecurity verify (SpotBugs + FindSecBugs)" type="MavenRunConfiguration" factoryName="Maven" folderName="Maven">
+    <MavenSettings>
+      <option name="myGeneralSettings" />
+      <option name="myRunnerSettings" />
+      <option name="myRunnerParameters">
+        <MavenRunnerParameters>
+          <option name="cmdOptions" />
+          <option name="profiles">
+            <set />
+          </option>
+          <option name="goals">
+            <list>
+                <option value="-DskipTests" />
+                <option value="-Ddependency-check.skip=true" />
+                <option value="verify" />
+            </list>
+          </option>
+          <option name="multimoduleDir" />
+          <option name="pomFileName" value="pom.xml" />
+          <option name="profilesMap">
+            <map>
+              <entry key="security" value="true" />
+            </map>
+          </option>
+          <option name="projectsCmdOptionValues">
+            <list />
+          </option>
+          <option name="resolveToWorkspace" value="false" />
+          <option name="workingDirPath" value="$PROJECT_DIR$" />
+        </MavenRunnerParameters>
+      </option>
+    </MavenSettings>
+    <method v="2" />
+  </configuration>
+</component>

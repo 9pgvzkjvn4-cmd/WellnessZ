@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Debug the OH workspace in Chrome (start "Vite: OH workspace (5175)" first) - Ultimate / WebStorm only -->
+  <configuration default="false" name="Chrome: OH workspace" type="JavascriptDebugType" uri="http://localhost:5175" folderName="Web">
+    <method v="2" />
+  </configuration>
+</component>

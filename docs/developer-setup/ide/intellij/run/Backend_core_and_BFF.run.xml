@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Backend: core + BFF" type="CompoundRunConfigurationType" folderName="Backend">
+    <toRun name="Core API (local)" type="SpringBootApplicationConfigurationType" />
+    <toRun name="BFF (local)" type="SpringBootApplicationConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>

@@ -1,0 +1,337 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Local stack: up",
+      "type": "shell",
+      "command": "./deploy/local/up.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "PostgreSQL, Keycloak, Mailpit, GreenMail, OTel collector (generates deploy/local/.env)"
+    },
+    {
+      "label": "Local stack: down",
+      "type": "shell",
+      "command": "./deploy/local/down.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Stop containers, keep data"
+    },
+    {
+      "label": "Local stack: purge",
+      "type": "shell",
+      "command": "./deploy/local/down.sh --purge",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Stop containers AND delete the PostgreSQL volume (all local data, realm re-import)"
+    },
+    {
+      "label": "Local stack: status",
+      "type": "shell",
+      "command": "docker compose -f deploy/local/docker-compose.yml ps --format '{{.Service}}: {{.Status}}'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "IDE env files: generate",
+      "type": "shell",
+      "command": "${workspaceFolder}/docs/developer-setup/ide/scripts/make-ide-env.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "deploy/local/core.local.env + bff.local.env (ENC values), keys in ~/.config/wellnessz"
+    },
+    {
+      "label": "Maven: verify",
+      "type": "shell",
+      "command": "./mvnw -B verify",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Unit + integration tests (Testcontainers), ArchUnit, JaCoCo, SBOM",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Maven: verify (local test DB)",
+      "type": "shell",
+      "command": "${workspaceFolder}/docs/developer-setup/ide/scripts/verify-with-local-db.sh verify",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Recreates wellnessz_test in the compose PostgreSQL first"
+    },
+    {
+      "label": "Maven: recreate test DB",
+      "type": "shell",
+      "command": "${workspaceFolder}/docs/developer-setup/ide/scripts/recreate-test-db.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Maven: package (skip tests)",
+      "type": "shell",
+      "command": "./mvnw -B -DskipTests package",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Maven: SpotBugs + FindSecBugs (-Psecurity)",
+      "type": "shell",
+      "command": "./mvnw -B -Psecurity -DskipTests -Ddependency-check.skip=true verify",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Maven: ArchitectureTest only",
+      "type": "shell",
+      "command": "./mvnw -B -pl apps/wz-core-app -am -Dtest=ArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Core: run with debugger on 5005",
+      "type": "shell",
+      "command": "${workspaceFolder}/docs/developer-setup/ide/scripts/run-service.sh core",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": {
+        "owner": "wz-core",
+        "pattern": {
+          "regexp": "^__never_matches__$"
+        },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "Packaging|Starting",
+          "endsPattern": "Started WellnessZCoreApplication|APPLICATION FAILED"
+        }
+      },
+      "isBackground": true
+    },
+    {
+      "label": "BFF: run with debugger on 5006",
+      "type": "shell",
+      "command": "${workspaceFolder}/docs/developer-setup/ide/scripts/run-service.sh bff",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": {
+        "owner": "wz-bff",
+        "pattern": {
+          "regexp": "^__never_matches__$"
+        },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "Packaging|Starting",
+          "endsPattern": "Started WellnessZBffApplication|APPLICATION FAILED"
+        }
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Web: install all (npm ci)",
+      "type": "shell",
+      "command": "${workspaceFolder}/docs/developer-setup/ide/scripts/web-all.sh install",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Web: lint all",
+      "type": "shell",
+      "command": "${workspaceFolder}/docs/developer-setup/ide/scripts/web-all.sh lint",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Web: test all",
+      "type": "shell",
+      "command": "${workspaceFolder}/docs/developer-setup/ide/scripts/web-all.sh test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Web: CI check all (install, lint, test, build, audit)",
+      "type": "shell",
+      "command": "${workspaceFolder}/docs/developer-setup/ide/scripts/web-all.sh check",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Web: dev employee-app (5173)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/web/employee-app"
+      },
+      "problemMatcher": {
+        "owner": "vite-employee-app",
+        "pattern": {
+          "regexp": "^__never_matches__$"
+        },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "VITE v|vite v",
+          "endsPattern": "Local:|ready in"
+        }
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Web: dev manager-workspace (5174)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/web/manager-workspace"
+      },
+      "problemMatcher": {
+        "owner": "vite-manager-workspace",
+        "pattern": {
+          "regexp": "^__never_matches__$"
+        },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "VITE v|vite v",
+          "endsPattern": "Local:|ready in"
+        }
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Web: dev oh-workspace (5175)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/web/oh-workspace"
+      },
+      "problemMatcher": {
+        "owner": "vite-oh-workspace",
+        "pattern": {
+          "regexp": "^__never_matches__$"
+        },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "VITE v|vite v",
+          "endsPattern": "Local:|ready in"
+        }
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Web: dev partner-portal (5176)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/web/partner-portal"
+      },
+      "problemMatcher": {
+        "owner": "vite-partner-portal",
+        "pattern": {
+          "regexp": "^__never_matches__$"
+        },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "VITE v|vite v",
+          "endsPattern": "Local:|ready in"
+        }
+      },
+      "isBackground": true
+    },
+    {
+      "label": "E2E: install Playwright + Chromium",
+      "type": "shell",
+      "command": "npm install --no-save playwright@1 && npx playwright install chromium",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "E2E: e2e.js",
+      "type": "shell",
+      "command": "node tools/e2e/e2e.js",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "E2E: e2e-increment1.js",
+      "type": "shell",
+      "command": "node tools/e2e/e2e-increment1.js",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "E2E: e2e-increment2.js",
+      "type": "shell",
+      "command": "node tools/e2e/e2e-increment2.js",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "E2E: e2e-increment3.js",
+      "type": "shell",
+      "command": "node tools/e2e/e2e-increment3.js",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "E2E: e2e-increment4.js",
+      "type": "shell",
+      "command": "node tools/e2e/e2e-increment4.js",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Secrets: gitleaks (as CI)",
+      "type": "shell",
+      "command": "docker run --rm -v \"${workspaceFolder}:/repo:ro\" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --config /repo/.gitleaks.toml --redact",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

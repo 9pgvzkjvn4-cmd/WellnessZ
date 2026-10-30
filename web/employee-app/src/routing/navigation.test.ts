@@ -39,4 +39,11 @@ describe('candidate navigation (role CANDIDATE, E07-F03)', () => {
     expect(navFor(['EMPLOYEE']).filter((n) => n.source === 'oh').map((n) => n.key)).toEqual(['appointments', 'absence', 'surveillance']);
     expect(navFor(['CANDIDATE'])[0]).toEqual({ path: '/pre-employment', key: 'preEmployment', source: 'oh' });
   });
+
+  it('employees get the increment-5 sections; candidates are kept in pre-employment', () => {
+    expect(paths(['EMPLOYEE'])).toEqual(expect.arrayContaining(['/support', '/peer-support', '/travel', '/check-ins', '/campaigns', '/testing']));
+    expect(navFor(['EMPLOYEE']).filter((n) => n.source === 'wellbeing').map((n) => n.key)).toEqual(['support', 'peer', 'checkIns', 'travel', 'campaigns', 'testing']);
+    for (const r of ['/support', '/testing', '/campaigns']) expect(resolveRoute(r, ['CANDIDATE'])).toBe('/pre-employment');
+    expect(resolveRoute('/support', ['EMPLOYEE'])).toBe('/support');
+  });
 });

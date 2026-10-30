@@ -84,7 +84,8 @@ describe('clinical and admin gating', () => {
   });
 
   it('HSE officer sees reconciliation and incident → cases, plus (increment 3) exposure registers and compliance', () => {
-    expect(paths(['HSE_OFFICER'])).toEqual(['/intake/reconciliation', '/intake/incidents', '/surveillance/exposure', '/surveillance/compliance']);
+    // increment 5 adds the psychosocial risk register (E09-F05) and possibly other increment-5 areas – earlier areas unchanged
+    expect(paths(['HSE_OFFICER']).filter((p) => /^\/(intake|surveillance|queues|cases|employees)/.test(p))).toEqual(['/intake/reconciliation', '/intake/incidents', '/surveillance/exposure', '/surveillance/compliance']);
     expect(can(['HSE_OFFICER'], 'reconciliationExceptions')).toBe(true);
   });
 
@@ -421,6 +422,175 @@ describe('increment 4 – E04 treatment & E08 claims gating (API-Contract-E04-E0
   });
 
   it.each([['HR'], ['MANAGER'], ['EMPLOYEE'], ['HSE_OFFICER'], ['CLINIC_SCHEDULER'], ['CLINIC_RECEPTION'], ['AUDITOR'], ['BIOMEDICAL']])('%s gets no increment-4 screen', (r) => {
+    expect(area([r])).toEqual([]);
+  });
+});
+
+describe('increment 5 – E09 support & E10 testing gating (API-Contract-E09-E10-E11-E12 §1, confidentiality rules)', () => {
+  const RESTRICTED = ['PEER_SUPPORT_VOLUNTEER', 'PEER_SUPPORT_COORDINATOR', 'SAFETY_MANAGER', 'DA_PROGRAMME_MANAGER', 'COLLECTOR', 'MRO'];
+  const OTHER_CLINICAL = [
+    '/queues', '/cases/c1', '/cases/c1/treatment', '/employees', '/employees/E1/chart', '/employees/E1/chart/results', '/employees/E1/timeline', '/encounters/e1', '/encounters/unsigned',
+    '/results/worklist', '/fitness/signoff', '/restrictions', '/rtw/overdue', '/absence/queue', '/absence/lta/c1', '/surveillance/follow-ups', '/surveillance/immunisation',
+    '/referrals', '/referrals/r1', '/treatment/medications', '/telehealth', '/caseload', '/reception', '/scheduling/diary', '/claims/c1',
+  ];
+  const SUPPORT_CONTENT = ['/support/cases', '/support/cases/s1', '/support/urgent', '/support/eap', '/cism/ev1'];
+  const TESTING_RESULTS = ['/testing/mro', '/testing/rtd'];
+  const GENERAL_OH = ['OH_CLINICIAN', 'NURSING_HEAD', 'CASE_MANAGER', 'CMO', 'OH_PHYSICIAN', 'AME'];
+  const area = (roles: string[]) => paths(roles).filter((p) => /^\/(support|peer-support|cism|psychosocial|testing)/.test(p));
+
+  it.each(RESTRICTED)('%s gets a workspace but cannot open any other clinical screen', (r) => {
+    expect(hasWorkspaceAccess([r])).toBe(true);
+    for (const route of OTHER_CLINICAL) expect(can([r], featureForRoute(route)!)).toBe(false);
+    for (const f of ['caseView', 'employeeChart', 'encounters', 'documents', 'chartWrite', 'breakGlass', 'supportPlaceholder'] as const) expect(can([r], f)).toBe(false);
+    expect(paths([r]).every((p) => /^\/(support|peer-support|cism|psychosocial|testing)/.test(p))).toBe(true);
+  });
+
+  it.each(GENERAL_OH)('general OH role %s never opens support case content or the MRO result queue', (r) => {
+    for (const route of [...SUPPORT_CONTENT, '/testing/mro']) {
+      if (route.startsWith('/cism/') && r === 'OH_CLINICIAN') continue; // CISM names: PSYCH_CLINICIAN + OH_CLINICIAN (contract §3.4)
+      expect(can([r], featureForRoute(route)!)).toBe(false);
+    }
+    expect(can([r], 'supportPlaceholder')).toBe(true);
+    expect(can([r], 'testingCollection')).toBe(false);
+  });
+
+  it('only MRO and OH_PHYSICIAN (acting as MRO) reach return-to-duty; other OH roles never see testing results', () => {
+    for (const r of ['OH_CLINICIAN', 'NURSING_HEAD', 'CASE_MANAGER', 'CMO', 'AME', 'PSYCH_CLINICIAN']) for (const route of TESTING_RESULTS) expect(can([r], featureForRoute(route)!)).toBe(false);
+    expect(can(['OH_PHYSICIAN'], featureForRoute('/testing/rtd')!)).toBe(true);
+    expect(can(['OH_PHYSICIAN'], featureForRoute('/testing/mro')!)).toBe(false);
+  });
+
+  it('PSYCH_CLINICIAN (named clinician) gets the support screens; AME / OH_PHYSICIAN the fitness assessment only', () => {
+    expect(area(['PSYCH_CLINICIAN'])).toEqual(['/support/cases', '/support/urgent', '/support/eap', '/support/fitness', '/cism']);
+    expect(featureForRoute('/support/cases/abc')).toBe('supportCases');
+    expect(can(['PSYCH_CLINICIAN'], 'supportFitnessWrite')).toBe(false);
+    expect(can(['PSYCH_CLINICIAN'], 'supportRelief')).toBe(true);
+    expect(area(['AME'])).toEqual(['/support/fitness']);
+    expect(area(['OH_PHYSICIAN'])).toEqual(['/support/fitness', '/testing/rtd']);
+    for (const r of ['AME', 'OH_PHYSICIAN']) expect(can([r], 'supportFitnessWrite')).toBe(true);
+    expect(can(['AME'], 'supportReliefReturn')).toBe(true);
+    expect(can(['OH_PHYSICIAN'], 'supportRelief')).toBe(false);
+    expect(homeRoute(['PSYCH_CLINICIAN'])).toBe('/queues');
+  });
+
+  it('peer support: coordinator register + report, volunteer own log only', () => {
+    expect(paths(['PEER_SUPPORT_COORDINATOR'])).toEqual(['/peer-support']);
+    expect(paths(['PEER_SUPPORT_VOLUNTEER'])).toEqual(['/peer-support']);
+    expect(homeRoute(['PEER_SUPPORT_VOLUNTEER'])).toBe('/peer-support');
+    expect(can(['PEER_SUPPORT_COORDINATOR'], 'peerSupportCoordinate')).toBe(true);
+    expect(can(['PEER_SUPPORT_COORDINATOR'], 'peerSupportReport')).toBe(true);
+    expect(can(['PEER_SUPPORT_VOLUNTEER'], 'peerSupportCoordinate')).toBe(false);
+    expect(can(['PEER_SUPPORT_VOLUNTEER'], 'peerSupportReport')).toBe(false);
+    expect(can(['PEER_SUPPORT_VOLUNTEER'], 'peerSupportVolunteer')).toBe(true);
+    for (const r of ['PEER_SUPPORT_COORDINATOR', 'PEER_SUPPORT_VOLUNTEER']) for (const route of [...SUPPORT_CONTENT, '/cism', '/testing/reports']) expect(can([r], featureForRoute(route)!)).toBe(false);
+  });
+
+  it('SAFETY_MANAGER: CISM counts, SMS report, testing statistics (and policies read) – no names, no results', () => {
+    expect(area(['SAFETY_MANAGER'])).toEqual(['/peer-support', '/cism', '/testing/policies', '/testing/reports']);
+    expect(can(['SAFETY_MANAGER'], 'cismNames')).toBe(false);
+    expect(can(['SAFETY_MANAGER'], featureForRoute('/cism/ev1')!)).toBe(false);
+    expect(can(['SAFETY_MANAGER'], 'peerSupportReport')).toBe(true);
+    expect(can(['SAFETY_MANAGER'], 'peerSupportVolunteer')).toBe(false);
+    for (const f of ['testingPolicyWrite', 'testingMro', 'testingRequirements', 'testingAnnualReport'] as const) expect(can(['SAFETY_MANAGER'], f)).toBe(false);
+  });
+
+  it('DA_PROGRAMME_MANAGER: policies, pools, selections, requirements, coverage, statistics – never results', () => {
+    expect(area(['DA_PROGRAMME_MANAGER'])).toEqual(['/testing/policies', '/testing/pools', '/testing/selections', '/testing/requirements', '/testing/reports']);
+    for (const f of ['testingPolicyWrite', 'testingCoverage', 'testingAnnualReport'] as const) expect(can(['DA_PROGRAMME_MANAGER'], f)).toBe(true);
+    for (const route of [...TESTING_RESULTS, '/testing/collection']) expect(can(['DA_PROGRAMME_MANAGER'], featureForRoute(route)!)).toBe(false);
+  });
+
+  it('COLLECTOR: collection + requirements; MRO: queue, RTD, requirements; CMO: reports and coverage', () => {
+    expect(paths(['COLLECTOR'])).toEqual(['/testing/requirements', '/testing/collection']);
+    expect(homeRoute(['COLLECTOR'])).toBe('/testing/requirements');
+    expect(can(['COLLECTOR'], 'testingMro')).toBe(false);
+    expect(paths(['MRO'])).toEqual(['/testing/requirements', '/testing/mro', '/testing/rtd']);
+    expect(can(['MRO'], 'testingSelections')).toBe(false);
+    expect(area(['CMO'])).toEqual(['/peer-support', '/psychosocial', '/testing/policies', '/testing/reports']);
+    for (const f of ['testingCoverage', 'testingAnnualReport', 'supportGovernance', 'peerSupportReport'] as const) expect(can(['CMO'], f)).toBe(true);
+    expect(can(['CMO'], 'testingPolicyWrite')).toBe(false);
+    expect(homeRoute(['CMO'])).toBe('/queues');
+  });
+
+  it('CISM names for PSYCH_CLINICIAN / OH_CLINICIAN; psychosocial register for HSE_OFFICER / CMO / NURSING_HEAD', () => {
+    for (const r of ['PSYCH_CLINICIAN', 'OH_CLINICIAN']) expect(can([r], featureForRoute('/cism/ev1')!)).toBe(true);
+    expect(featureForRoute('/cism/ev1')).toBe('cismNames');
+    for (const r of ['HSE_OFFICER', 'CMO', 'NURSING_HEAD']) expect(paths([r])).toContain('/psychosocial');
+    expect(paths(['OH_CLINICIAN'])).not.toContain('/psychosocial');
+  });
+
+  it.each([['HR'], ['MANAGER'], ['EMPLOYEE'], ['CREW_SCHEDULING'], ['PARTNER_PROVIDER'], ['DPO'], ['AUDITOR'], ['CLINIC_RECEPTION'], ['FINANCE']])('%s gets no E09 / E10 screen', (r) => {
+    expect(area([r])).toEqual([]);
+  });
+});
+
+describe('increment 5 – E11 travel health & public health, E12 health promotion gating (API-Contract-E09-E10-E11-E12 §5, §6)', () => {
+  const E11 = ['/travel/consultations', '/travel/destinations', '/communicable', '/exposures', '/vaccination-campaigns', '/advisories', '/public-health'];
+  const E12 = ['/promotion/insights', '/promotion/campaigns', '/promotion/screening', '/ergonomics', '/promotion/reports'];
+  const area = (roles: string[]) => paths(roles).filter((p) => E11.includes(p) || E12.includes(p));
+  const PERSON_LEVEL = ['/travel/consultations', '/communicable', '/communicable/cd1', '/exposures', '/exposures/x1', '/vaccination-campaigns', '/queues', '/employees/E1/chart'];
+
+  it('clinicians: travel, communicable (incl. case detail), exposures, vaccination campaigns, advisories, public health, screening', () => {
+    expect(area(['OH_CLINICIAN'])).toEqual([...E11, '/promotion/screening']);
+    for (const r of ['/communicable/cd1', '/exposures/x1']) expect(can(['OH_CLINICIAN'], featureForRoute(r)!)).toBe(true);
+    expect(featureForRoute('/communicable/cd1')).toBe('communicable');
+    expect(featureForRoute('/exposures/x1')).toBe('exposurePathways');
+    for (const f of ['travelDestinationWrite', 'advisoryWrite', 'publicHealthWrite', 'vaccinationCampaignInvite', 'vaccinationUptake'] as const) expect(can(['OH_CLINICIAN'], f)).toBe(false);
+    for (const f of ['vaccinationCampaignCreate', 'screeningEventWrite', 'screeningResultWrite'] as const) expect(can(['OH_CLINICIAN'], f)).toBe(true);
+    expect(homeRoute(['OH_CLINICIAN'])).toBe('/queues');
+  });
+
+  it('physicians author advisories; OH_PHYSICIAN / CMO edit destinations and submit public-health reports (AME advisories only)', () => {
+    for (const r of ['OH_PHYSICIAN', 'CMO', 'AME']) expect(can([r], 'advisoryWrite')).toBe(true);
+    for (const r of ['OH_PHYSICIAN', 'CMO']) {
+      expect(can([r], 'travelDestinationWrite')).toBe(true);
+      expect(can([r], 'publicHealthWrite')).toBe(true);
+    }
+    expect(can(['AME'], 'publicHealthWrite')).toBe(false);
+    expect(can(['AME'], 'travelDestinationWrite')).toBe(false);
+  });
+
+  it('case manager reads destinations, advisories and public-health reports – no person-level E11 work', () => {
+    expect(area(['CASE_MANAGER'])).toEqual(['/travel/destinations', '/advisories', '/public-health']);
+  });
+
+  it('vaccination campaigns: NURSING_HEAD invites; NURSING_HEAD / CMO see uptake', () => {
+    expect(can(['NURSING_HEAD'], 'vaccinationCampaignInvite')).toBe(true);
+    for (const r of ['NURSING_HEAD', 'CMO']) expect(can([r], 'vaccinationUptake')).toBe(true);
+    expect(can(['CMO'], 'vaccinationCampaignInvite')).toBe(false);
+    expect(can(['OH_PHYSICIAN'], 'vaccinationUptake')).toBe(false);
+  });
+
+  it('HEALTH_PROMOTION_LEAD: insights, campaign planner, screening events (no result entry), reports – no person-level clinical screen', () => {
+    expect(hasWorkspaceAccess(['HEALTH_PROMOTION_LEAD'])).toBe(true);
+    expect(paths(['HEALTH_PROMOTION_LEAD'])).toEqual(['/promotion/insights', '/promotion/campaigns', '/promotion/screening', '/promotion/reports']);
+    expect(homeRoute(['HEALTH_PROMOTION_LEAD'])).toBe('/promotion/insights');
+    expect(can(['HEALTH_PROMOTION_LEAD'], 'screeningEventWrite')).toBe(true);
+    expect(can(['HEALTH_PROMOTION_LEAD'], 'screeningResultWrite')).toBe(false);
+    for (const r of PERSON_LEVEL) expect(can(['HEALTH_PROMOTION_LEAD'], featureForRoute(r)!)).toBe(false);
+  });
+
+  it('ERGONOMIST: ergonomics only (with photos); HSE_OFFICER: ergonomics without photo upload', () => {
+    expect(paths(['ERGONOMIST'])).toEqual(['/ergonomics']);
+    expect(homeRoute(['ERGONOMIST'])).toBe('/ergonomics');
+    expect(can(['ERGONOMIST'], 'ergonomicsPhotos')).toBe(true);
+    expect(paths(['HSE_OFFICER'])).toContain('/ergonomics');
+    expect(can(['HSE_OFFICER'], 'ergonomicsPhotos')).toBe(false);
+    for (const r of PERSON_LEVEL) expect(can(['ERGONOMIST'], featureForRoute(r)!)).toBe(false);
+  });
+
+  it('CMO / NURSING_HEAD read insights; CMO reads campaign reports; neither plans campaigns', () => {
+    for (const r of ['CMO', 'NURSING_HEAD']) {
+      expect(paths([r])).toContain('/promotion/insights');
+      expect(can([r], 'promotionCampaigns')).toBe(false);
+    }
+    expect(paths(['CMO'])).toContain('/promotion/reports');
+    expect(paths(['NURSING_HEAD'])).not.toContain('/promotion/reports');
+    expect(homeRoute(['CMO'])).toBe('/queues');
+    expect(homeRoute(['NURSING_HEAD'])).toBe('/queues');
+  });
+
+  it.each([['HR'], ['MANAGER'], ['EMPLOYEE'], ['CREW_SCHEDULING'], ['DPO'], ['SAFETY_MANAGER'], ['CLINIC_RECEPTION'], ['OH_ADMIN'], ['PSYCH_CLINICIAN_X']])('%s gets no E11 / E12 screen', (r) => {
     expect(area([r])).toEqual([]);
   });
 });

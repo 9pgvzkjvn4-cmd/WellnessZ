@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Debug the Partner portal in Chrome (start "Vite: Partner portal (5176)" first) - Ultimate / WebStorm only -->
+  <configuration default="false" name="Chrome: Partner portal" type="JavascriptDebugType" uri="http://localhost:5176" folderName="Web">
+    <method v="2" />
+  </configuration>
+</component>

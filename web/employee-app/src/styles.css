@@ -975,3 +975,44 @@ button.danger:hover {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* ---------- Increment 5: support, peer support, travel, check-ins, campaigns, workplace checks ---------- */
+.emergency-banner {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-inline-start: 6px solid var(--c-accent);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0 1rem;
+}
+.emergency-banner p {
+  margin: 0.25rem 0;
+}
+.emergency-call {
+  display: inline-block;
+  margin: 0.5rem 0;
+  min-height: 44px;
+}
+.alert-urgent {
+  background: var(--c-info-bg);
+  color: var(--c-text);
+  border-color: var(--c-accent);
+}
+.support .lead,
+.support h2 {
+  color: var(--c-text);
+}
+.choice {
+  display: block;
+  padding: 0.5rem 0;
+  min-height: 44px;
+}
+.screen-result .badge {
+  font-size: 1rem;
+}
+.advisory-critical {
+  border-inline-start: 4px solid var(--c-error);
+}
+.advisory-warning {
+  border-inline-start: 4px solid var(--c-focus);
+}

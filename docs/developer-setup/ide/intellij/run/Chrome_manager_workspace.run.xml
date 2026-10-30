@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Debug the Manager workspace in Chrome (start "Vite: Manager workspace (5174)" first) - Ultimate / WebStorm only -->
+  <configuration default="false" name="Chrome: Manager workspace" type="JavascriptDebugType" uri="http://localhost:5174" folderName="Web">
+    <method v="2" />
+  </configuration>
+</component>

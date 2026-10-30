@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Writes deploy/local/core.local.env and bff.local.env (ENC values) and the master key files in ~/.config/wellnessz -->
+  <configuration default="false" name="Generate IDE env files" type="ShConfigurationType" folderName="Local stack">
+    <option name="SCRIPT_TEXT" value="" />
+    <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/docs/developer-setup/ide/scripts/make-ide-env.sh" />
+    <option name="SCRIPT_OPTIONS" value="" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+    <option name="INTERPRETER_PATH" value="/bin/bash" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="EXECUTE_IN_TERMINAL" value="true" />
+    <option name="EXECUTE_SCRIPT_FILE" value="true" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

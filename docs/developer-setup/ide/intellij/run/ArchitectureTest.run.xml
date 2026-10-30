@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Module-boundary rules; no database needed -->
+  <configuration default="false" name="ArchitectureTest (ArchUnit)" type="JUnit" factoryName="JUnit" folderName="Tests">
+    <module name="wz-core-app" />
+    <option name="PACKAGE_NAME" value="com.wellnessz.app" />
+    <option name="MAIN_CLASS_NAME" value="com.wellnessz.app.ArchitectureTest" />
+    <option name="METHOD_NAME" value="" />
+    <option name="TEST_OBJECT" value="class" />
+    <option name="WORKING_DIRECTORY" value="$MODULE_WORKING_DIR$" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

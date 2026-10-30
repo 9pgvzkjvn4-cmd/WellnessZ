@@ -9,6 +9,7 @@ import { DocumentsPanel } from '../documents/DocumentsPanel';
 import { EncounterList } from '../encounter/EncounterList';
 import { ResultsTab } from '../results/ResultsTab';
 import { SurveillanceChartTab } from '../surveillance/SurveillanceChartTab';
+import { RestrictedCasePlaceholder } from '../support/RestrictedCasePlaceholder';
 import { TreatmentChartTab } from '../treatment/TreatmentChartTab';
 import type { ScreenProps } from '../types';
 import { BreakGlass } from './BreakGlass';
@@ -210,6 +211,7 @@ export function ChartScreen(props: ScreenProps & { employeeId: string; tab?: str
             }}
           />
           <ChartSummaryPanel s={s} />
+          <RestrictedCasePlaceholder client={client} roles={session.roles} employeeId={employeeId} onSessionExpired={onSessionExpired} />
         </>
       )}
       {!s && !chart.loading && !chart.error && <Empty>No chart.</Empty>}

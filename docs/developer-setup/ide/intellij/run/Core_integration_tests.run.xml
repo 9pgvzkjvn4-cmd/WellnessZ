@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Integration tests on IntegrationTestBase: Testcontainers postgres:16-alpine (Docker must run). For the compose database use 'mvn verify (local test DB)' instead -->
+  <configuration default="false" name="Core integration tests" type="JUnit" factoryName="JUnit" folderName="Tests">
+    <module name="wz-core-app" />
+    <option name="PACKAGE_NAME" value="com.wellnessz.app" />
+    <option name="MAIN_CLASS_NAME" value="" />
+    <option name="METHOD_NAME" value="" />
+    <option name="TEST_OBJECT" value="package" />
+    <option name="TEST_SEARCH_SCOPE">
+      <value defaultName="singleModule" />
+    </option>
+    <option name="WORKING_DIRECTORY" value="$MODULE_WORKING_DIR$" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

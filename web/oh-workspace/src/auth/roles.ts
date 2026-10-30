@@ -227,6 +227,61 @@ export const FEATURES = {
   /** GET /legal-requests[/{id}] – full questions and report versions (claims coordinators see summaries only). */
   legalRequestRead: ['LEGAL_COUNSEL', ...PHYSICIANS],
   claimDisclosureReport: ['DPO'],
+  // Increment 5 – E09 mental health & peer support (API-Contract-E09-E10-E11-E12 §3). Restricted class: only named
+  // PSYCH_CLINICIANs read support cases; other OH roles get the `/support/placeholder` count on the chart.
+  supportCases: ['PSYCH_CLINICIAN'],
+  supportUrgent: ['PSYCH_CLINICIAN'],
+  supportEap: ['PSYCH_CLINICIAN'],
+  supportGovernance: ['PSYCH_CLINICIAN', 'CMO'],
+  supportPlaceholder: OH,
+  supportFitness: ['AME', 'OH_PHYSICIAN', 'PSYCH_CLINICIAN'],
+  supportFitnessWrite: ['AME', 'OH_PHYSICIAN'],
+  supportRelief: ['AME', 'PSYCH_CLINICIAN'],
+  supportReliefReturn: ['AME'],
+  peerSupport: ['PEER_SUPPORT_COORDINATOR', 'PEER_SUPPORT_VOLUNTEER', 'SAFETY_MANAGER', 'CMO'],
+  peerSupportCoordinate: ['PEER_SUPPORT_COORDINATOR'],
+  peerSupportVolunteer: ['PEER_SUPPORT_VOLUNTEER'],
+  peerSupportReport: ['PEER_SUPPORT_COORDINATOR', 'SAFETY_MANAGER', 'CMO'],
+  peerSupportReportSend: ['PEER_SUPPORT_COORDINATOR', 'SAFETY_MANAGER'],
+  cism: ['PSYCH_CLINICIAN', 'OH_CLINICIAN', 'SAFETY_MANAGER'],
+  /** CISM person lists (names); SAFETY_MANAGER sees event counts only. */
+  cismNames: ['PSYCH_CLINICIAN', 'OH_CLINICIAN'],
+  psychosocial: ['HSE_OFFICER', 'CMO', 'NURSING_HEAD'],
+  // Increment 5 – E10 drug & alcohol testing (§4). Results only for MRO; programme manager / collector never see results.
+  testingPolicies: ['DA_PROGRAMME_MANAGER', 'CMO', 'SAFETY_MANAGER'],
+  testingPolicyWrite: ['DA_PROGRAMME_MANAGER'],
+  testingPools: ['DA_PROGRAMME_MANAGER'],
+  testingSelections: ['DA_PROGRAMME_MANAGER'],
+  testingCoverage: ['DA_PROGRAMME_MANAGER', 'CMO'],
+  testingRequirements: ['DA_PROGRAMME_MANAGER', 'COLLECTOR', 'MRO'],
+  testingCollection: ['COLLECTOR'],
+  testingMro: ['MRO'],
+  testingRtd: ['MRO', 'OH_PHYSICIAN'],
+  testingReports: ['DA_PROGRAMME_MANAGER', 'CMO', 'SAFETY_MANAGER'],
+  testingAnnualReport: ['CMO', 'DA_PROGRAMME_MANAGER'],
+  // Increment 5 – E11 travel health, communicable disease & exposures (§5). Person-level work is for clinicians.
+  travelDestinations: OH,
+  travelDestinationWrite: ['OH_PHYSICIAN', 'CMO'],
+  travelConsultations: CLINICIANS,
+  communicable: CLINICIANS,
+  exposurePathways: CLINICIANS,
+  vaccinationCampaigns: CLINICIANS,
+  vaccinationCampaignCreate: ['NURSING_HEAD', 'OH_CLINICIAN'],
+  vaccinationCampaignInvite: ['NURSING_HEAD'],
+  vaccinationUptake: ['NURSING_HEAD', 'CMO'],
+  advisories: OH,
+  advisoryWrite: PHYSICIANS,
+  publicHealth: OH,
+  publicHealthWrite: ['OH_PHYSICIAN', 'CMO'],
+  // Increment 5 – E12 health promotion (§6). HEALTH_PROMOTION_LEAD: aggregated / suppressed figures only, never results.
+  promotionInsights: ['HEALTH_PROMOTION_LEAD', 'CMO', 'NURSING_HEAD'],
+  promotionCampaigns: ['HEALTH_PROMOTION_LEAD'],
+  screeningEvents: ['HEALTH_PROMOTION_LEAD', ...CLINICIANS],
+  screeningEventWrite: ['HEALTH_PROMOTION_LEAD', 'OH_CLINICIAN'],
+  screeningResultWrite: CLINICIANS,
+  ergonomics: ['ERGONOMIST', 'HSE_OFFICER'],
+  ergonomicsPhotos: ['ERGONOMIST'],
+  promotionReports: ['HEALTH_PROMOTION_LEAD', 'CMO'],
 } satisfies Record<string, readonly string[]>;
 
 export type Feature = keyof typeof FEATURES;
@@ -262,7 +317,7 @@ export interface NavItem {
   path: string;
   label: string;
   feature: Feature;
-  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic' | 'Absence' | 'Surveillance' | 'Claims' | 'Treatment';
+  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic' | 'Absence' | 'Surveillance' | 'Claims' | 'Treatment' | 'Support' | 'Testing' | 'Public health' | 'Promotion';
 }
 
 export const NAV: readonly NavItem[] = [
@@ -346,6 +401,36 @@ export const NAV: readonly NavItem[] = [
   { path: '/providers/scorecards', label: 'Provider scorecards', feature: 'providerScorecards', group: 'Treatment' },
   { path: '/providers/gaps', label: 'Network gaps', feature: 'networkGaps', group: 'Treatment' },
   { path: '/treatment/kpis', label: 'Treatment KPIs', feature: 'treatmentKpis', group: 'Treatment' },
+  // Increment 5 – E09 support (restricted) and E10 testing
+  { path: '/support/cases', label: 'Support cases', feature: 'supportCases', group: 'Support' },
+  { path: '/support/urgent', label: 'Urgent call-backs', feature: 'supportUrgent', group: 'Support' },
+  { path: '/support/eap', label: 'EAP referrals', feature: 'supportEap', group: 'Support' },
+  { path: '/support/fitness', label: 'Mental-health fitness', feature: 'supportFitness', group: 'Support' },
+  { path: '/peer-support', label: 'Peer support', feature: 'peerSupport', group: 'Support' },
+  { path: '/cism', label: 'Critical incidents (CISM)', feature: 'cism', group: 'Support' },
+  { path: '/psychosocial', label: 'Psychosocial risk', feature: 'psychosocial', group: 'Support' },
+  { path: '/testing/policies', label: 'Testing policies', feature: 'testingPolicies', group: 'Testing' },
+  { path: '/testing/pools', label: 'Testing pools', feature: 'testingPools', group: 'Testing' },
+  { path: '/testing/selections', label: 'Random selections', feature: 'testingSelections', group: 'Testing' },
+  { path: '/testing/requirements', label: 'Test requirements', feature: 'testingRequirements', group: 'Testing' },
+  { path: '/testing/collection', label: 'Specimen collection', feature: 'testingCollection', group: 'Testing' },
+  { path: '/testing/mro', label: 'MRO review', feature: 'testingMro', group: 'Testing' },
+  { path: '/testing/rtd', label: 'Return to duty', feature: 'testingRtd', group: 'Testing' },
+  { path: '/testing/reports', label: 'Testing statistics', feature: 'testingReports', group: 'Testing' },
+  // Increment 5 – E11 travel health & public health
+  { path: '/travel/consultations', label: 'Travel consultations', feature: 'travelConsultations', group: 'Public health' },
+  { path: '/travel/destinations', label: 'Destinations', feature: 'travelDestinations', group: 'Public health' },
+  { path: '/communicable', label: 'Communicable disease', feature: 'communicable', group: 'Public health' },
+  { path: '/exposures', label: 'Exposure pathways', feature: 'exposurePathways', group: 'Public health' },
+  { path: '/vaccination-campaigns', label: 'Vaccination campaigns', feature: 'vaccinationCampaigns', group: 'Public health' },
+  { path: '/advisories', label: 'Health advisories', feature: 'advisories', group: 'Public health' },
+  { path: '/public-health', label: 'Public-health reports', feature: 'publicHealth', group: 'Public health' },
+  // Increment 5 – E12 health promotion
+  { path: '/promotion/insights', label: 'Insights', feature: 'promotionInsights', group: 'Promotion' },
+  { path: '/promotion/campaigns', label: 'Campaign planner', feature: 'promotionCampaigns', group: 'Promotion' },
+  { path: '/promotion/screening', label: 'Screening events', feature: 'screeningEvents', group: 'Promotion' },
+  { path: '/ergonomics', label: 'Ergonomics', feature: 'ergonomics', group: 'Promotion' },
+  { path: '/promotion/reports', label: 'Campaign reports', feature: 'promotionReports', group: 'Promotion' },
 ];
 
 export function navFor(roles: readonly string[] | undefined): NavItem[] {
@@ -373,5 +458,9 @@ export function featureForRoute(route: string): Feature | undefined {
   if (/^\/referrals\/[^/]+$/.test(route)) return 'referrals';
   if (/^\/providers\/[^/]+$/.test(route)) return 'providers';
   if (/^\/claims\/[^/]+(\/[a-z-]+)?$/.test(route)) return 'claimDetail';
+  if (/^\/support\/cases\/[^/]+$/.test(route)) return 'supportCases';
+  if (/^\/cism\/[^/]+$/.test(route)) return 'cismNames';
+  if (/^\/communicable\/[^/]+$/.test(route)) return 'communicable';
+  if (/^\/exposures\/[^/]+$/.test(route)) return 'exposurePathways';
   return undefined;
 }

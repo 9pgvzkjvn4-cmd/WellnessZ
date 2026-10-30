@@ -1,0 +1,8 @@
+# Eclipse JDT compiler preferences applied by the VS Code Java extension (java.settings.url).
+# Matches the Maven compiler configuration in the root pom.xml (<release>21</release>, <parameters>true</parameters>).
+# -parameters is REQUIRED: the controllers use @PathVariable / @RequestParam without explicit names.
+org.eclipse.jdt.core.compiler.codegen.methodParameters=generate
+org.eclipse.jdt.core.compiler.release=enabled
+org.eclipse.jdt.core.compiler.compliance=21
+org.eclipse.jdt.core.compiler.source=21
+org.eclipse.jdt.core.compiler.codegen.targetPlatform=21

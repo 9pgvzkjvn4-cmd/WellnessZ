@@ -97,6 +97,39 @@ const ClaimDisclosureReport = lazy(() => import('./screens/claims/ClaimScreens')
 const ClaimCostsScreen = lazy(() => import('./screens/claims/ClaimCosts').then((m) => ({ default: m.ClaimCostsScreen })));
 const ClaimDetailScreen = lazy(() => import('./screens/claims/ClaimDetail').then((m) => ({ default: m.ClaimDetailScreen })));
 const PhysicianLegalRequests = lazy(() => import('./screens/claims/LegalRequests').then((m) => ({ default: m.PhysicianLegalRequests })));
+// Increment 5 – E09 support (restricted) & E10 drug and alcohol testing (one chunk per screen file).
+const SupportCases = lazy(() => import('./screens/support/Cases').then((m) => ({ default: m.SupportCases })));
+const SupportCaseScreen = lazy(() => import('./screens/support/Cases').then((m) => ({ default: m.SupportCaseScreen })));
+const UrgentQueue = lazy(() => import('./screens/support/Urgent').then((m) => ({ default: m.UrgentQueue })));
+const EapReferrals = lazy(() => import('./screens/support/Urgent').then((m) => ({ default: m.EapReferrals })));
+const SupportFitness = lazy(() => import('./screens/support/Fitness').then((m) => ({ default: m.SupportFitness })));
+const PeerSupport = lazy(() => import('./screens/support/PeerSupport').then((m) => ({ default: m.PeerSupport })));
+const CismEvents = lazy(() => import('./screens/support/Cism').then((m) => ({ default: m.CismEvents })));
+const CismEventScreen = lazy(() => import('./screens/support/Cism').then((m) => ({ default: m.CismEventScreen })));
+const Psychosocial = lazy(() => import('./screens/support/Psychosocial').then((m) => ({ default: m.Psychosocial })));
+const TestingPolicies = lazy(() => import('./screens/testing/Programme').then((m) => ({ default: m.TestingPolicies })));
+const TestingPools = lazy(() => import('./screens/testing/Programme').then((m) => ({ default: m.TestingPools })));
+const TestingSelections = lazy(() => import('./screens/testing/Programme').then((m) => ({ default: m.TestingSelections })));
+const TestingRequirements = lazy(() => import('./screens/testing/Requirements').then((m) => ({ default: m.TestingRequirements })));
+const TestingCollection = lazy(() => import('./screens/testing/Collection').then((m) => ({ default: m.TestingCollection })));
+const MroQueue = lazy(() => import('./screens/testing/Mro').then((m) => ({ default: m.MroQueue })));
+const RtdPlans = lazy(() => import('./screens/testing/Mro').then((m) => ({ default: m.RtdPlans })));
+const TestingReports = lazy(() => import('./screens/testing/Reports').then((m) => ({ default: m.TestingReports })));
+// Increment 5 – E11 travel health & public health, E12 health promotion (one chunk per screen file).
+const TravelDestinations = lazy(() => import('./screens/travel/Destinations').then((m) => ({ default: m.TravelDestinations })));
+const TravelConsultations = lazy(() => import('./screens/travel/Consultations').then((m) => ({ default: m.TravelConsultations })));
+const CommunicableList = lazy(() => import('./screens/travel/Communicable').then((m) => ({ default: m.CommunicableList })));
+const CommunicableCase = lazy(() => import('./screens/travel/Communicable').then((m) => ({ default: m.CommunicableCase })));
+const ExposureList = lazy(() => import('./screens/travel/Exposures').then((m) => ({ default: m.ExposureList })));
+const ExposureDetail = lazy(() => import('./screens/travel/Exposures').then((m) => ({ default: m.ExposureDetail })));
+const VaccinationCampaigns = lazy(() => import('./screens/travel/VaccinationCampaigns').then((m) => ({ default: m.VaccinationCampaigns })));
+const Advisories = lazy(() => import('./screens/travel/Advisories').then((m) => ({ default: m.Advisories })));
+const PublicHealthReports = lazy(() => import('./screens/travel/PublicHealth').then((m) => ({ default: m.PublicHealthReports })));
+const PromotionInsights = lazy(() => import('./screens/promotion/Insights').then((m) => ({ default: m.PromotionInsights })));
+const PromotionCampaigns = lazy(() => import('./screens/promotion/Campaigns').then((m) => ({ default: m.PromotionCampaigns })));
+const ScreeningEvents = lazy(() => import('./screens/promotion/Screening').then((m) => ({ default: m.ScreeningEvents })));
+const Ergonomics = lazy(() => import('./screens/promotion/Ergonomics').then((m) => ({ default: m.Ergonomics })));
+const PromotionReports = lazy(() => import('./screens/promotion/Reports').then((m) => ({ default: m.PromotionReports })));
 
 /** Fixed second segments that are screens, not ids (`/claims/reports` is not claim "reports"). */
 const CLAIM_SCREENS = new Set(['reports', 'costs', 'nurse-assignment', 'disclosures', 'preauthorisations']);
@@ -125,8 +158,16 @@ function renderRoute(route: string, props: ScreenProps): ReactNode {
   if (referralMatch?.[1]) return <ReferralScreen key={referralMatch[1]} {...props} referralId={decodeURIComponent(referralMatch[1])} />;
   const providerMatch = /^\/providers\/([^/]+)$/.exec(route);
   if (providerMatch?.[1] && !PROVIDER_SCREENS.has(providerMatch[1])) return <ProviderScreen key={providerMatch[1]} {...props} code={decodeURIComponent(providerMatch[1])} />;
+  const supportMatch = /^\/support\/cases\/([^/]+)$/.exec(route);
+  if (supportMatch?.[1]) return <SupportCaseScreen key={supportMatch[1]} {...props} caseId={decodeURIComponent(supportMatch[1])} />;
+  const cismMatch = /^\/cism\/([^/]+)$/.exec(route);
+  if (cismMatch?.[1]) return <CismEventScreen key={cismMatch[1]} {...props} eventId={decodeURIComponent(cismMatch[1])} />;
   const incMatch = /^\/intake\/incidents(?:\/([^/]+))?$/.exec(route);
   if (incMatch) return <IncidentCases {...props} incidentId={incMatch[1] ? decodeURIComponent(incMatch[1]) : undefined} />;
+  const cdMatch = /^\/communicable\/([^/]+)$/.exec(route);
+  if (cdMatch?.[1]) return <CommunicableCase key={cdMatch[1]} {...props} caseId={decodeURIComponent(cdMatch[1])} />;
+  const exposureMatch = /^\/exposures\/([^/]+)$/.exec(route);
+  if (exposureMatch?.[1]) return <ExposureDetail key={exposureMatch[1]} {...props} exposureId={decodeURIComponent(exposureMatch[1])} />;
   switch (route) {
     case '/queues': return <Queues {...props} />;
     case '/escalations': return <Escalations {...props} />;
@@ -200,8 +241,35 @@ function renderRoute(route: string, props: ScreenProps): ReactNode {
     case '/claims/costs': return <ClaimCostsScreen {...props} />;
     case '/claims/nurse-assignment': return <NurseAssignment {...props} />;
     case '/claims/disclosures': return <ClaimDisclosureReport {...props} />;
+    case '/travel/destinations': return <TravelDestinations {...props} />;
+    case '/travel/consultations': return <TravelConsultations {...props} />;
+    case '/communicable': return <CommunicableList {...props} />;
+    case '/exposures': return <ExposureList {...props} />;
+    case '/vaccination-campaigns': return <VaccinationCampaigns {...props} />;
+    case '/advisories': return <Advisories {...props} />;
+    case '/public-health': return <PublicHealthReports {...props} />;
+    case '/promotion/insights': return <PromotionInsights {...props} />;
+    case '/promotion/campaigns': return <PromotionCampaigns {...props} />;
+    case '/promotion/screening': return <ScreeningEvents {...props} />;
+    case '/ergonomics': return <Ergonomics {...props} />;
+    case '/promotion/reports': return <PromotionReports {...props} />;
     case '/legal': return <LegalScreen {...props} />;
     case '/legal/requests': return <PhysicianLegalRequests {...props} />;
+    case '/support/cases': return <SupportCases {...props} />;
+    case '/support/urgent': return <UrgentQueue {...props} />;
+    case '/support/eap': return <EapReferrals {...props} />;
+    case '/support/fitness': return <SupportFitness {...props} />;
+    case '/peer-support': return <PeerSupport {...props} />;
+    case '/cism': return <CismEvents {...props} />;
+    case '/psychosocial': return <Psychosocial {...props} />;
+    case '/testing/policies': return <TestingPolicies {...props} />;
+    case '/testing/pools': return <TestingPools {...props} />;
+    case '/testing/selections': return <TestingSelections {...props} />;
+    case '/testing/requirements': return <TestingRequirements {...props} />;
+    case '/testing/collection': return <TestingCollection {...props} />;
+    case '/testing/mro': return <MroQueue {...props} />;
+    case '/testing/rtd': return <RtdPlans {...props} />;
+    case '/testing/reports': return <TestingReports {...props} />;
     default:
       return (
         <section>
@@ -294,7 +362,7 @@ export function App({ client }: { client: AuthClient }) {
         ? route
         : /^\/(claims|referrals|providers)\/./.test(route)
           ? `/${route.split('/')[1]}`
-          : route.replace(/^(\/intake\/incidents)\/.*$/, '$1').replace(/^(\/scheduling\/campaigns)\/.*$/, '$1').replace(/^(\/absence\/lta|\/surveillance\/programmes)\/.*$/, '$1');
+          : route.replace(/^(\/intake\/incidents)\/.*$/, '$1').replace(/^(\/scheduling\/campaigns)\/.*$/, '$1').replace(/^(\/absence\/lta|\/surveillance\/programmes)\/.*$/, '$1').replace(/^(\/support\/cases|\/cism)\/.*$/, '$1').replace(/^(\/communicable|\/exposures)\/.*$/, '$1');
 
   return (
     <div className="shell">

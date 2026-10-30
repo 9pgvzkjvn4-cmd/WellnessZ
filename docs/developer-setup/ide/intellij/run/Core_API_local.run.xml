@@ -1,0 +1,24 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Core API: http://localhost:8080, management 8081 - IntelliJ IDEA Ultimate (Spring Boot run type) + EnvFile plugin.
+       Secrets: ENC(...) values in the git-ignored env file, key in WZ_MASTER_KEY_FILE (make-ide-env.sh). -->
+  <configuration default="false" name="Core API (local)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" folderName="Backend">
+    <option name="ACTIVE_PROFILES" value="local" />
+    <module name="wz-core-app" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.wellnessz.WellnessZCoreApplication" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <extension name="net.ashald.envfile">
+      <option name="IS_ENABLED" value="true" />
+      <option name="IS_SUBST" value="false" />
+      <option name="IS_PATH_MACRO_SUPPORTED" value="true" />
+      <option name="IS_IGNORE_MISSING_FILES" value="false" />
+      <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+      <ENTRIES>
+        <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
+        <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$PROJECT_DIR$/deploy/local/core.local.env" />
+      </ENTRIES>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

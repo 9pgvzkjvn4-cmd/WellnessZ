@@ -1,0 +1,106 @@
+{
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.exclude": {
+    "**/target": true,
+    ".claude/worktrees": true
+  },
+  "files.watcherExclude": {
+    "**/target/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    ".claude/worktrees/**": true
+  },
+  "search.exclude": {
+    "**/target": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true,
+    "docs/dist": true,
+    "tools/e2e/shots": true,
+    ".claude/worktrees": true
+  },
+  "files.associations": {
+    "*.run.xml": "xml",
+    "**/deploy/helm/**/templates/*.yaml": "helm",
+    "**/deploy/helm/**/templates/*.tpl": "helm"
+  },
+
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.import.exclusions": [
+    "**/node_modules/**",
+    "**/.metadata/**",
+    "**/archetype-resources/**",
+    "**/META-INF/maven/**",
+    "**/.claude/worktrees/**"
+  ],
+  "java.settings.url": ".vscode/java-settings.prefs",
+  "java.compile.nullAnalysis.mode": "disabled",
+  "java.completion.importOrder": [
+    "#",
+    "java",
+    "javax",
+    ""
+  ],
+  "java.sources.organizeImports.starThreshold": 999,
+  "java.sources.organizeImports.staticStarThreshold": 999,
+  "java.debug.settings.onBuildFailureProceed": false,
+  "maven.executable.preferMavenWrapper": true,
+  "maven.view": "hierarchical",
+
+  "eslint.workingDirectories": [
+    "web/employee-app",
+    "web/manager-workspace",
+    "web/oh-workspace",
+    "web/partner-portal"
+  ],
+  "typescript.tsdk": "web/oh-workspace/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "[typescript]": {
+    "editor.tabSize": 2,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "[typescriptreact]": {
+    "editor.tabSize": 2,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "[java]": {
+    "editor.tabSize": 4,
+    "editor.rulers": [120]
+  },
+
+  "yaml.schemas": {
+    "deploy/helm/wellnessz/values.schema.json": [
+      "deploy/helm/wellnessz/values.yaml",
+      "deploy/helm/wellnessz/values-*.yaml"
+    ]
+  },
+
+  "sqltools.connections": [
+    {
+      "name": "WellnessZ local - wz_app (runtime role, DML)",
+      "driver": "PostgreSQL",
+      "server": "localhost",
+      "port": 5432,
+      "database": "wellnessz",
+      "username": "wz_app",
+      "askForPassword": true,
+      "connectionTimeout": 15
+    },
+    {
+      "name": "WellnessZ local - wz_migrator (schema owner, DDL)",
+      "driver": "PostgreSQL",
+      "server": "localhost",
+      "port": 5432,
+      "database": "wellnessz",
+      "username": "wz_migrator",
+      "askForPassword": true,
+      "connectionTimeout": 15
+    }
+  ]
+}

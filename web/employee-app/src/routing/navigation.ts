@@ -3,10 +3,10 @@
  * no employee features see only the pre-employment section – every route resolves there.
  */
 
-export type NavSource = 'portal' | 'oh' | 'care';
+export type NavSource = 'portal' | 'oh' | 'care' | 'wellbeing';
 export interface NavItem {
   path: string;
-  /** Key in `PortalStrings['nav']` (source portal), `OhStrings['nav']` (source oh) or `CareStrings['nav']` (source care). */
+  /** Key in `PortalStrings['nav']` (portal), `OhStrings['nav']` (oh), `CareStrings['nav']` (care) or `WellbeingStrings['nav']` (wellbeing). */
   key: string;
   source: NavSource;
 }
@@ -27,6 +27,12 @@ const EMPLOYEE_NAV: readonly NavItem[] = [
   { path: '/appointments', key: 'appointments', source: 'oh' },
   { path: '/treatment', key: 'treatment', source: 'care' },
   { path: '/telehealth', key: 'telehealth', source: 'care' },
+  { path: '/support', key: 'support', source: 'wellbeing' },
+  { path: '/peer-support', key: 'peer', source: 'wellbeing' },
+  { path: '/check-ins', key: 'checkIns', source: 'wellbeing' },
+  { path: '/travel', key: 'travel', source: 'wellbeing' },
+  { path: '/campaigns', key: 'campaigns', source: 'wellbeing' },
+  { path: '/testing', key: 'testing', source: 'wellbeing' },
   { path: '/advice', key: 'advice', source: 'portal' },
   { path: '/absence', key: 'absence', source: 'oh' },
   { path: '/surveillance', key: 'surveillance', source: 'oh' },

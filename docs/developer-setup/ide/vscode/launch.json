@@ -1,0 +1,196 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Core API (local)",
+      "request": "launch",
+      "mainClass": "com.wellnessz.WellnessZCoreApplication",
+      "projectName": "wz-core-app",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/deploy/local/core.local.env",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "java",
+      "name": "BFF (local)",
+      "request": "launch",
+      "mainClass": "com.wellnessz.bff.WellnessZBffApplication",
+      "projectName": "wz-bff",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/deploy/local/bff.local.env",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "java",
+      "name": "Attach: core (5005)",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5005,
+      "projectName": "wz-core-app"
+    },
+    {
+      "type": "java",
+      "name": "Attach: BFF (5006)",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5006,
+      "projectName": "wz-bff"
+    },
+    {
+      "type": "node",
+      "name": "Vite: employee app (5173)",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/web/employee-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "type": "node",
+      "name": "Vite: manager workspace (5174)",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/web/manager-workspace",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "type": "node",
+      "name": "Vite: OH workspace (5175)",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/web/oh-workspace",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "type": "node",
+      "name": "Vite: partner portal (5176)",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/web/partner-portal",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "type": "chrome",
+      "name": "Chrome: employee app (5173)",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/web/employee-app",
+      "sourceMaps": true
+    },
+    {
+      "type": "chrome",
+      "name": "Chrome: manager workspace (5174)",
+      "request": "launch",
+      "url": "http://localhost:5174",
+      "webRoot": "${workspaceFolder}/web/manager-workspace",
+      "sourceMaps": true
+    },
+    {
+      "type": "chrome",
+      "name": "Chrome: OH workspace (5175)",
+      "request": "launch",
+      "url": "http://localhost:5175",
+      "webRoot": "${workspaceFolder}/web/oh-workspace",
+      "sourceMaps": true
+    },
+    {
+      "type": "chrome",
+      "name": "Chrome: partner portal (5176)",
+      "request": "launch",
+      "url": "http://localhost:5176",
+      "webRoot": "${workspaceFolder}/web/partner-portal",
+      "sourceMaps": true
+    },
+    {
+      "type": "node",
+      "name": "E2E: run the open tools/e2e script",
+      "request": "launch",
+      "program": "${file}",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Backend: core + BFF",
+      "configurations": [
+        "Core API (local)",
+        "BFF (local)"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "Web: all four Vite apps",
+      "configurations": [
+        "Vite: employee app (5173)",
+        "Vite: manager workspace (5174)",
+        "Vite: OH workspace (5175)",
+        "Vite: partner portal (5176)"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "Debug employee app: Vite + Chrome",
+      "configurations": [
+        "Vite: employee app (5173)",
+        "Chrome: employee app (5173)"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "Debug manager workspace: Vite + Chrome",
+      "configurations": [
+        "Vite: manager workspace (5174)",
+        "Chrome: manager workspace (5174)"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "Debug OH workspace: Vite + Chrome",
+      "configurations": [
+        "Vite: OH workspace (5175)",
+        "Chrome: OH workspace (5175)"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "Debug partner portal: Vite + Chrome",
+      "configurations": [
+        "Vite: partner portal (5176)",
+        "Chrome: partner portal (5176)"
+      ],
+      "stopAll": true
+    }
+  ]
+}

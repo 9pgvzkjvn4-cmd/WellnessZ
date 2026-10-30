@@ -805,3 +805,29 @@ dd .badge {
     border-color: #7a6020;
   }
 }
+
+/* ---------- increment 5: testing, psychosocial, campaigns, ergonomics ---------- */
+.badge-duty-removed,
+.badge-action-overdue,
+.badge-rag-red {
+  background: var(--c-error-bg);
+  color: var(--c-error);
+}
+.badge-duty-return-pending,
+.badge-action-due-soon,
+.badge-rag-amber,
+.badge-req-collector-dispatched {
+  background: #fff4d6;
+  color: #6b4a00;
+  border-color: #e0b84a;
+}
+.badge-duty-available,
+.badge-action-done,
+.badge-rag-green {
+  background: var(--c-success-bg);
+  color: var(--c-success);
+}
+td meter {
+  width: 5rem;
+  vertical-align: middle;
+}

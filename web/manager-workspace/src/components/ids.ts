@@ -18,3 +18,13 @@ export const hrStageIds = (caseId: string) => {
   return { stage: `${p}-stage`, note: `${p}-note` };
 };
 export const adviceQuestionId = (code: string) => `adv-q-${idPart(code)}`;
+
+/* increment 5 – for-cause request form (EmployeeSearch with idPrefix "fc" renders `fc-employeeId`) */
+export const FOR_CAUSE_IDS = {
+  employeeId: 'fc-employeeId',
+  observedAt: 'fc-observedAt',
+  location: 'fc-location',
+  observations: 'fc-observations',
+  description: 'fc-description',
+  secondObserverName: 'fc-secondObserverName',
+} as const;

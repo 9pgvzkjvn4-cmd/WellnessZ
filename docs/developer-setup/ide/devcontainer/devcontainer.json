@@ -1,0 +1,135 @@
+{
+  "name": "WellnessZ (JDK 21, Node 24, Docker)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "jdkDistro": "tem",
+      "installMaven": "false",
+      "installGradle": "false"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "latest",
+      "helm": "3.19.0",
+      "minikube": "none"
+    },
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "1.13.4"
+    }
+  },
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=wellnessz-m2,target=/home/vscode/.m2,type=volume"
+  ],
+  "forwardPorts": [
+    5173,
+    5174,
+    5175,
+    5176,
+    8080,
+    8081,
+    8090,
+    8091,
+    8180,
+    8025,
+    5432
+  ],
+  "portsAttributes": {
+    "5173": {
+      "label": "Employee app (Vite)",
+      "onAutoForward": "silent",
+      "requireLocalPort": true
+    },
+    "5174": {
+      "label": "Manager workspace (Vite)",
+      "onAutoForward": "silent",
+      "requireLocalPort": true
+    },
+    "5175": {
+      "label": "OH workspace (Vite)",
+      "onAutoForward": "silent",
+      "requireLocalPort": true
+    },
+    "5176": {
+      "label": "Partner portal (Vite)",
+      "onAutoForward": "silent",
+      "requireLocalPort": true
+    },
+    "8080": {
+      "label": "Core API",
+      "onAutoForward": "silent"
+    },
+    "8081": {
+      "label": "Core management",
+      "onAutoForward": "silent"
+    },
+    "8090": {
+      "label": "BFF",
+      "onAutoForward": "silent",
+      "requireLocalPort": true
+    },
+    "8091": {
+      "label": "BFF management",
+      "onAutoForward": "silent"
+    },
+    "8180": {
+      "label": "Keycloak",
+      "onAutoForward": "silent",
+      "requireLocalPort": true
+    },
+    "8025": {
+      "label": "Mailpit UI",
+      "onAutoForward": "silent"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    }
+  },
+  "otherPortsAttributes": {
+    "onAutoForward": "silent"
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "hostRequirements": {
+    "cpus": 8,
+    "memory": "16gb",
+    "storage": "64gb"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-boot-dev-pack",
+        "redhat.vscode-xml",
+        "dbaeumer.vscode-eslint",
+        "vitest.explorer",
+        "editorconfig.editorconfig",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode-remote.remote-containers",
+        "redhat.vscode-yaml",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "hashicorp.terraform",
+        "github.vscode-github-actions",
+        "timonwong.shellcheck",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg"
+      ],
+      "settings": {
+        "java.jdt.ls.java.home": "/usr/local/sdkman/candidates/java/current",
+        "maven.executable.preferMavenWrapper": true,
+        "java.settings.url": "docs/developer-setup/ide/vscode/java-settings.prefs"
+      }
+    },
+    "codespaces": {
+      "openFiles": [
+        "docs/developer-setup/README.md"
+      ]
+    }
+  }
+}

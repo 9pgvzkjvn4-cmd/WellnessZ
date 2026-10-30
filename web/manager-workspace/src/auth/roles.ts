@@ -1,13 +1,11 @@
-/** Roles allowed into the manager/HR workspace (matches the BFF /bff/api/workspace/** rule). */
-export const WORKSPACE_ROLES = [
-  'MANAGER',
-  'HR',
-  'OH_CLINICIAN',
-  'OH_ADMIN',
-  'CASE_MANAGER',
-  'PSYCH_CLINICIAN',
-  'PLATFORM_ADMIN',
-] as const;
+/** Roles with the team-case view (matches the increment 1–4 BFF /bff/api/workspace/** rule). */
+export const CASE_ROLES = ['MANAGER', 'HR', 'OH_CLINICIAN', 'OH_ADMIN', 'CASE_MANAGER', 'PSYCH_CLINICIAN', 'PLATFORM_ADMIN'] as const;
+
+/**
+ * Roles allowed into the workspace. Increment 5 adds SAFETY_MANAGER (for-cause test requests) and CREW_SCHEDULING
+ * (duty-status list) – both see the testing screen only (docs/increment-05/API-Contract-E09-E10-E11-E12.md §4.2, §4.4).
+ */
+export const WORKSPACE_ROLES = [...CASE_ROLES, 'SAFETY_MANAGER', 'CREW_SCHEDULING'] as const;
 
 /** `roles` are expected normalised (upper-case, no ROLE_ prefix); normalises defensively anyway. */
 export function hasWorkspaceAccess(roles: readonly string[] | undefined): boolean {
@@ -17,6 +15,9 @@ export function hasWorkspaceAccess(roles: readonly string[] | undefined): boolea
 
 const has = (roles: readonly string[] | undefined, role: string) =>
   !!roles?.some((r) => r.trim().toUpperCase().replace(/^ROLE_/, '') === role);
+
+/** Team cases, referrals and analytics need one of the increment 1–4 workspace roles. */
+export const hasCaseAccess = (roles: readonly string[] | undefined) => CASE_ROLES.some((r) => has(roles, r));
 
 /** Manager referral (`POST /intake/referrals/manager`) is MANAGER-only. */
 export const canManagerRefer = (roles: readonly string[] | undefined) => has(roles, 'MANAGER');
@@ -62,7 +63,14 @@ export type Feature =
   | 'adviceRequests'
   | 'compliance'
   | 'preEmployment'
-  | 'claims';
+  | 'claims'
+  | 'testing'
+  | 'psychosocial'
+  | 'campaigns'
+  | 'ergonomics';
+
+export const isSafetyManager = (roles: readonly string[] | undefined) => has(roles, 'SAFETY_MANAGER');
+export const isCrewScheduling = (roles: readonly string[] | undefined) => has(roles, 'CREW_SCHEDULING');
 
 export function canUse(feature: Feature, roles: readonly string[] | undefined): boolean {
   switch (feature) {
@@ -85,7 +93,24 @@ export function canUse(feature: Feature, roles: readonly string[] | undefined): 
     // increment 4 (docs/increment-04/API-Contract-E04-E08.md §4.1, §6): HR claim status only – not for line managers
     case 'claims':
       return isHr(roles);
+    // increment 5 (docs/increment-05/API-Contract-E09-E10-E11-E12.md §3.1, §3.5, §4.2, §4.4, §6)
+    case 'testing': {
+      const t = testingSections(roles);
+      return t.forCause || t.dutyStatus;
+    }
+    case 'psychosocial':
+    case 'campaigns':
+    case 'ergonomics':
+      return isManager(roles);
   }
+}
+
+/**
+ * Testing screen sections: MANAGER / SAFETY_MANAGER raise for-cause requests (and see their own requests, status only);
+ * HR / CREW_SCHEDULING see the duty-status list (AVAILABLE / REMOVED / RETURN_PENDING – never reasons or results).
+ */
+export function testingSections(roles: readonly string[] | undefined) {
+  return { forCause: isManager(roles) || isSafetyManager(roles), dutyStatus: isHr(roles) || isCrewScheduling(roles) };
 }
 
 /** `POST /rtw-plans/{id}/manager-acknowledge` is MANAGER-only; HR sees RTW plans read-only. */
@@ -101,6 +126,10 @@ export const FEATURE_ROUTES = {
   compliance: '/compliance',
   preEmployment: '/pre-employment',
   claims: '/claims',
+  testing: '/testing',
+  psychosocial: '/psychosocial',
+  campaigns: '/campaigns',
+  ergonomics: '/ergonomics',
 } as const;
 const FEATURE_LABELS: Record<keyof typeof FEATURE_ROUTES, string> = {
   restrictions: 'Team restrictions',
@@ -112,6 +141,10 @@ const FEATURE_LABELS: Record<keyof typeof FEATURE_ROUTES, string> = {
   compliance: 'Health surveillance',
   preEmployment: 'Pre-employment',
   claims: 'Claims',
+  testing: 'Testing',
+  psychosocial: 'Psychosocial risk',
+  campaigns: 'Health campaigns',
+  ergonomics: 'Ergonomics',
 };
 
 /**
@@ -151,5 +184,10 @@ export function workspaceNav(roles: readonly string[] | undefined): { path: stri
   const features = (Object.keys(FEATURE_ROUTES) as (keyof typeof FEATURE_ROUTES)[])
     .filter((k) => canUse(k, roles))
     .map((k) => ({ path: FEATURE_ROUTES[k], label: FEATURE_LABELS[k] }));
+  // Safety managers / crew scheduling without a case role only get their increment-5 screen.
+  if (!hasCaseAccess(roles)) return features;
   return [{ path: '/', label: 'Team cases' }, ...referralNav(roles), ...features, { path: '/analytics', label: 'Analytics' }];
 }
+
+/** Start page: team cases, or the testing screen for sessions without a case role. */
+export const homeRoute = (roles: readonly string[] | undefined) => (hasCaseAccess(roles) ? '/' : FEATURE_ROUTES.testing);

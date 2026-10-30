@@ -16,6 +16,8 @@ import { describeError, formatDate, formatDay, humanise } from '../components/fo
 import { Alert, Loading, PageTitle, StatusBadge } from '../components/ui';
 import { useAsync } from '../components/useAsync';
 import { careStrings, type CareStrings } from '../i18n/care';
+import { wellbeingStrings, type WellbeingStrings } from '../i18n/wellbeing';
+import { loadWellbeingCounts, type WellbeingCounts } from '../api/prevention';
 import { ohStrings, type OhStrings } from '../i18n/occupational';
 import { portalStrings, type PortalStrings } from '../i18n/portal';
 import { dirFor } from '../i18n/strings';
@@ -94,6 +96,33 @@ export function CareTiles({ t, care, lang, counts = {} }: { t: PortalStrings; ca
   );
 }
 
+/** Hook-free tiles for the increment-5 sections (support, peer support, check-ins, travel, campaigns, workplace checks). */
+export function WellbeingTiles({ t, wb, lang, counts = {} }: { t: PortalStrings; wb: WellbeingStrings; lang: string; counts?: Partial<WellbeingCounts> }) {
+  const tiles = [
+    { href: '#/support', label: wb.tiles.support, count: counts.support },
+    { href: '#/peer-support', label: wb.tiles.peer, count: undefined },
+    { href: '#/check-ins', label: wb.tiles.checkIns, count: counts.checkIns },
+    { href: '#/travel', label: wb.tiles.travel, count: counts.travel },
+    { href: '#/campaigns', label: wb.tiles.campaigns, count: counts.campaigns },
+    { href: '#/testing', label: wb.tiles.testing, count: counts.testing },
+  ];
+  return (
+    <nav className="tiles" aria-labelledby="wb-tiles-title" dir={dirFor(lang)} lang={lang}>
+      <h2 id="wb-tiles-title">{wb.tilesTitle}</h2>
+      <ul>
+        {tiles.map((tile) => (
+          <li key={tile.href}>
+            <a className="tile" href={tile.href}>
+              <span className="tile-label">{tile.label}</span>
+              {!!tile.count && <span className="tile-count badge badge-doc-action">{t.tileActions(tile.count)}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
 const statusLabel = (s: string) => CASE_STATUS_LABELS[s as CaseStatus] ?? humanise(s);
 const fitnessLabel = (s: string) => FITNESS_LABELS[s as FitnessStatus] ?? humanise(s);
 
@@ -142,6 +171,7 @@ export function Home({ client, session, onSessionExpired, lang }: PortalScreenPr
   const counts = useAsync(() => loadPortalCounts(client), onSessionExpired);
   const ohCounts = useAsync(() => loadOhCounts(client), onSessionExpired);
   const careCounts = useAsync(() => loadCareCounts(client), onSessionExpired);
+  const wbCounts = useAsync(() => loadWellbeingCounts(client), onSessionExpired);
 
   return (
     <section aria-labelledby="home-title">
@@ -164,6 +194,7 @@ export function Home({ client, session, onSessionExpired, lang }: PortalScreenPr
 
       <OhTiles t={portalStrings(lang)} oh={ohStrings(lang)} lang={lang} counts={ohCounts.data} />
       <CareTiles t={portalStrings(lang)} care={careStrings(lang)} lang={lang} counts={careCounts.data} />
+      <WellbeingTiles t={portalStrings(lang)} wb={wellbeingStrings(lang)} lang={lang} counts={wbCounts.data} />
       <PortalTiles t={portalStrings(lang)} lang={lang} counts={counts.data} />
 
       <h2 id="home-title">My cases</h2>

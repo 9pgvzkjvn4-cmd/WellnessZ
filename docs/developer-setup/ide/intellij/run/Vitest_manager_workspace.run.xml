@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Vitest (vitest run) for web/manager-workspace - Ultimate / WebStorm only -->
+  <configuration default="false" name="Vitest: Manager workspace" type="JavaScriptTestRunnerVitest" folderName="Tests">
+    <node-interpreter value="project" />
+    <vitest-package value="$PROJECT_DIR$/web/manager-workspace/node_modules/vitest" />
+    <working-dir value="$PROJECT_DIR$/web/manager-workspace" />
+    <envs />
+    <scope-kind value="ALL" />
+    <method v="2" />
+  </configuration>
+</component>

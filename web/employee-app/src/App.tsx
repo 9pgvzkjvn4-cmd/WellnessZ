@@ -19,11 +19,18 @@ import { PreEmployment } from './screens/PreEmployment';
 import { Privacy } from './screens/Privacy';
 import { Profile } from './screens/Profile';
 import { SelfReferral } from './screens/SelfReferral';
+import { Campaigns } from './screens/Campaigns';
+import { CheckIns } from './screens/CheckIns';
+import { PeerSupport } from './screens/PeerSupport';
+import { Support } from './screens/Support';
+import { Testing } from './screens/Testing';
+import { Travel } from './screens/Travel';
 import { startIdleTimer } from './security/idleTimeout';
 import { errorName, log } from './security/log';
 import { portalStrings, type PortalStrings } from './i18n/portal';
 import { ohStrings, type OhStrings } from './i18n/occupational';
 import { careStrings, type CareStrings } from './i18n/care';
+import { wellbeingStrings, type WellbeingStrings } from './i18n/wellbeing';
 import { navFor, resolveRoute } from './routing/navigation';
 import { DEFAULT_LANGUAGES, dirFor, initialLanguage } from './i18n/strings';
 
@@ -37,6 +44,7 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
   const t = portalStrings(lang);
   const oh = ohStrings(lang);
   const care = careStrings(lang);
+  const wb = wellbeingStrings(lang);
   const hashRoute = useHashRoute();
 
   useEffect(() => {
@@ -116,6 +124,24 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
     case '/telehealth':
       screen = <MyTelehealth {...screenProps} />;
       break;
+    case '/support':
+      screen = <Support {...screenProps} />;
+      break;
+    case '/peer-support':
+      screen = <PeerSupport {...screenProps} />;
+      break;
+    case '/travel':
+      screen = <Travel {...screenProps} />;
+      break;
+    case '/check-ins':
+      screen = <CheckIns {...screenProps} />;
+      break;
+    case '/campaigns':
+      screen = <Campaigns {...screenProps} />;
+      break;
+    case '/testing':
+      screen = <Testing {...screenProps} />;
+      break;
     case '/absence':
       screen = <MyAbsence {...screenProps} />;
       break;
@@ -194,7 +220,9 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
                   ? oh.nav[n.key as keyof OhStrings['nav']]
                   : n.source === 'care'
                     ? care.nav[n.key as keyof CareStrings['nav']]
-                    : t.nav[n.key as keyof PortalStrings['nav']]}
+                    : n.source === 'wellbeing'
+                      ? wb.nav[n.key as keyof WellbeingStrings['nav']]
+                      : t.nav[n.key as keyof PortalStrings['nav']]}
               </a>
             </li>
           ))}

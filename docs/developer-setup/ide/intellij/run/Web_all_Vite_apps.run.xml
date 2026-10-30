@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Web: all four Vite apps" type="CompoundRunConfigurationType" folderName="Web">
+    <toRun name="Vite: Employee app (5173)" type="js.build_tools.npm" />
+    <toRun name="Vite: Manager workspace (5174)" type="js.build_tools.npm" />
+    <toRun name="Vite: OH workspace (5175)" type="js.build_tools.npm" />
+    <toRun name="Vite: Partner portal (5176)" type="js.build_tools.npm" />
+    <method v="2" />
+  </configuration>
+</component>
