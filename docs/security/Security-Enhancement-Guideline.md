@@ -73,23 +73,23 @@ business epic.
 
 ### 2.2 Headline result
 
-> **No open findings.** 19 findings were raised: 1 High, 4 Medium, 8 Low and 6 Informational.
-> **13 are fixed and verified, 4 are accepted with documented residual risk, 2 were false positives.**
+> **No open findings.** 21 findings were raised: 1 High, 4 Medium, 9 Low and 7 Informational.
+> **15 are fixed and verified, 4 are accepted with documented residual risk, 2 were false positives.**
 > One Medium finding (F-19) was a regression introduced while fixing F-18 and was caught by the verification
 > suite before release. The final run on the remediated build passed **61/61** checks (including `RATE-01` and `AC-08`).
 
 ```mermaid
 pie showData
-    title Findings by severity (19)
+    title Findings by severity (21)
     "High" : 1
     "Medium" : 4
-    "Low" : 8
-    "Informational" : 6
+    "Low" : 9
+    "Informational" : 7
 ```
 
 | Status | Count | Findings |
 |---|---|---|
-| Fixed and verified | 13 | F-01 … F-11, F-18, F-19 |
+| Fixed and verified | 15 | F-01 … F-11, F-18 … F-21 |
 | Accepted (residual risk documented, enhancement planned) | 4 | F-12, F-14, F-16, F-17 |
 | False positive | 2 | F-13, F-15 |
 | Open | **0** | – |
@@ -117,6 +117,8 @@ pie showData
 | F-17 | Info | `mentalhealth.named-clinicians` is seeded with the demo user `psych1` in every environment (migration `V17`) | Known limitation | Accepted – go-live configuration item | Fails closed (real clinicians receive `404` until configured). Go-live checklist item; **SEC-E06** adds a startup guard that refuses demo identities outside the `local` profile |
 | F-18 | Low | Organisation structure and internal reference data (org units, job codes, hazards, fitness standards, restriction catalogue) readable by external partner, TPA and candidate accounts – no personal data | Role-based access matrix (observation) | Fixed | URL rule in `ResourceServerSecurityConfig` (`INTERNAL_REFERENCE_DATA`, internal principals only); integration test `PlatformIntegrationTest.internalReferenceDataIsNotServedToExternalAccounts`; live check `AC-08` |
 | F-19 | Medium (CVSS 5.3) – never released | Regression while fixing F-18: the anonymous principal counted as "internal", so the five reference endpoints answered anonymous calls | Verification check `AUTH-08` on the remediated build, before release | Fixed | `AnonymousAuthenticationToken` excluded; anonymous case added to the integration test; `AUTH-08` 754/754 operations refuse anonymous calls on the final build. Shows why **SEC-E12** (run the suite in CI) matters |
+| F-20 | Low | Helm: the Flyway migration Job image was referenced by tag, not digest – the one third-party image outside the signed-digest promotion | Checkov on the rendered manifests (`CKV_K8S_43`) | Fixed + go-live item | `migrations.job.image.digest` (takes precedence over the tag); GCP UAT/PROD mirrored-image placeholders in `@sha256:` form; Azure and hybrid set the digest of the mirrored image in the overlay at go-live |
+| F-21 | Info | Helm templates relied on the install namespace implicitly | Checkov Helm (`CKV_K8S_21`) | Fixed | Explicit `namespace: {{ $.Release.Namespace }}` in every namespaced template; reviewed scanner exceptions recorded inline (`checkov.io/skip` annotations, `#checkov:skip` comments) with reasons |
 
 ### 2.4 Conditions for go-live
 

@@ -232,4 +232,4 @@ All items start as *Not started*; sprints are assigned by the delivery teams.
 * How to review: yellow cells are for the CISO / Cyber GRC team. Use the 'Decision' and 'Review comment' columns on each sheet; the dropdowns offer Accept / Modify / Reject / Defer.
 * Story points are indicative relative-size estimates (Fibonacci-like scale) produced during the security assessment; they must be re-estimated by the delivery teams and exclude the external penetration-test engagement.
 * Phases in this epic: P1 = Now (before PROD go-live), P2 = Next (first 90 days of operation), P3 = Later (3–12 months). Priority on backlog items is P1 (critical) / P2 / P3.
-* Every item traces to an enhancement SEC-E01…SEC-E15 (or the guardrail / operations sections) of docs/security/Security-Enhancement-Guideline.md; findings F-01…F-17 of the assessment are all closed or accepted.
+* Every item traces to an enhancement SEC-E01…SEC-E15 (or the guardrail / operations sections) of docs/security/Security-Enhancement-Guideline.md; findings F-01…F-21 of the assessment are all closed or accepted.
