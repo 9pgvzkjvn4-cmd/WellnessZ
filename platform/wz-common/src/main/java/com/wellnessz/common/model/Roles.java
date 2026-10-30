@@ -47,6 +47,23 @@ public final class Roles {
     public static final String FINANCE = "FINANCE";
     /** Procurement: provider network directory, contracts, rate cards and SLAs. */
     public static final String PROCUREMENT = "PROCUREMENT";
+    // increment 5 (E09 / E10 / E11 / E12)
+    /** Trained peer volunteer of the crew support programme: own contact log entries only, never identifiable to the operator. */
+    public static final String PEER_SUPPORT_VOLUNTEER = "PEER_SUPPORT_VOLUNTEER";
+    /** Peer-support programme coordinator: volunteer register, training, availability, aggregated programme figures. */
+    public static final String PEER_SUPPORT_COORDINATOR = "PEER_SUPPORT_COORDINATOR";
+    /** Safety (SMS) manager: anonymised programme and exposure reports, CISM events, post-incident test requirements. */
+    public static final String SAFETY_MANAGER = "SAFETY_MANAGER";
+    /** Drug & alcohol programme manager: pools, policies, random selections, coverage – never individual results. */
+    public static final String DA_PROGRAMME_MANAGER = "DA_PROGRAMME_MANAGER";
+    /** Medical review officer: verifies laboratory results, prescription checks, split specimens. */
+    public static final String MRO = "MRO";
+    /** Specimen collection staff: electronic chain-of-custody forms – no results. */
+    public static final String COLLECTOR = "COLLECTOR";
+    /** Health promotion lead: campaign planning, screening events, participation analytics (anonymised). */
+    public static final String HEALTH_PROMOTION_LEAD = "HEALTH_PROMOTION_LEAD";
+    /** Ergonomist: workstation and manual-handling assessments, actions to closure. */
+    public static final String ERGONOMIST = "ERGONOMIST";
     /** Roles of the Occupational Health clinical team (clinical disclosure). */
     public static final String[] OH_TEAM = {OH_CLINICIAN, OH_PHYSICIAN, AME, CMO, NURSING_HEAD, CASE_MANAGER, PSYCH_CLINICIAN};
     /** Roles that may record a fitness-for-duty decision. */

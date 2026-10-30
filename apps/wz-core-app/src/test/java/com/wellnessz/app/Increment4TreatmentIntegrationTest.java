@@ -523,7 +523,7 @@ class Increment4TreatmentIntegrationTest extends IntegrationTestBase {
     @Test
     void f03ProviderDirectoryContractsGapsAndScorecards() throws Exception {
         JsonNode all = ok(get("/api/v1/providers"), PROCUREMENT, null);
-        assertThat(all.size()).isEqualTo(20);
+        assertThat(all.size()).isGreaterThanOrEqualTo(20); // 20 seeded in V13, more partners added by later increments (V16 EAP, laboratory)
         assertThat(texts(all, "code")).doesNotContain("GULFTPA", "AUTH_OSH");
         java.util.Map<String, String> statuses = new java.util.HashMap<>();
         all.forEach(p -> statuses.put(p.path("code").asString(), p.path("contract").isMissingNode() || p.path("contract").isNull() ? "NONE"

@@ -277,6 +277,54 @@
         "description": "Procurement – provider network directory, contracts, rates and SLAs",
         "composite": false,
         "clientRole": false
+      },
+      {
+        "name": "PEER_SUPPORT_VOLUNTEER",
+        "description": "Peer volunteer of the crew support programme – own non-identifiable contact log only",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "PEER_SUPPORT_COORDINATOR",
+        "description": "Peer-support coordinator – volunteer register, training, aggregated figures",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "SAFETY_MANAGER",
+        "description": "Safety (SMS) manager – anonymised programme / exposure reports, CISM events, post-incident tests",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "DA_PROGRAMME_MANAGER",
+        "description": "Drug & alcohol programme manager – pools, policies, random selections, coverage (no results)",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "MRO",
+        "description": "Medical review officer – verification of laboratory results",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "COLLECTOR",
+        "description": "Specimen collection staff – electronic chain of custody (no results)",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "HEALTH_PROMOTION_LEAD",
+        "description": "Health promotion lead – campaigns, screening events, anonymised participation analytics",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "ERGONOMIST",
+        "description": "Ergonomist – workstation and manual-handling assessments",
+        "composite": false,
+        "clientRole": false
       }
     ]
   },
@@ -1364,6 +1412,249 @@
           "/PARTNERS/PHYSIOPLUS"
         ]
       }
+    },
+    {
+      "username": "peer1",
+      "enabled": true,
+      "email": "peer1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Pete",
+      "lastName": "Peer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "PEER_SUPPORT_VOLUNTEER"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8801"
+        ],
+        "org_scope": [
+          "/AIRLINE/OPS"
+        ]
+      }
+    },
+    {
+      "username": "peercoord1",
+      "enabled": true,
+      "email": "peercoord1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Penny",
+      "lastName": "Coordinator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "PEER_SUPPORT_COORDINATOR"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8802"
+        ],
+        "org_scope": [
+          "/AIRLINE/OPS"
+        ]
+      }
+    },
+    {
+      "username": "safety1",
+      "enabled": true,
+      "email": "safety1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Sally",
+      "lastName": "Safety",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "SAFETY_MANAGER"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8803"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "damanager1",
+      "enabled": true,
+      "email": "damanager1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Dan",
+      "lastName": "Programme",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "DA_PROGRAMME_MANAGER"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8804"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "mro1",
+      "enabled": true,
+      "email": "mro1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Dr Mia",
+      "lastName": "Reviewer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "MRO"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8805"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "collector1",
+      "enabled": true,
+      "email": "collector1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Colin",
+      "lastName": "Collector",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "COLLECTOR"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8806"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "promo1",
+      "enabled": true,
+      "email": "promo1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Paula",
+      "lastName": "Promotion",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "HEALTH_PROMOTION_LEAD"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8807"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "ergo1",
+      "enabled": true,
+      "email": "ergo1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Erik",
+      "lastName": "Ergonomist",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "ERGONOMIST"
+      ],
+      "attributes": {
+        "employee_id": [
+          "S8808"
+        ],
+        "org_scope": [
+          "/AIRLINE"
+        ]
+      }
+    },
+    {
+      "username": "eap1",
+      "enabled": true,
+      "email": "eap1@wellnessz.local",
+      "emailVerified": true,
+      "firstName": "Eve",
+      "lastName": "Counsellor",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe!123",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-wellnessz",
+        "PARTNER_PROVIDER"
+      ],
+      "attributes": {
+        "employee_id": [
+          "X8809"
+        ],
+        "org_scope": [
+          "/PARTNERS/EAP_WELLBEING"
+        ]
+      }
     }
   ],
   "attributes": {
@@ -1401,7 +1692,15 @@
         "TPA_ADJUSTER",
         "LEGAL_COUNSEL",
         "FINANCE",
-        "PROCUREMENT"
+        "PROCUREMENT",
+        "PEER_SUPPORT_VOLUNTEER",
+        "PEER_SUPPORT_COORDINATOR",
+        "SAFETY_MANAGER",
+        "DA_PROGRAMME_MANAGER",
+        "MRO",
+        "COLLECTOR",
+        "HEALTH_PROMOTION_LEAD",
+        "ERGONOMIST"
       ]
     },
     {
@@ -1435,7 +1734,15 @@
         "TPA_ADJUSTER",
         "LEGAL_COUNSEL",
         "FINANCE",
-        "PROCUREMENT"
+        "PROCUREMENT",
+        "PEER_SUPPORT_VOLUNTEER",
+        "PEER_SUPPORT_COORDINATOR",
+        "SAFETY_MANAGER",
+        "DA_PROGRAMME_MANAGER",
+        "MRO",
+        "COLLECTOR",
+        "HEALTH_PROMOTION_LEAD",
+        "ERGONOMIST"
       ]
     },
     {

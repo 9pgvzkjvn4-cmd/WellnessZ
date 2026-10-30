@@ -32,6 +32,10 @@
     <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e14-scheduling</artifactId></dependency>
     <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e04-treatment</artifactId></dependency>
     <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e08-claims</artifactId></dependency>
+    <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e09-mentalhealth</artifactId></dependency>
+    <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e10-substance</artifactId></dependency>
+    <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e11-travelhealth</artifactId></dependency>
+    <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e12-promotion</artifactId></dependency>
     <dependency><groupId>org.springdoc</groupId><artifactId>springdoc-openapi-starter-webmvc-ui</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
     <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-registry-prometheus</artifactId></dependency>

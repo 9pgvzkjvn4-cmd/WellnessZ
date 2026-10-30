@@ -23,7 +23,7 @@ spring:
     # migrations run with a separate owner role; the runtime role has DML-only grants
     user: ${WZ_DB_MIGRATOR_USERNAME:${WZ_DB_USERNAME:wz_app}}
     password: ${WZ_DB_MIGRATOR_PASSWORD:${WZ_DB_PASSWORD:}}
-    schemas: platform,masterdata,intake,casemgmt,analytics,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,treatment,claims
+    schemas: platform,masterdata,intake,casemgmt,analytics,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,treatment,claims,mentalhealth,substance,travelhealth,promotion
     locations: ${WZ_FLYWAY_LOCATIONS:classpath:db/migration}
     default-schema: platform
     create-schemas: true
@@ -123,6 +123,9 @@ wellnessz:
       insurer-gateway: [messageId, claimRef, reportRef, formCode, payerCode, employeeId, incidentDate, submittedAt, deadlineAt]
       authority-gateway: [messageId, reportRef, formCode, jurisdiction, employerRef, incidentDate, submittedAt, deadlineAt]
       erp-finance: [messageId, batchId, month, costCentre, subsidiaryCode, category, amount, currency, entryCount, checksum]
+      # increment 5: campaign app (E12) and the safety management system (E09 aggregated peer-support figures)
+      campaign-app: [messageId, campaignId, title, risk, startDate, endDate, targetUnits]
+      sms-safety: [messageId, quarter, reportRef, category, count, base]
   notification:
     quiet-hours:
       start: "21:00"

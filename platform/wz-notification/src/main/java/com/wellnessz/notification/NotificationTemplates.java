@@ -83,7 +83,29 @@ public class NotificationTemplates {
             Map.entry("claim.report-due", "The statutory first report for claim {{reference}} is due by {{dueDate}}. {{portalLink}}"),
             Map.entry("claim.task", "A shared task on claim {{reference}} is due by {{dueDate}}. {{portalLink}}"),
             Map.entry("claim.message", "There is a new secure message on claim {{reference}}. Please sign in: {{portalLink}}"),
-            Map.entry("legal.request", "Medico-legal request {{reference}} on case {{caseRef}} is due by {{dueDate}}. {{portalLink}}"));
+            Map.entry("legal.request", "Medico-legal request {{reference}} on case {{caseRef}} is due by {{dueDate}}. {{portalLink}}"),
+            // increment 5 – E09 confidential support (never names the pathway in staff-visible wording)
+            Map.entry("support.request-received", "Hi {{firstName}}, thank you for getting in touch. A member of the confidential support team will contact you by {{dueDate}}. {{portalLink}}"),
+            Map.entry("support.urgent-callback", "Urgent: a confidential request {{reference}} needs a same-day call back ({{level}}). {{portalLink}}"),
+            Map.entry("support.partner-referral", "A new confidential referral {{reference}} is waiting for you in the partner portal: {{portalLink}}"),
+            Map.entry("cism.offer", "Hi {{firstName}}, support is available to you after a recent event at work. You can book a confidential conversation here: {{portalLink}}"),
+            Map.entry("cism.follow-up", "Hi {{firstName}}, we are checking in as planned. Please let us know how you are and whether you would like a conversation: {{portalLink}}"),
+            // increment 5 – E10 testing programme (status only, never the reason or the outcome)
+            Map.entry("testing.selection-notice", "Hi {{firstName}}, you have been selected for a workplace check. Please report to {{site}} by {{appointmentTime}} on {{appointmentDate}}. {{portalLink}}"),
+            Map.entry("testing.collection-dispatch", "Collection {{reference}} is required at {{site}} by {{appointmentTime}} ({{level}}). {{portalLink}}"),
+            Map.entry("testing.review-queue", "A specimen {{reference}} is ready for medical review ({{level}}). {{portalLink}}"),
+            Map.entry("testing.status", "The duty status of {{employeeName}} ({{unit}}) has been updated by Occupational Health. {{portalLink}}"),
+            // increment 5 – E11 travel health, communicable disease, exposures, advisories
+            Map.entry("travel.consultation-due", "Hi {{firstName}}, please book your travel health appointment before {{dueDate}}: {{portalLink}}"),
+            Map.entry("tracing.contact-notice", "Hi {{firstName}}, Occupational Health needs to speak with you about a recent workplace contact. Please check the app and follow the advice there: {{portalLink}}"),
+            Map.entry("tracing.check-in", "Hi {{firstName}}, please complete today's health check-in by {{dueDate}}: {{portalLink}}"),
+            Map.entry("exposure.timer-alert", "Time-critical item on case {{caseRef}}: action due by {{appointmentTime}} ({{level}}). {{portalLink}}"),
+            Map.entry("advisory.published", "Hi {{firstName}}, a new health advisory for {{site}} is available. Please read and acknowledge it: {{portalLink}}"),
+            Map.entry("public-health.report-due", "Authority report {{reference}} is due by {{dueDate}}. {{portalLink}}"),
+            // increment 5 – E12 health promotion
+            Map.entry("campaign.invitation", "Hi {{firstName}}, you are invited to {{reference}}. Book or join here: {{portalLink}}"),
+            Map.entry("screening.follow-up", "Hi {{firstName}}, Occupational Health would like to follow up on your recent health check. Please book a time: {{portalLink}}"),
+            Map.entry("ergonomic.action-due", "Ergonomic action {{reference}} ({{unit}}) is due by {{dueDate}}. {{portalLink}}"));
 
     /** Approved template keys (for governance review and tests). */
     public java.util.Set<String> keys() {

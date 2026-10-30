@@ -20,14 +20,16 @@ class ArchitectureTest {
                     "com.wellnessz.analytics..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.casekernel..", "com.wellnessz.ehsintake..",
                     "com.wellnessz.documents..", "com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..", "com.wellnessz.e05..",
-                    "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..", "com.wellnessz.e08..");
+                    "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..", "com.wellnessz.e08..",
+                    "com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e11..", "com.wellnessz.e12..");
 
     @ArchTest
     static final ArchRule kernelDoesNotDependOnBusinessModules = noClasses()
             .that().resideInAPackage("com.wellnessz.casekernel..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..",
                     "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..",
-                    "com.wellnessz.e08..", "com.wellnessz.documents..")
+                    "com.wellnessz.e08..", "com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e11..", "com.wellnessz.e12..",
+                    "com.wellnessz.documents..")
             .because("modules plug into the kernel through SPIs (CaseModule, CaseTransitionGuard, ChartContributor, events), never the reverse");
 
     @ArchTest
@@ -35,7 +37,7 @@ class ArchitectureTest {
             .that().resideInAPackage("com.wellnessz.documents..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..",
                     "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..",
-                    "com.wellnessz.e08..")
+                    "com.wellnessz.e08..", "com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e11..", "com.wellnessz.e12..")
             .because("the business modules all use the document service; it must not know about any of them");
 
     @ArchTest
@@ -54,7 +56,8 @@ class ArchitectureTest {
     static final ArchRule earlierModulesDoNotDependOnLaterOnes = noClasses()
             .that().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e03..", "com.wellnessz.e05..", "com.wellnessz.e06..",
-                    "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..", "com.wellnessz.e08..");
+                    "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..", "com.wellnessz.e08..",
+                    "com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e11..", "com.wellnessz.e12..");
 
     @ArchTest
     static final ArchRule increment2ModulesDoNotDependOnIncrement3 = noClasses()
@@ -68,6 +71,39 @@ class ArchitectureTest {
                     "com.wellnessz.e14..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e04..", "com.wellnessz.e08..")
             .because("increment-4 modules plug in through kernel SPIs (ExternalReferralGateway, CaseCostRecorder, ClaimContextProvider)");
+
+    @ArchTest
+    static final ArchRule earlierIncrementsDoNotDependOnIncrement5 = noClasses()
+            .that().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..", "com.wellnessz.e04..",
+                    "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e08..", "com.wellnessz.e14..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e11..",
+                    "com.wellnessz.e12..")
+            .because("increment-5 modules plug in through kernel SPIs (SupportProgrammeReferral) and in-process events");
+
+    @ArchTest
+    static final ArchRule restrictedProgrammesAreIndependent = noClasses()
+            .that().resideInAnyPackage("com.wellnessz.e09..", "com.wellnessz.e10..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e03..", "com.wellnessz.e04..", "com.wellnessz.e06..",
+                    "com.wellnessz.e07..", "com.wellnessz.e08..", "com.wellnessz.e11..", "com.wellnessz.e12..", "com.wellnessz.e14..")
+            .because("restricted-class programmes keep their own records; E10 refers to E09 only through SupportProgrammeReferral");
+
+    @ArchTest
+    static final ArchRule restrictedProgrammesDoNotDependOnEachOther = noClasses()
+            .that().resideInAPackage("com.wellnessz.e10..")
+            .should().dependOnClassesThat().resideInAPackage("com.wellnessz.e09..")
+            .because("the testing programme refers into the support programme only through the kernel SPI");
+
+    @ArchTest
+    static final ArchRule travelHealthAndPromotionAreIndependent = noClasses()
+            .that().resideInAnyPackage("com.wellnessz.e11..", "com.wellnessz.e12..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e04..", "com.wellnessz.e06..", "com.wellnessz.e08..",
+                    "com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e14..")
+            .because("E11 builds on the E07 immunisation registry, E12 on the E03 record; bookings go through AppointmentBooking");
+
+    @ArchTest
+    static final ArchRule promotionDoesNotDependOnTravelHealth = noClasses()
+            .that().resideInAPackage("com.wellnessz.e12..")
+            .should().dependOnClassesThat().resideInAPackage("com.wellnessz.e11..");
 
     @ArchTest
     static final ArchRule treatmentAndClaimsAreIndependent = noClasses()

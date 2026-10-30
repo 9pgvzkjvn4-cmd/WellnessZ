@@ -191,6 +191,39 @@ public class DocumentTemplates {
                     List.of("Medico-legal report for {{employeeName}} – case {{caseRef}}, request {{requestRef}}.", "Questions: {{questions}}",
                             "Opinion: {{opinion}}", "Privilege: {{privilege}}", "Author: {{author}}. Prepared at the request of legal counsel – "
                                     + "confidential, not for disclosure outside the legal access set.")),
+            // increment 5 – E09 aeromedical / authority report on a safety-critical mental-health fitness decision
+            new Template("AUTHORITY_FITNESS_REPORT", "AUTHORITY_FITNESS_REPORT", "Fitness report to the authority", "AUTHORITY", true,
+                    "RESTRICTED_RECORD", Set.of(Roles.AME, Roles.OH_PHYSICIAN, Roles.CMO, Roles.PSYCH_CLINICIAN), Set.of(Roles.AME, Roles.OH_PHYSICIAN, Roles.CMO),
+                    List.of(f("employeeName", "Licence holder"), f("employeeId", "Staff number"), o("licence", "Licence / certificate"),
+                            f("assessmentDate", "Date of assessment"), f("decision", "Decision"), o("limitations", "Limitations"),
+                            o("reviewDate", "Next review"), f("examiner", "Examiner")),
+                    List.of("Report to the competent authority – fitness assessment of {{employeeName}} ({{employeeId}}), {{licence}}.",
+                            "Date of assessment: {{assessmentDate}}. Decision: {{decision}}. Limitations: {{limitations}}. Next review: {{reviewDate}}.",
+                            "Examiner: {{examiner}}. Restricted – submitted only where the regulation requires it.")),
+            // increment 5 – E10 electronic chain-of-custody form (no result content)
+            new Template("CHAIN_OF_CUSTODY_FORM", "CHAIN_OF_CUSTODY_FORM", "Chain-of-custody form", "LABORATORY", true, "RESTRICTED_RECORD",
+                    Set.of(Roles.COLLECTOR, Roles.MRO, Roles.OH_PHYSICIAN), Set.of(Roles.COLLECTOR, Roles.MRO, Roles.OH_PHYSICIAN),
+                    List.of(f("specimenId", "Specimen ID"), f("donorId", "Donor ID"), f("testReason", "Reason for test"), f("specimenType", "Specimen"),
+                            f("collectedAt", "Collected at"), f("collectionSite", "Collection site"), f("collector", "Collector"),
+                            f("sealIntact", "Seal intact"), f("laboratory", "Laboratory"), o("remarks", "Remarks")),
+                    List.of("Chain of custody – specimen {{specimenId}} ({{specimenType}}), donor {{donorId}}, reason {{testReason}}.",
+                            "Collected {{collectedAt}} at {{collectionSite}} by {{collector}}. Seal intact: {{sealIntact}}.",
+                            "Laboratory: {{laboratory}}. Remarks: {{remarks}}", "Each hand-over is recorded electronically with time and signer.")),
+            // increment 5 – E11 travel health certificate (employee)
+            new Template("TRAVEL_HEALTH_CERTIFICATE", "TRAVEL_HEALTH_CERTIFICATE", "Travel health certificate", "EMPLOYEE", true, "OH_RECORD", OH, CLINICIANS,
+                    List.of(f("employeeName", "Traveller"), f("employeeId", "Staff number"), f("destinations", "Destinations"),
+                            t("vaccinations", "Vaccinations and prophylaxis", true), o("validUntil", "Valid until"), f("issuedBy", "Issued by")),
+                    List.of("Travel health certificate for {{employeeName}} ({{employeeId}}) – destinations: {{destinations}}.",
+                            "Vaccinations and prophylaxis recorded by Occupational Health: {{vaccinations}}", "Valid until: {{validUntil}}.",
+                            "Issued by {{issuedBy}}, Occupational Health.")),
+            // increment 5 – E11 notifiable-disease / exposure report to the public-health authority
+            new Template("PUBLIC_HEALTH_REPORT", "PUBLIC_HEALTH_REPORT", "Public-health notification", "AUTHORITY", true, "PUBLIC_HEALTH", OH, CLINICIANS,
+                    List.of(f("reportRef", "Report reference"), f("authority", "Authority"), f("condition", "Notifiable condition / exposure"),
+                            f("onsetDate", "Onset / exposure date"), f("employeeName", "Person"), f("employeeId", "Staff number"),
+                            o("contacts", "Contacts identified"), t("measures", "Measures taken", true), f("reportedBy", "Reported by")),
+                    List.of("Public-health notification {{reportRef}} to {{authority}}.", "Condition / exposure: {{condition}} – onset {{onsetDate}}.",
+                            "Person: {{employeeName}} ({{employeeId}}). Contacts identified: {{contacts}}.", "Measures taken: {{measures}}",
+                            "Reported by {{reportedBy}}, Occupational Health – statutory notification.")),
             new Template("RESULT_LETTER", "RESULT_LETTER", "Result letter", "EMPLOYEE", true, "OH_RECORD", OH, CLINICIANS,
                     List.of(f("employeeName", "Employee"), f("testName", "Test"), f("performedOn", "Date"), t("resultSummary", "Result", true),
                             t("interpretation", "What this means", true), t("action", "Next steps", false), f("clinician", "Clinician")),
@@ -215,7 +248,9 @@ public class DocumentTemplates {
             case "SICK_CERTIFICATE", "OH_ADVICE_REPORT" -> "ABSENCE_RECORD";
             case "PRE_EMPLOYMENT_DOCUMENT", "PRE_EMPLOYMENT_OUTCOME" -> "PRE_EMPLOYMENT";
             case "PREAUTH_REQUEST", "FIRST_REPORT_OF_INJURY", "MEDICO_LEGAL_REPORT", "PROVIDER_REPORT", "PROVIDER_INVOICE" -> "CLAIM_RECORD";
-            case "TREATMENT_PLAN" -> "OH_RECORD";
+            case "TREATMENT_PLAN", "TRAVEL_HEALTH_CERTIFICATE" -> "OH_RECORD";
+            case "AUTHORITY_FITNESS_REPORT", "CHAIN_OF_CUSTODY_FORM" -> "RESTRICTED_RECORD";
+            case "PUBLIC_HEALTH_REPORT" -> "PUBLIC_HEALTH";
             case "EXTERNAL_AEROMEDICAL_REPORT" -> "AEROMEDICAL_RECORD";
             case "PHOTO" -> "PHOTO";
             case "EXTERNAL_REPORT" -> "EXTERNAL_REPORT";

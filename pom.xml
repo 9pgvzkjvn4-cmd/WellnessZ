@@ -38,6 +38,10 @@
     <module>modules/wz-e14-scheduling</module>
     <module>modules/wz-e04-treatment</module>
     <module>modules/wz-e08-claims</module>
+    <module>modules/wz-e09-mentalhealth</module>
+    <module>modules/wz-e10-substance</module>
+    <module>modules/wz-e11-travelhealth</module>
+    <module>modules/wz-e12-promotion</module>
     <module>apps/wz-core-app</module>
     <module>apps/wz-bff</module>
   </modules>
@@ -80,6 +84,10 @@
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e14-scheduling</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e04-treatment</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e08-claims</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e09-mentalhealth</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e10-substance</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e11-travelhealth</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e12-promotion</artifactId><version>${project.version}</version></dependency>
 
       <dependency><groupId>ca.uhn.hapi.fhir</groupId><artifactId>hapi-fhir-structures-r4</artifactId><version>${hapi-fhir.version}</version></dependency>
       <dependency><groupId>ca.uhn.hapi</groupId><artifactId>hapi-base</artifactId><version>${hapi-hl7v2.version}</version></dependency>

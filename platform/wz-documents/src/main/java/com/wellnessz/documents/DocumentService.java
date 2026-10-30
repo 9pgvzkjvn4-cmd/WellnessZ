@@ -251,7 +251,9 @@ public class DocumentService {
     public static final Set<String> UPLOAD_TYPES = Set.of("SICK_CERTIFICATE", "PRE_EMPLOYMENT_DOCUMENT", "VACCINATION_RECORD",
             "EXTERNAL_AEROMEDICAL_REPORT", "EXTERNAL_REPORT",
             // increment 4: partner provider reports and invoices (E04), insurer acknowledgements and redacted copies (E08)
-            "PROVIDER_REPORT", "PROVIDER_INVOICE", "INSURER_ACKNOWLEDGEMENT", "REDACTED_COPY");
+            "PROVIDER_REPORT", "PROVIDER_INVOICE", "INSURER_ACKNOWLEDGEMENT", "REDACTED_COPY",
+            // increment 5: workstation / task photos of ergonomic assessments (E12, non-clinical), authority correspondence (E11)
+            "ERGONOMIC_PHOTO", "AUTHORITY_CORRESPONDENCE");
 
     /** Stored upload with the text extracted from it (PDF text layer or OCR) and its SHA-256 for duplicate detection. */
     public record Stored(DocumentView document, String extractedText, String sha256) {
@@ -299,9 +301,21 @@ public class DocumentService {
      */
     @Transactional
     public DocumentView generateSigned(String actor, String templateCode, String employeeId, UUID caseId, Map<String, String> fields) {
+        return generateSigned(actor, templateCode, employeeId, caseId, fields, null);
+    }
+
+    /**
+     * As {@link #generateSigned(String, String, String, UUID, Map)}, optionally in the restricted class
+     * ({@code RESTRICTED_CLINICAL} – mental-health and substance-programme records, E09 / E10), which only the named
+     * restricted roles can open and which is never shared outside OH without explicit consent.
+     */
+    @Transactional
+    public DocumentView generateSigned(String actor, String templateCode, String employeeId, UUID caseId, Map<String, String> fields,
+                                       DataClassification classification) {
         DocumentTemplates.Template t = templates.find(templateCode)
                 .orElseThrow(() -> ApiException.badRequest("unknown_template", "Unknown document template"));
-        DataClassification cls = t.containsClinical() ? DataClassification.CLINICAL : DataClassification.CONFIDENTIAL;
+        DataClassification cls = classification != null ? classification
+                : t.containsClinical() ? DataClassification.CLINICAL : DataClassification.CONFIDENTIAL;
         Map<String, String> clean = validateFields(t, fields);
         UUID id = UUID.randomUUID();
         Document d = new Document(id, nextNumber(), id, 1, t.type(), t.code(), t.title(), employeeId, caseId, cls, actor, clock.instant());
