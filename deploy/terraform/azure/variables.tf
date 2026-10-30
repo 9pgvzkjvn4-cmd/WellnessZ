@@ -13,13 +13,28 @@ variable "location" {
 }
 
 variable "environment" {
-  description = "Environment name (dev|test|prod)."
+  description = "Environment name (dev|uat|prod). Drives naming (rg-<prefix>-<env>), tags and environment-dependent defaults. Use environments/<env>.tfvars."
   type        = string
-  default     = "prod"
   validation {
-    condition     = contains(["dev", "test", "prod"], var.environment)
-    error_message = "environment must be dev, test or prod."
+    condition     = contains(["dev", "uat", "prod"], var.environment)
+    error_message = "environment must be dev, uat or prod (\"test\" was renamed to \"uat\")."
   }
+}
+
+variable "availability_zones" {
+  description = "Availability zones for AKS node pools, App Gateway, public IP and PostgreSQL HA. One zone (dev) disables zone redundancy; prod should use three."
+  type        = list(string)
+  default     = ["1", "2", "3"]
+  validation {
+    condition     = length(var.availability_zones) >= 1 && alltrue([for z in var.availability_zones : contains(["1", "2", "3"], z)])
+    error_message = "availability_zones must contain one or more of \"1\", \"2\", \"3\"."
+  }
+}
+
+variable "resource_lock_enabled" {
+  description = "CanNotDelete lock on the resource group (null = only in prod)."
+  type        = bool
+  default     = null
 }
 
 variable "name_prefix" {
@@ -102,6 +117,26 @@ variable "aks_authorized_ip_ranges" {
 variable "aks_admin_group_object_ids" {
   description = "Entra ID group object IDs granted cluster-admin via Azure RBAC."
   type        = list(string)
+}
+
+variable "aks_sku_tier" {
+  description = "AKS control-plane tier: Free, Standard (uptime SLA) or Premium (null = Standard in uat/prod, Free in dev)."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.aks_sku_tier == null || contains(["Free", "Standard", "Premium"], coalesce(var.aks_sku_tier, "Free"))
+    error_message = "aks_sku_tier must be Free, Standard or Premium."
+  }
+}
+
+variable "aks_system_node_min" {
+  type    = number
+  default = 3
+}
+
+variable "aks_system_node_max" {
+  type    = number
+  default = 5
 }
 
 variable "aks_system_node_vm_size" {
@@ -190,8 +225,13 @@ variable "postgres_geo_redundant_backup" {
 }
 
 variable "postgres_backup_retention_days" {
-  type    = number
-  default = 35
+  description = "Backup retention = point-in-time-restore window (7-35 days)."
+  type        = number
+  default     = 35
+  validation {
+    condition     = var.postgres_backup_retention_days >= 7 && var.postgres_backup_retention_days <= 35
+    error_message = "postgres_backup_retention_days must be between 7 and 35."
+  }
 }
 
 variable "postgres_admin_login" {
@@ -253,9 +293,15 @@ variable "acr_allowed_ips" {
 }
 
 variable "log_retention_days" {
-  description = "Log Analytics retention (SOC 2 evidence: >= 365 recommended)."
+  description = "Log Analytics retention (SOC 2 evidence: >= 365 recommended for prod)."
   type        = number
   default     = 365
+}
+
+variable "key_vault_soft_delete_days" {
+  description = "Key Vault soft-delete retention (7-90, immutable after creation)."
+  type        = number
+  default     = 90
 }
 
 variable "enable_defender_plans" {
@@ -280,8 +326,24 @@ variable "waf_rule_set" {
 }
 
 variable "waf_mode" {
-  type    = string
-  default = "Prevention"
+  description = "WAF policy mode (App Gateway and Front Door): Prevention (uat/prod) or Detection (dev tuning)."
+  type        = string
+  default     = "Prevention"
+  validation {
+    condition     = contains(["Prevention", "Detection"], var.waf_mode)
+    error_message = "waf_mode must be Prevention or Detection."
+  }
+}
+
+variable "appgw_min_capacity" {
+  description = "Application Gateway WAF_v2 autoscale minimum instances (>= 2 for an SLA)."
+  type        = number
+  default     = 2
+}
+
+variable "appgw_max_capacity" {
+  type    = number
+  default = 10
 }
 
 variable "enable_front_door" {
@@ -306,7 +368,13 @@ variable "github_repository" {
 }
 
 variable "github_environments" {
-  description = "GitHub Environments whose jobs may deploy (subject repo:<owner/repo>:environment:<env>)."
+  description = "GitHub Environments whose jobs may federate into this environment's deployer identity (subject repo:<owner/repo>:environment:<env>). null = [\"azure-<environment>\"] - each cloud environment trusts only its own GitHub Environment."
   type        = list(string)
-  default     = ["dev", "test", "prod"]
+  default     = null
+}
+
+variable "github_image_publish_branches" {
+  description = "Branches whose workflow runs (container.yml) may push images into this environment's ACR. Normally only dev; uat/prod receive images by digest-preserving promotion from the deploy job of their own GitHub Environment."
+  type        = list(string)
+  default     = ["main"]
 }

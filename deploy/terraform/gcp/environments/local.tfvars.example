@@ -1,0 +1,4 @@
+# Copy to environments/<env>.local.tfvars (git-ignored). Identifiers only - no secrets.
+project_id          = "my-wellnessz-<env>"
+sql_iam_admin_group = "wellnessz-dba-<env>@example.com"
+github_repository   = "OWNER/WellnessZ"

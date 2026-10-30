@@ -6,7 +6,7 @@ resource "azurerm_container_registry" "main" {
   admin_enabled                 = false
   anonymous_pull_enabled        = false
   data_endpoint_enabled         = true
-  zone_redundancy_enabled       = true
+  zone_redundancy_enabled       = local.zone_redundant
   public_network_access_enabled = var.acr_public_network_access
   export_policy_enabled         = var.acr_public_network_access
   network_rule_bypass_option    = "AzureServices"

@@ -15,8 +15,12 @@ global:
   imageTag: ""
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
-  # Free-form environment name (dev|test|prod) - added as a label.
+  # Environment name (local|dev|uat|prod) - label, OTel deployment.environment.
   environment: dev
+  # Refuse to render unless every enabled component is pinned by digest
+  # (component.image.digest). On in prod: only the signed release digests that
+  # passed dev and uat can be deployed (set by .github/workflows/deploy-env.yml).
+  requireImageDigests: false
   # Spring profile(s) for core and bff (local|azure|gcp|hybrid|prod)
   springProfiles: prod
   # OpenShift: let the restricted-v2 SCC assign UIDs (omits runAsUser/runAsGroup/fsGroup)
@@ -176,6 +180,18 @@ containerSecurityContext:
   privileged: false
   capabilities:
     drop: ["ALL"]
+
+# -----------------------------------------------------------------------------
+# Observability knobs per environment (rendered into the core/bff ConfigMaps;
+# empty = application default)
+#   logLevel       -> LOGGING_LEVEL_COM_WELLNESSZ
+#   rootLogLevel   -> LOGGING_LEVEL_ROOT
+#   traceSampling  -> MANAGEMENT_TRACING_SAMPLING_PROBABILITY (+ WZ_TRACE_SAMPLING), 0.0-1.0
+# -----------------------------------------------------------------------------
+observability:
+  logLevel: ""
+  rootLogLevel: ""
+  traceSampling: ""
 
 topologySpread:
   enabled: true
@@ -583,3 +599,38 @@ serviceMonitor:
   enabled: false
   interval: 30s
   labels: {}
+
+# -----------------------------------------------------------------------------
+# Client-specific customisation (per client deployment, no chart fork needed).
+# See deploy/environments/README.md "Client customisation".
+#   client        -> WZ_CLIENT_ID + label wellnessz.io/client on every object
+#   featureFlags  -> WZ_FEATURE_<NAME> on core and bff (name upper-cased,
+#                    non-alphanumerics -> "_"), e.g. ehsMailbox: true -> WZ_FEATURE_EHSMAILBOX=true,
+#                    travel-health-v2: false -> WZ_FEATURE_TRAVEL_HEALTH_V2=false
+#   migrations    -> client-specific Flyway migrations (db/client/<client>)
+#                    applied AFTER the core set, in their own schema(s) and
+#                    history table so they never collide with product versions.
+#                    Source: an extension image (preferred - built, scanned and
+#                    signed like the product images) or a ConfigMap of *.sql.
+#                    migrations.mode=job -> extra Flyway step in the migration Job
+#                    migrations.mode=app -> mounted into core, WZ_FLYWAY_EXTRA_LOCATIONS
+# Arbitrary extra env vars: core.extraEnv / bff.extraEnv (raw EnvVar list).
+# -----------------------------------------------------------------------------
+customisation:
+  client: ""
+  featureFlags: {}
+  migrations:
+    enabled: false
+    # Extension image containing the SQL under `path` (needs `sh` and `cp`)
+    image:
+      repository: ""     # e.g. wz-client-acme (relative to global.imageRegistry) or a full reference
+      tag: ""
+      digest: ""
+      path: /client/db/migration
+    # Alternative to the image: ConfigMap whose keys are V<n>__<desc>.sql files
+    configMap: ""
+    # Default schema: client_<client>
+    schemas: ""
+    table: flyway_schema_history_client
+    # Mount point inside core (migrations.mode=app)
+    mountPath: /opt/wellnessz/client-migrations

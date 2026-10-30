@@ -1,0 +1,9 @@
+# Remote state for the PROD environment - one state per environment.
+#   cp environments/backend-prod.hcl.example environments/backend-prod.hcl
+#   terraform init -reconfigure -backend-config=environments/backend-prod.hcl
+# Bucket per environment (in that environment's project or a dedicated state
+# project): uniform bucket-level access, public access prevention, object
+# versioning, CMEK, IAM limited to that environment's CI identity.
+bucket = "wellnessz-tfstate-prod"
+prefix = "wellnessz/prod/gcp"
+# kms_encryption_key = "projects/<p>/locations/<r>/keyRings/<kr>/cryptoKeys/tfstate"

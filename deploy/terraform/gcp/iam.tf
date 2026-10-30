@@ -64,11 +64,22 @@ resource "google_service_account" "github_deployer" {
   display_name = "GitHub Actions deployer (${var.environment})"
 }
 
-resource "google_service_account_iam_member" "github_wif" {
-  count              = var.github_repository == "" ? 0 : 1
+# Only jobs running in this environment's GitHub Environment (gcp-<env>) may
+# impersonate the deployer; required reviewers on that GitHub Environment
+# therefore gate every cloud credential for uat/prod.
+resource "google_service_account_iam_member" "github_wif_env" {
+  for_each           = var.github_repository == "" ? toset([]) : toset(local.github_envs)
   service_account_id = google_service_account.github_deployer[0].name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github[0].name}/attribute.repository/${var.github_repository}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github[0].name}/attribute.environment/${each.value}"
+}
+
+# Image publishing (container.yml, no GitHub Environment) from selected branches - normally dev only
+resource "google_service_account_iam_member" "github_wif_publish" {
+  for_each           = var.github_repository == "" ? toset([]) : toset(var.github_image_publish_branches)
+  service_account_id = google_service_account.github_deployer[0].name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github[0].name}/attribute.ref/refs/heads/${each.value}"
 }
 
 resource "google_project_iam_member" "github_deployer" {

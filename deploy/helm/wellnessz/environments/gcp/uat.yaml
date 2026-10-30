@@ -1,0 +1,160 @@
+# =============================================================================
+# GCP UAT - production-like acceptance (business sign-off), smaller capacity
+# Layer order (later wins):
+#   -f values.yaml -f values-gcp.yaml -f environments/gcp/uat.yaml
+# Image policy: release candidates (vX.Y.Z-rc.N) pinned by the signed digest
+# that passed DEV; deploy-env.yml sets <component>.image.digest.
+# <placeholders> come from `terraform output` of the uat workspace
+# (deploy/terraform/gcp, -var-file=environments/uat.tfvars).
+# =============================================================================
+global:
+  environment: uat
+  imageRegistry: <region>-docker.pkg.dev/<uat-project-id>/wellnessz   # terraform output artifact_registry
+  requireImageDigests: true
+
+workloadIdentity:
+  gcp:
+    serviceAccounts:
+      core: wellnessz-core@<uat-project-id>.iam.gserviceaccount.com
+      bff: wellnessz-bff@<uat-project-id>.iam.gserviceaccount.com
+      migrations: wellnessz-migrator@<uat-project-id>.iam.gserviceaccount.com
+
+secrets:
+  gcp:
+    projectId: <uat-project-id>
+
+# Must match terraform migrations_mode in environments/uat.tfvars
+migrations:
+  mode: job
+  job:
+    image:
+      fullName: <region>-docker.pkg.dev/<uat-project-id>/wellnessz/flyway/flyway:11.20.3-alpine
+    dbUrl: "jdbc:postgresql://<uat-cloudsql-private-ip>:5432/wellnessz?sslmode=verify-ca&sslrootcert=/mnt/secrets/migrations/cloudsql-server-ca.pem"
+
+topologySpread:
+  whenUnsatisfiable: DoNotSchedule
+
+core:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { memory: 1536Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+  pdb:
+    enabled: true
+    minAvailable: 1
+  env:
+    WZ_DB_URL: "jdbc:postgresql://<uat-cloudsql-private-ip>:5432/wellnessz?sslrootcert=/mnt/secrets/core/cloudsql-server-ca.pem"
+    WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<uat-tenant-id>/v2.0"
+    WZ_OIDC_AUDIENCE: "<uat-wellnessz-api-client-id>"
+    WZ_CORS_ORIGINS: "https://employee.uat.wellnessz.example.com,https://manager.uat.wellnessz.example.com,https://oh.uat.wellnessz.example.com,https://partners.uat.wellnessz.example.com"
+    # external partner / TPA roles only with MFA proof (amr/acr) in the token
+    WZ_MFA_REQUIRED_ROLES: "PARTNER_PROVIDER,TPA_ADJUSTER"
+    # links in content-free notifications (must match ingress.hosts)
+    WZ_EMPLOYEE_PORTAL_URL: "https://employee.uat.wellnessz.example.com"
+    WZ_MANAGER_WORKSPACE_URL: "https://manager.uat.wellnessz.example.com"
+    WZ_OH_WORKSPACE_URL: "https://oh.uat.wellnessz.example.com"
+    WZ_PARTNER_PORTAL_URL: "https://partners.uat.wellnessz.example.com"
+    WZ_GRAPH_TENANT_ID: <uat-tenant-id>
+    WZ_GRAPH_MAILBOX: ehs-feed-uat@airline.example.com
+
+bff:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { memory: 1Gi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+  pdb:
+    enabled: true
+    minAvailable: 1
+  env:
+    WZ_BFF_ISSUER_URI: "https://login.microsoftonline.com/<uat-tenant-id>/v2.0"
+    WZ_BFF_CLIENT_ID: <uat-bff-client-id>
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_WELLNESSZ_SCOPE: "openid,profile,email,offline_access,api://wellnessz-api-uat/access_as_user"
+    WZ_BFF_POST_LOGOUT_URI: "https://employee.uat.wellnessz.example.com/"
+    WZ_BFF_DB_URL: "jdbc:postgresql://<uat-cloudsql-private-ip>:5432/wellnessz?sslrootcert=/mnt/secrets/bff/cloudsql-server-ca.pem"
+
+employeePortal:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 3
+  pdb:
+    enabled: true
+    minAvailable: 1
+managerWorkspace:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 3
+  pdb:
+    enabled: true
+    minAvailable: 1
+ohWorkspace:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 3
+  pdb:
+    enabled: true
+    minAvailable: 1
+partnerPortal:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 3
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+# Static IP, Cloud Armor policy and SSL policy keep their names - one GCP project per environment.
+ingress:
+  hosts:
+    employeePortal: employee.uat.wellnessz.example.com
+    managerWorkspace: manager.uat.wellnessz.example.com
+    ohWorkspace: oh.uat.wellnessz.example.com
+    partnerPortal: partners.uat.wellnessz.example.com
+  api:
+    enabled: true
+    host: api.uat.wellnessz.example.com
+
+networkPolicy:
+  # default deny for the whole namespace + explicit allow rules
+  defaultDenyNamespace: true
+  database:
+    cidrs:
+      - 10.56.64.0/20          # terraform (uat.tfvars): psa_range
+
+observability:
+  logLevel: INFO
+  rootLogLevel: INFO
+  traceSampling: "0.25"
+
+# Client customisation hooks (see deploy/environments/README.md)
+customisation:
+  client: ""
+  featureFlags: {}
+  # featureFlags:
+  #   travel-health-v2: true    # -> WZ_FEATURE_TRAVEL_HEALTH_V2="true" on core and bff

@@ -1,0 +1,159 @@
+# =============================================================================
+# GCP PROD - zone-redundant, HA, least privilege
+# Layer order (later wins):
+#   -f values.yaml -f values-gcp.yaml -f environments/gcp/prod.yaml
+# Image policy: signed release digests only (vX.Y.Z promoted unchanged from
+# UAT); rendering fails unless every component has image.digest.
+# <placeholders> come from `terraform output` of the prod workspace
+# (deploy/terraform/gcp, -var-file=environments/prod.tfvars).
+# =============================================================================
+global:
+  environment: prod
+  imageRegistry: <region>-docker.pkg.dev/<prod-project-id>/wellnessz   # terraform output artifact_registry
+  requireImageDigests: true
+
+workloadIdentity:
+  gcp:
+    serviceAccounts:
+      core: wellnessz-core@<prod-project-id>.iam.gserviceaccount.com
+      bff: wellnessz-bff@<prod-project-id>.iam.gserviceaccount.com
+      migrations: wellnessz-migrator@<prod-project-id>.iam.gserviceaccount.com
+
+secrets:
+  gcp:
+    projectId: <prod-project-id>
+
+# Must match terraform migrations_mode in environments/prod.tfvars
+migrations:
+  mode: job
+  job:
+    image:
+      fullName: <region>-docker.pkg.dev/<prod-project-id>/wellnessz/flyway/flyway:11.20.3-alpine
+    dbUrl: "jdbc:postgresql://<prod-cloudsql-private-ip>:5432/wellnessz?sslmode=verify-ca&sslrootcert=/mnt/secrets/migrations/cloudsql-server-ca.pem"
+
+topologySpread:
+  whenUnsatisfiable: DoNotSchedule
+
+core:
+  replicaCount: 3
+  resources:
+    requests: { cpu: "1", memory: 1536Mi }
+    limits: { memory: 2Gi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+  pdb:
+    enabled: true
+    minAvailable: 2
+  env:
+    WZ_DB_URL: "jdbc:postgresql://<prod-cloudsql-private-ip>:5432/wellnessz?sslrootcert=/mnt/secrets/core/cloudsql-server-ca.pem"
+    WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<prod-tenant-id>/v2.0"
+    WZ_OIDC_AUDIENCE: "<prod-wellnessz-api-client-id>"
+    WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com,https://oh.wellnessz.example.com,https://partners.wellnessz.example.com"
+    # external partner / TPA roles only with MFA proof (amr/acr) in the token
+    WZ_MFA_REQUIRED_ROLES: "PARTNER_PROVIDER,TPA_ADJUSTER"
+    # links in content-free notifications (must match ingress.hosts)
+    WZ_EMPLOYEE_PORTAL_URL: "https://employee.wellnessz.example.com"
+    WZ_MANAGER_WORKSPACE_URL: "https://manager.wellnessz.example.com"
+    WZ_OH_WORKSPACE_URL: "https://oh.wellnessz.example.com"
+    WZ_PARTNER_PORTAL_URL: "https://partners.wellnessz.example.com"
+    WZ_GRAPH_TENANT_ID: <prod-tenant-id>
+
+bff:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { memory: 1Gi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+  pdb:
+    enabled: true
+    minAvailable: 2
+  env:
+    WZ_BFF_ISSUER_URI: "https://login.microsoftonline.com/<prod-tenant-id>/v2.0"
+    WZ_BFF_CLIENT_ID: <prod-bff-client-id>
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_WELLNESSZ_SCOPE: "openid,profile,email,offline_access,api://wellnessz-api/access_as_user"
+    WZ_BFF_POST_LOGOUT_URI: "https://employee.wellnessz.example.com/"
+    WZ_BFF_DB_URL: "jdbc:postgresql://<prod-cloudsql-private-ip>:5432/wellnessz?sslrootcert=/mnt/secrets/bff/cloudsql-server-ca.pem"
+
+employeePortal:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+  pdb:
+    enabled: true
+    minAvailable: 2
+managerWorkspace:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+  pdb:
+    enabled: true
+    minAvailable: 2
+ohWorkspace:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+  pdb:
+    enabled: true
+    minAvailable: 2
+partnerPortal:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+  pdb:
+    enabled: true
+    minAvailable: 2
+
+# Static IP, Cloud Armor policy and SSL policy keep their names - one GCP project per environment.
+ingress:
+  hosts:
+    employeePortal: employee.wellnessz.example.com
+    managerWorkspace: manager.wellnessz.example.com
+    ohWorkspace: oh.wellnessz.example.com
+    partnerPortal: partners.wellnessz.example.com
+  api:
+    enabled: true
+    host: api.wellnessz.example.com
+
+networkPolicy:
+  # default deny for the whole namespace + explicit allow rules
+  defaultDenyNamespace: true
+  database:
+    cidrs:
+      - 10.60.64.0/20          # terraform (prod.tfvars): psa_range
+
+observability:
+  logLevel: INFO
+  rootLogLevel: WARN
+  traceSampling: "0.05"
+
+# Client customisation hooks (see deploy/environments/README.md)
+customisation:
+  client: ""
+  featureFlags: {}
+  # featureFlags:
+  #   travel-health-v2: true    # -> WZ_FEATURE_TRAVEL_HEALTH_V2="true" on core and bff

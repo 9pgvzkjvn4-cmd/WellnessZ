@@ -59,3 +59,12 @@ output "github_deployer_service_account" {
   description = "GitHub variable GCP_SERVICE_ACCOUNT"
   value       = var.github_repository == "" ? null : google_service_account.github_deployer[0].email
 }
+
+output "environment" {
+  value = var.environment
+}
+
+output "github_environments" {
+  description = "GitHub Environments allowed to impersonate the deployer SA"
+  value       = var.github_repository == "" ? [] : local.github_envs
+}

@@ -24,12 +24,13 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
-  default_labels = {
+  default_labels = merge({
     application         = "wellnessz"
     environment         = var.environment
+    environment-tier    = var.environment == "prod" ? "production" : "non-production"
     data-classification = "phi-special-category"
     managed-by          = "terraform"
-  }
+  }, var.labels)
 }
 
 provider "google-beta" {

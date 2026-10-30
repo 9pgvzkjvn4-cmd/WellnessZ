@@ -3,6 +3,7 @@
 # provenance attestations -> cosign keyless signature (GitHub OIDC).
 # Registry selectable: GHCR (default), Azure ACR or Google Artifact Registry,
 # all with OIDC federation - no long-lived registry credentials.
+# Promotion DEV -> UAT -> PROD by digest: cd.yml + deploy-env.yml.
 #
 # Repository/environment variables used:
 #   ACR:  AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, ACR_NAME
@@ -12,9 +13,10 @@
 name: Container images
 
 on:
+  # Build once per commit on main (tag sha-<12>). Release tags (v*) are NOT
+  # rebuilt: cd.yml promotes the signed digests of the tagged commit's build.
   push:
     branches: [main]
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       registry:

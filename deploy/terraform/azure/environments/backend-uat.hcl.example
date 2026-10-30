@@ -1,0 +1,11 @@
+# Remote state for the UAT environment - one state file per environment.
+#   cp environments/backend-uat.hcl.example environments/backend-uat.hcl
+#   terraform init -reconfigure -backend-config=environments/backend-uat.hcl
+# Use a separate state storage account (or at least container) per environment
+# with RBAC limited to that environment's CI identity; prod state lives in the
+# prod subscription. Shared-key access disabled, blob versioning + soft delete.
+resource_group_name  = "rg-wellnessz-tfstate-uat"
+storage_account_name = "stwztfstateuat"
+container_name       = "tfstate"
+key                  = "wellnessz/uat/azure.tfstate"
+use_azuread_auth     = true

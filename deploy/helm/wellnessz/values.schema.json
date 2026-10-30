@@ -49,6 +49,8 @@
       "properties": {
         "imageRegistry": { "type": "string", "minLength": 1 },
         "imageTag": { "type": "string" },
+        "environment": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "requireImageDigests": { "type": "boolean" },
         "imagePullPolicy": { "enum": ["Always", "IfNotPresent", "Never"] },
         "openshift": { "type": "boolean" }
       }
@@ -89,6 +91,47 @@
     "employeePortal": { "$ref": "#/definitions/component" },
     "managerWorkspace": { "$ref": "#/definitions/component" },
     "ohWorkspace": { "$ref": "#/definitions/component" },
+    "partnerPortal": { "$ref": "#/definitions/component" },
+    "observability": {
+      "type": "object",
+      "properties": {
+        "logLevel": { "enum": ["", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF"] },
+        "rootLogLevel": { "enum": ["", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF"] },
+        "traceSampling": { "type": "string", "pattern": "^$|^(0(\\.[0-9]+)?|1(\\.0+)?)$" }
+      },
+      "additionalProperties": false
+    },
+    "customisation": {
+      "type": "object",
+      "properties": {
+        "client": { "type": "string", "pattern": "^$|^[a-z][a-z0-9-]{0,30}$" },
+        "featureFlags": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$" },
+          "additionalProperties": { "type": ["boolean", "string", "number"] }
+        },
+        "migrations": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": { "type": "string" },
+                "tag": { "type": "string" },
+                "digest": { "type": "string", "pattern": "^$|^sha256:[a-f0-9]{64}$" },
+                "path": { "type": "string", "pattern": "^/" }
+              }
+            },
+            "configMap": { "type": "string" },
+            "schemas": { "type": "string", "pattern": "^$|^[a-z_][a-z0-9_]*(,[a-z_][a-z0-9_]*)*$" },
+            "table": { "type": "string", "pattern": "^[a-z_][a-z0-9_]*$" },
+            "mountPath": { "type": "string", "pattern": "^/" }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "networkPolicy": {
       "type": "object",
       "required": ["enabled"],

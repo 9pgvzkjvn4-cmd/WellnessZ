@@ -1,0 +1,11 @@
+# Copy to environments/<env>.local.tfvars (git-ignored) and fill in the
+# tenant-specific identifiers for that environment. No secrets.
+subscription_id            = "00000000-0000-0000-0000-000000000000"
+aks_admin_group_object_ids = ["00000000-0000-0000-0000-000000000000"]
+postgres_entra_admin = {
+  object_id      = "00000000-0000-0000-0000-000000000000"
+  principal_name = "sg-wellnessz-db-admins-<env>"
+}
+github_repository = "OWNER/WellnessZ"
+# key_vault_allowed_ips    = ["198.51.100.10/32"]  # Terraform runner egress while KV is private-only
+# aks_authorized_ip_ranges = ["198.51.100.0/24"]   # dev only (public API server)

@@ -1,0 +1,11 @@
+# Remote state for the DEV environment - one state file per environment.
+#   cp environments/backend-dev.hcl.example environments/backend-dev.hcl
+#   terraform init -reconfigure -backend-config=environments/backend-dev.hcl
+# Use a separate state storage account (or at least container) per environment
+# with RBAC limited to that environment's CI identity; prod state lives in the
+# prod subscription. Shared-key access disabled, blob versioning + soft delete.
+resource_group_name  = "rg-wellnessz-tfstate-dev"
+storage_account_name = "stwztfstatedev"
+container_name       = "tfstate"
+key                  = "wellnessz/dev/azure.tfstate"
+use_azuread_auth     = true

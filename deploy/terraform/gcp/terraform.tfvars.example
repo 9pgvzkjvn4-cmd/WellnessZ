@@ -1,4 +1,6 @@
-# Copy to terraform.tfvars (git-ignored). Identifiers only - no secrets.
+# Prefer the committed per-environment files instead of this example:
+#   terraform plan -var-file=environments/<dev|uat|prod>.tfvars -var-file=environments/<env>.local.tfvars
+# Copy to terraform.tfvars (git-ignored) only for ad-hoc work. Identifiers only - no secrets.
 project_id  = "my-wellnessz-prod"
 region      = "europe-west4"
 environment = "prod"
@@ -15,3 +17,4 @@ sql_iam_admin_group = "wellnessz-dba@example.com"
 
 log_retention_days = 365
 github_repository  = "OWNER/WellnessZ"
+github_environments = ["gcp-prod"] # default: ["gcp-<environment>"]

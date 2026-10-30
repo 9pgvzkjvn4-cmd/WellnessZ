@@ -249,6 +249,20 @@ jobs:
           done
           helm template edge "$chart" -f "$chart/values.yaml" -f "$chart/values-azure.yaml" \
             -f deploy/hybrid/values-hybrid-cloud-edge.yaml > /tmp/render-edge.yaml
+          # Environment overlays (deploy/helm/wellnessz/environments/<cloud>/<env>.yaml);
+          # uat/prod require digests, so render with a placeholder digest.
+          d="sha256:$(printf '0%.0s' $(seq 64))"
+          digests=()
+          for c in core bff employeePortal managerWorkspace ohWorkspace partnerPortal; do
+            digests+=(--set-string "$c.image.digest=$d")
+          done
+          for cloud in azure gcp hybrid; do
+            for env in dev uat prod; do
+              args=(-f "$chart/values.yaml" -f "$chart/values-$cloud.yaml" -f "$chart/environments/$cloud/$env.yaml" "${digests[@]}")
+              helm lint "$chart" "${args[@]}"
+              helm template wz "$chart" "${args[@]}" > "/tmp/render-$cloud-$env.yaml"
+            done
+          done
 
       - name: terraform fmt
         run: |

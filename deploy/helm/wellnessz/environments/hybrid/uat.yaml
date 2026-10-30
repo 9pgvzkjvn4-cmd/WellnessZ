@@ -1,0 +1,103 @@
+# =============================================================================
+# HYBRID on-prem core - UAT - production-like acceptance (business sign-off), smaller capacity
+# On-prem cluster (RKE2 / OpenShift) running wz-core-app next to CloudNativePG:
+#   -f values.yaml -f values-hybrid.yaml -f environments/hybrid/uat.yaml
+# The cloud edge (BFF + web apps) uses the cloud overlay of the same environment:
+#   -f values.yaml -f values-azure.yaml -f environments/azure/uat.yaml \
+#   -f ../../hybrid/values-hybrid-cloud-edge.yaml --set-string bff.env.WZ_CORE_API_URL=https://api.uat.wellnessz.onprem.example.internal
+# Image policy: release candidates (vX.Y.Z-rc.N) pinned by the signed digest
+# that passed DEV; deploy-env.yml sets <component>.image.digest.
+# Vault: one KV path prefix per environment (kv/data/wellnessz/uat/...), one
+# Kubernetes auth mount per cluster; see deploy/hybrid/external-secrets.
+# =============================================================================
+global:
+  environment: uat
+  imageRegistry: registry.onprem.example.internal/wellnessz   # mirror; digests are preserved by the mirror copy
+  requireImageDigests: true
+
+secrets:
+  vault:
+    kubernetesMountPath: kubernetes-wellnessz-uat
+    roles:
+      core: wellnessz-core-uat
+      bff: wellnessz-bff-uat
+      migrations: wellnessz-migrations-uat
+  core:
+    files:
+      - fileName: wz-db-password
+        remoteName: kv/data/wellnessz/uat/core#wz-db-password
+        env: WZ_DB_PASSWORD
+        format: fileRef
+      - fileName: wz-master-key
+        remoteName: kv/data/wellnessz/uat/core#wz-master-key
+        env: WZ_MASTER_KEY_FILE
+        format: path
+      - fileName: wz-pseudonym-key
+        remoteName: kv/data/wellnessz/uat/core#wz-pseudonym-key
+        env: WZ_PSEUDONYM_KEY
+        format: fileRef
+      - fileName: wellnessz-db-ca.crt
+        remoteName: kv/data/wellnessz/uat/core#db-ca-crt
+  migrations:
+    files:
+      - fileName: wz-migrator-db-password
+        remoteName: kv/data/wellnessz/uat/migrations#password
+        env: WZ_DB_MIGRATOR_PASSWORD
+        format: fileRef
+      - fileName: wellnessz-db-ca.crt
+        remoteName: kv/data/wellnessz/uat/core#db-ca-crt
+
+migrations:
+  mode: job   # hybrid always uses the pre-upgrade Job (core never holds the owner credential)
+
+topologySpread:
+  whenUnsatisfiable: DoNotSchedule
+
+core:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { memory: 1536Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+  pdb:
+    enabled: true
+    minAvailable: 1
+  env:
+    WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<uat-tenant-id>/v2.0"
+    WZ_OIDC_AUDIENCE: "<uat-wellnessz-api-client-id>"
+    WZ_CORS_ORIGINS: "https://employee.uat.wellnessz.example.com,https://manager.uat.wellnessz.example.com,https://oh.uat.wellnessz.example.com,https://partners.uat.wellnessz.example.com"
+    # external partner / TPA roles only with MFA proof (amr/acr) in the token
+    WZ_MFA_REQUIRED_ROLES: "PARTNER_PROVIDER,TPA_ADJUSTER"
+    # links in content-free notifications (must match ingress.hosts)
+    WZ_EMPLOYEE_PORTAL_URL: "https://employee.uat.wellnessz.example.com"
+    WZ_MANAGER_WORKSPACE_URL: "https://manager.uat.wellnessz.example.com"
+    WZ_OH_WORKSPACE_URL: "https://oh.uat.wellnessz.example.com"
+    WZ_PARTNER_PORTAL_URL: "https://partners.uat.wellnessz.example.com"
+
+ingress:
+  api:
+    enabled: true
+    host: api.uat.wellnessz.onprem.example.internal
+
+networkPolicy:
+  defaultDenyNamespace: true
+  # The cloud edge BFF of the same environment reaches core:8080 over the private link
+  # (AKS node subnet of the uat VNet - terraform subnet_cidrs.aks; GKE: subnet_cidr)
+  coreExtraIngressPeers:
+    - ipBlock:
+        cidr: 10.44.0.0/23
+
+observability:
+  logLevel: INFO
+  rootLogLevel: INFO
+  traceSampling: "0.25"
+
+# Client customisation hooks (see deploy/environments/README.md)
+customisation:
+  client: ""
+  featureFlags: {}
+  # featureFlags:
+  #   travel-health-v2: true    # -> WZ_FEATURE_TRAVEL_HEALTH_V2="true" on core and bff

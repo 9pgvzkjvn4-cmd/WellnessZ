@@ -6,7 +6,7 @@ resource "azurerm_key_vault" "main" {
   sku_name                      = "premium" # HSM-backed keys for CMK
   rbac_authorization_enabled    = true
   purge_protection_enabled      = true
-  soft_delete_retention_days    = 90
+  soft_delete_retention_days    = var.key_vault_soft_delete_days
   public_network_access_enabled = length(var.key_vault_allowed_ips) > 0
   tags                          = local.tags
 

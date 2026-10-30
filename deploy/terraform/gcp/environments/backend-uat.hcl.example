@@ -1,0 +1,9 @@
+# Remote state for the UAT environment - one state per environment.
+#   cp environments/backend-uat.hcl.example environments/backend-uat.hcl
+#   terraform init -reconfigure -backend-config=environments/backend-uat.hcl
+# Bucket per environment (in that environment's project or a dedicated state
+# project): uniform bucket-level access, public access prevention, object
+# versioning, CMEK, IAM limited to that environment's CI identity.
+bucket = "wellnessz-tfstate-uat"
+prefix = "wellnessz/uat/gcp"
+# kms_encryption_key = "projects/<p>/locations/<r>/keyRings/<kr>/cryptoKeys/tfstate"

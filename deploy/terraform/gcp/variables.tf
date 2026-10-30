@@ -8,12 +8,24 @@ variable "region" {
 }
 
 variable "environment" {
-  type    = string
-  default = "prod"
+  description = "Environment name (dev|uat|prod). Use one GCP project per environment (several resource names are project-scoped singletons) and environments/<env>.tfvars."
+  type        = string
   validation {
-    condition     = contains(["dev", "test", "prod"], var.environment)
-    error_message = "environment must be dev, test or prod."
+    condition     = contains(["dev", "uat", "prod"], var.environment)
+    error_message = "environment must be dev, uat or prod (\"test\" was renamed to \"uat\")."
   }
+}
+
+variable "deletion_protection" {
+  description = "Deletion protection on GKE and Cloud SQL (null = on in uat/prod, off in dev). The Cloud SQL instance and KMS keys additionally carry lifecycle.prevent_destroy."
+  type        = bool
+  default     = null
+}
+
+variable "labels" {
+  description = "Additional labels applied to every resource (provider default_labels)."
+  type        = map(string)
+  default     = {}
 }
 
 variable "name_prefix" {
@@ -102,6 +114,12 @@ variable "gke_node_max" {
   default = 3
 }
 
+variable "gke_node_locations" {
+  description = "Standard mode only: zones for the node pool (null = all zones of the region). One zone keeps dev small; Autopilot is always regional."
+  type        = list(string)
+  default     = null
+}
+
 variable "k8s_namespace" {
   type    = string
   default = "wellnessz"
@@ -116,6 +134,10 @@ variable "binauthz_enforcement_mode" {
   description = "ENFORCED_BLOCK_AND_AUDIT_LOG or DRYRUN_AUDIT_LOG_ONLY (start in dry-run, then enforce)."
   type        = string
   default     = "DRYRUN_AUDIT_LOG_ONLY"
+  validation {
+    condition     = contains(["ENFORCED_BLOCK_AND_AUDIT_LOG", "DRYRUN_AUDIT_LOG_ONLY"], var.binauthz_enforcement_mode)
+    error_message = "binauthz_enforcement_mode must be ENFORCED_BLOCK_AND_AUDIT_LOG or DRYRUN_AUDIT_LOG_ONLY."
+  }
 }
 
 # ----------------------------------------------------------------------------
@@ -137,9 +159,31 @@ variable "sql_disk_size_gb" {
 }
 
 variable "sql_backup_retention" {
-  description = "Number of automated backups retained."
+  description = "Number of automated (daily) backups retained."
   type        = number
   default     = 30
+}
+
+variable "sql_availability_type" {
+  description = "REGIONAL (HA standby in another zone) or ZONAL (null = ZONAL in dev, REGIONAL in uat/prod)."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.sql_availability_type == null || contains(["REGIONAL", "ZONAL"], coalesce(var.sql_availability_type, "ZONAL"))
+    error_message = "sql_availability_type must be REGIONAL or ZONAL."
+  }
+}
+
+variable "sql_pitr_enabled" {
+  description = "Point-in-time recovery (write-ahead log archiving)."
+  type        = bool
+  default     = true
+}
+
+variable "sql_transaction_log_retention_days" {
+  description = "PITR window in days (1-7 for ENTERPRISE, up to 35 for ENTERPRISE_PLUS)."
+  type        = number
+  default     = 7
 }
 
 variable "sql_iam_admin_group" {
@@ -171,8 +215,35 @@ variable "log_retention_days" {
   default = 365
 }
 
+# ----------------------------------------------------------------------------
+# Cloud Armor
+# ----------------------------------------------------------------------------
+variable "cloud_armor_preview" {
+  description = "Run the preconfigured WAF rules in preview (log only, no blocking) - dev rule tuning. Must be false in uat/prod (prevention)."
+  type        = bool
+  default     = false
+}
+
+variable "cloud_armor_adaptive_protection" {
+  description = "Cloud Armor Adaptive Protection (L7 DDoS defense)."
+  type        = bool
+  default     = true
+}
+
 variable "github_repository" {
   description = "owner/repo allowed to use the GitHub Actions workload identity provider (empty = skip)."
   type        = string
   default     = ""
+}
+
+variable "github_environments" {
+  description = "GitHub Environments whose jobs may impersonate this environment's deployer SA (null = [\"gcp-<environment>\"])."
+  type        = list(string)
+  default     = null
+}
+
+variable "github_image_publish_branches" {
+  description = "Branches whose workflow runs (container.yml) may impersonate the deployer SA to push images. Normally only dev; uat/prod receive images by digest-preserving promotion."
+  type        = list(string)
+  default     = ["main"]
 }

@@ -1,0 +1,107 @@
+# =============================================================================
+# HYBRID on-prem core - DEV - developer integration: small, single replica, verbose diagnostics, synthetic data only
+# On-prem cluster (RKE2 / OpenShift) running wz-core-app next to CloudNativePG:
+#   -f values.yaml -f values-hybrid.yaml -f environments/hybrid/dev.yaml
+# The cloud edge (BFF + web apps) uses the cloud overlay of the same environment:
+#   -f values.yaml -f values-azure.yaml -f environments/azure/dev.yaml \
+#   -f ../../hybrid/values-hybrid-cloud-edge.yaml --set-string bff.env.WZ_CORE_API_URL=https://api.dev.wellnessz.onprem.example.internal
+# Image policy: branch builds (sha-<12> tags from main or feature branches);
+# digests not enforced so developers can redeploy quickly.
+# Vault: one KV path prefix per environment (kv/data/wellnessz/dev/...), one
+# Kubernetes auth mount per cluster; see deploy/hybrid/external-secrets.
+# =============================================================================
+global:
+  environment: dev
+  imageRegistry: registry.onprem.example.internal/wellnessz   # mirror; digests are preserved by the mirror copy
+  requireImageDigests: false
+
+secrets:
+  vault:
+    kubernetesMountPath: kubernetes-wellnessz-dev
+    roles:
+      core: wellnessz-core-dev
+      bff: wellnessz-bff-dev
+      migrations: wellnessz-migrations-dev
+  core:
+    files:
+      - fileName: wz-db-password
+        remoteName: kv/data/wellnessz/dev/core#wz-db-password
+        env: WZ_DB_PASSWORD
+        format: fileRef
+      - fileName: wz-master-key
+        remoteName: kv/data/wellnessz/dev/core#wz-master-key
+        env: WZ_MASTER_KEY_FILE
+        format: path
+      - fileName: wz-pseudonym-key
+        remoteName: kv/data/wellnessz/dev/core#wz-pseudonym-key
+        env: WZ_PSEUDONYM_KEY
+        format: fileRef
+      - fileName: wellnessz-db-ca.crt
+        remoteName: kv/data/wellnessz/dev/core#db-ca-crt
+  migrations:
+    files:
+      - fileName: wz-migrator-db-password
+        remoteName: kv/data/wellnessz/dev/migrations#password
+        env: WZ_DB_MIGRATOR_PASSWORD
+        format: fileRef
+      - fileName: wellnessz-db-ca.crt
+        remoteName: kv/data/wellnessz/dev/core#db-ca-crt
+
+migrations:
+  mode: job   # hybrid always uses the pre-upgrade Job (core never holds the owner credential)
+
+topologySpread:
+  whenUnsatisfiable: ScheduleAnyway
+
+core:
+  replicaCount: 1
+  resources:
+    requests: { cpu: 250m, memory: 768Mi }
+    limits: { memory: 1Gi }
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 2
+  pdb:
+    enabled: false
+    minAvailable: 1
+  env:
+    WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<dev-tenant-id>/v2.0"
+    WZ_OIDC_AUDIENCE: "<dev-wellnessz-api-client-id>"
+    WZ_CORS_ORIGINS: "https://employee.dev.wellnessz.example.com,https://manager.dev.wellnessz.example.com,https://oh.dev.wellnessz.example.com,https://partners.dev.wellnessz.example.com"
+    WZ_API_DOCS_ENABLED: "true"
+    # links in content-free notifications (must match ingress.hosts)
+    WZ_EMPLOYEE_PORTAL_URL: "https://employee.dev.wellnessz.example.com"
+    WZ_MANAGER_WORKSPACE_URL: "https://manager.dev.wellnessz.example.com"
+    WZ_OH_WORKSPACE_URL: "https://oh.dev.wellnessz.example.com"
+    WZ_PARTNER_PORTAL_URL: "https://partners.dev.wellnessz.example.com"
+  # DEV only: no MFA step-up required for partner roles (test identities without
+  # enrolled authenticators). Remove to rehearse MFA. Always on in UAT/PROD.
+  extraEnv:
+    - name: WZ_MFA_REQUIRED_ROLES
+      value: ""
+
+ingress:
+  api:
+    enabled: true
+    host: api.dev.wellnessz.onprem.example.internal
+
+networkPolicy:
+  defaultDenyNamespace: false
+  # The cloud edge BFF of the same environment reaches core:8080 over the private link
+  # (AKS node subnet of the dev VNet - terraform subnet_cidrs.aks; GKE: subnet_cidr)
+  coreExtraIngressPeers:
+    - ipBlock:
+        cidr: 10.48.0.0/23
+
+observability:
+  logLevel: DEBUG
+  rootLogLevel: INFO
+  traceSampling: "1.0"
+
+# Client customisation hooks (see deploy/environments/README.md)
+customisation:
+  client: ""
+  featureFlags: {}
+  # featureFlags:
+  #   travel-health-v2: true    # -> WZ_FEATURE_TRAVEL_HEALTH_V2="true" on core and bff

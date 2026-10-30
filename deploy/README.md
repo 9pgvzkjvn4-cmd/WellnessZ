@@ -244,8 +244,8 @@ the CSI driver picks up the new file (Azure rotation every 2 min).
 |---|---|---|
 | `ci.yml` | PR, push `main` | Java 21 `./mvnw verify` (JaCoCo, Surefire reports, CycloneDX SBOM) + SpotBugs/FindSecBugs (`-Psecurity`); web lint/test/build/`npm audit`/CycloneDX for the four apps (incl. `partner-portal`, increment 4); gitleaks (full history); OWASP dependency-check (fail CVSS ≥ 7, `NVD_API_KEY`, SARIF to code scanning); dependency review on PRs; Helm lint/template, `terraform fmt`, Trivy IaC scan |
 | `codeql.yml` | PR, push, weekly | CodeQL `java-kotlin` + `javascript-typescript`, `security-extended` |
-| `container.yml` | push `main`/tags, dispatch, `workflow_call` | Build 6 images (incl. `oh-workspace` and `partner-portal`) → Trivy gate (CRITICAL/HIGH, fixed) → push to GHCR / ACR / Artifact Registry (OIDC) → SBOM + SLSA provenance attestations → cosign keyless signature → Binary Authorization attestation (GAR) |
-| `cd.yml` (+ `deploy-env.yml`) | tag `v*`, dispatch | dev → test → prod through GitHub Environments; cosign verification of every image before deploy; Azure (`azure/login` OIDC + kubelogin + AKS context or `az aks command invoke` for private clusters) or GCP (WIF + `get-gke-credentials`); `helm upgrade --install --atomic --wait` |
+| `container.yml` | push `main`, dispatch, `workflow_call` (built once per commit, tag `sha-<12>`; release tags are not rebuilt) | Build 6 images (incl. `oh-workspace` and `partner-portal`) → Trivy gate (CRITICAL/HIGH, fixed) → push to GHCR / ACR / Artifact Registry (OIDC) → SBOM + SLSA provenance attestations → cosign keyless signature → Binary Authorization attestation (GAR) |
+| `cd.yml` (+ `deploy-env.yml`) | `container.yml` done on `main`, tag `v*`, dispatch | DEV → UAT → PROD per cloud through GitHub Environments `azure-dev/uat/prod`, `gcp-dev/uat/prod`; the same signed digests promoted (cosign verify + digest-preserving `cosign copy`), Helm overlays `environments/<cloud>/<env>.yaml`, `helm upgrade --install --atomic`, smoke tests, automatic `helm rollback`; `deploy-env.yml` can also be dispatched for one cloud + environment. See [`environments/README.md`](environments/README.md) |
 
 All actions are pinned to full commit SHAs (version in comment), every workflow
 and job declares least-privilege `permissions`, checkouts use
@@ -256,9 +256,11 @@ and job declares least-privilege `permissions`, checkouts use
 
 * Branch protection on `main`: PR required, 2 approvals, Code Owner review,
   required checks (`CI`, `CodeQL`), signed commits, linear history, no force push.
-* Environments `dev`, `test`, `prod` with variables listed at the top of
-  `cd.yml`; **required reviewers** on `test` and `prod` (prod: CAB/security
-  group), deployment branch rule `v*` tags for `prod`, optional wait timer.
+* Environments `azure-dev`, `azure-uat`, `azure-prod`, `gcp-dev`, `gcp-uat`,
+  `gcp-prod` with the variables listed at the top of `deploy-env.yml`;
+  **required reviewers** on `*-uat` and `*-prod` (prod: CAB/security group),
+  deployment branch rule `v*` tags for uat/prod, optional wait timer
+  (see [`environments/README.md`](environments/README.md)).
 * Repository variable `IMAGE_REGISTRY_KIND` (`ghcr|acr|gar`) and per-registry
   variables listed in `container.yml`.
 * Enable secret scanning + push protection, Dependabot alerts and private

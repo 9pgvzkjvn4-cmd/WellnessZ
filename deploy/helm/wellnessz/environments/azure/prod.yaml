@@ -1,0 +1,158 @@
+# =============================================================================
+# AZURE PROD - zone-redundant, HA, least privilege
+# Layer order (later wins):
+#   -f values.yaml -f values-azure.yaml -f environments/azure/prod.yaml
+# Image policy: signed release digests only (vX.Y.Z promoted unchanged from
+# UAT); rendering fails unless every component has image.digest.
+# <placeholders> come from `terraform output` of the prod workspace
+# (deploy/terraform/azure, -var-file=environments/prod.tfvars).
+# =============================================================================
+global:
+  environment: prod
+  imageRegistry: <prod-acr-name>.azurecr.io/wellnessz     # terraform output acr_login_server
+  requireImageDigests: true
+
+workloadIdentity:
+  azure:
+    tenantId: <prod-tenant-id>
+    clientIds:
+      core: <prod-core-identity-client-id>
+      bff: <prod-bff-identity-client-id>
+      migrations: <prod-migrator-identity-client-id>
+
+secrets:
+  azure:
+    keyVaultName: <prod-key-vault-name>                  # terraform output key_vault_name
+    tenantId: <prod-tenant-id>
+
+# Must match terraform migrations_mode in environments/prod.tfvars
+migrations:
+  mode: job
+
+topologySpread:
+  whenUnsatisfiable: DoNotSchedule
+
+core:
+  replicaCount: 3
+  resources:
+    requests: { cpu: "1", memory: 1536Mi }
+    limits: { memory: 2Gi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+  pdb:
+    enabled: true
+    minAvailable: 2
+  env:
+    WZ_DB_URL: "jdbc:postgresql://<prod-pg-server-name>.postgres.database.azure.com:5432/wellnessz?sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+    WZ_OIDC_ISSUERS: "https://login.microsoftonline.com/<prod-tenant-id>/v2.0"
+    WZ_OIDC_AUDIENCE: "<prod-wellnessz-api-client-id>"
+    WZ_CORS_ORIGINS: "https://employee.wellnessz.example.com,https://manager.wellnessz.example.com,https://oh.wellnessz.example.com,https://partners.wellnessz.example.com"
+    # external partner / TPA roles only with MFA proof (amr/acr) in the token
+    WZ_MFA_REQUIRED_ROLES: "PARTNER_PROVIDER,TPA_ADJUSTER"
+    # links in content-free notifications (must match ingress.hosts)
+    WZ_EMPLOYEE_PORTAL_URL: "https://employee.wellnessz.example.com"
+    WZ_MANAGER_WORKSPACE_URL: "https://manager.wellnessz.example.com"
+    WZ_OH_WORKSPACE_URL: "https://oh.wellnessz.example.com"
+    WZ_PARTNER_PORTAL_URL: "https://partners.wellnessz.example.com"
+    WZ_GRAPH_TENANT_ID: <prod-tenant-id>
+
+bff:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { memory: 1Gi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+  pdb:
+    enabled: true
+    minAvailable: 2
+  env:
+    WZ_BFF_ISSUER_URI: "https://login.microsoftonline.com/<prod-tenant-id>/v2.0"
+    WZ_BFF_CLIENT_ID: <prod-bff-app-registration-client-id>
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_WELLNESSZ_SCOPE: "openid,profile,email,offline_access,api://wellnessz-api/access_as_user"
+    WZ_BFF_POST_LOGOUT_URI: "https://employee.wellnessz.example.com/"
+
+employeePortal:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+  pdb:
+    enabled: true
+    minAvailable: 2
+managerWorkspace:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+  pdb:
+    enabled: true
+    minAvailable: 2
+ohWorkspace:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+  pdb:
+    enabled: true
+    minAvailable: 2
+partnerPortal:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+  pdb:
+    enabled: true
+    minAvailable: 2
+
+ingress:
+  hosts:
+    employeePortal: employee.wellnessz.example.com
+    managerWorkspace: manager.wellnessz.example.com
+    ohWorkspace: oh.wellnessz.example.com
+    partnerPortal: partners.wellnessz.example.com
+  api:
+    enabled: true
+    host: api.wellnessz.example.com
+
+networkPolicy:
+  # default deny for the whole namespace + explicit allow rules
+  defaultDenyNamespace: true
+  ingressController:
+    ipBlocks:
+      - 10.40.2.0/24          # terraform (prod.tfvars): subnet_cidrs.appgw
+  database:
+    cidrs:
+      - 10.40.3.0/24          # terraform (prod.tfvars): subnet_cidrs.postgres
+
+observability:
+  logLevel: INFO
+  rootLogLevel: WARN
+  traceSampling: "0.05"
+
+# Client customisation hooks (see deploy/environments/README.md)
+customisation:
+  client: ""
+  featureFlags: {}
+  # featureFlags:
+  #   travel-health-v2: true    # -> WZ_FEATURE_TRAVEL_HEALTH_V2="true" on core and bff

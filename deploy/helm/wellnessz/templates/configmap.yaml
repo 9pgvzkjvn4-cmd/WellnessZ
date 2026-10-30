@@ -10,6 +10,21 @@
 {{- $_ := set $env "WZ_BFF_DB_URL" $root.Values.core.env.WZ_DB_URL }}
 {{- end }}
 {{- end }}
+{{- /* environment observability knobs (explicit <component>.env entries win) */}}
+{{- $obs := $root.Values.observability }}
+{{- $obsEnv := dict "LOGGING_LEVEL_COM_WELLNESSZ" $obs.logLevel "LOGGING_LEVEL_ROOT" $obs.rootLogLevel "MANAGEMENT_TRACING_SAMPLING_PROBABILITY" $obs.traceSampling }}
+{{- if eq $key "core" }}{{- $_ := set $obsEnv "WZ_TRACE_SAMPLING" $obs.traceSampling }}{{- end }}
+{{- range $k, $v := $obsEnv }}
+{{- if and (ne (toString $v) "") (not (hasKey $env $k)) }}{{- $_ := set $env $k (toString $v) }}{{- end }}
+{{- end }}
+{{- /* client customisation: WZ_CLIENT_ID, WZ_FEATURE_* */}}
+{{- $env = merge $env (fromYaml (include "wellnessz.customisationEnv" $root)) }}
+{{- if and (eq $key "core") (eq $root.Values.migrations.mode "app") (include "wellnessz.clientMigrationsEnabled" $root) }}
+{{- $m := $root.Values.customisation.migrations }}
+{{- $_ := set $env "WZ_FLYWAY_EXTRA_LOCATIONS" (printf "filesystem:%s" $m.mountPath) }}
+{{- $_ := set $env "WZ_FLYWAY_CLIENT_SCHEMAS" (include "wellnessz.clientMigrationSchemas" $root) }}
+{{- $_ := set $env "WZ_FLYWAY_CLIENT_TABLE" $m.table }}
+{{- end }}
 {{- $_ := set $env "SPRING_PROFILES_ACTIVE" $root.Values.global.springProfiles }}
 {{- $_ := set $env "SERVER_PORT" (toString $comp.ports.http) }}
 {{- $_ := set $env "MANAGEMENT_SERVER_PORT" (toString $comp.ports.management) }}

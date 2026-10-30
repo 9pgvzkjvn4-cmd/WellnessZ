@@ -3,6 +3,12 @@
 *.tfstate.*
 *.tfvars
 !terraform.tfvars.example
+# Per-environment settings are committed (identifiers only, no secrets);
+# put tenant/subscription specifics in environments/<env>.local.tfvars (ignored).
+!environments/dev.tfvars
+!environments/uat.tfvars
+!environments/prod.tfvars
 backend.hcl
+backend-*.hcl
 crash.log
 .terraform.tfstate.lock.info

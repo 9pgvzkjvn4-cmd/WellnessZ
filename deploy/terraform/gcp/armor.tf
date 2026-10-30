@@ -22,7 +22,7 @@ locals {
 
 resource "google_compute_security_policy" "waf" {
   name        = "wellnessz-waf"
-  description = "WellnessZ WAF: OWASP CRS 3.3 preconfigured rules, rate limiting, adaptive protection"
+  description = "WellnessZ ${var.environment} WAF: OWASP CRS 3.3 preconfigured rules, rate limiting, adaptive protection"
   type        = "CLOUD_ARMOR"
 
   advanced_options_config {
@@ -32,7 +32,7 @@ resource "google_compute_security_policy" "waf" {
 
   adaptive_protection_config {
     layer_7_ddos_defense_config {
-      enable = true
+      enable = var.cloud_armor_adaptive_protection
     }
   }
 
@@ -41,6 +41,7 @@ resource "google_compute_security_policy" "waf" {
     content {
       action   = "deny(403)"
       priority = rule.key
+      preview  = var.cloud_armor_preview # true = log-only (dev tuning); false = prevention
       match {
         expr {
           expression = rule.value

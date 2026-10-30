@@ -1,0 +1,11 @@
+# Remote state for the PROD environment - one state file per environment.
+#   cp environments/backend-prod.hcl.example environments/backend-prod.hcl
+#   terraform init -reconfigure -backend-config=environments/backend-prod.hcl
+# Use a separate state storage account (or at least container) per environment
+# with RBAC limited to that environment's CI identity; prod state lives in the
+# prod subscription. Shared-key access disabled, blob versioning + soft delete.
+resource_group_name  = "rg-wellnessz-tfstate-prod"
+storage_account_name = "stwztfstateprod"
+container_name       = "tfstate"
+key                  = "wellnessz/prod/azure.tfstate"
+use_azuread_auth     = true

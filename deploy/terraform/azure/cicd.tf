@@ -1,7 +1,8 @@
 # ---------------------------------------------------------------------------
 # GitHub Actions deployer identity (OIDC federation, no secrets)
 #   - AcrPush on the registry (container.yml)
-#   - AKS cluster user + RBAC writer scoped to the app namespace (cd.yml)
+#   - AKS cluster user + RBAC writer scoped to the app namespace (deploy-env.yml)
+#   - one identity per environment; it trusts only GitHub Environment azure-<env>
 # ---------------------------------------------------------------------------
 resource "azurerm_user_assigned_identity" "github_deployer" {
   count               = var.github_repository == "" ? 0 : 1
@@ -12,7 +13,7 @@ resource "azurerm_user_assigned_identity" "github_deployer" {
 }
 
 resource "azurerm_federated_identity_credential" "github_env" {
-  for_each            = var.github_repository == "" ? toset([]) : toset(var.github_environments)
+  for_each            = var.github_repository == "" ? toset([]) : toset(local.github_environments)
   name                = "github-${each.value}"
   resource_group_name = azurerm_resource_group.main.name
   parent_id           = azurerm_user_assigned_identity.github_deployer[0].id
@@ -21,15 +22,20 @@ resource "azurerm_federated_identity_credential" "github_env" {
   audience            = ["api://AzureADTokenExchange"]
 }
 
-# Image publishing from the default branch / tags
+# Image publishing (container.yml) from selected branches - normally dev only
 resource "azurerm_federated_identity_credential" "github_main" {
-  count               = var.github_repository == "" ? 0 : 1
-  name                = "github-main"
+  for_each            = var.github_repository == "" ? toset([]) : toset(var.github_image_publish_branches)
+  name                = each.value == "main" ? "github-main" : "github-branch-${replace(each.value, "/", "-")}"
   resource_group_name = azurerm_resource_group.main.name
   parent_id           = azurerm_user_assigned_identity.github_deployer[0].id
   issuer              = "https://token.actions.githubusercontent.com"
-  subject             = "repo:${var.github_repository}:ref:refs/heads/main"
+  subject             = "repo:${var.github_repository}:ref:refs/heads/${each.value}"
   audience            = ["api://AzureADTokenExchange"]
+}
+
+moved {
+  from = azurerm_federated_identity_credential.github_main[0]
+  to   = azurerm_federated_identity_credential.github_main["main"]
 }
 
 resource "azurerm_role_assignment" "github_acr_push" {

@@ -65,3 +65,12 @@ output "github_deployer_client_id" {
   description = "GitHub Environment variable AZURE_CLIENT_ID"
   value       = var.github_repository == "" ? null : azurerm_user_assigned_identity.github_deployer[0].client_id
 }
+
+output "environment" {
+  value = var.environment
+}
+
+output "github_environments" {
+  description = "GitHub Environments trusted by the deployer identity (configure AZURE_CLIENT_ID etc. there)"
+  value       = var.github_repository == "" ? [] : local.github_environments
+}

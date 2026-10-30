@@ -6,7 +6,7 @@ resource "azurerm_postgresql_flexible_server" "main" {
   sku_name            = var.postgres_sku
   storage_mb          = var.postgres_storage_mb
   auto_grow_enabled   = true
-  zone                = "1"
+  zone                = var.availability_zones[0]
   tags                = local.tags
 
   # Private access only (VNet injection)
@@ -31,8 +31,9 @@ resource "azurerm_postgresql_flexible_server" "main" {
   dynamic "high_availability" {
     for_each = var.postgres_ha_enabled ? [1] : []
     content {
-      mode                      = "ZoneRedundant"
-      standby_availability_zone = "2"
+      # Zone-redundant standby when the environment spans zones, otherwise same-zone HA
+      mode                      = local.zone_redundant ? "ZoneRedundant" : "SameZone"
+      standby_availability_zone = local.zone_redundant ? var.availability_zones[1] : var.availability_zones[0]
     }
   }
 

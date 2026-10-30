@@ -1,4 +1,6 @@
-# Copy to terraform.tfvars (git-ignored). Contains identifiers only - no secrets.
+# Prefer the committed per-environment files instead of this example:
+#   terraform plan -var-file=environments/<dev|uat|prod>.tfvars -var-file=<env>.local.tfvars
+# Copy to terraform.tfvars (git-ignored) only for ad-hoc work. Identifiers only - no secrets.
 subscription_id = "00000000-0000-0000-0000-000000000000"
 location        = "westeurope"
 environment     = "prod"
@@ -28,4 +30,4 @@ tags = {
 }
 
 github_repository   = "OWNER/WellnessZ"
-github_environments = ["dev", "test", "prod"]
+github_environments = ["azure-prod"] # default: ["azure-<environment>"]

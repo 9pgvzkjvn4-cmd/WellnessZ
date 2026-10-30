@@ -1,13 +1,71 @@
-# Reusable: deploy one environment with Helm (called by cd.yml).
+# =============================================================================
+# Deploy ONE cloud environment (azure-dev|azure-uat|azure-prod|gcp-dev|gcp-uat|gcp-prod).
+# Called by cd.yml for DEV -> UAT -> PROD promotion, or run manually
+# (Actions > Deploy environment > Run workflow: cloud + environment + image tag).
+#
+# Guarantees
+#   * Images are never rebuilt: the digests built and signed once by
+#     container.yml on main are resolved from the release registry, their
+#     cosign signatures verified, then copied digest-preserving (cosign copy,
+#     signatures and attestations included) into the environment registry.
+#   * Helm values are layered: values.yaml -> values-<cloud>.yaml ->
+#     environments/<cloud>/<env>.yaml -> optional EXTRA_VALUES_FILES (client
+#     customisation) and every component is pinned by digest.
+#   * helm --atomic, smoke tests (rollout + running digests + HTTP checks) and an
+#     automatic `helm rollback` to the previous revision when smoke tests fail.
+#   * Cloud credentials only via OIDC federation (azure/login, google auth);
+#     each cloud identity trusts only its own GitHub Environment
+#     (Terraform: github_environments). Configure "Required reviewers" on the
+#     *-uat and *-prod GitHub Environments (Settings > Environments).
+#
+# Variables per GitHub Environment (no secrets needed):
+#   IMAGE_REGISTRY      environment registry, e.g. <acr>.azurecr.io/wellnessz (default: release registry)
+#   HELM_RELEASE, K8S_NAMESPACE (default wellnessz / wellnessz)
+#   EXTRA_VALUES_FILES  optional, space separated (e.g. deploy/clients/acme/values.yaml)
+#   SMOKE_URLS          optional, space separated public URLs that must return 2xx
+#   Azure: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, AKS_RESOURCE_GROUP,
+#          AKS_CLUSTER_NAME, AKS_PRIVATE (true -> az aks command invoke)
+#   GCP:   GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT, GCP_PROJECT_ID, GKE_CLUSTER,
+#          GKE_LOCATION, BINAUTHZ_ATTESTOR + BINAUTHZ_KMS_KEY_VERSION (optional)
+# Repository variables: RELEASE_REGISTRY (default ghcr.io/<owner>/wellnessz),
+#   DEPLOY_RUNNER (optional self-hosted runner label for private clusters)
+# =============================================================================
 name: Deploy environment
 
 on:
   workflow_call:
     inputs:
+      cloud:
+        description: azure | gcp
+        required: true
+        type: string
       environment:
+        description: dev | uat | prod
         required: true
         type: string
       image_tag:
+        description: Release tag (vX.Y.Z, vX.Y.Z-rc.N) or build tag (sha-<12>)
+        required: true
+        type: string
+      digests:
+        description: Optional pre-resolved digests, lines "<image> sha256:<digest>" (cd.yml passes the same set to every stage)
+        required: false
+        type: string
+        default: ""
+  workflow_dispatch:
+    inputs:
+      cloud:
+        description: Cloud
+        required: true
+        type: choice
+        options: [azure, gcp]
+      environment:
+        description: Environment
+        required: true
+        type: choice
+        options: [dev, uat, prod]
+      image_tag:
+        description: "dev: sha-<12> or v*; uat: vX.Y.Z[-rc.N]; prod: vX.Y.Z"
         required: true
         type: string
 
@@ -16,38 +74,75 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy ${{ inputs.environment }} (${{ vars.CLOUD }})
+    name: ${{ inputs.cloud }}-${{ inputs.environment }} (${{ inputs.image_tag }})
     runs-on: ${{ vars.DEPLOY_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 30
+    timeout-minutes: 60
     environment:
-      name: ${{ inputs.environment }}
+      name: ${{ inputs.cloud }}-${{ inputs.environment }}
     permissions:
       contents: read
-      packages: read  # pull signatures from GHCR
-      id-token: write # OIDC federation to Azure / GCP
+      packages: read  # pull images + signatures from GHCR (release registry)
+      id-token: write # OIDC federation to Azure / GCP and cosign verification
     concurrency:
-      group: deploy-${{ inputs.environment }}
+      group: deploy-${{ inputs.cloud }}-${{ inputs.environment }}
       cancel-in-progress: false
     env:
+      CLOUD: ${{ inputs.cloud }}
+      DEPLOY_ENV: ${{ inputs.environment }}
       IMAGE_TAG: ${{ inputs.image_tag }}
-      CLOUD: ${{ vars.CLOUD }}
+      DIGESTS_IN: ${{ inputs.digests }}
       RELEASE: ${{ vars.HELM_RELEASE || 'wellnessz' }}
       NAMESPACE: ${{ vars.K8S_NAMESPACE || 'wellnessz' }}
-      IMAGE_REGISTRY: ${{ vars.IMAGE_REGISTRY }}
-      VALUES_FILE: ${{ vars.VALUES_FILE }}
-      ENV_VALUES_FILE: ${{ vars.ENV_VALUES_FILE }}
-      CHART: deploy/helm/wellnessz
+      RELEASE_REGISTRY: ${{ vars.RELEASE_REGISTRY }}
+      ENV_REGISTRY: ${{ vars.IMAGE_REGISTRY }}
+      EXTRA_VALUES_FILES: ${{ vars.EXTRA_VALUES_FILES }}
+      SMOKE_URLS: ${{ vars.SMOKE_URLS }}
+      AKS_PRIVATE: ${{ vars.AKS_PRIVATE || 'false' }}
+      AKS_RG: ${{ vars.AKS_RESOURCE_GROUP }}
+      AKS_CLUSTER: ${{ vars.AKS_CLUSTER_NAME }}
+      IMAGES: wz-core-app wz-bff employee-app manager-workspace oh-workspace partner-portal
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Validate configuration
+      - name: Validate inputs and promotion policy
+        id: cfg
+        env:
+          OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
-          case "$CLOUD" in azure|gcp) ;; *) echo "vars.CLOUD must be azure or gcp" >&2; exit 1 ;; esac
-          test -n "$IMAGE_REGISTRY" || { echo "vars.IMAGE_REGISTRY missing" >&2; exit 1; }
-          test -f "$VALUES_FILE" || { echo "VALUES_FILE '$VALUES_FILE' not found" >&2; exit 1; }
+          case "$CLOUD" in azure|gcp) ;; *) echo "::error::cloud must be azure or gcp"; exit 1 ;; esac
+          case "$DEPLOY_ENV" in dev|uat|prod) ;; *) echo "::error::environment must be dev, uat or prod"; exit 1 ;; esac
+          final='^v[0-9]+\.[0-9]+\.[0-9]+$'
+          release='^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
+          build='^sha-[0-9a-f]{12}$'
+          case "$DEPLOY_ENV" in
+            dev)  [[ "$IMAGE_TAG" =~ $build || "$IMAGE_TAG" =~ $release ]] || { echo "::error::dev deploys sha-<12> branch builds or release tags"; exit 1; } ;;
+            uat)  [[ "$IMAGE_TAG" =~ $release ]] || { echo "::error::uat deploys release candidates / releases (vX.Y.Z[-rc.N]) only"; exit 1; } ;;
+            prod) [[ "$IMAGE_TAG" =~ $final ]] || { echo "::error::prod deploys final releases (vX.Y.Z) only"; exit 1; } ;;
+          esac
+          chart=deploy/helm/wellnessz
+          for f in "$chart/values-$CLOUD.yaml" "$chart/environments/$CLOUD/$DEPLOY_ENV.yaml" $EXTRA_VALUES_FILES; do
+            test -f "$f" || { echo "::error::values file $f not found"; exit 1; }
+          done
+          # Images are built once per commit on main (container.yml, tag sha-<12>);
+          # release tags resolve to the build of the tagged commit.
+          if [[ "$IMAGE_TAG" =~ $build ]]; then
+            source_tag="$IMAGE_TAG"
+          else
+            git fetch --no-tags --depth=1 origin "+refs/tags/${IMAGE_TAG}:refs/tags/${IMAGE_TAG}"
+            commit=$(git rev-parse "refs/tags/${IMAGE_TAG}^{commit}")
+            source_tag="sha-${commit:0:12}"
+          fi
+          src="${RELEASE_REGISTRY:-ghcr.io/${OWNER,,}/wellnessz}"
+          dst="${ENV_REGISTRY:-$src}"
+          {
+            echo "source_tag=$source_tag"
+            echo "src=${src%/}"
+            echo "dst=${dst%/}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Deploying $IMAGE_TAG (build $source_tag) from ${src} to ${dst} -> ${CLOUD}-${DEPLOY_ENV}"
 
       - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
@@ -55,9 +150,9 @@ jobs:
 
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
-      # ---- Azure (AKS) ----
+      # ---- cloud authentication (OIDC federation, no stored credentials) ----
       - name: Azure login (OIDC federated credential)
-        if: vars.CLOUD == 'azure'
+        if: inputs.cloud == 'azure'
         uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
@@ -65,13 +160,13 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Install kubelogin
-        if: vars.CLOUD == 'azure'
+        if: inputs.cloud == 'azure'
         uses: azure/use-kubelogin@0ce7c36141aa27d4934872cf00b0120804c98a29 # v1.3
         with:
           kubelogin-version: v0.2.22
 
       - name: AKS set context (Entra ID / Azure RBAC, no local accounts)
-        if: vars.CLOUD == 'azure' && vars.AKS_PRIVATE != 'true'
+        if: inputs.cloud == 'azure' && vars.AKS_PRIVATE != 'true'
         uses: azure/aks-set-context@883bdc8d8d1d0fd87e66cc4ba6f0b618f9eb5281 # v5.0.1
         with:
           resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
@@ -79,16 +174,15 @@ jobs:
           admin: "false"
           use-kubelogin: "true"
 
-      # ---- GCP (GKE) ----
       - name: Google auth (Workload Identity Federation)
-        if: vars.CLOUD == 'gcp'
+        if: inputs.cloud == 'gcp'
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
       - name: GKE credentials
-        if: vars.CLOUD == 'gcp'
+        if: inputs.cloud == 'gcp'
         uses: google-github-actions/get-gke-credentials@3da1e46a907576cefaa90c484278bb5b259dd395 # v3.0.0
         with:
           cluster_name: ${{ vars.GKE_CLUSTER }}
@@ -96,73 +190,184 @@ jobs:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           use_dns_based_endpoint: true
 
-      # ---- Supply-chain gate: only deploy images signed by our own workflow ----
-      - name: Registry login (read signatures)
+      - name: Registry logins (release + environment registry)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SRC: ${{ steps.cfg.outputs.src }}
+          DST: ${{ steps.cfg.outputs.dst }}
         run: |
           set -euo pipefail
-          host="${IMAGE_REGISTRY%%/*}"
-          case "$host" in
-            *.azurecr.io)      az acr login --name "${host%%.azurecr.io}" ;;
-            *-docker.pkg.dev)  gcloud auth configure-docker "$host" --quiet ;;
-            ghcr.io)           echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin ;;
-            *)                 echo "No login helper for $host - relying on existing credentials" ;;
-          esac
-
-      - name: Verify cosign signatures
-        env:
-          IDENTITY_REGEXP: ^https://github.com/${{ github.repository }}/\.github/workflows/container\.yml@
-        run: |
-          set -euo pipefail
-          for img in wz-core-app wz-bff employee-app manager-workspace oh-workspace partner-portal; do
-            cosign verify "${IMAGE_REGISTRY}/${img}:${IMAGE_TAG}" \
-              --certificate-identity-regexp "$IDENTITY_REGEXP" \
-              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-              > /dev/null
-            echo "verified ${img}:${IMAGE_TAG}"
+          for host in $(printf '%s\n%s\n' "${SRC%%/*}" "${DST%%/*}" | sort -u); do
+            case "$host" in
+              *.azurecr.io)     az acr login --name "${host%%.azurecr.io}" ;;
+              *-docker.pkg.dev) gcloud auth configure-docker "$host" --quiet ;;
+              ghcr.io)          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin ;;
+              *)                echo "No login helper for $host - relying on existing credentials" ;;
+            esac
           done
 
-      - name: Helm upgrade (atomic)
-        if: vars.CLOUD == 'gcp' || vars.AKS_PRIVATE != 'true'
-        run: |
-          set -euo pipefail
-          extra=()
-          if [ -n "${ENV_VALUES_FILE}" ] && [ -f "${ENV_VALUES_FILE}" ]; then extra+=(-f "${ENV_VALUES_FILE}"); fi
-          helm upgrade --install "$RELEASE" "$CHART" \
-            --namespace "$NAMESPACE" \
-            -f "$CHART/values.yaml" -f "$VALUES_FILE" "${extra[@]}" \
-            --set-string global.imageRegistry="$IMAGE_REGISTRY" \
-            --set-string global.imageTag="$IMAGE_TAG" \
-            --set-string global.environment="${{ inputs.environment }}" \
-            --atomic --wait --timeout 15m --history-max 10
-          helm -n "$NAMESPACE" status "$RELEASE"
-
-      # Private AKS API server: run Helm inside the cluster network via
-      # `az aks command invoke` (or use a self-hosted runner via vars.DEPLOY_RUNNER).
-      - name: Helm upgrade via AKS command invoke (private cluster)
-        if: vars.CLOUD == 'azure' && vars.AKS_PRIVATE == 'true'
+      # ---- supply chain: resolve once, verify, promote by digest ----
+      - name: Resolve image digests
+        id: digests
         env:
-          RG: ${{ vars.AKS_RESOURCE_GROUP }}
-          CLUSTER: ${{ vars.AKS_CLUSTER_NAME }}
+          SRC: ${{ steps.cfg.outputs.src }}
+          SOURCE_TAG: ${{ steps.cfg.outputs.source_tag }}
         run: |
           set -euo pipefail
-          extra=""
-          if [ -n "${ENV_VALUES_FILE}" ] && [ -f "${ENV_VALUES_FILE}" ]; then extra="-f ${ENV_VALUES_FILE}"; fi
-          mkdir -p /tmp/invoke
-          tar cf - deploy/helm deploy/hybrid ${ENV_VALUES_FILE:+"$ENV_VALUES_FILE"} | tar xf - -C /tmp/invoke
-          cd /tmp/invoke
-          az aks command invoke -g "$RG" -n "$CLUSTER" --file . --command \
-            "helm upgrade --install $RELEASE $CHART --namespace $NAMESPACE -f $CHART/values.yaml -f $VALUES_FILE $extra \
-             --set-string global.imageRegistry=$IMAGE_REGISTRY --set-string global.imageTag=$IMAGE_TAG \
-             --set-string global.environment=${{ inputs.environment }} --atomic --wait --timeout 15m --history-max 10"
+          : > digests.txt
+          if [ -n "$DIGESTS_IN" ]; then
+            printf '%s\n' "$DIGESTS_IN" | sed '/^[[:space:]]*$/d' > digests.txt
+          else
+            for img in $IMAGES; do
+              d=$(docker buildx imagetools inspect "${SRC}/${img}:${SOURCE_TAG}" --format '{{json .Manifest}}' | jq -r .digest)
+              echo "${img} ${d}" >> digests.txt
+            done
+          fi
+          for img in $IMAGES; do
+            grep -Eq "^${img} sha256:[a-f0-9]{64}$" digests.txt || { echo "::error::no valid digest for ${img}"; exit 1; }
+          done
+          cat digests.txt
+
+      - name: Verify cosign signatures (built by container.yml)
+        env:
+          SRC: ${{ steps.cfg.outputs.src }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # uat/prod: only images built from main; dev also accepts manual branch builds
+          if [ "$DEPLOY_ENV" = dev ]; then ref='refs/(heads|tags)/.+'; else ref='refs/heads/main'; fi
+          identity="^https://github.com/${REPO}/\.github/workflows/container\.yml@${ref}$"
+          while read -r img digest; do
+            cosign verify "${SRC}/${img}@${digest}" \
+              --certificate-identity-regexp "$identity" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com > /dev/null
+            echo "verified ${img}@${digest}"
+          done < digests.txt
+
+      - name: Promote images to the environment registry (digest-preserving)
+        if: steps.cfg.outputs.src != steps.cfg.outputs.dst
+        env:
+          SRC: ${{ steps.cfg.outputs.src }}
+          DST: ${{ steps.cfg.outputs.dst }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          while read -r img digest; do
+            if docker buildx imagetools inspect "${DST}/${img}@${digest}" > /dev/null 2>&1; then
+              echo "${img}@${digest} already present in ${DST}"
+            else
+              # copies the image plus its signatures and attestations; digest unchanged
+              cosign copy "${SRC}/${img}@${digest}" "${DST}/${img}:${IMAGE_TAG}"
+            fi
+            cosign verify "${DST}/${img}@${digest}" \
+              --certificate-identity-regexp "^https://github.com/${REPO}/\.github/workflows/container\.yml@" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com > /dev/null
+          done < digests.txt
+
+      - name: Binary Authorization attestations (GKE)
+        if: inputs.cloud == 'gcp' && vars.BINAUTHZ_ATTESTOR != ''
+        env:
+          DST: ${{ steps.cfg.outputs.dst }}
+          ATTESTOR: ${{ vars.BINAUTHZ_ATTESTOR }}
+          KMS_KEY_VERSION: ${{ vars.BINAUTHZ_KMS_KEY_VERSION }}
+        run: |
+          set -euo pipefail
+          while read -r img digest; do
+            url="${DST}/${img}@${digest}"
+            if [ -n "$(gcloud container binauthz attestations list --attestor="$ATTESTOR" --artifact-url="$url" --format='value(name)')" ]; then
+              echo "attestation exists for ${img}"
+            else
+              gcloud container binauthz attestations sign-and-create --artifact-url="$url" \
+                --attestor="$ATTESTOR" --keyversion="$KMS_KEY_VERSION"
+            fi
+          done < digests.txt
+
+      # ---- deploy: same script on the runner or inside a private AKS cluster ----
+      - name: Prepare release bundle
+        env:
+          DST: ${{ steps.cfg.outputs.dst }}
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/bundle"
+          mkdir -p "$bundle"
+          # EXTRA_VALUES_FILES is a space separated list (word splitting intended)
+          # shellcheck disable=SC2086
+          tar cf - deploy/helm deploy/scripts $EXTRA_VALUES_FILES | tar xf - -C "$bundle"
+          cp digests.txt "$bundle/digests.txt"
+          {
+            for v in CLOUD DEPLOY_ENV RELEASE NAMESPACE IMAGE_TAG EXTRA_VALUES_FILES; do printf 'export %s=%q\n' "$v" "${!v}"; done
+            printf 'export IMAGE_REGISTRY=%q\n' "$DST"
+          } > "$bundle/release.env"
+          cat > "$RUNNER_TEMP/k.sh" <<'EOF'
+          # k <helm-release.sh action...>: run against the cluster (directly or via AKS command invoke)
+          k() {
+            cd "$RUNNER_TEMP/bundle"
+            if [ "$CLOUD" = azure ] && [ "$AKS_PRIVATE" = true ]; then
+              local out rc
+              out=$(az aks command invoke -g "$AKS_RG" -n "$AKS_CLUSTER" --file . \
+                --command "bash deploy/scripts/helm-release.sh $*" -o json)
+              echo "$out" | jq -r '.logs'
+              rc=$(echo "$out" | jq -r '.exitCode')
+              return "${rc:-1}"
+            else
+              bash deploy/scripts/helm-release.sh "$@"
+            fi
+          }
+          EOF
+
+      - name: Record previous revision
+        id: prev
+        run: |
+          set -euo pipefail
+          . "$RUNNER_TEMP/k.sh"
+          rev=$(k previous | grep -E '^[0-9]+$' | tail -n1 || true)
+          echo "revision=${rev}" >> "$GITHUB_OUTPUT"
+          echo "previous revision: ${rev:-<none, first install>}"
+
+      - name: Helm upgrade (atomic)
+        id: helm
+        run: |
+          set -euo pipefail
+          . "$RUNNER_TEMP/k.sh"
+          k upgrade
+
+      - name: Smoke tests
+        id: smoke
+        run: |
+          set -euo pipefail
+          . "$RUNNER_TEMP/k.sh"
+          k smoke
+          for url in $SMOKE_URLS; do
+            curl -fsS -o /dev/null --retry 12 --retry-delay 10 --retry-all-errors --max-time 10 "$url"
+            echo "ok ${url}"
+          done
+
+      - name: Automatic rollback (smoke tests failed)
+        if: failure() && steps.helm.outcome == 'success' && steps.prev.outputs.revision != ''
+        env:
+          PREV: ${{ steps.prev.outputs.revision }}
+        run: |
+          set -euo pipefail
+          . "$RUNNER_TEMP/k.sh"
+          echo "::warning::rolling back ${RELEASE} to revision ${PREV}"
+          k rollback "$PREV"
 
       - name: Deployment record
         if: always()
+        env:
+          DST: ${{ steps.cfg.outputs.dst }}
+          SOURCE_TAG: ${{ steps.cfg.outputs.source_tag }}
+          HELM_OUTCOME: ${{ steps.helm.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          JOB_STATUS: ${{ job.status }}
         run: |
           {
-            echo "### ${{ inputs.environment }}: ${{ job.status }}"
-            echo "- cloud: ${CLOUD}, release: ${RELEASE}, namespace: ${NAMESPACE}"
-            echo "- image tag: \`${IMAGE_TAG}\` (cosign-verified)"
+            echo "### ${CLOUD}-${DEPLOY_ENV}: ${JOB_STATUS}"
+            echo "- release \`${IMAGE_TAG}\` (build \`${SOURCE_TAG}\`), registry \`${DST}\`"
+            echo "- helm: ${HELM_OUTCOME}, smoke: ${SMOKE_OUTCOME}, release ${RELEASE} in ${NAMESPACE}"
             echo "- actor: ${GITHUB_ACTOR}, run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo ""
+            echo '```'
+            cat digests.txt 2>/dev/null || true
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

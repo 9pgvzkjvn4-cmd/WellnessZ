@@ -3,22 +3,22 @@ resource "google_sql_database_instance" "main" {
   region              = var.region
   database_version    = "POSTGRES_16"
   encryption_key_name = google_kms_crypto_key.cmek["cloudsql"].id
-  deletion_protection = true
+  deletion_protection = local.protect
 
   settings {
     tier                        = var.sql_tier
     edition                     = var.sql_edition
-    availability_type           = "REGIONAL" # HA: synchronous standby in another zone
+    availability_type           = local.sql_ha # REGIONAL = HA, synchronous standby in another zone
     disk_type                   = "PD_SSD"
     disk_size                   = var.sql_disk_size_gb
     disk_autoresize             = true
-    deletion_protection_enabled = true
+    deletion_protection_enabled = local.protect
 
     backup_configuration {
       enabled                        = true
-      point_in_time_recovery_enabled = true
+      point_in_time_recovery_enabled = var.sql_pitr_enabled
       start_time                     = "01:00"
-      transaction_log_retention_days = 7
+      transaction_log_retention_days = var.sql_transaction_log_retention_days
       backup_retention_settings {
         retained_backups = var.sql_backup_retention
         retention_unit   = "COUNT"
@@ -94,6 +94,7 @@ resource "google_sql_database_instance" "main" {
 
     user_labels = {
       application = "wellnessz"
+      environment = var.environment
     }
   }
 

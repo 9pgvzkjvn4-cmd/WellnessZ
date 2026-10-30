@@ -30,7 +30,7 @@ resource "google_container_cluster" "main" {
   location = var.region
 
   enable_autopilot    = var.gke_autopilot ? true : null
-  deletion_protection = true
+  deletion_protection = local.protect
 
   resource_labels = {
     application         = "wellnessz"
@@ -151,10 +151,11 @@ resource "google_container_cluster" "main" {
 
 # Standard mode: hardened, autoscaled node pool across zones
 resource "google_container_node_pool" "apps" {
-  count    = var.gke_autopilot ? 0 : 1
-  name     = "apps"
-  cluster  = google_container_cluster.main.id
-  location = var.region
+  count          = var.gke_autopilot ? 0 : 1
+  name           = "apps"
+  cluster        = google_container_cluster.main.id
+  location       = var.region
+  node_locations = var.gke_node_locations
 
   autoscaling {
     min_node_count  = var.gke_node_min

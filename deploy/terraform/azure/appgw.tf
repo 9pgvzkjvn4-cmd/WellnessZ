@@ -9,7 +9,7 @@ resource "azurerm_public_ip" "appgw" {
   resource_group_name  = azurerm_resource_group.main.name
   allocation_method    = "Static"
   sku                  = "Standard"
-  zones                = ["1", "2", "3"]
+  zones                = var.availability_zones
   domain_name_label    = "${local.name}-${random_string.suffix.result}"
   ddos_protection_mode = "VirtualNetworkInherited"
   tags                 = local.tags
@@ -78,7 +78,7 @@ resource "azurerm_application_gateway" "main" {
   name                = "agw-${local.name}"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
-  zones               = ["1", "2", "3"]
+  zones               = var.availability_zones
   firewall_policy_id  = azurerm_web_application_firewall_policy.main.id
   http2_enabled       = true
   tags                = local.tags
@@ -89,8 +89,8 @@ resource "azurerm_application_gateway" "main" {
   }
 
   autoscale_configuration {
-    min_capacity = 2
-    max_capacity = 10
+    min_capacity = var.appgw_min_capacity
+    max_capacity = var.appgw_max_capacity
   }
 
   identity {

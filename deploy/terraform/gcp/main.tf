@@ -4,6 +4,10 @@ data "google_project" "this" {
 
 locals {
   name           = "${var.name_prefix}-${var.environment}"
+  is_prod        = var.environment == "prod"
+  protect        = coalesce(var.deletion_protection, var.environment != "dev")
+  sql_ha         = coalesce(var.sql_availability_type, var.environment == "dev" ? "ZONAL" : "REGIONAL")
+  github_envs    = coalesce(var.github_environments, ["gcp-${var.environment}"])
   project_number = data.google_project.this.number
   wi_pool        = "${var.project_id}.svc.id.goog"
   # Mirrors the chart's "wellnessz.fullname" helper (release "wellnessz" -> KSA "wellnessz-core")

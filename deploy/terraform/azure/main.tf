@@ -5,9 +5,19 @@ locals {
   # Globally unique, alphanumeric names (ACR, Key Vault, storage)
   compact_name = substr(replace("${var.name_prefix}${var.environment}${random_string.suffix.result}", "-", ""), 0, 22)
 
+  is_prod = var.environment == "prod"
+
+  zone_redundant = length(var.availability_zones) > 1
+  aks_sku_tier   = coalesce(var.aks_sku_tier, var.environment == "dev" ? "Free" : "Standard")
+  resource_lock  = coalesce(var.resource_lock_enabled, local.is_prod)
+
+  # Each cloud environment trusts only its own GitHub Environment (azure-dev|azure-uat|azure-prod)
+  github_environments = coalesce(var.github_environments, ["azure-${var.environment}"])
+
   tags = merge({
     application         = "wellnessz"
     environment         = var.environment
+    environment-tier    = local.is_prod ? "production" : "non-production"
     data-classification = "phi-special-category"
     managed-by          = "terraform"
     compliance          = "soc2-type2"
@@ -31,11 +41,11 @@ resource "azurerm_resource_group" "main" {
   tags     = local.tags
 }
 
-# Prevent accidental deletion of the production resource group
+# Prevent accidental deletion (production by default, opt-in elsewhere)
 resource "azurerm_management_lock" "rg" {
-  count      = var.environment == "prod" ? 1 : 0
+  count      = local.resource_lock ? 1 : 0
   name       = "do-not-delete"
   scope      = azurerm_resource_group.main.id
   lock_level = "CanNotDelete"
-  notes      = "WellnessZ production - PHI. Remove only via approved change."
+  notes      = "WellnessZ ${var.environment} - PHI. Remove only via approved change."
 }

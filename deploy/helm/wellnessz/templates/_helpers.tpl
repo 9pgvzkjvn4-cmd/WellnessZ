@@ -34,6 +34,9 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/part-of: wellnessz
 wellnessz.io/environment: {{ .Values.global.environment | quote }}
+{{- with .Values.customisation.client }}
+wellnessz.io/client: {{ . | quote }}
+{{- end }}
 {{- with .Values.global.commonLabels }}
 {{ toYaml . }}
 {{- end }}
@@ -55,6 +58,9 @@ app.kubernetes.io/component: {{ .component }}
 {{- define "wellnessz.image" -}}
 {{- $g := .root.Values.global -}}
 {{- $repo := printf "%s/%s" (trimSuffix "/" $g.imageRegistry) .comp.image.repository -}}
+{{- if and $g.requireImageDigests (not .comp.image.digest) -}}
+{{- fail (printf "global.requireImageDigests=true but %s.image.digest is empty - deploy the signed release digest (never a mutable tag)" (default .comp.name .key)) -}}
+{{- end -}}
 {{- if .comp.image.digest -}}
 {{- printf "%s@%s" $repo .comp.image.digest -}}
 {{- else -}}
@@ -206,4 +212,86 @@ volumeMounts:
     mountPath: {{ .secretDir }}
     readOnly: true
   {{- end }}
+{{- end -}}
+
+{{/* ===================== client customisation ===================== */}}
+{{/* Environment variables from customisation.* for core/bff ConfigMaps (dict of NAME -> string) */}}
+{{- define "wellnessz.customisationEnv" -}}
+{{- $c := .Values.customisation -}}
+{{- $env := dict -}}
+{{- with $c.client }}{{- $_ := set $env "WZ_CLIENT_ID" . -}}{{- end }}
+{{- range $name, $value := $c.featureFlags }}
+{{- $key := printf "WZ_FEATURE_%s" (regexReplaceAll "[^A-Z0-9]+" (upper $name) "_" | trimAll "_") -}}
+{{- $_ := set $env $key (toString $value) -}}
+{{- end }}
+{{- toYaml $env -}}
+{{- end -}}
+
+{{- define "wellnessz.clientMigrationsEnabled" -}}
+{{- $m := .Values.customisation.migrations -}}
+{{- if $m.enabled -}}
+{{- if not (or $m.image.repository $m.configMap) -}}
+{{- fail "customisation.migrations.enabled requires customisation.migrations.image.repository or customisation.migrations.configMap" -}}
+{{- end -}}
+{{- if and $m.image.repository $m.configMap -}}
+{{- fail "customisation.migrations: set either image.repository or configMap, not both" -}}
+{{- end -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{- define "wellnessz.clientMigrationSchemas" -}}
+{{- $m := .Values.customisation.migrations -}}
+{{- if $m.schemas -}}
+{{- $m.schemas -}}
+{{- else if .Values.customisation.client -}}
+{{- printf "client_%s" (regexReplaceAll "[^a-z0-9]+" (lower .Values.customisation.client) "_") -}}
+{{- else -}}
+{{- fail "customisation.migrations needs customisation.migrations.schemas or customisation.client" -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Image holding client SQL: full reference when it contains "/", else relative to global.imageRegistry */}}
+{{- define "wellnessz.clientMigrationImage" -}}
+{{- $i := .Values.customisation.migrations.image -}}
+{{- $repo := ternary $i.repository (printf "%s/%s" (trimSuffix "/" .Values.global.imageRegistry) $i.repository) (contains "/" $i.repository) -}}
+{{- if $i.digest -}}
+{{- printf "%s@%s" $repo $i.digest -}}
+{{- else if .Values.global.requireImageDigests -}}
+{{- fail "global.requireImageDigests=true but customisation.migrations.image.digest is empty" -}}
+{{- else -}}
+{{- printf "%s:%s" $repo (required "customisation.migrations.image.tag or digest is required" $i.tag) -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Init container that copies client SQL into the "sql" volume at /flyway/client (image or ConfigMap source).
+     (dict "root" $ "target" "/flyway/client" "volume" "sql" "subPath" "client") */}}
+{{- define "wellnessz.copyClientMigrations" -}}
+{{- $m := .root.Values.customisation.migrations -}}
+- name: copy-client-migrations
+  {{- if $m.image.repository }}
+  image: {{ include "wellnessz.clientMigrationImage" .root | quote }}
+  command: ["sh", "-c", "cp -R {{ $m.image.path }}/. {{ .target }}/"]
+  {{- else }}
+  image: {{ include "wellnessz.image" (dict "root" .root "comp" .root.Values.core) | quote }}
+  # *.sql only: skips the ConfigMap's ..data symlink farm (Flyway would see duplicates)
+  command: ["sh", "-c", "cp -L /client-configmap/*.sql {{ .target }}/"]
+  {{- end }}
+  imagePullPolicy: {{ .root.Values.global.imagePullPolicy }}
+  securityContext:
+    {{- toYaml .root.Values.containerSecurityContext | nindent 4 }}
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  volumeMounts:
+    - name: {{ .volume }}
+      mountPath: {{ .target }}
+      {{- with .subPath }}
+      subPath: {{ . }}
+      {{- end }}
+    {{- if not $m.image.repository }}
+    - name: client-configmap
+      mountPath: /client-configmap
+      readOnly: true
+    {{- end }}
 {{- end -}}

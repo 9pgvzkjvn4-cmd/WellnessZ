@@ -94,6 +94,14 @@ springdoc:
     enabled: ${WZ_API_DOCS_ENABLED:false}
 
 wellnessz:
+  flyway:
+    # Client-specific migrations (customised deployments): a second Flyway pass after the product
+    # migrations, own schema(s) + history table (ClientMigrationsConfig). Empty = disabled.
+    # Product locations stay overridable through WZ_FLYWAY_LOCATIONS (spring.flyway.locations).
+    client:
+      locations: ${WZ_FLYWAY_EXTRA_LOCATIONS:}
+      schemas: ${WZ_FLYWAY_CLIENT_SCHEMAS:client_ext}
+      table: ${WZ_FLYWAY_CLIENT_TABLE:flyway_schema_history_client}
   security:
     issuers: ${WZ_OIDC_ISSUERS:http://localhost:8180/realms/wellnessz}
     audience: ${WZ_OIDC_AUDIENCE:wellnessz-api}

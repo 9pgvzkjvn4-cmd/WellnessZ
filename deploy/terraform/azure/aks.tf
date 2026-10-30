@@ -5,7 +5,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   dns_prefix          = local.name
   node_resource_group = "rg-${local.name}-aks-nodes"
   kubernetes_version  = var.kubernetes_version
-  sku_tier            = var.environment == "prod" ? "Standard" : "Free"
+  sku_tier            = local.aks_sku_tier
   tags                = local.tags
 
   automatic_upgrade_channel = "patch"
@@ -74,10 +74,10 @@ resource "azurerm_kubernetes_cluster" "main" {
     name                         = "system"
     vm_size                      = var.aks_system_node_vm_size
     vnet_subnet_id               = azurerm_subnet.aks.id
-    zones                        = ["1", "2", "3"]
+    zones                        = var.availability_zones
     auto_scaling_enabled         = true
-    min_count                    = 3
-    max_count                    = 5
+    min_count                    = var.aks_system_node_min
+    max_count                    = var.aks_system_node_max
     max_pods                     = 110
     os_sku                       = "AzureLinux"
     os_disk_type                 = "Ephemeral"
@@ -123,7 +123,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "apps" {
   kubernetes_cluster_id   = azurerm_kubernetes_cluster.main.id
   vm_size                 = var.aks_user_node_vm_size
   vnet_subnet_id          = azurerm_subnet.aks.id
-  zones                   = ["1", "2", "3"]
+  zones                   = var.availability_zones
   mode                    = "User"
   auto_scaling_enabled    = true
   min_count               = var.aks_user_node_min

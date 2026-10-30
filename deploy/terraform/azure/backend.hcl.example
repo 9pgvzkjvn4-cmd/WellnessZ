@@ -1,4 +1,5 @@
 # Copy to backend.hcl and run: terraform init -backend-config=backend.hcl
+# Per-environment state: see environments/backend-<env>.hcl.example (one state per environment).
 # The storage account must have: shared key access disabled, TLS1.2+, blob
 # versioning + soft delete, infrastructure encryption, private endpoint or
 # firewall, and RBAC "Storage Blob Data Contributor" for the CI identity only.

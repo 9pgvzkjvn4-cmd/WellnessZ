@@ -1,123 +1,217 @@
 # =============================================================================
-# CD - promote one immutable, signed image tag through dev -> test -> prod.
-# Each stage runs in a GitHub Environment; configure "Required reviewers"
-# (and optionally wait timers / deployment branch rules = tags v*) on
-# `test` and `prod` in Settings > Environments so promotion needs approval.
+# CD - promote ONE set of signed image digests DEV -> UAT -> PROD per cloud.
 #
-# Environment variables (per GitHub Environment, no secrets needed - OIDC):
-#   CLOUD                         azure | gcp
-#   HELM_RELEASE, K8S_NAMESPACE   e.g. wellnessz / wellnessz
-#   IMAGE_REGISTRY                e.g. myacr.azurecr.io/wellnessz
-#   VALUES_FILE                   e.g. deploy/helm/wellnessz/values-azure.yaml
-#   ENV_VALUES_FILE               optional per-environment overrides (ops repo / path)
-#   Azure: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
-#          AKS_RESOURCE_GROUP, AKS_CLUSTER_NAME, AKS_PRIVATE (true|false)
-#   GCP:   GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT, GCP_PROJECT_ID,
-#          GKE_CLUSTER, GKE_LOCATION
-#   DEPLOY_RUNNER                 optional self-hosted runner label (private clusters)
+#   push to main (container.yml builds + signs sha-<12>)  -> DEV           (automatic)
+#   tag vX.Y.Z-rc.N                                       -> DEV -> UAT    (UAT needs approval)
+#   tag vX.Y.Z                                            -> DEV -> UAT -> PROD (approvals)
+#   workflow_dispatch: cloud(s) + first environment + image tag
+#
+# Images are built exactly once per commit on main by container.yml. Release
+# tags never trigger a rebuild: `resolve` maps the tag to the build of the
+# tagged commit, resolves the digests once, verifies the cosign signatures and
+# hands the identical digest list to every stage (deploy-env.yml copies them
+# digest-preserving into each environment registry).
+#
+# GitHub Environments (Settings > Environments), one per cloud and stage:
+#   azure-dev, azure-uat, azure-prod, gcp-dev, gcp-uat, gcp-prod
+#   - *-uat / *-prod: Required reviewers (+ "prevent self-review"), deployment
+#     branch/tag rule "v*" (+ main for *-dev); optional wait timer on *-prod.
+#   - variables: see the header of deploy-env.yml.
+# Repository variables:
+#   DEPLOY_CLOUDS     JSON list of clouds to deploy, e.g. ["azure"] or ["azure","gcp"] (default ["azure"])
+#   RELEASE_REGISTRY  registry container.yml pushes to (default ghcr.io/<owner>/wellnessz)
 # =============================================================================
 name: CD
 
 on:
+  workflow_run:
+    workflows: ["Container images"]
+    types: [completed]
+    branches: [main]
   push:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
+      cloud:
+        description: Cloud(s)
+        type: choice
+        options: [azure, gcp, all]
+        default: azure
+      start_at:
+        description: First environment (later stages follow with their approvals)
+        type: choice
+        options: [dev, uat, prod]
+        default: dev
       image_tag:
-        description: Image tag to deploy (e.g. v1.4.0 or sha-<12>)
+        description: Image tag (sha-<12> for dev, vX.Y.Z-rc.N for uat, vX.Y.Z for prod)
         required: true
         type: string
-      start_at:
-        description: First environment (later stages still require approval)
-        type: choice
-        options: [dev, test, prod]
-        default: dev
 
 permissions:
   contents: read
 
 concurrency:
-  group: cd-${{ github.ref }}
+  group: cd-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  images:
-    name: Build, scan, sign images
-    if: github.event_name == 'push'
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-      attestations: write
-      security-events: write
-    uses: ./.github/workflows/container.yml
-    with:
-      # ghcr | acr | gar (repository variable); must match IMAGE_REGISTRY of the environments
-      registry: ${{ vars.IMAGE_REGISTRY_KIND || 'ghcr' }}
-    secrets: inherit
-
   resolve:
     name: Resolve release
-    needs: [images]
-    if: always() && (needs.images.result == 'success' || needs.images.result == 'skipped')
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      id-token: write # cosign keyless verification
     outputs:
       tag: ${{ steps.r.outputs.tag }}
       start: ${{ steps.r.outputs.start }}
+      clouds: ${{ steps.r.outputs.clouds }}
+      to_uat: ${{ steps.r.outputs.to_uat }}
+      to_prod: ${{ steps.r.outputs.to_prod }}
+      digests: ${{ steps.d.outputs.digests }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - id: r
         env:
           INPUT_TAG: ${{ inputs.image_tag }}
           INPUT_START: ${{ inputs.start_at }}
+          INPUT_CLOUD: ${{ inputs.cloud }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEPLOY_CLOUDS: ${{ vars.DEPLOY_CLOUDS }}
+          OWNER: ${{ github.repository_owner }}
+          REGISTRY_VAR: ${{ vars.RELEASE_REGISTRY }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            tag="$INPUT_TAG"; start="${INPUT_START:-dev}"
+          set -euo pipefail
+          case "$GITHUB_EVENT_NAME" in
+            workflow_run)      tag="sha-${RUN_SHA:0:12}"; start=dev ;;
+            push)              tag="$GITHUB_REF_NAME";    start=dev ;;
+            workflow_dispatch) tag="$INPUT_TAG";          start="${INPUT_START:-dev}" ;;
+          esac
+          final='^v[0-9]+\.[0-9]+\.[0-9]+$'
+          release='^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
+          build='^sha-[0-9a-f]{12}$'
+          if [[ "$tag" =~ $build ]]; then
+            source_tag="$tag"
+          elif [[ "$tag" =~ $release ]]; then
+            git fetch --no-tags --depth=1 origin "+refs/tags/${tag}:refs/tags/${tag}"
+            commit=$(git rev-parse "refs/tags/${tag}^{commit}")
+            source_tag="sha-${commit:0:12}"
           else
-            tag="$GITHUB_REF_NAME"; start=dev
+            echo "::error::invalid image tag '$tag'"; exit 1
           fi
-          if ! [[ "$tag" =~ ^(v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?|sha-[0-9a-f]{12})$ ]]; then
-            echo "Invalid image tag: $tag" >&2; exit 1
+          to_uat=false; to_prod=false
+          [[ "$tag" =~ $release ]] && to_uat=true
+          [[ "$tag" =~ $final ]] && to_prod=true
+          if [ "$start" = uat ] && [ "$to_uat" != true ]; then echo "::error::uat needs a release tag"; exit 1; fi
+          if [ "$start" = prod ] && [ "$to_prod" != true ]; then echo "::error::prod needs a final release tag vX.Y.Z"; exit 1; fi
+          case "${INPUT_CLOUD:-}" in
+            azure|gcp) clouds="[\"${INPUT_CLOUD}\"]" ;;
+            all)       clouds='["azure","gcp"]' ;;
+            *)         clouds="${DEPLOY_CLOUDS:-[\"azure\"]}" ;;
+          esac
+          echo "$clouds" | jq -e 'type == "array" and length > 0 and all(.[]; . == "azure" or . == "gcp")' > /dev/null \
+            || { echo "::error::DEPLOY_CLOUDS must be a JSON list of azure/gcp"; exit 1; }
+          registry="${REGISTRY_VAR:-ghcr.io/${OWNER,,}/wellnessz}"
+          {
+            echo "tag=$tag"; echo "source_tag=$source_tag"; echo "start=$start"
+            echo "clouds=$(echo "$clouds" | jq -c .)"; echo "to_uat=$to_uat"; echo "to_prod=$to_prod"
+            echo "registry=${registry%/}"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Log in to GHCR
+        if: startsWith(steps.r.outputs.registry, 'ghcr.io/')
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve digests once and verify signatures
+        id: d
+        env:
+          REGISTRY: ${{ steps.r.outputs.registry }}
+          SOURCE_TAG: ${{ steps.r.outputs.source_tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Other release registries (ACR/GAR) need cloud credentials: deploy-env.yml resolves there.
+          if [[ "$REGISTRY" != ghcr.io/* ]]; then
+            echo "digests=" >> "$GITHUB_OUTPUT"; echo "release registry ${REGISTRY}: digests resolved per stage"; exit 0
           fi
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "start=$start" >> "$GITHUB_OUTPUT"
+          : > digests.txt
+          for img in wz-core-app wz-bff employee-app manager-workspace oh-workspace partner-portal; do
+            d=$(docker buildx imagetools inspect "${REGISTRY}/${img}:${SOURCE_TAG}" --format '{{json .Manifest}}' | jq -r .digest)
+            [[ "$d" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo "::error::${img}:${SOURCE_TAG} not found - was the commit built on main?"; exit 1; }
+            cosign verify "${REGISTRY}/${img}@${d}" \
+              --certificate-identity-regexp "^https://github.com/${REPO}/\.github/workflows/container\.yml@refs/heads/main$" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com > /dev/null
+            echo "${img} ${d}" >> digests.txt
+          done
+          {
+            echo "digests<<DIGESTS_EOF"; cat digests.txt; echo "DIGESTS_EOF"
+          } >> "$GITHUB_OUTPUT"
+          { echo "### Release ${SOURCE_TAG}"; echo '```'; cat digests.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
   dev:
     needs: [resolve]
-    if: always() && needs.resolve.result == 'success' && needs.resolve.outputs.start == 'dev'
+    if: needs.resolve.result == 'success' && needs.resolve.outputs.start == 'dev'
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: ${{ fromJSON(needs.resolve.outputs.clouds) }}
     permissions:
       contents: read
       packages: read
       id-token: write
     uses: ./.github/workflows/deploy-env.yml
     with:
+      cloud: ${{ matrix.cloud }}
       environment: dev
       image_tag: ${{ needs.resolve.outputs.tag }}
+      digests: ${{ needs.resolve.outputs.digests }}
 
-  test:
+  uat:
     needs: [resolve, dev]
     if: >-
-      always() && needs.resolve.result == 'success' &&
-      (needs.dev.result == 'success' || (needs.dev.result == 'skipped' && needs.resolve.outputs.start == 'test'))
+      always() && needs.resolve.result == 'success' && needs.resolve.outputs.to_uat == 'true' &&
+      (needs.dev.result == 'success' || (needs.dev.result == 'skipped' && needs.resolve.outputs.start == 'uat'))
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: ${{ fromJSON(needs.resolve.outputs.clouds) }}
     permissions:
       contents: read
       packages: read
       id-token: write
     uses: ./.github/workflows/deploy-env.yml
     with:
-      environment: test
+      cloud: ${{ matrix.cloud }}
+      environment: uat
       image_tag: ${{ needs.resolve.outputs.tag }}
+      digests: ${{ needs.resolve.outputs.digests }}
 
   prod:
-    needs: [resolve, test]
+    needs: [resolve, uat]
     if: >-
-      always() && needs.resolve.result == 'success' &&
-      (needs.test.result == 'success' || (needs.test.result == 'skipped' && needs.resolve.outputs.start == 'prod')) &&
-      (startsWith(needs.resolve.outputs.tag, 'v'))
+      always() && needs.resolve.result == 'success' && needs.resolve.outputs.to_prod == 'true' &&
+      (needs.uat.result == 'success' || (needs.uat.result == 'skipped' && needs.resolve.outputs.start == 'prod'))
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: ${{ fromJSON(needs.resolve.outputs.clouds) }}
     permissions:
       contents: read
       packages: read
       id-token: write
     uses: ./.github/workflows/deploy-env.yml
     with:
+      cloud: ${{ matrix.cloud }}
       environment: prod
       image_tag: ${{ needs.resolve.outputs.tag }}
+      digests: ${{ needs.resolve.outputs.digests }}

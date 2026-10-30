@@ -1,0 +1,9 @@
+# Remote state for the DEV environment - one state per environment.
+#   cp environments/backend-dev.hcl.example environments/backend-dev.hcl
+#   terraform init -reconfigure -backend-config=environments/backend-dev.hcl
+# Bucket per environment (in that environment's project or a dedicated state
+# project): uniform bucket-level access, public access prevention, object
+# versioning, CMEK, IAM limited to that environment's CI identity.
+bucket = "wellnessz-tfstate-dev"
+prefix = "wellnessz/dev/gcp"
+# kms_encryption_key = "projects/<p>/locations/<r>/keyRings/<kr>/cryptoKeys/tfstate"

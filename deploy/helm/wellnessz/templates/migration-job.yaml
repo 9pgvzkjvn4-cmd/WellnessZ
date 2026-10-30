@@ -9,6 +9,8 @@ The SQL scripts are copied from the core image so both always match.
 {{- $comp := dict "name" "migrations" "runAsUser" 10001 -}}
 {{- $secretsOn := include "wellnessz.secretsEnabled" . -}}
 {{- $secretDir := include "wellnessz.secretDir" (dict "root" $root "key" "migrations") -}}
+{{- $clientMig := include "wellnessz.clientMigrationsEnabled" . -}}
+{{- $cm := .Values.customisation.migrations -}}
 {{- $wi := include "wellnessz.wiAnnotations" (dict "root" $root "key" "migrations") | trim }}
 apiVersion: v1
 kind: ServiceAccount
@@ -88,9 +90,18 @@ spec:
               mountPath: /flyway/bff
               subPath: bff
         {{- end }}
-        # Core migrations first (init container), then bff (main container)
+        {{- if $clientMig }}
+        {{- include "wellnessz.copyClientMigrations" (dict "root" $root "target" "/flyway/client" "volume" "sql" "subPath" "client") | nindent 8 }}
+        {{- end }}
+        # Core migrations first (init container), then client-specific, then bff (main container)
         - name: flyway-core
           {{- include "wellnessz.flywayContainer" (dict "root" $root "set" "core" "cfg" $mig.job.core "secretsOn" $secretsOn "secretDir" $secretDir) | nindent 10 }}
+        {{- if $clientMig }}
+        # Client-specific migrations (customisation.migrations): own schema(s) + history table
+        - name: flyway-client
+          {{- $clientCfg := dict "schemas" (include "wellnessz.clientMigrationSchemas" $root) "table" $cm.table "appRole" $mig.job.core.appRole }}
+          {{- include "wellnessz.flywayContainer" (dict "root" $root "set" "client" "cfg" $clientCfg "secretsOn" $secretsOn "secretDir" $secretDir) | nindent 10 }}
+        {{- end }}
       containers:
         {{- if .Values.bff.enabled }}
         - name: flyway-bff
@@ -112,6 +123,11 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 128Mi
+        {{- if and $clientMig $cm.configMap }}
+        - name: client-configmap
+          configMap:
+            name: {{ $cm.configMap }}
+        {{- end }}
         {{- if $secretsOn }}
         {{- include "wellnessz.secretVolume" (dict "root" $root "key" "migrations") | nindent 8 }}
         {{- end }}
