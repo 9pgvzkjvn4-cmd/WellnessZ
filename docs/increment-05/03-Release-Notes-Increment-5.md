@@ -128,7 +128,7 @@ employee notice shows only where and when to report.
   any notification.
 * **Outbound allow-lists** – `campaign-app` (campaign publication to the group health-campaign application) and
   `sms-safety`, the feed to the airline's **Safety Management System (SMS)** carrying aggregated, suppressed
-  peer-support / CISM figures (`messageId, quarter, reportRef, category, count, base`). `sms-safety` is not a text-message
+  peer-support figures (`messageId, quarter, reportRef, category, count, base`). `sms-safety` is not a text-message
   (SMS) gateway and carries no personal data.
 * **BFF** – `/bff/api/workspace/{testing, psychosocial, campaigns, ergonomics}/**` keep their prefix; workspace roles add
   `SAFETY_MANAGER` and `CREW_SCHEDULING`.
@@ -296,7 +296,7 @@ longer be governed by any module. Rolling back means restoring the pre-upgrade b
 | E11 settings | `travelhealth.tracing.high-risk-minutes` (15), `max-window-days` (21), `kpi-hours` (4), `check-in.fever-threshold-c` (38.0), `exposure.alert-before-minutes` (30), `public-health.alert-before-hours` (12), `public-health.exposure-report-hours` (72), `consultation.lookahead-days` (30) |
 | E12 settings | `promotion.screening.threshold.*` (systolic ≥ 140, diastolic ≥ 90, BMI ≥ 30, glucose ≥ 7.0, cholesterol ≥ 6.5, waist ≥ 102, MSK ≥ 7, wellbeing ≤ 40 – **clinical sign-off**), `promotion.screening.follow-up-hours` (48), `promotion.ergonomics.reminder-days` (7), `closure-target-days` (60), `promotion.participation.target-pct` (40), `promotion.wearables.max-age-days` (31) |
 | `wellnessz.integration.outbound-allowlist.campaign-app` | **New:** `messageId, campaignId, title, risk, startDate, endDate, targetUnits` |
-| `wellnessz.integration.outbound-allowlist.sms-safety` | **New** – feed to the Safety Management System (aggregated peer-support / CISM figures; not a text-message gateway): `messageId, quarter, reportRef, category, count, base` |
+| `wellnessz.integration.outbound-allowlist.sms-safety` | **New** – feed to the Safety Management System (aggregated peer-support figures; not a text-message gateway): `messageId, quarter, reportRef, category, count, base` |
 | Job schedules (UTC) | `wellnessz.mentalhealth.cism-follow-ups-cron` (08:20), `peer-callback-purge-cron` (01:40); `wellnessz.substance.follow-ups-cron` (06:15), `windows-cron` (hourly :20); `wellnessz.travelhealth.exposure-timer-cron` (every 5 min), `public-health-cron` (hourly :07), `daily-cron` (06:20); `wellnessz.promotion.ergonomic-job-cron` (02:20), `follow-up-job-cron` (hourly :15) |
 | `WZ_ANALYTICS_MIN_GROUP` | Default 5 – now also suppresses every E09–E12 aggregate |
 | Client customisation (Helm) | `customisation.client` → `WZ_CLIENT_ID`; `customisation.featureFlags` → `WZ_FEATURE_<NAME>` on core and BFF; `customisation.migrations` → `WZ_FLYWAY_EXTRA_LOCATIONS`, `WZ_FLYWAY_CLIENT_SCHEMAS`, `WZ_FLYWAY_CLIENT_TABLE` (Section 8.2) |
