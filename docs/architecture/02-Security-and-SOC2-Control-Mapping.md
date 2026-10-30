@@ -1,12 +1,16 @@
 # WellnessZ OHCM – Security and SOC 2 Control Mapping
 
+**Version 1.0** – *WellnessZ OHCM platform – increments 1–5*
+
 | | |
 |---|---|
 | **Document** | 02 – Security and SOC 2 Control Mapping |
-| **System** | WellnessZ Airline Occupational Health Case Management (OHCM) – base framework |
+| **Version** | 1.0 (2026-10-30) – complete platform after the final increment |
+| **System** | WellnessZ Airline Occupational Health Case Management (OHCM) – complete platform (13 business modules, 10 platform modules, BFF, four web front ends) |
 | **Audience** | Cyber GRC team, CISO, internal audit, Data Protection Officer, CIO |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`; updated for **increment 1** (E01, E02 – Section 11), **increment 2** (E03, E05 – Section 12), **increment 3** (E06, E07, E14 – Section 13) and **increment 4** (E04, E08, partner portal – Section 14) |
-| **Companion documents** | 01 – Technology Architecture and Technology Selection · 03 – Developer Guide |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`; updated for **increment 1** (E01, E02 – Section 11), **increment 2** (E03, E05 – Section 12), **increment 3** (E06, E07, E14 – Section 13), **increment 4** (E04, E08, partner portal – Section 14) and **increment 5** (E09, E10, E11, E12, restricted classes, DEV / UAT / PROD promotion, client customisation – Section 15) |
+| **Increment 5 documents** | [API Contract E09/E10/E11/E12](../increment-05/API-Contract-E09-E10-E11-E12.md) · [Environment matrix](../../deploy/environments/README.md) |
+| **Companion documents** | 01 – Technology Architecture and Technology Selection · 03 – Developer Guide · [04 – Technology Standards Comparison by Layer](04-Technology-Standards-Comparison-by-Layer.md) |
 | **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
 | **Increment 3 documents** | [Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md) · [Requirements Traceability Matrix](../increment-03/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-03/03-Release-Notes-Increment-3.md) · [API Contract](../increment-03/API-Contract-E06-E07-E14.md) |
 | **Increment 4 documents** | [Solution Design E04/E08](../increment-04/01-Solution-Design-E04-E08.md) · [Requirements Traceability Matrix](../increment-04/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-04/03-Release-Notes-Increment-4.md) · [API Contract](../increment-04/API-Contract-E04-E08.md) |
@@ -35,7 +39,11 @@ Their SOC 2 / ISO 27001 reports must be obtained and reviewed (complementary sub
 Since increment 4 the system also has **external user entities**: partner providers and insurer / TPA adjusters who
 use the partner portal, and insurers, authorities, the ERP and a future telehealth video platform that receive
 reference-only messages or consented documents. Their obligations (MFA, named users, data-sharing agreements) are
-complementary user-entity controls (CUECs, Section 14.10).
+complementary user-entity controls (CUECs, Section 14.10). Increment 5 adds further external parties: the EAP
+counselling partner (partner portal), the toxicology laboratory (bound machine client), the local health protection
+team (public-health reports), and – reference-only or aggregated – the health-campaign app and the safety management
+system (`sms-safety`); wearable vendors and an SMS text-message gateway are future subservice organisations (Section
+15.13).
 
 **Applicable TSC categories recommended for the report:** Security (Common Criteria, mandatory), Availability,
 Confidentiality, Privacy. Processing Integrity is recommended for fitness-for-duty outputs because rostering decisions
@@ -51,7 +59,7 @@ depend on them.
 | Encryption & keys | AES-256-GCM field encryption, HKDF key separation, `ENC()` secrets, TLS `verify-full` to DB, encrypted BFF sessions | Storage encryption, KMS/HSM, Key Vault / Secret Manager durability | Key generation ceremony, **key rotation**, key-access reviews, envelope-encryption decision, certificate lifecycle |
 | Logging & monitoring | Hash-chained append-only audit, audit verification API, JSON logs without PHI, correlation ids, metrics, traces | Log storage, platform audit logs (Activity Log / Cloud Audit Logs) | SIEM onboarding, alert rules, **24×7 or business-hours monitoring**, log review, retention settings, incident response |
 | Change & SDLC | Tests (unit, integration, architecture), SAST, SCA, SBOM tooling in the build, pinned versions, migration discipline | GitHub/ADO platform security | Branch protection, mandatory PR review, CAB/approval records, release evidence retention, pipeline completion |
-| Vulnerability management | dependency-check fail ≥ CVSS 7, dependency review, npm audit, CodeQL, Trivy image gate, FindSecBugs (Maven profile), patched base images | Managed-service patching (DB, AKS/GKE control plane) | Patch SLAs, **annual penetration test**, vulnerability triage, exception register |
+| Vulnerability management | dependency-check fail ≥ CVSS 7, dependency review, npm audit, CodeQL, Trivy image gate, SpotBugs + FindSecBugs (CI step), patched base images | Managed-service patching (DB, AKS/GKE control plane) | Patch SLAs, **annual penetration test**, vulnerability triage, exception register |
 | Network | NetworkPolicies default deny, private endpoints (IaC), WAF (IaC), strict headers, CORS closed by default | DDoS protection, network fabric | Firewall rule reviews, WAF tuning, exposure reviews |
 | Availability & DR | Stateless replicas, HPA, PDB, zone spread, outbox replay, idempotency | Zone-redundant DB HA, backups, region services | **BCP/DR tests**, backup-restore tests, capacity planning, RPO/RTO approval |
 | Physical | – | Data-centre security | Office/endpoint security, on-prem DC for hybrid option |
@@ -197,7 +205,7 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Test reports | CI artefact `java-test-reports` (Surefire/Failsafe, JaCoCo), Vitest results per build (`ci.yml`) | CC8.1, CC3.4 |
 | Secret-scan and SCA reports | CI artefacts `gitleaks-report`, `dependency-check-report`; SARIF in GitHub code scanning; dependency-review results on PRs | CC7.1, CC8.1 |
 | Deployment records | `cd.yml` / `deploy-env.yml` run history per GitHub Environment (who approved, which digest, Helm status) | CC8.1 |
-| SAST / SCA reports | SpotBugs + FindSecBugs (`mvn -Psecurity verify`), OWASP dependency-check HTML + SARIF, CodeQL alerts | CC7.1, CC8.1 |
+| SAST / SCA reports | SpotBugs + FindSecBugs (`mvn -Psecurity verify`, CI step in `ci.yml`), OWASP dependency-check HTML + SARIF, CodeQL alerts | CC7.1, CC8.1 |
 | SBOM | CI artefacts `sbom-java` (CycloneDX `target/bom.json`/`.xml`), `sbom-employee-app`, `sbom-manager-workspace`; image SBOMs attested to each image | CC7.1, CC9.2 |
 | Container scan & signatures | Trivy SARIF in code scanning, cosign signatures, SBOM and SLSA provenance attestations (`container.yml`), signature verification step in `deploy-env.yml`, Binary Authorization admission logs (GKE) | CC6.8, CC8.1 |
 | Infrastructure configuration | Terraform plans and state (remote, access-controlled), `terraform show` of security settings; Helm values per environment | CC5.2, CC6.6, A1.2 |
@@ -224,6 +232,13 @@ Legend for **Responsibility**: **F** = framework control (technical, in reposito
 | Increment 4: finance completeness | `claims.cost_export` (rows, total, SHA-256, status), `GET /claims/reconciliation?month=`; audit `CLAIM_COST_EXPORT`, `CLAIM_COST_EXPORT_RECONCILE` | PI1.4, PI1.5 |
 | Increment 4: statutory timeliness | `GET /api/v1/claims/reports?status=` and `/claims/reports/kpis` (`onTimeSubmissionPct`); job runs `claims-report-deadlines` | PI1.2, CC7.2 |
 | Increment 4: segregation tests | `Increment4TreatmentIntegrationTest`, `Increment4ClaimsIntegrationTest`, `MfaRoleGateTest`, `ArchitectureTest` (17 rules); E2E log of `tools/e2e/e2e-increment4.js` (22 checks) and screenshots in `docs/images/screens/increment-04/` | CC6.1, CC6.3, CC8.1 |
+| Increment 5: restricted-class access | Audit `DENIED` entries on `/support/**` and the MRO queue; `GET /support/placeholder` responses; break-glass report; configuration export of `mentalhealth.named-clinicians` and `substance.acting-mro-physicians` per environment (must not be the demo value `psych1` outside local / test) | CC6.1, CC6.3, C1.1 |
+| Increment 5: testing programme integrity | `GET /api/v1/testing/selections/{id}/verify` (seed, pool hash, commitment match), `substance.custody_event` (append-only), signed `CHAIN_OF_CUSTODY_FORM`, MRO decisions, denied laboratory calls by unbound clients | PI1.2, PI1.5, CC6.1 |
+| Increment 5: disclosures and status-only views | `GET /api/v1/disclosures?employeeId=` (EAP partner reads, HR / crew-scheduling duty-status rows, shared outcomes, exclusion status); audit of sharing-choice changes | P6.1–P6.3, CC6.7 |
+| Increment 5: suppression | Programme reports (`/testing/statistics`, `/peer-support/reports/quarterly`, campaign uptake, `/promotion/insights`, campaign reports) showing `suppressed: true` rows; `wellnessz.analytics.min-group-size` per environment | C1.1, P3.1 |
+| Increment 5: consent for wearables | `platform.consent` (`WEARABLE_DATA`), `promotion.wearable_enrolment`, rejected inbound wearable rows with reason codes, purge on withdrawal | P2.1, P4.2 |
+| Increment 5: promotion and change control | GitHub Environment settings export (required reviewers, prevent self-review, tag rules), `cd.yml` / `deploy-env.yml` run summaries (digests, helm and smoke outcome, rollback), cosign verification logs, Binary Authorization attestations, `flyway_schema_history` and `flyway_schema_history_client` | CC8.1, CC7.1 |
+| Increment 5: segregation tests | `Increment5MentalHealthIntegrationTest`, `Increment5SubstanceIntegrationTest`, `Increment5TravelHealthIntegrationTest`, `Increment5PromotionIntegrationTest`, `ClientMigrationsConfigTest`, `ArchitectureTest` (22 rules); E2E log of `tools/e2e/e2e-increment5.js` (24 checks, 121 with regressions) and 35 screenshots in `docs/images/screens/increment-05/` | CC6.1, CC6.3, CC8.1 |
 
 ## 6. Cross-reference to other frameworks
 
@@ -374,8 +389,8 @@ identity flow, mobile flow); they are the same views as in document 01.
 | RR8 | External broker adapter and message authentication not implemented | Only logging publisher; no PHI leaves the system externally yet | Adapter with mTLS/managed identity per D3 |
 | RR9 | Outbound guard checks field names, not values | Flat payloads enforced; allow-list per destination; integration test | Schema-based contract tests per destination |
 | RR10 | Differencing attacks on KPI API | Single KPI, allow-listed dimensions, k ≥ 5 | Query auditing thresholds, row/column suppression, fixed reporting periods |
-| RR11 | SpotBugs not a CI job; no DAST; admission enforcement only on GKE | SpotBugs run via Maven profile before release (0 findings at baseline); deploy job verifies cosign signatures | Add SpotBugs CI job, ZAP baseline, Kyverno/Ratify or Azure Policy image verification |
-| RR12 | Branch protection and Environment required reviewers are repository settings, not code | Workflows designed for approvals (`test`, `prod` environments) | Configure and evidence settings; review quarterly |
+| RR11 | No DAST; signature admission enforcement only on GKE (SpotBugs is a CI step since increment 5 – closed) | Deploy job verifies cosign signatures and copies by digest; digests required in UAT / PROD | ZAP baseline against UAT; Kyverno / Ratify / Sigstore policy-controller or Azure Policy image integrity |
+| RR12 | Branch protection and Environment required reviewers are repository settings, not code | Workflows designed for approvals (since increment 5: `azure-uat` / `azure-prod` / `gcp-uat` / `gcp-prod` environments, tag policy per stage) | Configure and evidence settings before the first UAT deployment; review quarterly (RR41) |
 
 ## 10. Controls the organisation must operate
 
@@ -1272,3 +1287,258 @@ Evidence catalogue additions are listed in Section 5.
 | RR33 | **Closed** (fixed in increment 4 after review). Originally: the FHIR and insurer endpoints accepted any `INTEGRATION` client. Now each partner / insurer system is bound to its organisation through a fixed `org_scope=/PARTNERS/<CODE>` claim (FHIR endpoints: referral's provider; pre-authorisation decision: payer; report acknowledgement: recipient; otherwise `404` + `DENIED` audit; unbound gateway clients refused). Residual: a misconfigured client claim at the IdP (wrong or missing `org_scope`) | One client per system, certificate credentials, decoded client-credentials token checked before hand-over, quarterly access review, audit `REFERRAL_FHIR_ACCESS` / `PREAUTH_DECISION` / `CLAIM_REPORT_ACK` denials | IaC / scripted client registration with the claim value from the partner master data |
 | RR34 | Illustrative provider network and rates | Procurement owns the data and its changes are audited | Load the contracted network before go-live (doc 01, O27) |
 | RR35 | E04 / E08 do not enforce `modules.eXX.enabled` (as RR28) | Modules deployed together | `requireEnabled` (doc 01, O17) |
+
+## 15. Increment 5 – restricted classes (E09, E10), travel health (E11), health promotion (E12) and environment promotion
+
+Increment 5 adds `modules/wz-e09-mentalhealth` (schema `mentalhealth`), `modules/wz-e10-substance` (`substance`),
+`modules/wz-e11-travelhealth` (`travelhealth`) and `modules/wz-e12-promotion` (`promotion`), the platform migration V16
+(duty assignments, partners `EAP_WELLBEING`, `TOXLAB`, `UKHSA_LOCAL`, retention classes `RESTRICTED_RECORD` and
+`PUBLIC_HEALTH`), the kernel SPI `SupportProgrammeReferral`, eight roles, content-free notification templates, the
+outbound destinations `campaign-app` and `sms-safety` (the safety management system – aggregated figures only, not a
+text-message gateway), `400` handling for malformed requests, DEV / UAT / PROD environment engineering with a promotion
+pipeline, and client customisation hooks. Endpoints and rules: [API Contract E09/E10/E11/E12](../increment-05/API-Contract-E09-E10-E11-E12.md).
+Statements were checked against the code at the increment-5 baseline (2026-10-30).
+
+The question for this increment is: **how is the most sensitive health data – mental health and substance testing –
+kept to the few people who must act on it, while managers, rostering and safety still receive what they need?** The
+contract states five confidentiality rules:
+
+| # | Rule | Control (section) |
+|---|---|---|
+| 1 | Mental-health and substance-programme records are restricted class; only the named mental-health clinician (E09) and the MRO (E10 results) read them; general OH staff see a placeholder count; every attempt is audited; break-glass applies | 15.2, 15.3 |
+| 2 | Managers, HR, crew scheduling and safety managers see duty status only; for E09 the employee chooses what the manager sees | 15.2 |
+| 3 | Peer-support contact logs contain no operator-identifiable data | 15.4 |
+| 4 | Programme statistics are aggregated with small-cell suppression (default k = 5) | 15.5 |
+| 5 | Every disclosure outside the owning team is written to the disclosure log | 15.2, 15.6 |
+
+### 15.1 New roles and segregation of duties
+
+The canonical role list grows from 30 to **38**. `GET /api/v1/me` reports `RESTRICTED_CLINICAL` for `PSYCH_CLINICIAN`
+and `MRO`; the other new roles hold no clinical disclosure.
+
+| Role | Data reach | Notable permissions | Cannot (enforced server-side) |
+|---|---|---|---|
+| `PEER_SUPPORT_VOLUNTEER` (`peer1`) | own pseudonymous contacts | receive routed requests (alias + code), log contacts, refer to a trusted professional | see employee identity (not stored); other volunteers' logs |
+| `PEER_SUPPORT_COORDINATOR` (`peercoord1`) | volunteer register | volunteers, training, availability, aggregated figures | contact content or identities |
+| `SAFETY_MANAGER` (`safety1`) | counts and requirements | quarterly peer-support report and send, CISM counts, post-incident / for-cause requests, policies (read), statistics | affected-person lists with clinical detail, results, screening |
+| `DA_PROGRAMME_MANAGER` (`damanager1`) | programme administration | policies, pools, random selections and verification, coverage, annual report | results; MRO queue (`403`) |
+| `MRO` (`mro1`) | substance results | MRO queue, decisions, split specimens, return to duty | E09 support content; **restricted documents via the generic `/documents` API (limitation – 15.13)** |
+| `COLLECTOR` (`collector1`) | collection | requirements, collection, chain-of-custody events | results, future follow-up dates |
+| `HEALTH_PROMOTION_LEAD` (`promo1`) | anonymised aggregates | insights, campaign planner, screening events (participant counts only), reports | participant lists, result entry, restricted-class data |
+| `ERGONOMIST` (`ergo1`) | ergonomic assessments | assessments, photos, actions | clinical record |
+| `PARTNER_PROVIDER` for `EAP_WELLBEING` (`eap1`) | own organisation's EAP referrals | read minimal referral data, attendance-only feedback | employee id, free text (`422 field_not_allowed`), any other organisation (`404`); the role without MFA |
+| `PSYCH_CLINICIAN` (existing) | support cases when named | full E09 content; relief from duty | anything when not on `mentalhealth.named-clinicians` (`404`) |
+| `AME`, `OH_PHYSICIAN`, `CMO` (existing) | as configured | AME relief and return decisions; physicians as acting MRO only when listed; CMO governance | E09 content (except governance aggregates) |
+| `HR`, `CREW_SCHEDULING`, `MANAGER` (existing) | status only | duty status (HR / crew scheduling), for-cause requests and shared outcomes (manager, within scope) | reasons, results, scores, notes |
+
+Segregation-of-duties controls: the programme manager selects but never sees results; the collector collects but
+cannot read results or future follow-up dates; only the MRO verifies; testing policies need an approver and any
+parameter change returns the policy to pending; random selections are reproducible from their stored seed and pool
+hash (`/verify`), so a manipulated selection is detectable; return-to-duty decisions sit with the MRO / AME, not with
+HR. The BFF workspace gate admits `SAFETY_MANAGER` and `CREW_SCHEDULING` (manager workspace, testing screens).
+
+### 15.2 Restricted classes and the status-only rule (CC6.1, CC6.3, C1.1)
+
+| Control | Implementation | Evidence |
+|---|---|---|
+| Classification | E09 support cases and E10 results / chain-of-custody forms are `RESTRICTED_CLINICAL` (restricted kernel cases; documents generated with `DataClassification.RESTRICTED_CLINICAL`); restricted fields encrypted with AES-256-GCM | migrations V17 / V18, entities |
+| Named reader | E09: only clinicians listed in `mentalhealth.named-clinicians` (empty = every `PSYCH_CLINICIAN`); E10 results: `MRO` or a physician in `substance.acting-mro-physicians` (empty by default); others `404` (E09) / `403` (MRO queue) with a `DENIED` audit entry | `Increment5MentalHealthIntegrationTest`, `Increment5SubstanceIntegrationTest`; E2E *nurse → 404*, *programme manager → MRO queue 403* |
+| **Go-live configuration item** | V17 seeds `mentalhealth.named-clinicians = psych1` (a demo user) **in every environment**. Before go-live the value must be set to the real named clinicians per environment, otherwise real clinicians are locked out (urgent call-backs unseen) or a `psych1` account would read all support cases | configuration export per environment, release checklist (RR36) |
+| Platform deny policy | `restrictedClassPolicy` (deny-overrides) refuses restricted kernel cases and documents to everyone except `PSYCH_CLINICIAN`, the data subject and break-glass holders | `DefaultPolicies`, increment-2 tests |
+| Placeholder | General OH roles see only `{restrictedCases: n}` on the chart ("1 restricted item – hidden") | E2E, screenshot `inc5-oh-03-chart-restricted-placeholder.png` |
+| Break-glass | Active, justified grant opens the employee's support cases read-only (`accessBasis: BREAK_GLASS`); DPO alert and review as in increment 2 | break-glass report |
+| Employee sharing choice | `NOTHING` / `FITNESS_ONLY` / `FITNESS_AND_ADJUSTMENTS`, revocable, audited; adjustments text screened for clinical content; manager reads `/workspace/psychosocial/shared-outcomes` (disclosure-logged) | E2E *manager sees fitness only – no screening or notes* |
+| Duty status only | HR and crew scheduling read `/workspace/testing/status` (employee, duty status, since – each row disclosure-logged once); employees and managers see masked test states (`COLLECTED`, `COMPLETED`, `CLOSED`); E11 exclusion and E09 relief reach rostering / HR as fitness status only | E2E *HR sees status only*, *rostering receives the status only* |
+| Notifications | Content-free templates (`support.*`, `testing.*`, `tracing.*` …); `ContentRules` reject *positive*, *result*, *drug*, *alcohol* and clinical terms; contact-tracing notices never name the index case; campaign invitations never name a vaccine or disease | `NotificationRulesTest` |
+| Module isolation | E09 / E10 depend on no other clinical module; E10 reaches E09 only through `SupportProgrammeReferral` (ArchUnit); restricted cases excluded from `analytics.v_case_facts` and E12 insights | `ArchitectureTest` (22 rules) |
+
+### 15.3 Substance testing: MRO, chain of custody and laboratory binding (PI1, CC6.1)
+
+* **Chain of custody.** Collection produces a signed `CHAIN_OF_CUSTODY_FORM` (restricted class); every custody event is
+  append-only – the runtime role has no `UPDATE` / `DELETE` grant and a trigger rejects changes even for the owner.
+* **Laboratory binding.** `GET /integration/testing/lab-orders` and `POST /integration/testing/lab-results` accept only
+  the machine client whose token carries `org_scope=/PARTNERS/TOXLAB` (`substance.laboratory-code`); unbound or other
+  clients get `404` and an audit entry (E2E *unbound client → 404*). The LIMS connector itself is simulated.
+* **MRO review.** Results enter the MRO queue; verification decisions need an interview note for positive and
+  legitimate-prescription outcomes; split-specimen results return the test to review; a later cancellation reverses a
+  positive.
+* **Positive / refusal pathway.** In the same transaction as the MRO decision: restricted `SUBSTANCE` case, removal
+  from safety-sensitive duty via the status-only feed, `testing.status` to crew scheduling and HR (disclosure-logged),
+  confidential referral through `SupportProgrammeReferral` (audited `DA_SUPPORT_REFERRAL`), draft return-to-duty plan
+  with unannounced follow-up tests whose dates only the MRO sees.
+* **Reproducible random selection.** Seed, pool hash and seed commitment are stored; `/verify` (programme manager,
+  auditor) recomputes the selection (`poolHashMatches`, `seedCommitmentMatches`, `selectionMatches`).
+
+### 15.4 Pseudonymous peer support (P3.1, C1.1)
+
+Requests reach a trained, available volunteer as alias + random contact code (`PS-XXXX-XXXX`); the peer tables have
+**no employee column** (the integration test checks `information_schema`); the audit entry for a contact request carries
+no code; call-back phone numbers are encrypted and purged after 30 days by the daily `peer-callback-purge` job.
+Quarterly figures leave only as suppressed counts to the safety management system (`sms-safety` allow-list:
+`messageId, quarter, reportRef, category, count, base`).
+
+### 15.5 Small-cell suppression on every aggregate (C1.1, P3.1)
+
+All programme aggregates use `wellnessz.analytics.min-group-size` (default 5, floor 3): E09 psychosocial rates and the
+quarterly peer-support report, E10 statistics and annual report, E11 campaign uptake and advisory acknowledgement
+counts, E12 insights (with complementary suppression) and participation / outcome reports. Suppressed rows carry no
+numbers, and the UIs leave them out of totals so that they cannot be recovered by subtraction. The OH follow-up list of
+advisory acknowledgements (`pending[]`) is still returned to OH, which needs it to chase people.
+
+### 15.6 External parties: EAP refusal of free text, public-health reporting and outbound destinations (P6.1, CC6.7)
+
+* **EAP partner.** Counsellors (`PARTNER_PROVIDER`, `/PARTNERS/EAP_WELLBEING`, MFA-gated) see minimal referral data
+  for their own organisation and no employee id; feedback is attendance only – any extra field in the body is refused
+  with `422 field_not_allowed`; every partner read is disclosure-logged; EAP referrals require `EAP_REFERRAL` or
+  `TREATMENT_SHARING_PARTNER` consent.
+* **Public health.** Notifiable-disease reports to `UKHSA_LOCAL` are a legal obligation (no consent; legal basis in
+  the disclosure log) with statutory deadline timers; default submission is outbox event plus content-free e-mail.
+* **Outbound destinations.** `campaign-app` (`messageId, campaignId, title, risk, startDate, endDate, targetUnits` –
+  no person data) and `sms-safety` (aggregated counts) are flat allow-lists checked by `OutboundPayloadGuard`.
+* **Internal machine feeds.** Duty assignments, campaign participation and wearable data accept internal clients only;
+  a client bound to a partner organisation is refused.
+
+### 15.7 Wearable consent and data minimisation (P2.1, P3.1, P4.2)
+
+Wearable enrolment requires an active campaign and an active `WEARABLE_DATA` consent; inbound data is accepted only
+for consented enrolments and only as **daily totals** (other granularity or non-consented rows are rejected with reason
+codes); withdrawing the enrolment or the consent purges the stored data immediately (`WearableConsentListener`). E2E:
+*wearable data without consent is rejected*.
+
+### 15.8 Input handling: `400 malformed_request` (CC7.1, CC8.1)
+
+`GlobalExceptionHandler` now answers malformed JSON bodies (including unknown enum values) with
+**`400 malformed_request`** and mistyped path / query parameters with **`400 invalid_parameter`** (parameter name only),
+instead of `500`. No parser message, stack trace or SQL reaches the client; the correlation id links the response to
+the server log. This removes false `500` alerts that could mask real failures and closes an information-leak path.
+
+### 15.9 Promotion pipeline: required reviewers and signed digests (CC8.1, CC7.1)
+
+| Control | Implementation | Evidence | Status |
+|---|---|---|---|
+| Build once | `container.yml` builds six images on `main` only (release tags are never rebuilt); Trivy gate, SBOM and SLSA provenance attestations, cosign keyless signature | workflow runs, Rekor entries | Implemented |
+| Promotion policy | `deploy-env.yml` checks the tag per stage: DEV `sha-*` / `v*`, UAT `vX.Y.Z[-rc.N]`, PROD `vX.Y.Z` only | run summaries | Implemented |
+| Signed digest | Digests resolved and cosign-verified once in `cd.yml` and passed to every stage; UAT / PROD require images signed by `container.yml` on `main`; `cosign copy` by digest into the environment registry and re-verification; Binary Authorization attestation on GKE (enforced in UAT / PROD); `global.requireImageDigests` makes Helm rendering fail without a digest | cosign logs, attestations, Helm render | Implemented (`cosign copy`, private-AKS invoke and attestation listing not yet run against real clouds) |
+| Required reviewers | GitHub Environments `azure-uat`, `azure-prod`, `gcp-uat`, `gcp-prod` with required reviewers (PROD: CAB / security group, prevent self-review) and tag rules | environment settings export | **Organisation – must be configured in repository settings; cannot be set from code** |
+| Least-privilege deployers | Each environment's deployer identity trusts only its own GitHub Environment; only DEV accepts pushes from `main`; OIDC only, no stored cloud credentials | Terraform `cicd.tf` / `iam.tf` | Implemented |
+| Safe deployment | `helm upgrade --atomic`, smoke tests (rollout, running digests, `SMOKE_URLS`), automatic `helm rollback`; forward-only (expand / contract) migrations | run summaries | Implemented |
+| Environment separation | Separate Terraform state, secret store, IdP app registrations and data class per environment (DEV synthetic, UAT synthetic or masked, PROD PHI); MFA gate off only in DEV | tfvars tags, overlays | Implemented |
+
+### 15.10 Client customisation controls (CC8.1, CC6.1)
+
+| Mechanism | Control | Status |
+|---|---|---|
+| `customisation.client`, `core.extraEnv` / `bff.extraEnv` via `deploy/clients/<client>/values.yaml` (`EXTRA_VALUES_FILES`) | Values files under version control and the same promotion and review as product changes; the chart schema keeps hardening settings non-overridable | Implemented |
+| `customisation.featureFlags` → `WZ_FEATURE_<NAME>` on core and BFF | **Plumbing only** – no product feature reads a flag yet; flags must not be used to switch security controls | Implemented (no consumer) |
+| `customisation.migrations` (extension image pinned by digest when digests are required, or ConfigMap; `*.sql` only) | Run after product migrations in their own schema (`client_<client>`) and history table (`flyway_schema_history_client`) so product versions never collide; grants through `${app_role}`; reviewed like product migrations | Implemented (`ClientMigrationsConfigTest`; not yet run against a real database) |
+| Client Java code | Extension JAR mounting is **not implemented**; client code is a fork / branch with its own build, or a client module in the Maven build, subject to the full CI gates | Not implemented (by decision) |
+
+### 15.11 Threat model additions (STRIDE)
+
+| ID | Flow |
+|---|---|
+| F40 | Employee → employee app → BFF → `/me/support/**` (self-referral, screening, sharing choice) |
+| F41 | Named clinician / general OH user → `/support/**`, chart placeholder |
+| F42 | EAP counsellor (unmanaged device) → `partners.<domain>` → `/partner/eap-referrals` |
+| F43 | Toxicology laboratory system ↔ `/integration/testing/**` |
+| F44 | Programme manager / collector / MRO → `/testing/**`; HR / crew scheduling → `/workspace/testing/status` |
+| F45 | Rostering / shift systems → `/integration/duty-assignments`; contact tracing and CISM read duties |
+| F46 | Core → `campaign-app`, `sms-safety`, public-health authority (outbox / e-mail); wearable aggregator → `/integration/wearables/data` |
+| F47 | GitHub Actions → registries → AKS / GKE / on-prem (promotion) |
+
+```mermaid
+flowchart LR
+  EMP[Employee] -->|BFF| CORE[wz-core-app<br/>named readers · ABAC deny · suppression]
+  PSY[Named clinician] -->|BFF| CORE
+  MRO[MRO] -->|BFF| CORE
+  EAP[EAP counsellor<br/>MFA] -->|partners.domain| CORE
+  LAB[TOXLAB system<br/>org_scope bound] -->|client credentials| CORE
+  ROS[Rostering / shift systems] -->|internal client| CORE
+  CORE -->|duty status only| HR[HR / crew scheduling]
+  CORE -->|allow-listed aggregates| OB[(outbox: sms-safety,<br/>campaign-app)]
+  CORE --> DL[(disclosure log)]
+```
+
+| Flow | Threat (STRIDE) | Scenario | Controls | Residual |
+|---|---|---|---|---|
+| F41 | **I**nformation disclosure | General OH nurse opens a colleague's mental-health case | Named-reader check, `restrictedClassPolicy`, `404`, placeholder count only, `DENIED` audit, break-glass with review | L (M until the seeded `psych1` value is replaced – RR36) |
+| F41 | **E**levation of privilege | Any `PSYCH_CLINICIAN` reads all support cases because the named list is empty or wrong | Named list per environment; access review; audit | M until go-live configuration verified (RR36) |
+| F40 | **R**epudiation | Dispute about what the employee agreed to share | Sharing choice changes audited with time and actor; disclosure log of manager reads | L |
+| F40 | **D**enial of service (safety) | Urgent self-harm answer not acted on | Server-side urgent rule, same-day call-back item, named-clinician notification, governance view | M – depends on cover rota (organisation) |
+| F42 | **I**nformation disclosure | EAP counsellor writes clinical content back or reads other organisations | Attendance-only schema, extra fields `422 field_not_allowed`, organisation filter `404`, MFA gate | L |
+| F43 | **S**poofing / **T**ampering | Another machine client posts lab results | `org_scope=/PARTNERS/TOXLAB` binding, `404` + audit; custody events append-only | L – depends on correct IdP client claim |
+| F44 | **T**ampering | Selection manipulated to target or spare an employee | Stored seed, pool hash, commitment; `/verify` reproducible by auditors | L |
+| F44 | **I**nformation disclosure | HR or manager infers a positive result | Duty status only, masked states, content rules on notifications, disclosure log | L |
+| F45 | **I**nformation disclosure | Contact notice reveals the index case or condition | Content-free `tracing.contact-notice` without condition or case | L |
+| F46 | **I**nformation disclosure | Re-identification from small aggregates | Suppression k = 5, complementary suppression, totals without suppressed rows | L |
+| F46 | **I**nformation disclosure | Wearable data collected without consent | Consent gate on enrolment and on every inbound row, daily totals only, purge on withdrawal | L |
+| F47 | **T**ampering | Unsigned or untested image reaches PROD | Tag policy, cosign verification of signer identity, digests required, Binary Authorization (GKE), required reviewers | M until GitHub Environment protection is configured and admission is enforced on AKS / on-prem (RR41, RR11) |
+| All | **I**nformation disclosure | Parser errors leak internals via `500` | `400 malformed_request` / `invalid_parameter`, no messages | L |
+
+### 15.12 Control mapping additions
+
+| Criterion | Increment-5 control | Evidence source | Resp. | Status |
+|---|---|---|---|---|
+| CC6.1 | Restricted-class named readers, `restrictedClassPolicy`, placeholder, MRO-only results, laboratory client binding, internal-only machine feeds, MFA gate for the EAP partner | `Increment5*IntegrationTest`, E2E, audit | F | Implemented (MRO document gap – RR37) |
+| CC6.2 | Eight roles and nine demo users with scope mappings; named-clinician and acting-MRO lists per environment | realm export, configuration export | O/F | Implemented (replace seeded `psych1` value and assign real users: Org) |
+| CC6.3 | Segregation: programme manager / collector / MRO / HR; peer coordinator without content; health-promotion lead without participant data; ArchUnit isolation of E09 / E10 | `ArchitectureTest`, tests | F | Implemented |
+| CC6.7 | Allow-lists `campaign-app`, `sms-safety`; content-free notifications with stricter content rules; status-only feeds | `application.yml`, `NotificationRulesTest` | F | Implemented |
+| CC7.1 | `400` handling instead of `500`; SpotBugs CI step; promotion-time signature verification | `GlobalExceptionHandler`, `ci.yml`, `deploy-env.yml` | F | Implemented |
+| CC7.2 | Audited denials on restricted endpoints; urgent call-back, exposure-timer and public-health deadline jobs | audit, `platform.scheduled_job_run` | F/O | Implemented (SIEM rules: Org) |
+| CC8.1 | Flyway V16–V20; client migrations in own schema / history; promotion by signed digest, tag policy, atomic upgrade, automatic rollback; required reviewers | `flyway_schema_history[_client]`, workflow runs, environment settings | F/O | Implemented (environment protection: Org) |
+| PI1.2 / PI1.5 | Chain of custody append-only; reproducible selection; MRO state machine; return criteria before clearance (`422 return_criteria_not_met`) | tests, `/verify` | F | Implemented |
+| C1.1 | `mentalhealth`, `substance`, `travelhealth`, `promotion` classified; restricted fields encrypted; peer tables without identity | migrations, entities | F | Implemented |
+| C1.2 / P4.2 | Retention classes `RESTRICTED_RECORD`, `PUBLIC_HEALTH` (proposed); peer call-back and wearable purges | Section 15.4, 15.7 | F/O | Partial (schedule approval: DPO) |
+| P2.1 | `WEARABLE_DATA`, `EAP_REFERRAL` / `TREATMENT_SHARING_PARTNER` consent gates; sharing choice; public-health reports on legal basis | tests | F/O | Implemented (lawful-basis review: DPO) |
+| P3.1 | Minimisation: duty status only, attendance-only EAP feedback, daily wearable totals, pseudonymous peer support, suppressed aggregates | code, tests | F | Implemented |
+| P6.1–P6.3 | Disclosure log for EAP reads, duty-status rows, shared outcomes, exclusion status, authority reports | `platform.disclosure_log` | F | Implemented |
+
+### 15.13 Organisation-operated controls, known limitations and residual risks added
+
+| Control | Frequency | Owner (proposed) | TSC |
+|---|---|---|---|
+| Set `mentalhealth.named-clinicians` (replace the seeded demo value `psych1`) and `substance.acting-mro-physicians` per environment; verify in the release checklist | Before go-live, on staff change | CMO + OH service owner | CC6.2, CC6.3 |
+| Access review of `PSYCH_CLINICIAN`, `MRO`, `COLLECTOR`, `DA_PROGRAMME_MANAGER`, peer-support roles, EAP partner accounts and the `TOXLAB` client | Quarterly; restricted roles monthly | OH service owner + IAM | CC6.2, CC6.3 |
+| Enforce MFA enrolment in the production IdP (Entra ID Conditional Access or Keycloak OTP / WebAuthn), including EAP counsellors | Before go-live | IAM | CC6.1 |
+| Configure GitHub Environments (required reviewers, prevent self-review, tag rules) and export the settings as evidence | Before first UAT deployment, quarterly | Release manager | CC8.1 |
+| Clinical Governance / MRO / Legal sign-off of screening instruments and cut-offs, urgent-risk protocol, testing policies and cut-offs, travel recommendations, PEP timers | Before go-live, on change | CMO + MRO + Legal | PI1.2 |
+| Urgent call-back cover rota and escalation procedure for named clinicians | Continuous | CMO | CC7.4 |
+| DPIA update for mental health, substance testing, contact tracing and wearables; data-sharing agreements with the EAP, laboratory and campaign / wearable vendors | Before go-live | DPO | P1.1, CC9.2 |
+| Approval of `RESTRICTED_RECORD` and `PUBLIC_HEALTH` retention | Before go-live | DPO + CMO | C1.2, P4.2 |
+| Review of client values files and client migrations as changes | Each change | Engineering lead | CC8.1 |
+
+**Known limitations (stated in the release notes; must remain visible to auditors):**
+
+* The platform ABAC restricted-class rule recognises `PSYCH_CLINICIAN`; an MRO opens results and the chain-of-custody
+  form through the E10 MRO endpoints but probably **not** through the generic `/documents` API for
+  `RESTRICTED_CLINICAL` documents (follow-up item; fails safe – deny).
+* `WZ_FEATURE_*` feature flags are plumbing only: delivered to core and BFF as environment variables; no product feature
+  is switched by them yet.
+* Mounting client extension JARs into the core image is **not implemented**; client code customisation means a fork /
+  branch with its own build or a client module added to the Maven build; SQL migrations and configuration are supported
+  without forking.
+* GitHub Environments' required reviewers and protection rules must be configured in repository settings – they cannot
+  be set from code.
+* Decision needed whether to commit `.devcontainer/` at the repository root (the developer guide ships it under
+  `docs/developer-setup/ide/devcontainer`).
+* Real external connectors are still simulated or default: EAP provider system, toxicology laboratory LIMS (bound
+  machine client and API ready), campaign app, wearable vendor APIs, public-health authority submission (outbox +
+  e-mail default), SMS text-message gateway.
+* Clinical content (PHQ-9 / GAD-7 cut-offs, testing policy cut-offs, travel recommendations table, PEP timers) is
+  configurable reference data that needs Clinical Governance / MRO / Legal sign-off before go-live.
+* MFA enrolment must be enforced in the production IdP (Entra ID Conditional Access or Keycloak OTP / WebAuthn).
+* Demo data cannot contain encrypted narrative text; the seeders fill some encrypted fields in the `local` and `test`
+  profiles only.
+* V17 seeds `mentalhealth.named-clinicians = psych1` in every environment – a go-live configuration item.
+* Infrastructure code and pipeline have not yet been applied / run against real Azure, GCP or on-premises targets.
+
+| ID | Residual risk | Compensating control (now) | Target remediation |
+|---|---|---|---|
+| RR36 | `mentalhealth.named-clinicians` seeded with the demo user `psych1` in every environment | No `psych1` account exists outside local / test realms; release checklist item; audit of `DENIED` restricted access | Set the real named clinicians per environment before go-live; alert on changes to the key |
+| RR37 | MRO cannot open restricted documents through `/documents` (ABAC admits `PSYCH_CLINICIAN` only) | MRO works through the E10 endpoints; deny is the safe default | Extend the restricted-class policy to `MRO` for substance-programme documents (doc 01, O29 / D20) |
+| RR38 | Restricted-class connectors simulated (EAP system, LIMS, authority, campaign app, wearables, SMS text gateway) | Partner portal for the EAP, bound laboratory client ready, outbox + content-free e-mail, manual channels | Connectors with DPAs (doc 01, O30 / D21) |
+| RR39 | Clinical reference content unapproved | Values marked pending; server-side rules; configurable without release | Governance sign-off (doc 01, O31) |
+| RR40 | Feature flags and client migrations could be misused to alter behaviour or grants | Flags read by no feature; client migrations in own schema and history, reviewed and promoted like product changes | Flag governance policy (doc 01, O34) |
+| RR41 | GitHub Environment protection not configured; pipeline not yet run on real clouds | Tag policy, signature verification and digests enforced by the workflows | Configure protection (doc 01, O33); first DEV / UAT deployment as acceptance test |
+| RR42 | Category of restricted kernel cases visible to database readers | Content encrypted; DBA access IdP-authenticated and audited; API exposes a count only | Encrypt the category of restricted rows (doc 01, R28) |
+| RR43 | E09 / E11 / E12 do not enforce `modules.eXX.enabled` (E10 does) | Modules deployed together | `requireEnabled` (doc 01, O17 / O36) |

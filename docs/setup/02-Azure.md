@@ -1383,7 +1383,7 @@ their access after go-live.
 | 5 | Status-only rule | Manager account opens the workspace | Case status visible, no clinical text |
 | 6 | API host | `curl -s -o /dev/null -w '%{http_code}' https://api.<domain>/api/v1/me` | `401` without a token |
 | 7 | Management port not exposed | `curl -s -o /dev/null -w '%{http_code}' https://api.<domain>/actuator/env` | `404` |
-| 8 | End-to-end | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_IDP_HOST=login.microsoftonline.com node tools/e2e/e2e.js` | Adapt the login step for Entra test accounts (MFA-exempt test users in a dedicated group, dev/test only) |
+| 8 | End-to-end | `WZ_E2E_EMPLOYEE_URL=https://employee.<domain> WZ_E2E_WORKSPACE_URL=https://manager.<domain> WZ_E2E_IDP_HOST=login.microsoftonline.com node tools/e2e/e2e.js` | Adapt the login step for Entra test accounts (MFA-exempt test users in a dedicated group, DEV/UAT only) |
 | 9 | Audit chain | `GET /api/v1/audit/verify` as `AUDITOR` | Chain valid |
 | 10 | Logs | Log Analytics: `ContainerLogV2 \| where PodNamespace == "wellnessz" \| take 20` | JSON logs, no PHI in clear text |
 | 11 | EHS intake | Section 13 | Incident visible |

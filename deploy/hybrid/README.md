@@ -97,7 +97,7 @@ External Secrets Operator already present):
 
 ```bash
 kubectl apply -f cnpg/00-namespace.yaml
-kubectl apply -f external-secrets/cluster-secret-store-vault.yaml -f external-secrets/db-secrets.yaml
+for f in cluster-secret-store-vault.yaml db-secrets.yaml; do WZ_ENV=$ENV envsubst '$WZ_ENV' < external-secrets/$f | kubectl apply -f -; done   # ENV=dev|uat|prod
 kubectl apply -f cnpg/01-certificates.yaml
 kubectl apply -f cnpg/02-objectstore.yaml
 kubectl apply -f cnpg/03-cluster.yaml

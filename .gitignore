@@ -28,3 +28,6 @@ tools/e2e/shots/
 
 # agent worktrees (local only)
 .claude/worktrees/
+
+# Terraform plan files (may contain secrets)
+*.tfplan

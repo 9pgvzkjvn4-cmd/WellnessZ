@@ -178,10 +178,15 @@ Placeholders in `<angle brackets>` come from `terraform output`.
 
 ```bash
 cd deploy/terraform/azure        # or gcp
-cp backend.hcl.example backend.hcl && cp terraform.tfvars.example terraform.tfvars
-terraform init -backend-config=backend.hcl
-terraform plan -out tfplan && terraform apply tfplan
+ENV=dev                          # dev | uat | prod – one state per environment
+cp environments/backend-$ENV.hcl.example environments/backend-$ENV.hcl        # once, edit names
+cp environments/local.tfvars.example environments/$ENV.local.tfvars          # once, tenant/project IDs (git-ignored)
+terraform init -reconfigure -backend-config=environments/backend-$ENV.hcl
+terraform plan -var-file=environments/$ENV.tfvars -var-file=environments/$ENV.local.tfvars -out $ENV.tfplan
+terraform apply $ENV.tfplan && rm $ENV.tfplan
 ```
+
+Per-environment differences and the promotion flow: `deploy/environments/README.md`.
 
 **Azure** (`azurerm ~> 4.81`): VNet with subnets (AKS, App Gateway, delegated
 PostgreSQL, private endpoints) + NSGs and private DNS; AKS (Azure CNI Overlay +

@@ -1,42 +1,65 @@
 # WellnessZ OHCM – Setup Guide 4: Hybrid Cloud
 
+**Version 1.0**
+
+*WellnessZ OHCM platform – increments 1–5*
+
 | | |
 |---|---|
-| **Document** | 08 – Setup guide: Hybrid cloud (on-prem core + CloudNativePG, cloud web tier) |
-| **Audience** | Infrastructure / platform team, network team, security engineering |
-| **Result** | PHI at rest on-premises (RKE2 or OpenShift), web tier and BFF in AKS or GKE, one fleet under Azure Arc or GKE Enterprise |
-| **Time** | 2–3 days for the first environment (connectivity and PKI usually dominate) |
-| **Related** | 04 – Deployment Architecture · `deploy/hybrid/README.md` · 06 – Azure / 07 – GCP guides |
+| **Document** | 08 – Setup guide: Hybrid cloud (on-prem core + CloudNativePG + Vault, cloud web tier) |
+| **Version** | 1.0 (final, after increment 5 of 5) |
+| **Audience** | Infrastructure / platform team, network team, security engineering, DBA, release manager |
+| **Result** | Hybrid DEV, UAT and PROD: PHI at rest on-premises (RKE2 or OpenShift, CloudNativePG, Vault / External Secrets), web tier and BFF on the AKS or GKE **edge of the same environment**, one fleet under Azure Arc or GKE Enterprise; PROD accepted through the go-live checklist |
+| **Time** | DEV: 2–3 days (connectivity and PKI usually dominate). UAT and PROD: 1 day each once DEV works, plus the go-live checklist |
+| **Related** | [04 – Deployment Architecture](../deployment/Deployment-Architecture.md) · [`deploy/environments/README.md`](../../deploy/environments/README.md) · `deploy/hybrid/README.md` · [06 – Azure](02-Azure.md) / [07 – GCP](03-GCP.md) guides (cloud edge) |
 
 ![Hybrid topology](../images/11-deploy-hybrid.png)
 
 *Figure 1 – Hybrid topology (source: `docs/images/11-deploy-hybrid.svg`).*
 
-> **Validation status.** All manifests in `deploy/hybrid` validate against their published schemas (kubeconform
-> with the CRD catalogue: CloudNativePG `Cluster`/`ScheduledBackup`, Barman Cloud `ObjectStore`, External Secrets
-> v1, cert-manager). The CNPG grants SQL was executed on PostgreSQL 16.15. `values-hybrid.yaml` and
-> `values-hybrid-cloud-edge.yaml` render and lint. **Nothing was installed on a real RKE2/OpenShift cluster or
-> connected through Arc or GKE Enterprise.**
+> **Validation status.** All manifests in `deploy/hybrid` validate against their published schemas (kubeconform with
+> the CRD catalogue: CloudNativePG `Cluster`/`ScheduledBackup`, Barman Cloud `ObjectStore`, External Secrets v1,
+> cert-manager). The CNPG grants SQL was executed on PostgreSQL 16.15. `values-hybrid.yaml` with
+> `environments/hybrid/{dev,uat,prod}.yaml` and `values-hybrid-cloud-edge.yaml` render and lint (CI job *IaC & config
+> checks*). **Nothing was installed on a real RKE2/OpenShift cluster or connected through Arc or GKE Enterprise.**
 >
-> **Increment 1** (E01 intake, E02 triage) adds the OH workspace to the cloud web tier, schema `triage` to the
-> on-prem database and the EHS webhook on the on-prem API. The changes are listed in sections 8–10.
->
-> **Increment 2** (E03 OH record, E05 fitness for duty) adds schemas `docs`, `ohrecord`, `fitness` to the on-prem
-> database, the `DPO` role, and gateway connectivity from the laboratory, device middleware and crew rostering to the
-> on-prem API. All clinical data, documents and the search index stay on-premises. Changes are in sections 4, 8 and 10.
->
-> **Increment 3** (E06 absence & sickness, E07 medical surveillance, E14 scheduling & clinic operations) adds schemas
-> `absence`, `surveillance`, `scheduling` to the on-prem database, four roles, nine scheduled jobs in the on-prem core
-> and gateway connectivity from HRIS / time & attendance / crew systems, industrial hygiene, dosimetry, recruiting and
-> IoT fridge gateways to the on-prem API. Absence episodes, certificates, surveillance results and cold-chain readings
-> stay on-premises. Changes are in sections 4, 8, 10 and 12.
->
-> **Increment 4** (E04 treatment coordination & partner referrals, E08 claims coordination) adds the **partner portal**
-> to the cloud web tier (`partners.<domain>`, the first host for users outside the airline, MFA required), schemas
-> `treatment` and `claims` to the on-prem database, five roles, four scheduled jobs in the on-prem core and inbound
-> connectivity from partner hospital systems, insurer systems and (later) the video platform to the on-prem API.
-> Referrals, provider reports and invoices, claims, costs and medico-legal reports stay on-premises; the edge holds
-> no partner data. Changes are in sections 1, 4, 8, 9, 10 and 12.
+> **Increments.** Increments 1–4 added the OH workspace and the partner portal to the cloud edge and twelve schemas,
+> jobs and gateway connectivity on-prem. **Increment 5** adds schemas `mentalhealth`, `substance`, `travelhealth` and
+> `promotion` to the on-prem database, eight roles, nine jobs in the on-prem core, the duty-assignment feed from
+> corporate roster systems and the TOXLAB laboratory client to the on-prem API, and the EAP referrals screen on the
+> edge partner portal. All restricted-class data (mental-health support, substance-testing results, chain-of-custody
+> forms) stays on-premises. Changes are in sections 5, 8, 10 and 13.
+
+## 0. Environments and the manual / automated split
+
+**Legend.** **[A]** automated from the repository; **[M]** manual (data-centre, network, PKI, Vault ceremonies,
+approvals) – keep evidence.
+
+| | Hybrid DEV | Hybrid UAT | Hybrid PROD |
+|---|---|---|---|
+| On-prem cluster | shared non-prod cluster allowed (own namespaces `wellnessz` / `wellnessz-db`) | non-prod cluster, production-like topology | dedicated production cluster, 3+ workers across failure domains |
+| On-prem values | `values-hybrid.yaml` + `environments/hybrid/dev.yaml` | `… + environments/hybrid/uat.yaml` | `… + environments/hybrid/prod.yaml` |
+| Core replicas / image policy | 1, branch builds (`requireImageDigests: false`) | 2–4, release-candidate digests | 3–10, signed release digests (`requireImageDigests: true`) |
+| API host (internal) | `api.dev.wellnessz.onprem.example.internal` | `api.uat.wellnessz.onprem.example.internal` | `api.wellnessz.onprem.example.internal` |
+| Vault | mount `kubernetes-wellnessz-dev`, roles `wellnessz-*-dev`, path `kv/data/wellnessz/dev/…` | `…-uat` | `…-prod` |
+| CNPG | `deploy/hybrid/cnpg` (3 instances; DEV may run 1 instance – documented exception) | 3 instances | 3 instances, synchronous replica, backups replicated off-site |
+| Cloud edge | Azure `azure-dev` (guide 06) or GCP `gcp-dev` (guide 07) + `values-hybrid-cloud-edge.yaml` | `…-uat` | `…-prod` |
+| Edge → core firewall source | AKS node subnet `10.48.0.0/23` (or GKE `10.68.0.0/20`) | `10.44.0.0/23` (or `10.56.0.0/20`) | `10.40.0.0/23` (or `10.60.0.0/20`) |
+| Data | synthetic | synthetic or masked | production PHI |
+| Approvals | none | required reviewers (edge) + on-prem change ticket | CAB + required reviewers |
+
+| Step | Section | DEV | UAT | PROD |
+|---|---|---|---|---|
+| Fleet registration (Arc / GKE Enterprise) | 3 | [M] | [M] | [M] |
+| Connectivity, DNS, firewall rule per environment | 4 | [M] | [M] | [M] |
+| Vault mounts, policies, roles, secrets (key ceremony) | 5 | [M] | [M] | [M] dual control |
+| Operators | 6 | [A] Helm | [A] | [A] |
+| CloudNativePG cluster and backups | 7 | [A] manifests | [A] | [A] |
+| On-prem core (Helm, Flyway Job) | 8 | [A] `helm-release.sh` / GitOps | [A] after change approval | [A] after CAB |
+| Cloud edge (`cd.yml` / `deploy-env.yml` with the edge values file) | 9 | [A] | [A] after reviewers | [A] after reviewers |
+| Smoke tests | 10 | [M] | [M] | [M] |
+| Restore test | 11 | on demand | before major releases | quarterly [M] |
+| Go-live checklist | 13 | – | rehearsal | [M] |
 
 ## 1. Target state
 
@@ -58,6 +81,7 @@
 | Operators | cert-manager 1.18+, CloudNativePG 1.30.x + plugin-barman-cloud 0.15.x, External Secrets Operator 0.19+ (API `v1`), Vault CSI provider + Secrets Store CSI driver | Helm charts from the vendors |
 | Image registry mirror | Harbor or Artifactory replicating from ACR / Artifact Registry | Signatures replicated (OCI referrers) |
 | Tools | kubectl, helm, `oc` (OpenShift), vault CLI, `kubectl cnpg` plugin, az or gcloud | |
+| Cloud edge | The cloud environment of the same stage built with guide 06 or 07 (Terraform `environments/<env>.tfvars`) | Its managed PostgreSQL holds only BFF sessions |
 
 ## 3. Fleet management
 
@@ -153,52 +177,68 @@ kubectl -n wellnessz run nettest --rm -it --restart=Never --image=curlimages/cur
 
 Expected: `401` (reachable, authentication required). A timeout points to a routing or firewall problem.
 
-## 5. Vault configuration (on-prem secrets)
+## 5. Vault configuration (on-prem secrets) [M]
+
+The hybrid overlays expect **one Kubernetes auth mount, one role set and one KV prefix per environment**
+(`environments/hybrid/<env>.yaml`):
+
+| | DEV | UAT | PROD |
+|---|---|---|---|
+| Kubernetes auth mount | `kubernetes-wellnessz-dev` | `kubernetes-wellnessz-uat` | `kubernetes-wellnessz-prod` |
+| Roles | `wellnessz-core-dev`, `wellnessz-bff-dev`, `wellnessz-migrations-dev` | `…-uat` | `…-prod` |
+| KV paths | `kv/wellnessz/dev/{core,migrations,bff,backup}` | `kv/wellnessz/uat/…` | `kv/wellnessz/prod/…` |
+
+> **Render the shipped policy and ExternalSecret files per environment.** `deploy/hybrid/external-secrets/vault-policies.hcl`,
+> `db-secrets.yaml` and `cluster-secret-store-vault.yaml` are templates with a `${WZ_ENV}` placeholder
+> (paths `kv/data/wellnessz/<env>/…`, mount `kubernetes-wellnessz-<env>`, roles `…-<env>`), matching
+> `deploy/helm/wellnessz/environments/hybrid/<env>.yaml`. Render one copy per environment, review it and keep it in the
+> client's configuration repository:
+> `for f in vault-policies.hcl db-secrets.yaml cluster-secret-store-vault.yaml; do WZ_ENV=$ENV envsubst '$WZ_ENV' < deploy/hybrid/external-secrets/$f > <config-repo>/hybrid/$ENV/$f; done`
 
 ```bash
-export VAULT_ADDR=https://vault.onprem.example.internal:8200 && vault login -method=oidc
+export ENV=dev VAULT_ADDR=https://vault.onprem.example.internal:8200 && vault login -method=oidc
 ```
 
 ```bash
-vault secrets enable -path=kv kv-v2 2>/dev/null; vault auth enable -path=kubernetes-wellnessz kubernetes
+vault secrets enable -path=kv kv-v2 2>/dev/null; vault auth enable -path=kubernetes-wellnessz-$ENV kubernetes
 ```
 
 ```bash
-vault write auth/kubernetes-wellnessz/config kubernetes_host=https://<on-prem-api>:6443 kubernetes_ca_cert=@/path/to/cluster-ca.crt
+vault write auth/kubernetes-wellnessz-$ENV/config kubernetes_host=https://<on-prem-api-of-this-cluster>:6443 kubernetes_ca_cert=@/path/to/cluster-ca.crt
 ```
 
-Create the policies from `deploy/hybrid/external-secrets/vault-policies.hcl`, one per block (`wellnessz-core`,
-`wellnessz-migrations`, `wellnessz-db-operator`, `wellnessz-bff`). Then create the roles:
+Create the four policies from your per-environment copy of `vault-policies.hcl` (`wellnessz-core-$ENV`,
+`wellnessz-migrations-$ENV`, `wellnessz-db-operator-$ENV`, `wellnessz-bff-$ENV`). Then the roles:
 
 ```bash
-vault write auth/kubernetes-wellnessz/role/wellnessz-core bound_service_account_names=wellnessz-core bound_service_account_namespaces=wellnessz policies=wellnessz-core audience=vault ttl=15m
-```
-
-```bash
-vault write auth/kubernetes-wellnessz/role/wellnessz-migrations bound_service_account_names=wellnessz-migrations bound_service_account_namespaces=wellnessz policies=wellnessz-migrations audience=vault ttl=15m
+vault write auth/kubernetes-wellnessz-$ENV/role/wellnessz-core-$ENV bound_service_account_names=wellnessz-core bound_service_account_namespaces=wellnessz policies=wellnessz-core-$ENV audience=vault ttl=15m
 ```
 
 ```bash
-vault write auth/kubernetes-wellnessz/role/wellnessz-db-operator bound_service_account_names=external-secrets bound_service_account_namespaces=external-secrets policies=wellnessz-db-operator audience=vault ttl=15m
-```
-
-Generate and store the secrets with two people present (key ceremony). The values go straight from `openssl` into
-Vault:
-
-```bash
-vault kv put kv/wellnessz/core wz-db-password="$(openssl rand -hex 24)" wz-master-key="$(openssl rand -base64 32)" wz-pseudonym-key="$(openssl rand -base64 32)" db-ca-crt=@/path/to/internal-root-ca.crt
+vault write auth/kubernetes-wellnessz-$ENV/role/wellnessz-migrations-$ENV bound_service_account_names=wellnessz-migrations bound_service_account_namespaces=wellnessz policies=wellnessz-migrations-$ENV audience=vault ttl=15m
 ```
 
 ```bash
-vault kv put kv/wellnessz/migrations password="$(openssl rand -hex 24)"
+vault write auth/kubernetes-wellnessz-$ENV/role/wellnessz-db-operator bound_service_account_names=external-secrets bound_service_account_namespaces=external-secrets policies=wellnessz-db-operator-$ENV audience=vault ttl=15m
+```
+
+Generate and store the secrets with two people present (key ceremony; PROD dual control). The values go straight
+from `openssl` into Vault and are **different per environment**:
+
+```bash
+vault kv put kv/wellnessz/$ENV/core wz-db-password="$(openssl rand -hex 24)" wz-master-key="$(openssl rand -base64 32)" wz-pseudonym-key="$(openssl rand -base64 32)" db-ca-crt=@/path/to/internal-root-ca.crt
 ```
 
 ```bash
-vault kv put kv/wellnessz/bff wz-bff-db-password="$(openssl rand -hex 24)"
+vault kv put kv/wellnessz/$ENV/migrations password="$(openssl rand -hex 24)"
 ```
 
 ```bash
-vault kv put kv/wellnessz/backup access_key_id=<s3-access-key> secret_access_key=<s3-secret-key>
+vault kv put kv/wellnessz/$ENV/bff wz-bff-db-password="$(openssl rand -hex 24)"
+```
+
+```bash
+vault kv put kv/wellnessz/$ENV/backup access_key_id=<s3-access-key> secret_access_key=<s3-secret-key>
 ```
 
 Enable an audit device if none exists, and ship its output to the SIEM:
@@ -206,6 +246,17 @@ Enable an audit device if none exists, and ship its output to the SIEM:
 ```bash
 vault audit enable file file_path=/vault/audit/audit.log
 ```
+
+**`ENC(...)` values.** Passwords that must live in a values file (for example the on-prem IMAP or SMTP relay password
+in `core.extraEnv`) are encrypted with this environment's master key:
+
+```bash
+umask 077 && KEYFILE=$(mktemp) && vault kv get -field=wz-master-key kv/wellnessz/$ENV/core > $KEYFILE && WZ_MASTER_KEY_FILE=$KEYFILE ./tools/encrypt-secret.sh; rm -f $KEYFILE
+```
+
+The core decrypts the printed `ENC(…)` value at start-up with `WZ_MASTER_KEY_FILE` (mounted by the Vault CSI provider).
+The database passwords themselves never appear in configuration: they are mounted files (`WZ_DB_PASSWORD` as a
+`file:` reference).
 
 ## 6. Install the operators (on-prem)
 
@@ -260,8 +311,10 @@ Also create the object-store CA ConfigMap or Secret referenced by `02-objectstor
 
 Apply the manifests in order:
 
+Apply your **per-environment copies** of the External Secrets files (section 5):
+
 ```bash
-kubectl apply -f deploy/hybrid/external-secrets/cluster-secret-store-vault.yaml -f deploy/hybrid/external-secrets/db-secrets.yaml
+kubectl apply -f <config-repo>/hybrid/$ENV/cluster-secret-store-vault.yaml -f <config-repo>/hybrid/$ENV/db-secrets.yaml
 ```
 
 ```bash
@@ -275,7 +328,9 @@ Expected: `SecretSynced` for `wellnessz-db-migrator`, `wellnessz-db-app`, `welln
 kubectl apply -f deploy/hybrid/cnpg/01-certificates.yaml && kubectl -n wellnessz-db wait certificate --all --for=condition=Ready --timeout=5m
 ```
 
-Adjust `destinationPath` and `endpointURL` in `02-objectstore.yaml` first, then:
+Adjust `destinationPath` (one path per environment, for example `s3://wellnessz-backups/$ENV/`) and `endpointURL`
+in `02-objectstore.yaml` first; for DEV you may reduce `instances` and storage in `03-cluster.yaml` (documented
+exception), never for UAT or PROD. Then:
 
 ```bash
 kubectl apply -f deploy/hybrid/cnpg/02-objectstore.yaml -f deploy/hybrid/cnpg/03-cluster.yaml
@@ -307,19 +362,38 @@ Local socket connections show `f`. Check a remote session from the core pod afte
 
 ## 8. Deploy the core on-prem
 
-1. Copy `values-hybrid.yaml` placeholders to `deploy/env/prod-hybrid-onprem.yaml`: registry mirror, Vault
-   address, tenant and audience, mail hosts, ingress host and DNS selectors.
+1. **[A]** Replace the `<placeholders>` of `environments/hybrid/$ENV.yaml` (tenant and audience of the environment's
+   IdP registration, notification hosts) and of `values-hybrid.yaml` (registry mirror, Vault address, mail hosts, DNS
+   selectors) through a PR in your configuration. The overlay already sets the Vault mount and roles, replicas, PDB,
+   `migrations.mode: job`, the internal API host and `networkPolicy.coreExtraIngressPeers` (the edge's AKS node
+   subnet of the same environment – use the GKE `subnet_cidr` if the edge runs on GKE).
 2. Set `global.openshift: true` on OpenShift. The SCC then assigns UIDs, and the images run under any UID.
+3. **[M]** Mirror the six images **by digest** from the release registry into the on-prem mirror (Harbor /
+   Artifactory replication or `cosign copy`, which keeps signatures and attestations) and enforce signature
+   verification on admission (Sigstore policy-controller or Kyverno `verifyImages` with the keyless identity of
+   `container.yml`). `deploy-env.yml` deploys only the cloud edge.
 
 ```bash
 kubectl create namespace wellnessz && kubectl label namespace wellnessz pod-security.kubernetes.io/enforce=restricted
 ```
 
+Deploy with the same script the cloud pipeline uses – `CLOUD=hybrid` selects `values-hybrid.yaml` and
+`environments/hybrid/$ENV.yaml` – and the digests of the promoted release in `digests.txt` (format in guide 06,
+section 12.3). Alternatively let Flux (Arc) or Config Sync (GKE Enterprise) apply the same layered values from Git.
+
 ```bash
-helm upgrade --install wellnessz deploy/helm/wellnessz -n wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-hybrid.yaml -f deploy/env/prod-hybrid-onprem.yaml --set-string global.imageTag=v0.1.0 --atomic --wait --timeout 20m
+export CLOUD=hybrid DEPLOY_ENV=$ENV RELEASE=wellnessz NAMESPACE=wellnessz IMAGE_REGISTRY=registry.onprem.example.internal/wellnessz IMAGE_TAG=v1.0.0
 ```
 
-The pre-upgrade Flyway Job migrates `wellnessz` as `wz_migrator` and grants the per-table privileges to `wz_app`.
+```bash
+PREV=$(deploy/scripts/helm-release.sh previous); deploy/scripts/helm-release.sh upgrade && deploy/scripts/helm-release.sh smoke || { [ -n "$PREV" ] && deploy/scripts/helm-release.sh rollback "$PREV"; }
+```
+
+The pre-upgrade Flyway Job migrates `wellnessz` as `wz_migrator` and grants the per-table privileges to `wz_app`
+(hybrid always uses the Job; the core never holds the owner credential). Migrations are forward-only – a rollback
+restores the previous pods, not the schema. Release order for an upgrade: **on-prem core first, then the edge**, so
+the BFF never calls an older core than it expects. In DEV the overlay accepts branch builds by tag
+(`requireImageDigests: false`); UAT and PROD fail to render without all digests.
 
 **Increment 1 on-prem.**
 
@@ -402,6 +476,35 @@ The pre-upgrade Flyway Job migrates `wellnessz` as `wz_migrator` and grants the 
 * Provider reports and invoices (≤ 10 MB) uploaded in the partner portal cross the link like certificate uploads; the
   MTU / MSS settings of section 12 apply.
 
+**Increment 5 on-prem.**
+
+* Schemas `mentalhealth`, `substance`, `travelhealth` and `promotion` are in `migrations.job.core.schemas` and in the
+  CNPG bootstrap (`postInitApplicationSQL` and the grants loop of `deploy/hybrid/cnpg/03-cluster.yaml`). A cluster
+  initialised earlier gets them from Flyway V17–V20 (V16 adds the duty-assignment table, the partner organisations
+  `EAP_WELLBEING`, `TOXLAB`, `UKHSA_LOCAL` and the retention classes `RESTRICTED_RECORD`, `PUBLIC_HEALTH`); then align
+  `search_path` as `postgres`:
+  `ALTER ROLE wz_app SET search_path = platform, masterdata, intake, casemgmt, triage, docs, ohrecord, fitness, absence, surveillance, scheduling, treatment, claims, mentalhealth, substance, travelhealth, promotion, analytics;`
+  (and the same for `wz_migrator`).
+* Add the eight roles (`PEER_SUPPORT_VOLUNTEER`, `PEER_SUPPORT_COORDINATOR`, `SAFETY_MANAGER`, `DA_PROGRAMME_MANAGER`,
+  `MRO`, `COLLECTOR`, `HEALTH_PROMOTION_LEAD`, `ERGONOMIST`) to the IdP of each environment (guide 06, sections 5.1–5.2,
+  or Keycloak realm roles plus BFF / mobile scope mappings). Named individuals only in `PSYCH_CLINICIAN` and `MRO`.
+* Register the internal **duty-assignment** clients (crew rostering, shift planning, facility access – no partner
+  claim); their calls go to `https://api.<env-prefix>wellnessz.onprem.example.internal/api/v1/integration/duty-assignments`
+  over the corporate network. Register the **TOXLAB** client with the fixed claim `org_scope=/PARTNERS/TOXLAB`; it
+  reaches `/api/v1/integration/testing/{lab-orders,lab-results}` through the DMZ path of section 4. Campaign-app and
+  wearable vendors likewise through the DMZ, without a partner claim.
+* After the first deployment set the E18 keys (guide 06, section 11, increment 5): **`mentalhealth.named-clinicians`**
+  (Flyway V17 sets it to the demo user `psych1` in every environment – replace it with the named clinicians in UAT
+  and PROD), `substance.laboratory-code`, mailboxes reachable through the SMTP relay; testing policies and clinical
+  thresholds after sign-off.
+* The nine increment-5 jobs (`cism-follow-ups`, `peer-callback-purge`, `substance-follow-ups`, `substance-windows`,
+  `exposure-timers`, `public-health-deadlines`, `travelhealth-daily`, `ergonomic-actions`, `screening-follow-up`) run in
+  the on-prem core. Outbox events to `campaign-app` and `sms-safety` (the safety management system – aggregated,
+  suppressed peer-support figures) stay on-prem until a connector is configured; any connector leaves through the
+  corporate proxy, never from the edge.
+* Ergonomic photos and authority correspondence uploads cross the link like other uploads; the MTU / MSS settings of
+  section 12 apply.
+
 Verify:
 
 ```bash
@@ -437,12 +540,20 @@ kubectl -n wellnessz get pods && kubectl -n wellnessz logs deploy/wellnessz-core
    section 10, step 3). The portal holds no data; every call goes through the edge BFF to the on-prem core, which
    enforces the MFA gate and organisation isolation.
 
+**Deploy the edge through the normal pipeline [A].** Set the GitHub Environment variable `EXTRA_VALUES_FILES` of
+`azure-<env>` (or `gcp-<env>`) to `deploy/hybrid/values-hybrid-cloud-edge.yaml` plus a small per-environment file
+with the edge settings (for example `<config-repo>/hybrid/$ENV/edge.yaml` containing `bff.env.WZ_CORE_API_URL:
+https://api.dev.wellnessz.onprem.example.internal` and `bff.env.WZ_BFF_DB_URL`). `cd.yml` / `deploy-env.yml` then
+layer `values.yaml` → `values-azure.yaml` → `environments/azure/$ENV.yaml` → the edge files, pin the six digests, and
+promote DEV → UAT → PROD with the required reviewers. The edge values switch the core off, so the same promotion that
+deploys a cloud-only setup deploys just the edge here. The equivalent manual command (first install, cluster admin):
+
 ```bash
-helm upgrade --install wellnessz-edge deploy/helm/wellnessz -n wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-azure.yaml -f deploy/hybrid/values-hybrid-cloud-edge.yaml -f deploy/env/prod-hybrid-edge.yaml --set-string global.imageTag=v0.1.0 --atomic --wait
+helm upgrade --install wellnessz deploy/helm/wellnessz -n wellnessz -f deploy/helm/wellnessz/values.yaml -f deploy/helm/wellnessz/values-azure.yaml -f deploy/helm/wellnessz/environments/azure/$ENV.yaml -f deploy/hybrid/values-hybrid-cloud-edge.yaml -f <config-repo>/hybrid/$ENV/edge.yaml --set-string bff.env.WZ_CORE_API_URL=https://api.dev.wellnessz.onprem.example.internal --atomic --wait
 ```
 
-The Azure workload identity federated credentials expect the release name `wellnessz`. If you use
-`wellnessz-edge`, set Terraform `helm_release_name = "wellnessz-edge"` or keep the release name `wellnessz`.
+(add `--set-string <component>.image.digest=sha256:…` for all components in UAT/PROD). Keep the release name
+`wellnessz`: the Azure workload identity federated credentials expect it (or set Terraform `helm_release_name`).
 
 ## 10. Smoke tests
 
@@ -459,24 +570,30 @@ The Azure workload identity federated credentials expect the release name `welln
 | 9 | OH workspace (increment 1): `https://oh.<domain>` as a Nursing Head test account | Work queues load; data comes from the on-prem core |
 | 10 | Schema location: `kubectl -n wellnessz-db exec wellnessz-db-1 -c postgres -- psql -U postgres -d wellnessz -c '\dn'` | `triage` present on-prem; the cloud session database still holds only `bff` |
 | 11 | EHS webhook from the EHS network to the on-prem API host (guide 06, section 5.6 smoke call) | `202` |
-| 12 | `tools/e2e/e2e-increment1.js` with `WZ_E2E_EMPLOYEE_URL`, `WZ_E2E_WORKSPACE_URL`, `WZ_E2E_OH_URL` set to the cloud hosts and `WZ_E2E_CORE_URL` to the on-prem API host (dev/test only, run from a host that can reach both) | 18 `PASS` lines |
+| 12 | `tools/e2e/e2e-increment1.js` with `WZ_E2E_EMPLOYEE_URL`, `WZ_E2E_WORKSPACE_URL`, `WZ_E2E_OH_URL` set to the cloud hosts and `WZ_E2E_CORE_URL` to the on-prem API host (DEV only, run from a host that can reach both) | 18 `PASS` lines |
 | 13 | Increment-2 schema location: `kubectl -n wellnessz-db exec wellnessz-db-1 -c postgres -- psql -U postgres -d wellnessz -c '\dn'` | `docs`, `ohrecord`, `fitness` present on-prem; the cloud session database still holds only `bff` |
 | 14 | Gateway pull queue from the laboratory network: `GET https://api.wellnessz.onprem.example.internal/api/v1/integration/lis/orders?status=QUEUED` with a gateway token | `200`; a user token gets `403` |
 | 15 | DPO test account on `https://oh.<domain>` | Break-glass reviews, disclosures and retention load; a chart is not shown |
-| 16 | `tools/e2e/e2e-increment2.js` with the same `WZ_E2E_*` settings as check 12 (dev/test only) | 25 `PASS` lines |
+| 16 | `tools/e2e/e2e-increment2.js` with the same `WZ_E2E_*` settings as check 12 (DEV only) | 25 `PASS` lines |
 | 17 | Increment-3 schema location: `kubectl -n wellnessz-db exec wellnessz-db-1 -c postgres -- psql -U postgres -d wellnessz -c '\dn'` | `absence`, `surveillance`, `scheduling` present on-prem; the cloud session database still holds only `bff` |
 | 18 | `GET /api/v1/modules` through the edge | E06, E07 and E14 `IMPLEMENTED` |
 | 19 | IoT fridge gateway from a clinic network: `POST https://api.wellnessz.onprem.example.internal/api/v1/integration/cold-chain/readings` with the gateway token | `200`; a user token gets `403` |
 | 20 | Certificate upload in the employee portal (cloud edge) | Upload succeeds; the document is stored in the on-prem `docs` schema |
 | 21 | Scheduler test account on `https://oh.<domain>` | *Clinic diary* loads; the absence queue is not available |
-| 22 | `tools/e2e/e2e-increment3.js` with the same `WZ_E2E_*` settings as check 12 (dev/test only, against a dev database with the increment-3 demo data) | 32 `PASS` lines |
+| 22 | `tools/e2e/e2e-increment3.js` with the same `WZ_E2E_*` settings as check 12 (DEV only, against a dev database with the increment-3 demo data) | 32 `PASS` lines |
 | 23 | Increment-4 schema location: `kubectl -n wellnessz-db exec wellnessz-db-1 -c postgres -- psql -U postgres -d wellnessz -c '\dn'` | `treatment`, `claims` present on-prem; the cloud session database still holds only `bff` |
 | 24 | `GET /api/v1/modules` through the edge | E04 and E08 `IMPLEMENTED` |
 | 25 | `curl -sI https://partners.<domain>/` from the internet; `kubectl get deploy` on both clusters | `200` with HSTS and CSP; `wellnessz-partner-portal` runs only on the edge cluster |
 | 26 | Partner test guest with MFA on `https://partners.<domain>`; the same account without MFA | Referral inbox from the on-prem core; without MFA the *multi-factor sign-in required* page and `403` on partner calls |
 | 27 | Partner system from the internet through the DMZ path: `GET https://<published-api-host>/api/v1/integration/referrals/<id>/fhir` with its `INTEGRATION` token (bound to the referral's provider by `org_scope`) | `200` with a `ServiceRequest`; any non-published path (for example `/api/v1/cases`) is not reachable from outside |
 | 28 | Provider report upload (≤ 10 MB) in the partner portal | Upload succeeds; the document is stored in the on-prem `docs` schema |
-| 29 | `tools/e2e/e2e-increment4.js` with the settings of check 12 plus `WZ_E2E_PARTNER_URL=https://partners.<domain>` (dev/test only, fresh dev database with the increment-3 and increment-4 demo data, scripts 1 → 4 in order) | 22 `PASS` lines |
+| 29 | `tools/e2e/e2e-increment4.js` with the settings of check 12 plus `WZ_E2E_PARTNER_URL=https://partners.<domain>` (DEV only, fresh dev database with the increment-3 and increment-4 demo data, scripts 1 → 4 in order) | 22 `PASS` lines |
+| 30 | Increment-5 schema location: `kubectl -n wellnessz-db exec wellnessz-db-1 -c postgres -- psql -U postgres -d wellnessz -c '\dn'`; `GET /api/v1/modules` through the edge | `mentalhealth`, `substance`, `travelhealth`, `promotion` present on-prem only; E09–E12 `IMPLEMENTED`; the cloud session database still holds only `bff` |
+| 31 | Restricted class through the edge: general OH clinician vs the named psych clinician on a test support case | Clinician: placeholder and `404`; psych clinician (listed in `mentalhealth.named-clinicians`) opens it |
+| 32 | Duty-assignment feed from the roster network: `POST https://api.<env-prefix>wellnessz.onprem.example.internal/api/v1/integration/duty-assignments` with the internal client token | `200`, `upserted: 1` |
+| 33 | TOXLAB through the DMZ path: lab results with the bound client, then with another client | `200` (or `422` for an unknown specimen) / `404` |
+| 34 | EAP partner guest with MFA on `https://partners.<domain>` → *EAP referrals* | Own organisation only; free-text feedback refused (`422 field_not_allowed`) |
+| 35 | `tools/e2e/e2e-increment5.js` with the settings of check 29 (DEV only, fresh DEV database with the demo data of increments 3–5, scripts 1 → 5 in order) | 24 `PASS` lines |
 
 ## 11. Backup restore test (quarterly, SOC 2 A1.3)
 
@@ -517,7 +634,9 @@ Record:
 * row counts of `platform.audit_event`;
 * the result of `GET /api/v1/audit/verify` against a core pointed at the restored database.
 
-Then delete the test cluster.
+Then delete the test cluster. Run the test per environment: on demand in DEV, before each major release in UAT,
+**quarterly in PROD** (SOC 2 A1.3), and once a year from the **second-site** copy of the object store to prove that a
+data-centre loss is recoverable.
 
 ## 12. Troubleshooting
 
@@ -542,8 +661,35 @@ Then delete the test cluster.
 | Partner hospital or insurer system times out | DMZ publication or source-IP allow-list for that partner missing | Section 4, step 3 |
 | Partner e-mails link to `partners.wellnessz.example.com` (or `.local`) | `WZ_PARTNER_PORTAL_URL` not overridden with your domain in the on-prem core | Section 8, increment 4 |
 | Partner hospital or insurer system gets `404` for its own referral, pre-authorisation or report | Client token without `org_scope=/PARTNERS/<CODE>` or with another organisation's code (audit `DENIED`) | Guide 06, section 5.6 |
+| CSI mount fails `permission denied` / ExternalSecret `SecretSyncedError` in UAT or PROD | Policies or ExternalSecrets applied without rendering `${WZ_ENV}` | Use the per-environment copies (section 5) – `kv/data/wellnessz/<env>/…`, `kubernetes-wellnessz-<env>` |
+| Core rejects tokens after promoting to UAT | On-prem overlay still has the DEV tenant / audience | `WZ_OIDC_ISSUERS` / `WZ_OIDC_AUDIENCE` in `environments/hybrid/uat.yaml` must match the UAT registration used by the UAT edge |
+| Edge BFF of UAT reaches the DEV core | `WZ_CORE_API_URL` not set per environment in the edge file | `https://api.uat.wellnessz.onprem.example.internal` for UAT, without prefix for PROD |
+| On-prem core blocked by admission (`verifyImages`) | Image mirrored without its signature | Mirror with `cosign copy` / OCI referrers replication |
+| Named psych clinician gets `404` on support cases | `mentalhealth.named-clinicians` still holds the demo value `psych1` (Flyway V17) | Set the real usernames (section 8, increment 5) |
+| TOXLAB results answer `404` | Client token without `org_scope=/PARTNERS/<code>`, or no DMZ publication for the lab | Guide 06, section 5.6; section 4 |
 
-## 13. Teardown
+## 13. PROD go-live checklist
+
+The cloud edge follows the go-live checklist of guide 06, section 17 (Azure) or guide 07, section 17 (GCP). In addition,
+for the on-prem side (UAT runs it as a rehearsal):
+
+| # | Item | Evidence |
+|---|---|---|
+| 1 | [M] CAB approval; on-prem change ticket; release order core → edge agreed | CAB record |
+| 2 | `kubectl cnpg status wellnessz-db -n wellnessz-db`: 3 instances, synchronous standby, continuous backup OK; ScheduledBackup completed | Command output |
+| 3 | [M] Object-store bucket replicated to the second site with object lock; restore test from the **second site** (section 11) with measured RTO/RPO | Restore report (SOC 2 A1.3) |
+| 4 | [M] Failover test: delete the primary pod (`kubectl cnpg promote` or pod deletion) – the application stays available | Test log |
+| 5 | [M] Penetration test of the edge hosts and of the DMZ path to the on-prem API | Report |
+| 6 | [M] Firewall: only TCP 443 from the PROD edge node subnet to the PROD API VIP; one documented rule per gateway / partner system; no database port outside the cluster | Firewall export |
+| 7 | [M] Vault: PROD mount and roles only for PROD service accounts; audit device shipping to the SIEM; key ceremony record for `wz-master-key`, `wz-pseudonym-key`; unseal / recovery keys under dual control | Vault config, ceremony record |
+| 8 | Admission policy verifies cosign signatures; images in PROD run the promoted digests | Policy, `kubectl get pods -o jsonpath` |
+| 9 | [M] Monitoring alerts (doc 04, Section 12) in the on-prem stack / SIEM, plus CNPG replication lag, WAL archiving failure, certificate expiry of the internal PKI | Alert list |
+| 10 | [M] Access review of on-prem cluster admins, Vault admins, DBAs and the IdP groups (psych clinicians, MROs, platform admins) | Review export |
+| 11 | **`mentalhealth.named-clinicians`** set to the named PROD clinicians (not the demo value `psych1` from V17); no demo data; staff roster, HRIS and contracted partners (EAP, TOXLAB, public-health authority) loaded | Config export |
+| 12 | [M] Clinical governance sign-off (screening bands, testing policies, travel recommendations, PEP timers); DPIA confirms that restricted-class data stays on-prem | Minutes, DPIA |
+| 13 | Runbooks: deploy (core then edge), rollback, CNPG restore, Vault unseal, key rotation | Links |
+
+## 14. Teardown
 
 ```bash
 helm uninstall wellnessz -n wellnessz

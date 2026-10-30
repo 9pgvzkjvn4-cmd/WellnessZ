@@ -796,7 +796,7 @@ chain of custody – no results), `HEALTH_PROMOTION_LEAD` (campaigns, screening 
 `ERGONOMIST` (ergonomic assessments and actions), and uses `PARTNER_PROVIDER` for the EAP partner – **38 roles in
 total**. `Roles.OH_TEAM` groups the clinical roles (`OH_CLINICIAN`, `OH_PHYSICIAN`, `AME`, `CMO`, `NURSING_HEAD`,
 `CASE_MANAGER`, `PSYCH_CLINICIAN`); `Roles.FITNESS_DECIDERS` lists who may record a fitness decision. The role
-responsibilities and segregation of duties are described in document 02, Sections 11, 12.1, 13.1 and 14.1.
+responsibilities and segregation of duties are described in document 02, Sections 11, 12.1, 13.1, 14.1 and 15.1.
 
 **MFA gate for external roles (increment 4).** `WellnessZJwtConverter` drops every role listed in
 `wellnessz.security.mfa-required-roles` (env `WZ_MFA_REQUIRED_ROLES`, default `PARTNER_PROVIDER,TPA_ADJUSTER`) unless
