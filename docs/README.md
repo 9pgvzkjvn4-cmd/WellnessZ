@@ -54,6 +54,8 @@ generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
 | 38 | Epic E15 Security Hardening & Assurance (workbook in the client's epic format + summary) | Product owner, PMO, engineering | `security/epics/E15_Security_Hardening_and_Assurance.xlsx`, `security/epics/E15-Security-Hardening-and-Assurance.md` | – |
 | 39 | Developer Security Handbook | Developers, security champions | `security/Developer-Security-Handbook.md` | – |
 | 40 | Security verification tools (verification suite, role-based access matrix, SOC workbook builder) | Engineering, SOC | `../tools/security/README.md` | – |
+| 41 | Platform Enhancement Strategy – beyond increment 5 (scorecard, three-horizon roadmap, robustness engineering, data and assistant governance, interoperability, operating model, OKRs, risks, decisions S1–S10) | C-suite, CIO, CMO, Cyber GRC, product and engineering | `strategy/Platform-Enhancement-Strategy.md` | – |
+| 42 | Epic catalogue and roadmap (E01–E31) and new epic workbooks E20–E31 in the client's format | Product owners, PMO, architects | `strategy/epics/Epic-Catalogue-and-Roadmap.xlsx`, `strategy/epics/E2x_*.xlsx`, `strategy/epics/E3x_*.xlsx`, `strategy/epics/README.md` | – |
 | – | Design brief (contract between components) | Engineering | `00-design-brief.md` | – |
 | – | OpenAPI 3 contract of the core API | Integrators | `api/openapi.json` | – |
 
