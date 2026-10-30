@@ -46,6 +46,14 @@ generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
 | 30 | Technology Standards Comparison by Layer | CIO, architects, GRC | `architecture/04-Technology-Standards-Comparison-by-Layer.md` | – |
 | 31 | Client Customisation Guide – adding a customised feature for one client deployment | Engineering, release managers, solution architects, CAB | `customisation/Client-Customisation-Guide.md` | – |
 | 32 | Developer Environment & IDE Setup Guide (IntelliJ IDEA, VS Code, Eclipse, Dev Container; run configurations, scripts, git hook) | Developers joining the project | `developer-setup/README.md` + `developer-setup/ide/` – shipped as the separate zip `WellnessZ-Developer-Environment-Setup.zip` | – |
+| 33 | Security Assessment Report 2026-10 (comprehensive test report: scope, method, criteria per SOC 2 trust services criterion and HITRUST cross-reference, OWASP coverage and open-findings statement, findings F-01…F-21, limitations) | CISO, Cyber GRC, auditors | `security/assessment-2026-10/01-Security-Assessment-Report.md` | – |
+| 34 | Security Assessment Summary | CIO, CISO, Cyber GRC, C-suite | `security/assessment-2026-10/02-Security-Assessment-Summary.md` | – |
+| 35 | Security Assessment Attestation (statement of work performed and results; to be signed) | CISO, Cyber GRC, CIO | `security/assessment-2026-10/03-Security-Assessment-Attestation.md` | – |
+| 36 | Security Test Evidence Guide (re-running every test, evidence files, checksums) | SOC team, auditors | `security/assessment-2026-10/04-Security-Test-Evidence-Guide.md` | – |
+| 37 | Security Enhancement Guideline (findings outcome, roadmap SEC-E01…E15, guardrails, security operations) | CIO, CISO, engineering leads | `security/Security-Enhancement-Guideline.md` | – |
+| 38 | Epic E15 Security Hardening & Assurance (workbook in the client's epic format + summary) | Product owner, PMO, engineering | `security/epics/E15_Security_Hardening_and_Assurance.xlsx`, `security/epics/E15-Security-Hardening-and-Assurance.md` | – |
+| 39 | Developer Security Handbook | Developers, security champions | `security/Developer-Security-Handbook.md` | – |
+| 40 | Security verification tools (verification suite, role-based access matrix, SOC workbook builder) | Engineering, SOC | `../tools/security/README.md` | – |
 | – | Design brief (contract between components) | Engineering | `00-design-brief.md` | – |
 | – | OpenAPI 3 contract of the core API | Integrators | `api/openapi.json` | – |
 
@@ -198,3 +206,15 @@ Supporting material:
 | API contract | `api/openapi.json` regenerated – 647 paths (was 509) |
 | Delivery pipeline | DEV → UAT → PROD promotion by signed digest (`cd.yml`, `deploy-env.yml`, `deploy/scripts/helm-release.sh`); every cloud / environment overlay linted and rendered in CI; client customisation hooks (`customisation:` values, `EXTRA_VALUES_FILES`, client Flyway migrations) |
 | Not yet exercised / decisions needed | Increment-5 changes and the promotion workflows on real AKS / GKE / hybrid environments; GitHub Environments' required reviewers (repository setting – cannot be set from code); MFA enrolment in the production IdP; real EAP, toxicology LIMS, campaign app, wearable, public-health submission and SMS connectors (simulated / default); Clinical Governance / MRO / Legal sign-off of screening instruments, cut-offs, testing policies, travel recommendations and PEP timers; MRO access to `RESTRICTED_CLINICAL` documents through the generic `/documents` API (follow-up); feature flags `WZ_FEATURE_*` are plumbing only; mounting client extension JARs is not implemented; whether to commit `.devcontainer/` at the repository root |
+
+## Security assessment 2026-10 (summary)
+
+Internal pre-release white-box assessment of the code base and a local test stack (not an independent penetration test):
+Semgrep 0 findings (1,731 files), SpotBugs + FindSecBugs 0 (25 modules), OSV 0 vulnerable of 219 shipped Java libraries,
+npm audit 0 of 966 packages, secrets 0 real (47 false positives triaged; full history), Checkov 0 failed (Terraform, Docker,
+GitHub Actions and the rendered manifests of all nine cloud/environment combinations; reviewed exceptions inline),
+security verification suite 61/61, role-based access matrix 11,440/11,440, Maven 455 tests, web 1,373 tests, E2E 121/121.
+21 findings raised, 15 fixed and retested, 4 accepted with residual risk, 2 false positives – none open at assessment close
+for the tested build. An independent CREST/OSCP penetration test of UAT is required before production go-live (SEC-E01).
+Separate download packs: VAPT report, SOC test evidence, security verification attestation, security enhancement pack,
+role-based security assurance, cost-benefit & deployment decision pack (each with its video).
