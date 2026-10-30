@@ -658,7 +658,7 @@ repository root) on purpose, so that this package can be shipped on its own.
     continuation, **no wildcard imports**, import order *static / `java.*`, `javax.*` / everything else*, 2-space
     TypeScript with single quotes and semicolons, LF endings. Keep *Settings → Editor → Code Style → Enable EditorConfig
     support* on (`.editorconfig` in the root).
-14. **Exclude noise.** Mark `.claude/worktrees` (if present – agent worktrees) and `docs/dist` as *Excluded* so that
+14. **Exclude noise.** Mark the local agent-worktree folder listed at the end of the root `.gitignore` (if present) and `docs/dist` as *Excluded* so that
     search and indexing ignore duplicated sources.
 
 ### 4.2 Visual Studio Code
@@ -960,7 +960,7 @@ From the CI/CD Guide, section 1:
 | Keycloak unhealthy, log shows *password authentication failed for user "keycloak"* | Old database volume with different passwords | `./deploy/local/down.sh --purge`, then `up.sh` |
 | `e2e-increment3.js` / `e2e-increment4.js` fail on a second run (`409 claim_exists`, `409 export_exists`, calibration or advice checks) | The first run consumed the demo state | Purge and recreate the database and run the scripts 1 → 4 in order (section 5.6) |
 | Partner portal: *Your account needs multi-factor sign-in* | Core started with `WZ_MFA_REQUIRED_ROLES` set | Remove it for local work (setup guide 1, section 6.1, explains the MFA rehearsal) |
-| IDE search/indexing shows duplicate classes from `.claude/worktrees` | Local agent worktrees inside the checkout | Exclude the folder (VS Code settings shipped; IntelliJ *Mark Directory as → Excluded*) |
+| IDE search/indexing shows duplicate classes from a local agent-worktree folder | Local agent worktrees inside the checkout | Exclude the folder (VS Code settings shipped; IntelliJ *Mark Directory as → Excluded*) |
 
 More symptoms specific to individual epics: setup guide 1, section 12.
 
