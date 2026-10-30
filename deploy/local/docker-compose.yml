@@ -226,7 +226,7 @@ services:
       WZ_IMAP_PASSWORD: ${WZ_IMAP_PASSWORD}
       WZ_SMTP_HOST: mailpit
       WZ_SMTP_PORT: "1025"
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
       OTEL_SERVICE_NAME: wz-core-app
     read_only: true
     tmpfs:
@@ -276,7 +276,7 @@ services:
       # Separate key for session encryption - the internet-facing BFF never
       # holds the core field-encryption master key.
       WZ_MASTER_KEY: ${WZ_BFF_MASTER_KEY:?set WZ_BFF_MASTER_KEY in .env (openssl rand -base64 32)}
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
       OTEL_SERVICE_NAME: wz-bff
     read_only: true
     tmpfs:

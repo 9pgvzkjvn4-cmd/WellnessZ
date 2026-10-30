@@ -71,7 +71,7 @@ core:
     WZ_IMAP_PORT: "993"
     WZ_SMTP_HOST: smtp.onprem.example.internal
     WZ_SMTP_PORT: "587"
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc:4318"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc:4318/v1/traces"
 
 # Web tier runs in the cloud cluster
 bff:

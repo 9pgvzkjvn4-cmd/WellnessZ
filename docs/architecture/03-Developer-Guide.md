@@ -51,10 +51,11 @@ cd deploy/local && ./up.sh
 
 # 2. core API (8080, management 8081) – local profile enables Swagger UI and relaxed TLS to the DB
 export WZ_MASTER_KEY=$(openssl rand -base64 32)        # never reuse outside your machine
-mvn -pl apps/wz-core-app -am spring-boot:run -Dspring-boot.run.profiles=local
+./mvnw -q -DskipTests install                          # build the reactor once (spring-boot:run with -am fails on the parent POM)
+./mvnw -pl apps/wz-core-app spring-boot:run -Dspring-boot.run.profiles=local
 
 # 3. BFF (8090) and a web app (5173 employee / 5174 manager / 5175 OH workspace / 5176 partner portal)
-mvn -pl apps/wz-bff -am spring-boot:run -Dspring-boot.run.profiles=local
+./mvnw -pl apps/wz-bff spring-boot:run -Dspring-boot.run.profiles=local
 cd web/employee-app && npm ci && npm run dev
 ```
 
@@ -1432,7 +1433,7 @@ legal route is approved (doc 01, D19).
 ```bash
 # core with the gate on: partner1 / adjuster1 then lose their roles unless their token proves MFA
 WZ_MFA_REQUIRED_ROLES=PARTNER_PROVIDER,TPA_ADJUSTER \
-  mvn -pl apps/wz-core-app -am spring-boot:run -Dspring-boot.run.profiles=local
+  ./mvnw -q -DskipTests install && ./mvnw -pl apps/wz-core-app spring-boot:run -Dspring-boot.run.profiles=local
 # to make it pass locally: Keycloak admin → Users → partner1 → Required user actions: Configure OTP; enrol an
 # authenticator app at the next login; then add the AMR mapper (or a level-of-authentication flow) so the token
 # carries amr=otp / acr=2 (setup guide 05, Section 6.1)

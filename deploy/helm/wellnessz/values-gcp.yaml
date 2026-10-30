@@ -94,7 +94,7 @@ core:
     WZ_GRAPH_CLIENT_ID: <ehs-mailbox-app-client-id>
     WZ_GRAPH_MAILBOX: ehs-feed@airline.example.com
     WZ_EHS_ALLOWED_SENDERS: "@ehs.airline.example.com"
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318/v1/traces"
 
 bff:
   env:
@@ -106,7 +106,7 @@ bff:
     WZ_BFF_DB_URL: "jdbc:postgresql://<cloudsql-private-ip>:5432/wellnessz?sslrootcert=/mnt/secrets/bff/cloudsql-server-ca.pem"
     WZ_BFF_DB_USERNAME: wz_bff
     WZ_DB_SSLMODE: verify-ca
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318/v1/traces"
 
 # GKE Ingress (external Application Load Balancer) + Cloud Armor + managed certs
 ingress:

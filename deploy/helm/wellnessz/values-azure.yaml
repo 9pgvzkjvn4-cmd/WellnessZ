@@ -71,7 +71,7 @@ core:
     WZ_GRAPH_CLIENT_ID: <ehs-mailbox-app-client-id>
     WZ_GRAPH_MAILBOX: ehs-feed@airline.example.com
     WZ_EHS_ALLOWED_SENDERS: "@ehs.airline.example.com"
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318/v1/traces"
 
 bff:
   env:
@@ -83,7 +83,7 @@ bff:
     # Session store: same server, schema bff, role wz_bff (WZ_BFF_DB_URL defaults to core URL)
     WZ_BFF_DB_USERNAME: wz_bff
     WZ_DB_SSLMODE: verify-full
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.monitoring.svc.cluster.local:4318/v1/traces"
 
 # Graph client secret for the EHS mailbox is mounted with the other core secrets
 # (prefer certificate / federated credential in production).

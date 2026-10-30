@@ -68,7 +68,7 @@ core:
     WZ_IMAP_USERNAME: ehs-feed@wellnessz.local
     WZ_SMTP_HOST: host.docker.internal
     WZ_SMTP_PORT: "1025"
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4318"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4318/v1/traces"
 
 bff:
   replicaCount: 1
@@ -82,7 +82,7 @@ bff:
     WZ_BFF_POST_LOGOUT_URI: "http://employee.localtest.me/"
     WZ_DB_SSLMODE: prefer
     WZ_COOKIE_SECURE: "false"   # plain HTTP ingress locally
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4318"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4318/v1/traces"
 
 employeePortal:
   replicaCount: 1
