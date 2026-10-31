@@ -1,0 +1,42 @@
+{
+  "environment": "staging",
+  "apiBase": "https://core.staging.wellnessz.local/api/v1",
+  "certificateHeader": "X-Client-Cert-Sha256",
+
+  "secopsBearer": "env:WZ_PACK_SECOPS_TOKEN",
+  "auditorBearer": "env:WZ_PACK_AUDITOR_TOKEN",
+  "integrationTesterBearer": "env:WZ_PACK_TESTER_TOKEN",
+  "consoleBearer": "env:WZ_PACK_DEVICE_ADMIN_TOKEN",
+  "userBearer": "env:WZ_PACK_NURSE_TOKEN",
+
+  "endpoint": { "id": "EP-LHR-GW-01", "token": "env:WZ_PACK_ENDPOINT_TOKEN", "thumbprint": "env:WZ_PACK_ENDPOINT_THUMBPRINT" },
+  "devCa": { "clientCert": "../device/dev-ca/pack.pem", "clientKey": "../device/dev-ca/pack.key" },
+  "database": { "psqlUrl": "env:WZ_PACK_PSQL_URL" },
+
+  "tlsTargets": [ { "host": "core.staging.wellnessz.local", "port": 443 } ],
+  "mtlsTargets": [ { "host": "ingest.staging.wellnessz.local", "port": 443 } ],
+  "plaintextTargets": [ { "host": "10.10.20.5", "port": 2575, "exception": false } ],
+  "mllp": { "host": "10.10.20.5", "port": 2576, "tls": true },
+
+  "segmentation": {
+    "probes": [
+      { "name": "device-vlan-to-core-https", "host": "core.staging.wellnessz.local", "port": 443, "expect": "closed" },
+      { "name": "device-vlan-to-internet", "host": "203.0.113.10", "port": 443, "expect": "closed" },
+      { "name": "gateway-mllp-tls", "host": "10.10.20.5", "port": 2576, "expect": "open" },
+      { "name": "gateway-ssh-from-device-vlan", "host": "10.10.20.5", "port": 22, "expect": "closed" }
+    ]
+  },
+
+  "gateway": { "serviceName": "wz-device-gateway", "managementPort": 8091, "edrService": "falcon-sensor", "queueDir": "/var/lib/wz-device-gateway/queue", "plaintextMllpException": false },
+  "deviceHost": { "serviceName": "WellnessZDeviceHost" },
+  "ble": { "configFile": "/etc/wz-device-gateway/gateway-config.json", "checkBondedDevices": true, "approvedBondedCount": 4 },
+  "backup": { "encrypted": true },
+  "zap": { "openapiUrl": "https://core.staging.wellnessz.local/v3/api-docs", "failOn": "FAIL" },
+  "deviceAdminPages": [ { "name": "audiometer-vendor-pc", "url": "http://10.10.30.21/admin", "username": "admin", "passwords": ["admin", "1234", "service"] } ],
+  "logFiles": [ "/var/log/wellnessz/core.log", "/var/log/wz-device-gateway/gateway.log" ],
+  "rateLimit": { "bearer": "env:WZ_PACK_NURSE_TOKEN", "path": "/me", "requests": 800 },
+  "isolationSlaMinutes": 15,
+  "certExpiryWarningDays": 30,
+  "maxClockSkewSeconds": 120,
+  "repoRoot": "../.."
+}

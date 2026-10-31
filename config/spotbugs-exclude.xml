@@ -12,6 +12,19 @@
     <Class name="com.wellnessz.security.config.ResourceServerSecurityConfig"/>
     <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED"/>
   </Match>
+  <!-- Increment 6 device-ingest chain (machine traffic only): stateless, no cookies or other ambient credentials – every request
+       carries the mTLS thumbprint set by the ingress plus a per-endpoint token – so CSRF does not apply; CORS is disabled and the
+       paths are never proxied by the BFF. The problem bodies written by the filter / entry points are application/problem+json
+       built from fixed failure codes (closed set returned by the kernel and the E34 authenticator), never from request input.
+       Covered by DeviceEndpointAuthenticationFilterTest, PlatformIntegrationTest and Increment6SecurityIntegrationTest. -->
+  <Match>
+    <Class name="com.wellnessz.casekernel.device.ingest.DeviceIngestSecurityConfig"/>
+    <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED,XSS_SERVLET"/>
+  </Match>
+  <Match>
+    <Class name="com.wellnessz.casekernel.device.ingest.DeviceEndpointAuthenticationFilter"/>
+    <Bug pattern="XSS_SERVLET"/>
+  </Match>
   <!-- The logout target is validated against the IdP end_session_endpoint from trusted OIDC metadata (safeTarget) and
        the body is JSON-encoded by Jackson with content-type application/json. -->
   <Match>
