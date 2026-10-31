@@ -48,6 +48,7 @@
     <module>modules/wz-e34-device-security</module>
     <module>apps/wz-core-app</module>
     <module>apps/wz-bff</module>
+    <module>apps/wz-device-gateway</module>
   </modules>
 
   <properties>

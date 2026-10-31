@@ -1,0 +1,41 @@
+# systemd unit for the WellnessZ device gateway (clinic gateway / Linux Device Host agent).
+# Install: /opt/wellnessz/gateway/wz-device-gateway.jar, configuration in /etc/wellnessz/gateway/application.yml,
+# state in /var/lib/wellnessz-gateway (created by systemd, owned by the service account, mode 0700).
+[Unit]
+Description=WellnessZ device gateway
+After=network-online.target time-sync.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wellnessz
+Group=wellnessz
+StateDirectory=wellnessz-gateway
+StateDirectoryMode=0700
+Environment=WZ_GATEWAY_DATA_DIR=/var/lib/wellnessz-gateway
+Environment=SPRING_PROFILES_ACTIVE=prod
+Environment=LOADER_PATH=/opt/wellnessz/gateway/drivers
+# Root key sealed by the hardening image (TPM / key store); without it a local key file is generated in the state dir.
+EnvironmentFile=-/etc/wellnessz/gateway/gateway.env
+ExecStart=/usr/bin/java -XX:+ExitOnOutOfMemoryError -cp /opt/wellnessz/gateway/wz-device-gateway.jar \
+  org.springframework.boot.loader.launch.PropertiesLauncher \
+  --spring.config.additional-location=/etc/wellnessz/gateway/
+Restart=always
+RestartSec=5
+# hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=false
+ReadWritePaths=/var/lib/wellnessz-gateway
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=false
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.wellnessz</groupId>
+    <artifactId>wellnessz-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+  <artifactId>wz-device-gateway</artifactId>
+  <name>WellnessZ OHCM :: Device gateway and Device Host agent (edge)</name>
+  <description>Clinic gateway / Device Host agent of the Medical Device Integration Engine (E31-F09, E34-HLR-03)</description>
+
+  <properties>
+    <spotbugs-annotations.version>4.10.5</spotbugs-annotations.version>
+  </properties>
+
+  <dependencies>
+    <!-- Reuse of the platform AES-256-GCM / HKDF / master-key code and the ENC()/file: property resolution.
+         The JPA-based parts of wz-secrets (EncryptedStringConverter, FieldEncryptor bean) are not used here, so the
+         persistence stack and the web/JPA shared kernel are excluded: the edge app has no database. -->
+    <dependency>
+      <groupId>com.wellnessz</groupId>
+      <artifactId>wz-secrets</artifactId>
+      <exclusions>
+        <exclusion><groupId>com.wellnessz</groupId><artifactId>wz-common</artifactId></exclusion>
+        <exclusion><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-jpa</artifactId></exclusion>
+      </exclusions>
+    </dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
+    <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-registry-prometheus</artifactId></dependency>
+    <dependency><groupId>net.logstash.logback</groupId><artifactId>logstash-logback-encoder</artifactId></dependency>
+    <dependency>
+      <groupId>com.github.spotbugs</groupId>
+      <artifactId>spotbugs-annotations</artifactId>
+      <version>${spotbugs-annotations.version}</version>
+      <scope>provided</scope>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><scope>test</scope></dependency>
+  </dependencies>
+
+  <build>
+    <finalName>wz-device-gateway</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <executions><execution><goals><goal>repackage</goal><goal>build-info</goal></goals></execution></executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

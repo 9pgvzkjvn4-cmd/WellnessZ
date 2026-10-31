@@ -1,0 +1,106 @@
+# WellnessZ device gateway / Device Host agent (edge). Status page + actuator on 127.0.0.1:8095 only.
+# Secrets may be written as ENC(...) (wz-secrets, needs WZ_MASTER_KEY / WZ_MASTER_KEY_FILE) or file:/path.
+spring:
+  application:
+    name: wellnessz-device-gateway
+  threads:
+    virtual:
+      enabled: true
+  main:
+    banner-mode: off
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  address: ${WZ_GATEWAY_STATUS_ADDRESS:127.0.0.1}
+  port: ${WZ_GATEWAY_STATUS_PORT:8095}
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+    include-message: never
+  servlet:
+    session:
+      tracking-modes: []
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  metrics:
+    tags:
+      service: wellnessz-device-gateway
+
+logging:
+  level:
+    root: INFO
+    com.wellnessz.gateway: INFO
+
+wz:
+  gateway:
+    role: ${WZ_GATEWAY_ROLE:GATEWAY}
+    core-url: ${WZ_GATEWAY_CORE_URL:https://localhost:8443}
+    data-dir: ${WZ_GATEWAY_DATA_DIR:./data}
+    endpoint-kind: ${WZ_GATEWAY_ENDPOINT_KIND:}
+    hostname: ${WZ_GATEWAY_HOSTNAME:}
+    allow-plaintext-listeners: ${WZ_GATEWAY_ALLOW_PLAINTEXT:false}
+    release-quarantine: false
+    enrolment:
+      token: ${WZ_GATEWAY_ENROLMENT_TOKEN:}
+      token-file: ${WZ_GATEWAY_ENROLMENT_TOKEN_FILE:}
+      max-attempts: 0
+      initial-backoff: PT5S
+      max-backoff: PT5M
+    tls:
+      key-store: ${WZ_GATEWAY_KEYSTORE:}
+      key-store-password: ${WZ_GATEWAY_KEYSTORE_PASSWORD:}
+      key-store-type: PKCS12
+      trust-store: ${WZ_GATEWAY_TRUSTSTORE:}
+      trust-store-password: ${WZ_GATEWAY_TRUSTSTORE_PASSWORD:}
+      simulate-ingress: ${WZ_GATEWAY_SIMULATE_INGRESS:false}
+      certificate-header: X-Client-Cert-Sha256
+    queue:
+      max-bytes: 2147483648
+      retention-hours: 72
+      segment-bytes: 67108864
+    forwarder:
+      poll-interval: PT1S
+      batch-size: 100
+      batch-max-bytes: 10000000
+      initial-backoff: PT1S
+      max-backoff: PT5M
+      immediate-timeout: PT5S
+    heartbeat:
+      interval-seconds: 60
+      baseline: CIS-L1
+    # Connectors are declared per site; see README.md for every option. Examples (disabled):
+    # mllp:
+    #   - id: mllp-vitals
+    #     device-instance-id: DI-LHR-VITALS-01
+    #     bind-address: 0.0.0.0
+    #     port: 2575
+    #     tls: { enabled: true, key-store: /etc/wellnessz/listener.p12, key-store-password: ENC(...) }
+    #     sending-applications: [CONNEX]
+    # watchers:
+    #   - id: spiro-export
+    #     device-instance-id: DI-LHR-SPIRO-01
+    #     path: C:/ProgramData/Vendor/Export
+    #     archive: C:/ProgramData/WellnessZ/archive/spiro
+    #     quarantine: C:/ProgramData/WellnessZ/quarantine/spiro
+    ble:
+      enabled: false
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+wz:
+  gateway:
+    core-url: ${WZ_GATEWAY_CORE_URL:http://localhost:8080}
+    tls:
+      simulate-ingress: true

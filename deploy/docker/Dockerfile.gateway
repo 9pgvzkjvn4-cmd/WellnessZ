@@ -1,0 +1,64 @@
+# syntax=docker/dockerfile:1.10
+# =============================================================================
+# WellnessZ device gateway / Device Host agent (edge) - wz-device-gateway
+# Build context: repository root
+#   docker build -f deploy/docker/Dockerfile.gateway -t wellnessz/wz-device-gateway:dev .
+# Runtime: Temurin 21 JRE, non-root uid/gid 10001, layered Spring Boot jar.
+# State (identity, encrypted queue, ledgers) lives in /var/lib/wellnessz-gateway -
+# mount a persistent volume there: the store-and-forward queue must survive
+# container restarts. The status page / actuator listen on 127.0.0.1:8095
+# inside the container only (never published). Vendor JDBC drivers for the
+# database poller go into /opt/wellnessz/drivers (PropertiesLauncher loader.path).
+# Base images are pinned to exact versions directly in FROM (not via ARG).
+# =============================================================================
+
+# ---------- build ------------------------------------------------------------
+FROM maven:3.9.16-eclipse-temurin-21-noble AS build
+WORKDIR /workspace
+# Only Maven inputs are sent (see Dockerfile.gateway.dockerignore)
+COPY . .
+RUN --mount=type=cache,target=/root/.m2/repository \
+    mvn -B -ntp -pl apps/wz-device-gateway -am package -DskipTests \
+ && java -Djarmode=tools -jar apps/wz-device-gateway/target/wz-device-gateway.jar extract --layers --launcher --destination /extracted
+
+# ---------- runtime ----------------------------------------------------------
+FROM eclipse-temurin:21.0.12_8-jre-noble AS runtime
+ARG VERSION=0.0.0-dev
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.title="wz-device-gateway" \
+      org.opencontainers.image.description="WellnessZ device gateway and Device Host agent (edge)" \
+      org.opencontainers.image.vendor="WellnessZ" \
+      org.opencontainers.image.licenses="LicenseRef-Proprietary" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.source="https://github.com/OWNER/WellnessZ"
+
+RUN apt-get update \
+ && apt-get -y upgrade --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd --system --gid 10001 wellnessz \
+ && useradd --system --uid 10001 --gid 10001 --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin wellnessz \
+ && mkdir -p /var/lib/wellnessz-gateway /opt/wellnessz/drivers \
+ && chown 10001:10001 /var/lib/wellnessz-gateway \
+ && chmod 0700 /var/lib/wellnessz-gateway
+
+WORKDIR /app
+COPY --from=build --chown=root:root --chmod=0755 /extracted/dependencies/ ./
+COPY --from=build --chown=root:root --chmod=0755 /extracted/spring-boot-loader/ ./
+COPY --from=build --chown=root:root --chmod=0755 /extracted/snapshot-dependencies/ ./
+COPY --from=build --chown=root:root --chmod=0755 /extracted/application/ ./
+
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -XX:+UseSerialGC -Djava.io.tmpdir=/tmp -Djava.security.egd=file:/dev/urandom -Dfile.encoding=UTF-8 -Duser.timezone=UTC" \
+    TZ=UTC \
+    LANG=C.UTF-8 \
+    LOADER_PATH=/opt/wellnessz/drivers \
+    WZ_GATEWAY_DATA_DIR=/var/lib/wellnessz-gateway \
+    SPRING_PROFILES_ACTIVE=prod
+
+VOLUME ["/var/lib/wellnessz-gateway", "/tmp"]
+USER 10001:10001
+# Device-facing listeners (publish only those configured): 2575 HL7 MLLP, 2576 POCT1-A, 8097 BLE relay intake.
+EXPOSE 2575 2576 8097
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/${WZ_GATEWAY_STATUS_PORT:-8095} && printf 'GET /actuator/health/liveness HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.PropertiesLauncher"]

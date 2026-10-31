@@ -1,0 +1,27 @@
+<!--
+  WinSW service definition for the WellnessZ Device Host agent on a vendor PC (Windows 10/11, Server 2019+).
+  Place next to WinSW.exe renamed to wellnessz-gateway.exe in C:\Program Files\WellnessZ\Gateway\ and run
+  "wellnessz-gateway.exe install" from an elevated prompt. Run the service under a dedicated low-privilege account
+  (e.g. a gMSA "WZGateway$") with read access to the vendor export folder / database only.
+-->
+<service>
+  <id>WellnessZGateway</id>
+  <name>WellnessZ Device Host agent</name>
+  <description>Captures device data (exports, vendor database, serial) and forwards it to WellnessZ.</description>
+  <executable>%JAVA_HOME%\bin\java.exe</executable>
+  <arguments>-XX:+ExitOnOutOfMemoryError -Dloader.path="%BASE%\drivers" -cp "%BASE%\wz-device-gateway.jar" org.springframework.boot.loader.launch.PropertiesLauncher --spring.config.additional-location=file:C:/ProgramData/WellnessZ/Gateway/</arguments>
+  <env name="WZ_GATEWAY_DATA_DIR" value="%ProgramData%\WellnessZ\Gateway\data"/>
+  <env name="WZ_GATEWAY_ROLE" value="DEVICE_HOST_AGENT"/>
+  <env name="SPRING_PROFILES_ACTIVE" value="prod"/>
+  <serviceaccount>
+    <username>DOMAIN\WZGateway$</username>
+    <allowservicelogon>true</allowservicelogon>
+  </serviceaccount>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec"/>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+</service>
