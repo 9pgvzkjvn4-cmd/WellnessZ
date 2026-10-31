@@ -64,6 +64,25 @@ public final class Roles {
     public static final String HEALTH_PROMOTION_LEAD = "HEALTH_PROMOTION_LEAD";
     /** Ergonomist: workstation and manual-handling assessments, actions to closure. */
     public static final String ERGONOMIST = "ERGONOMIST";
+    // increment 6 (E31 / E32 / E33 / E34 – medical device integration engine)
+    /** Device administrator (biomedical / clinical engineering / clinic IT): catalogue, provisioning wizard, fleet, calibration
+     *  and QC, masked diagnostics, decommissioning – never the clinical record (traces are PHI-masked). */
+    public static final String DEVICE_ADMIN = "DEVICE_ADMIN";
+    /** Second pair of eyes for device configuration: approves certifications and production configuration changes; cannot
+     *  approve a change they submitted. No clinical read. */
+    public static final String DEVICE_APPROVER = "DEVICE_APPROVER";
+    /** Integration developer / tester: driver packages, simulators, golden datasets, conformance and wizard test runs against
+     *  simulators – synthetic data only, no clinical read. */
+    public static final String INTEGRATION_TESTER = "INTEGRATION_TESTER";
+    /** Security operations (SOC): endpoint identities, security events, anomaly alerts, isolation and release, security test
+     *  pack, vendor posture exceptions – no clinical read. */
+    public static final String SECURITY_OPS = "SECURITY_OPS";
+    /** Machine role granted by the device-ingest filter to an authenticated device / gateway endpoint (mTLS thumbprint +
+     *  per-endpoint token, verified by E34). Never issued by the identity provider and never held by a person. */
+    public static final String DEVICE_ENDPOINT = "DEVICE_ENDPOINT";
+    /** Roles of the device-integration console (no clinical disclosure). */
+    public static final String[] DEVICE_CONSOLE = {DEVICE_ADMIN, DEVICE_APPROVER, INTEGRATION_TESTER, SECURITY_OPS};
+
     /** Roles of the Occupational Health clinical team (clinical disclosure). */
     public static final String[] OH_TEAM = {OH_CLINICIAN, OH_PHYSICIAN, AME, CMO, NURSING_HEAD, CASE_MANAGER, PSYCH_CLINICIAN};
     /** Roles that may record a fitness-for-duty decision. */

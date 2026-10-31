@@ -36,7 +36,11 @@ public class MeController {
                         Roles.FINANCE, Roles.PROCUREMENT, Roles.PARTNER_PROVIDER, Roles.PEER_SUPPORT_COORDINATOR, Roles.SAFETY_MANAGER,
                         Roles.DA_PROGRAMME_MANAGER, Roles.COLLECTOR, Roles.HEALTH_PROMOTION_LEAD, Roles.ERGONOMIST, Roles.PEER_SUPPORT_VOLUNTEER)
                         ? DisclosureLevel.STATUS_ONLY
-                : u.hasAnyRole(Roles.EMPLOYEE, Roles.CANDIDATE) ? DisclosureLevel.SELF : DisclosureLevel.NONE;
+                : u.hasAnyRole(Roles.EMPLOYEE, Roles.CANDIDATE) ? DisclosureLevel.SELF
+                // increment 6: the device console roles (Roles.DEVICE_CONSOLE: DEVICE_ADMIN, DEVICE_APPROVER, INTEGRATION_TESTER,
+                // SECURITY_OPS) and the DEVICE_ENDPOINT machine role deliberately disclose NONE – configuration, fleet, PHI-masked
+                // traces and security events only, never case or record content (like BIOMEDICAL and AUDITOR)
+                : DisclosureLevel.NONE;
         return new MeResponse(u.subject(), u.username(), u.displayName(), u.employeeId(), u.orgScope(), u.roles(), level);
     }
 }

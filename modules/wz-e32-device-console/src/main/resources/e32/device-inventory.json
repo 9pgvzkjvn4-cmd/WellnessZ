@@ -1,0 +1,2145 @@
+[
+ {
+  "id": "MD-001",
+  "family": "Spirometry & lung function",
+  "model": "EasyOne Air",
+  "manufacturer": "ndd Medical Technologies",
+  "ohUse": "Diagnostic spirometry for respirator clearance, silica/asbestos/isocyanate surveillance, aviation medicals (ATS/ERS 2019, OSHA 3637/NIOSH)",
+  "connectivity": "P3 BLE / P1 USB to EasyOne Connect; P4 HL7; P2 XML/GDT/PDF export",
+  "protocol": "EasyOne Connect (HL7, GDT, XML, PDF; LOINC/CPT); bidirectional orders",
+  "fdaCodes": "BZG",
+  "sprint": "S3",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P3",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-002",
+  "family": "Spirometry & lung function",
+  "model": "Easy on-PC",
+  "manufacturer": "ndd Medical Technologies",
+  "ohUse": "PC-based spirometry/PFT for clinics",
+  "connectivity": "P1 USB to EasyOne Connect; P4 HL7; P2 export",
+  "protocol": "EasyOne Connect",
+  "fdaCodes": "BZG",
+  "sprint": "S3",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-003",
+  "family": "Spirometry & lung function",
+  "model": "ALPHA / Pneumotrac / In2itive",
+  "manufacturer": "Vitalograph",
+  "ohUse": "Occupational spirometry; HSE G402, ATS/ERS",
+  "connectivity": "P1 USB to Spirotrac 6; P4 HL7; P2 CSV/XML/GDT export",
+  "protocol": "Spirotrac 6 (HL7, GDT, EMR connectors, Vitalograph Connect)",
+  "fdaCodes": "BZG",
+  "sprint": "S3",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-004",
+  "family": "Spirometry & lung function",
+  "model": "CardioPerfect SpiroPerfect",
+  "manufacturer": "Welch Allyn (Baxter/Hillrom)",
+  "ohUse": "PC spirometry within cardiology suite",
+  "connectivity": "P1 USB; P2 Diagnostic Cardiology Suite export; P4 HL7/DICOM via suite",
+  "protocol": "Welch Allyn Diagnostic Cardiology Suite (HL7, DICOM, XML, PDF)",
+  "fdaCodes": "BZG",
+  "sprint": "S3",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-005",
+  "family": "Spirometry & lung function",
+  "model": "IQspiro",
+  "manufacturer": "Midmark",
+  "ohUse": "PC spirometry in primary/occupational care",
+  "connectivity": "P1 USB; P2/P4 via Midmark IQmanager/IQconnect (HL7)",
+  "protocol": "Midmark IQmanager (HL7 to EHR)",
+  "fdaCodes": "BZG",
+  "sprint": "S3",
+  "confidence": "Medium – verify export",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-006",
+  "family": "Spirometry & lung function",
+  "model": "Spirobank II Smart / Spirolab",
+  "manufacturer": "MIR",
+  "ohUse": "Portable spirometry, screening days, mobile units",
+  "connectivity": "P3 Bluetooth; P1 USB; P2 winspiroPRO/MIR Spiro export",
+  "protocol": "MIR Spiro / winspiroPRO (HL7 option); PDF/XML",
+  "fdaCodes": "BZG",
+  "sprint": "S3",
+  "confidence": "Medium – verify HL7",
+  "options": [
+   "P1",
+   "P2",
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-007",
+  "family": "Spirometry & lung function",
+  "model": "MicroLab / Micro I / SpiroUSB",
+  "manufacturer": "Vyaire (CareFusion/Micro Medical)",
+  "ohUse": "Desktop and handheld spirometry",
+  "connectivity": "P1 USB; P2 Spida/ Spirometry PC Software export",
+  "protocol": "Spida (PDF/CSV)",
+  "fdaCodes": "BZG",
+  "sprint": "S3",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-008",
+  "family": "Spirometry & lung function",
+  "model": "SpiroScout / SP-1",
+  "manufacturer": "Schiller",
+  "ohUse": "Spirometry alongside ECG in aeromedical centres",
+  "connectivity": "P1 USB; P2/P4 SEMA (HL7, GDT, DICOM, PDF)",
+  "protocol": "SEMA-200 / SEMA-300 suite",
+  "fdaCodes": "BZG",
+  "sprint": "S3",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-009",
+  "family": "Spirometry & lung function",
+  "model": "KoKo Sx 1000 / KoKo PFT",
+  "manufacturer": "nSpire Health",
+  "ohUse": "PC spirometry with QC grading",
+  "connectivity": "P1 USB; P2 KoKo software export (HL7 option)",
+  "protocol": "KoKo PFT software",
+  "fdaCodes": "BZG",
+  "sprint": "S3",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-010",
+  "family": "Spirometry & lung function",
+  "model": "Pony FX / Spiropalm 6MWT",
+  "manufacturer": "COSMED",
+  "ohUse": "Desktop spirometry and 6-minute walk test",
+  "connectivity": "P1 USB; P3 Bluetooth; P2 OMNIA export (HL7/GDT)",
+  "protocol": "COSMED OMNIA",
+  "fdaCodes": "BZG",
+  "sprint": "S3",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2",
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-011",
+  "family": "Spirometry & lung function",
+  "model": "NIOX VERO (FeNO)",
+  "manufacturer": "Circassia / NIOX Group",
+  "ohUse": "Airway inflammation in occupational asthma surveillance (bakers, isocyanates)",
+  "connectivity": "P1 USB; P2 NIOX Panel export; P3 Bluetooth (verify)",
+  "protocol": "NIOX Panel (PDF/CSV)",
+  "fdaCodes": "MXA",
+  "sprint": "S8",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2",
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-012",
+  "family": "Spirometry & lung function",
+  "model": "Micro+ / piCO Smokerlyzer (breath CO)",
+  "manufacturer": "Bedfont Scientific",
+  "ohUse": "Smoking cessation and CO exposure screening (fire/rescue, catering gas)",
+  "connectivity": "P1 USB; P3 Bluetooth; P2 COdata+ export",
+  "protocol": "COdata+ / Smokerlyzer app",
+  "fdaCodes": "CCK (breath CO analyser – verify)",
+  "sprint": "S8",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2",
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-013",
+  "family": "Spirometry & lung function",
+  "model": "ToxCO (CO poisoning)",
+  "manufacturer": "Bedfont Scientific",
+  "ohUse": "Carbon-monoxide exposure assessment",
+  "connectivity": "P1 USB; P2 COdata+",
+  "protocol": "COdata+",
+  "fdaCodes": "n/a (verify)",
+  "sprint": "S8",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-014",
+  "family": "Spirometry & lung function",
+  "model": "Peak flow meters (Mini-Wright digital / Vitalograph asma-1)",
+  "manufacturer": "Clement Clarke / Vitalograph",
+  "ohUse": "Serial PEF monitoring for suspected occupational asthma (HSE G402)",
+  "connectivity": "P1 USB (asma-1); P10 manual diary; P6 app",
+  "protocol": "Vendor diary software",
+  "fdaCodes": "BZH",
+  "sprint": "S3",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P6",
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-015",
+  "family": "Audiometry & hearing",
+  "model": "CCA-200mini",
+  "manufacturer": "Benson Medical Instruments",
+  "ohUse": "Computer-controlled audiometer for OSHA/MSHA hearing conservation; multi-station mobile testing",
+  "connectivity": "P2 database export (Windows software, SQL Server) ; P1 USB",
+  "protocol": "Benson software (SQL Server DB; reports; multilingual letters)",
+  "fdaCodes": "EWO",
+  "sprint": "S4",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-016",
+  "family": "Audiometry & hearing",
+  "model": "RA660 / RA800 / RA500 / RA300",
+  "manufacturer": "Tremetrics",
+  "ohUse": "Industrial audiometers (manual and automatic) in booths and mobile units",
+  "connectivity": "P1 serial/USB to PC; P2 vendor software export",
+  "protocol": "Tremetrics hearing-conservation software; interfaced by OH platforms (e.g., Enterprise Health RA500/300/800)",
+  "fdaCodes": "EWO",
+  "sprint": "S4",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-017",
+  "family": "Audiometry & hearing",
+  "model": "AD629 / AD528 / AD226",
+  "manufacturer": "Interacoustics",
+  "ohUse": "Diagnostic and screening audiometry; aeromedical examination",
+  "connectivity": "P1 USB; P2 OtoAccess database / Diagnostic Suite export (GDT, XML, PDF)",
+  "protocol": "OtoAccess Database; Diagnostic Suite",
+  "fdaCodes": "EWO",
+  "sprint": "S4",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-018",
+  "family": "Audiometry & hearing",
+  "model": "AudioStar Pro / Pello / GSI 18",
+  "manufacturer": "Grason-Stadler (GSI)",
+  "ohUse": "Clinical and screening audiometry",
+  "connectivity": "P1 USB/serial; P2 GSI Suite export (PDF/XML; EMR connectors)",
+  "protocol": "GSI Suite",
+  "fdaCodes": "EWO",
+  "sprint": "S4",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-019",
+  "family": "Audiometry & hearing",
+  "model": "MA 42 / MA 25 / MA 800",
+  "manufacturer": "MAICO Diagnostics",
+  "ohUse": "Screening and diagnostic audiometers; MA 800 interfaced by OH platforms",
+  "connectivity": "P1 USB; P2 MAICO Sessions database export",
+  "protocol": "MAICO Sessions",
+  "fdaCodes": "EWO",
+  "sprint": "S4",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-020",
+  "family": "Audiometry & hearing",
+  "model": "CA850 / OtoSure / Model 270",
+  "manufacturer": "Amplivox",
+  "ohUse": "Automatic screening audiometer for occupational programmes (CA850 interfaced by OH platforms)",
+  "connectivity": "P1 USB; P2 ampliSuite export",
+  "protocol": "ampliSuite",
+  "fdaCodes": "EWO",
+  "sprint": "S4",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-021",
+  "family": "Audiometry & hearing",
+  "model": "SHOEBOX Audiometry (tablet, boothless)",
+  "manufacturer": "SHOEBOX Ltd",
+  "ohUse": "Boothless occupational hearing testing at remote sites and outstations",
+  "connectivity": "P6 cloud API / data export; P3 BLE transducers",
+  "protocol": "SHOEBOX Data Management (API, exports)",
+  "fdaCodes": "EWO",
+  "sprint": "S4",
+  "confidence": "Medium",
+  "options": [
+   "P3",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-022",
+  "family": "Audiometry & hearing",
+  "model": "hearTest Occupational Health (smartphone)",
+  "manufacturer": "hearX Group",
+  "ohUse": "Boothless screening with ambient-noise monitoring",
+  "connectivity": "P6 cloud API",
+  "protocol": "hearX cloud portal",
+  "fdaCodes": "EWO",
+  "sprint": "S4",
+  "confidence": "Medium",
+  "options": [
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-023",
+  "family": "Audiometry & hearing",
+  "model": "Madsen Astera² / AURICAL",
+  "manufacturer": "Natus (Otometrics)",
+  "ohUse": "Diagnostic audiometry in aeromedical centres",
+  "connectivity": "P1 USB; P2 OTOsuite/Noah export",
+  "protocol": "OTOsuite / Noah",
+  "fdaCodes": "EWO",
+  "sprint": "S4",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-024",
+  "family": "Audiometry & hearing",
+  "model": "Titan / TympStar Pro / easyTymp (tympanometry)",
+  "manufacturer": "Interacoustics / GSI / MAICO",
+  "ohUse": "Tympanometry for aeromedical ENT assessment",
+  "connectivity": "P1 USB; P2 OtoAccess/GSI Suite/Sessions export",
+  "protocol": "Vendor suites",
+  "fdaCodes": "NAS;PTP",
+  "sprint": "S4",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-025",
+  "family": "Audiometry & hearing",
+  "model": "Eclipse / Otoport (otoacoustic emissions)",
+  "manufacturer": "Interacoustics / Otodynamics",
+  "ohUse": "OAE screening in noise-exposed cohorts (optional)",
+  "connectivity": "P1 USB; P2 export",
+  "protocol": "OtoAccess / Otoport software",
+  "fdaCodes": "EWO (OAE under audiometer family – verify)",
+  "sprint": "S4",
+  "confidence": "Low",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-026",
+  "family": "Audiometry & hearing",
+  "model": "Audiometric booth ambient-noise monitors",
+  "manufacturer": "IAC Acoustics / Eckel / Benson",
+  "ohUse": "ANSI S3.1 / OSHA App. D octave-band levels during testing",
+  "connectivity": "P1 serial/USB; P2 export",
+  "protocol": "Vendor software",
+  "fdaCodes": "n/a (not a medical device)",
+  "sprint": "S4",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-027",
+  "family": "Vital signs & body composition",
+  "model": "Connex Spot Monitor (CSM)",
+  "manufacturer": "Welch Allyn (Baxter/Hillrom)",
+  "ohUse": "Vitals at periodic medicals, pre-employment, clinic visits (ISO 81060-2 validated BP)",
+  "connectivity": "P4 Wi-Fi/Ethernet HL7 via Connex CS or device integration suite; P1 USB; P2 export",
+  "protocol": "Connex CS / Welch Allyn connectivity (HL7); Braun thermometer and SpO2 modules",
+  "fdaCodes": "DXN;DQA;FLL",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-028",
+  "family": "Vital signs & body composition",
+  "model": "Connex Vital Signs Monitor 6000 / Spot Vital Signs 4400",
+  "manufacturer": "Welch Allyn (Baxter/Hillrom)",
+  "ohUse": "Vitals monitors in clinics and first-aid posts",
+  "connectivity": "P4 HL7 (Connex CS); P1 USB",
+  "protocol": "Connex CS",
+  "fdaCodes": "DXN;DQA;FLL",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-029",
+  "family": "Vital signs & body composition",
+  "model": "VS-9 / VS 600 / Accutorr 7",
+  "manufacturer": "Mindray",
+  "ohUse": "Spot-check vitals monitors",
+  "connectivity": "P4 Ethernet/Wi-Fi HL7 via Mindray eGateway",
+  "protocol": "Mindray eGateway (HL7)",
+  "fdaCodes": "DXN;DQA;FLL",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-030",
+  "family": "Vital signs & body composition",
+  "model": "IntelliVue MP5SC / EarlyVue VS30",
+  "manufacturer": "Philips",
+  "ohUse": "Spot-check and monitoring in medical response rooms",
+  "connectivity": "P4 HL7 via Philips IntelliBridge Enterprise / Capsule",
+  "protocol": "IntelliBridge Enterprise; Capsule MDIP",
+  "fdaCodes": "MHX;MWI;DXN",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-031",
+  "family": "Vital signs & body composition",
+  "model": "CARESCAPE V100 / Dinamap",
+  "manufacturer": "GE HealthCare",
+  "ohUse": "Vitals monitors",
+  "connectivity": "P1 serial; P4 HL7 via CARESCAPE Gateway",
+  "protocol": "CARESCAPE Gateway (HL7)",
+  "fdaCodes": "DXN;DQA",
+  "sprint": "S5",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-032",
+  "family": "Vital signs & body composition",
+  "model": "Rad-97 / Rad-G / Rad-57 (SpO2, SpCO, SpMet)",
+  "manufacturer": "Masimo",
+  "ohUse": "Pulse oximetry and carboxyhaemoglobin screening (fire & rescue, CO incidents)",
+  "connectivity": "P4 HL7 via Masimo Iris Gateway; P1 serial; P3 BLE (Rad-G)",
+  "protocol": "Masimo Iris Gateway (HL7, >300 device models)",
+  "fdaCodes": "DQA",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P3",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-033",
+  "family": "Vital signs & body composition",
+  "model": "3230 BLE / 7500 / Onyx",
+  "manufacturer": "Nonin Medical",
+  "ohUse": "Finger pulse oximeters for screening and mobile units",
+  "connectivity": "P3 BLE standard PLX profile; P1 RS-232 (7500)",
+  "protocol": "Standard GATT PLX",
+  "fdaCodes": "DQA",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-034",
+  "family": "Vital signs & body composition",
+  "model": "PM10N / PM100N (Nellcor)",
+  "manufacturer": "Medtronic",
+  "ohUse": "Handheld pulse oximeters in first-aid posts",
+  "connectivity": "P1 serial/USB",
+  "protocol": "Nellcor Analytics Tool",
+  "fdaCodes": "DQA",
+  "sprint": "S5",
+  "confidence": "Medium",
+  "options": [
+   "P1"
+  ]
+ },
+ {
+  "id": "MD-035",
+  "family": "Vital signs & body composition",
+  "model": "HBP-1320 / HBP-1120 / HEM-907",
+  "manufacturer": "OMRON Healthcare",
+  "ohUse": "Clinic BP monitors (ISO 81060-2 validated)",
+  "connectivity": "P1 USB; P3 BLE (connected models); P6 OMRON connect API",
+  "protocol": "OMRON connectivity SDK/API",
+  "fdaCodes": "DXN",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P3",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-036",
+  "family": "Vital signs & body composition",
+  "model": "TM-2657P / TM-2655P (automatic BP kiosk)",
+  "manufacturer": "A&D Medical",
+  "ohUse": "Self-service BP in canteens/lobbies and clinics",
+  "connectivity": "P1 RS-232/USB; P4 LAN option",
+  "protocol": "A&D protocol / HL7 option",
+  "fdaCodes": "DXN",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-037",
+  "family": "Vital signs & body composition",
+  "model": "UA-651BLE / UA-1200BLE / UC-352BLE",
+  "manufacturer": "A&D Medical",
+  "ohUse": "BLE BP monitors and scales for screening days and home monitoring",
+  "connectivity": "P3 BLE standard BLP/WSS profiles",
+  "protocol": "Standard GATT (Continua-certified)",
+  "fdaCodes": "DXN;FRW",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-038",
+  "family": "Vital signs & body composition",
+  "model": "BPM Connect / Body Comp / ScanWatch",
+  "manufacturer": "Withings",
+  "ohUse": "Consented wellness and remote monitoring",
+  "connectivity": "P6 Withings Health API (OAuth2); P3 BLE",
+  "protocol": "Withings API",
+  "fdaCodes": "DXN;MNW;QDA",
+  "sprint": "S11",
+  "confidence": "High",
+  "options": [
+   "P3",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-039",
+  "family": "Vital signs & body composition",
+  "model": "ThermoScan PRO 6000 / Exergen TAT-5000S",
+  "manufacturer": "Braun (Baxter) / Exergen",
+  "ohUse": "Clinical thermometers (ISO 80601-2-56)",
+  "connectivity": "P4 via host monitor (CSM); P10 manual",
+  "protocol": "Via Connex monitors",
+  "fdaCodes": "FLL;SDV",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P4",
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-040",
+  "family": "Vital signs & body composition",
+  "model": "mBCA 554 / 555 / seca 284 / 655",
+  "manufacturer": "seca",
+  "ohUse": "Height, weight, BMI and bioimpedance body composition in medicals and wellness",
+  "connectivity": "P4 Wi-Fi/Ethernet via seca connect 103 (HL7, FHIR, GDT); P8 FHIR",
+  "protocol": "seca connect 103 / seca analytics",
+  "fdaCodes": "FRW;MNW;PUH",
+  "sprint": "S5",
+  "confidence": "High",
+  "options": [
+   "P4",
+   "P8"
+  ]
+ },
+ {
+  "id": "MD-041",
+  "family": "Vital signs & body composition",
+  "model": "MC-780MA / DC-430MA",
+  "manufacturer": "Tanita",
+  "ohUse": "Body composition analysers",
+  "connectivity": "P1 RS-232/USB; P3 Bluetooth; P2 GMON export",
+  "protocol": "Tanita GMON / Pro software",
+  "fdaCodes": "MNW;PUH",
+  "sprint": "S5",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2",
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-042",
+  "family": "Vital signs & body composition",
+  "model": "Professional 500KL / 2101KL",
+  "manufacturer": "Health o meter Professional (Pelstar)",
+  "ohUse": "Clinic scales with height rod and EMR connectivity",
+  "connectivity": "P1 USB/serial; P4 via Welch Allyn/vendor connectivity",
+  "protocol": "Pelstar connectivity",
+  "fdaCodes": "FRW;FRI",
+  "sprint": "S5",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-043",
+  "family": "Vital signs & body composition",
+  "model": "Apex / 6550 / Detecto Connect",
+  "manufacturer": "Detecto (Cardinal Scale)",
+  "ohUse": "Clinic scales",
+  "connectivity": "P1 USB/serial; P4 Wi-Fi option",
+  "protocol": "Detecto connectivity",
+  "fdaCodes": "FRW;FRI",
+  "sprint": "S5",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-044",
+  "family": "Vital signs & body composition",
+  "model": "CORE / Eko DUO digital stethoscopes",
+  "manufacturer": "3M Littmann / Eko Health",
+  "ohUse": "Tele-auscultation in outstations; cardiac screening",
+  "connectivity": "P3 BLE; P6 Eko API",
+  "protocol": "Eko platform",
+  "fdaCodes": "DQD",
+  "sprint": "S11",
+  "confidence": "Medium",
+  "options": [
+   "P3",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-045",
+  "family": "Cardiology",
+  "model": "MAC 2000 / MAC 5500 HD / MAC VU360",
+  "manufacturer": "GE HealthCare",
+  "ohUse": "Resting 12-lead ECG for pilots (ICAO Annex 1), drivers, periodic medicals",
+  "connectivity": "P4 Ethernet/Wi-Fi to MUSE (HL7, XML, DICOM, PDF); P1 serial",
+  "protocol": "MUSE v9 / MUSE NX",
+  "fdaCodes": "DPS",
+  "sprint": "S6",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-046",
+  "family": "Cardiology",
+  "model": "PageWriter TC30 / TC50 / TC70",
+  "manufacturer": "Philips",
+  "ohUse": "Resting ECG with interpretation",
+  "connectivity": "P4 Ethernet/Wi-Fi to TraceMasterVue / IntelliSpace ECG (XML, DICOM, HL7); P1 USB",
+  "protocol": "TraceMasterVue / IntelliSpace ECG",
+  "fdaCodes": "DPS",
+  "sprint": "S6",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-047",
+  "family": "Cardiology",
+  "model": "Cardiovit AT-102 G2 / FT-1 / AT-180",
+  "manufacturer": "Schiller",
+  "ohUse": "Resting and stress ECG in aeromedical centres",
+  "connectivity": "P4 Ethernet/Wi-Fi; P1 USB; P2/P7 SEMA (HL7, GDT, DICOM, PDF)",
+  "protocol": "SEMA-200/300",
+  "fdaCodes": "DPS",
+  "sprint": "S6",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P4",
+   "P7"
+  ]
+ },
+ {
+  "id": "MD-048",
+  "family": "Cardiology",
+  "model": "ELI 280 / ELI 380 (Mortara)",
+  "manufacturer": "Welch Allyn (Baxter)",
+  "ohUse": "Resting ECG carts",
+  "connectivity": "P4 Ethernet/Wi-Fi via ELI Link (HL7, DICOM, XML, PDF)",
+  "protocol": "ELI Link",
+  "fdaCodes": "DPS",
+  "sprint": "S6",
+  "confidence": "High",
+  "options": [
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-049",
+  "family": "Cardiology",
+  "model": "CardioPerfect ECG / Connex Cardio",
+  "manufacturer": "Welch Allyn (Baxter/Hillrom)",
+  "ohUse": "PC-based resting/stress ECG (interfaced by OH platforms)",
+  "connectivity": "P1 USB; P2/P4 Diagnostic Cardiology Suite (HL7, DICOM)",
+  "protocol": "Diagnostic Cardiology Suite",
+  "fdaCodes": "DPS",
+  "sprint": "S6",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-050",
+  "family": "Cardiology",
+  "model": "ECG-2450 / ECG-3150",
+  "manufacturer": "Nihon Kohden",
+  "ohUse": "Resting ECG",
+  "connectivity": "P4 LAN via Nihon Kohden gateway (HL7/DICOM)",
+  "protocol": "NK gateway",
+  "fdaCodes": "DPS",
+  "sprint": "S6",
+  "confidence": "Medium",
+  "options": [
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-051",
+  "family": "Cardiology",
+  "model": "IQecg",
+  "manufacturer": "Midmark",
+  "ohUse": "PC-based ECG",
+  "connectivity": "P1 USB; P2/P4 IQmanager (HL7)",
+  "protocol": "Midmark IQmanager",
+  "fdaCodes": "DPS",
+  "sprint": "S6",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-052",
+  "family": "Cardiology",
+  "model": "TouchECG / ECG200+",
+  "manufacturer": "Cardioline",
+  "ohUse": "Tablet-based ECG for mobile medicals",
+  "connectivity": "P3 BLE; P4 Wi-Fi (HL7, DICOM, XML)",
+  "protocol": "Cardioline software",
+  "fdaCodes": "DPS",
+  "sprint": "S6",
+  "confidence": "Medium",
+  "options": [
+   "P3",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-053",
+  "family": "Cardiology",
+  "model": "SE-1200 Express / CardioCare 2000",
+  "manufacturer": "Edan / Bionet",
+  "ohUse": "Budget resting ECG for outstations",
+  "connectivity": "P4 Ethernet; P1 USB; P2 export",
+  "protocol": "Vendor PC software",
+  "fdaCodes": "DPS",
+  "sprint": "S6",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-054",
+  "family": "Cardiology",
+  "model": "CASE / CS-200 Excellence / Q-Stress",
+  "manufacturer": "GE HealthCare / Schiller / Welch Allyn",
+  "ohUse": "Exercise stress testing (Class 1 pilots over 40, cardiovascular risk)",
+  "connectivity": "P4 HL7/DICOM/XML via MUSE/SEMA/suite",
+  "protocol": "MUSE / SEMA / Diagnostic Cardiology Suite",
+  "fdaCodes": "DPS",
+  "sprint": "S6",
+  "confidence": "Medium",
+  "options": [
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-055",
+  "family": "Cardiology",
+  "model": "Oscar 2 (ABPM)",
+  "manufacturer": "SunTech Medical",
+  "ohUse": "24-h ambulatory BP (aeromedical, hypertension in safety-critical roles)",
+  "connectivity": "P1 USB; P3 BLE; P2 AccuWin Pro 4 export (HL7/GDT)",
+  "protocol": "AccuWin Pro 4",
+  "fdaCodes": "DXN",
+  "sprint": "S6",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-056",
+  "family": "Cardiology",
+  "model": "OnTrak 90227 (ABPM) / Lifecard CF (Holter)",
+  "manufacturer": "Spacelabs Healthcare",
+  "ohUse": "ABPM and Holter monitoring",
+  "connectivity": "P1 USB; P2 Sentinel export (HL7, GDT, DICOM)",
+  "protocol": "Spacelabs Sentinel",
+  "fdaCodes": "DXN;MWJ",
+  "sprint": "S6",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-057",
+  "family": "Cardiology",
+  "model": "ABPM 7100 / Holter via CardioPerfect",
+  "manufacturer": "Welch Allyn (Baxter)",
+  "ohUse": "ABPM / Holter",
+  "connectivity": "P1 USB; P3 BLE; P2 Hypertension Management Software / CardioPerfect export",
+  "protocol": "CardioPerfect / HMS",
+  "fdaCodes": "DXN;MWJ",
+  "sprint": "S6",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2",
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-058",
+  "family": "Cardiology",
+  "model": "MT-101 / SEER 1000 (Holter)",
+  "manufacturer": "Schiller / GE HealthCare",
+  "ohUse": "Holter recorders",
+  "connectivity": "P2 SD card/USB to analysis software; P7 DICOM/P4 HL7 via suite",
+  "protocol": "medilog / MARS",
+  "fdaCodes": "MWJ;MLO",
+  "sprint": "S6",
+  "confidence": "Medium",
+  "options": [
+   "P2",
+   "P4",
+   "P7"
+  ]
+ },
+ {
+  "id": "MD-059",
+  "family": "Cardiology",
+  "model": "KardiaMobile 6L / Apple Watch ECG",
+  "manufacturer": "AliveCor / Apple",
+  "ohUse": "Consented symptom-triggered ECG for crew with palpitations (clinician-released)",
+  "connectivity": "P3 BLE via app; P6 KardiaPro API / HealthKit PDF",
+  "protocol": "KardiaPro; Apple Health export",
+  "fdaCodes": "DXH;QDA",
+  "sprint": "S11",
+  "confidence": "Medium",
+  "options": [
+   "P3",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-060",
+  "family": "Cardiology",
+  "model": "AED 3 / AED Plus / X Series",
+  "manufacturer": "ZOLL Medical",
+  "ohUse": "Public-access and responder defibrillators – readiness status and event data for case documentation",
+  "connectivity": "P6 ZOLL PlusTrac/ZOLL Online (Wi-Fi); P2 USB event download (RescueNet Code Review)",
+  "protocol": "PlusTrac; RescueNet",
+  "fdaCodes": "MKJ;NSA",
+  "sprint": "S12",
+  "confidence": "High",
+  "options": [
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-061",
+  "family": "Cardiology",
+  "model": "HeartStart FRx / FR3 / HS1",
+  "manufacturer": "Philips",
+  "ohUse": "Public-access AEDs",
+  "connectivity": "P2 data card / IR / Bluetooth to Event Review; P6 readiness programmes",
+  "protocol": "HeartStart Event Review",
+  "fdaCodes": "MKJ;NSA",
+  "sprint": "S12",
+  "confidence": "High",
+  "options": [
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-062",
+  "family": "Cardiology",
+  "model": "LIFEPAK CR2 / CR Plus",
+  "manufacturer": "Stryker (Physio-Control)",
+  "ohUse": "Public-access AEDs with cellular/Wi-Fi readiness reporting",
+  "connectivity": "P6 LIFELINKcentral API/export; P2 USB",
+  "protocol": "LIFELINKcentral / CODE-STAT",
+  "fdaCodes": "MKJ;NSA",
+  "sprint": "S12",
+  "confidence": "High",
+  "options": [
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-063",
+  "family": "Cardiology",
+  "model": "Powerheart G5",
+  "manufacturer": "ZOLL (Cardiac Science)",
+  "ohUse": "Public-access AEDs",
+  "connectivity": "P2 USB (AED Manager); P6 readiness",
+  "protocol": "AED Manager",
+  "fdaCodes": "MKJ;NSA",
+  "sprint": "S12",
+  "confidence": "Medium",
+  "options": [
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-064",
+  "family": "Vision & ophthalmic",
+  "model": "Titmus V4 / i400 / i500",
+  "manufacturer": "Titmus (Honeywell heritage)",
+  "ohUse": "Occupational vision screening – acuity, colour, depth, phoria, fields (FAA-accepted colour-vision tester; DOT; airside driving)",
+  "connectivity": "P2 i500 USB/Ethernet with Titmus software export (interfaced by OH platforms); P9 score sheet OCR (V4); P10 manual",
+  "protocol": "Titmus i-Series software",
+  "fdaCodes": "HOX;HIT",
+  "sprint": "S7",
+  "confidence": "High",
+  "options": [
+   "P2",
+   "P9",
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-065",
+  "family": "Vision & ophthalmic",
+  "model": "Optec 5000P / 5500P / 6500P / 2500 / Optec Plus",
+  "manufacturer": "Stereo Optical",
+  "ohUse": "Occupational vision screening (FAA-accepted OPTEC 900/2000/2500 for colour vision)",
+  "connectivity": "P1 RS-232/USB printer port on 'P' models; P9 OCR; P2 Optec Plus software export",
+  "protocol": "Optec Plus software",
+  "fdaCodes": "HOX;HIT",
+  "sprint": "S7",
+  "confidence": "Medium – verify per model",
+  "options": [
+   "P1",
+   "P2",
+   "P9"
+  ]
+ },
+ {
+  "id": "MD-066",
+  "family": "Vision & ophthalmic",
+  "model": "VS-V GT / CompuScreen / Telebinocular",
+  "manufacturer": "Keystone View",
+  "ohUse": "Vision screening (FAA-accepted Keystone Orthoscope/Telebinocular for colour vision)",
+  "connectivity": "P2 CompuScreen software export; P9/P10 for optical units",
+  "protocol": "Keystone CompuScreen",
+  "fdaCodes": "HOX;HIT",
+  "sprint": "S7",
+  "confidence": "Medium",
+  "options": [
+   "P2",
+   "P9",
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-067",
+  "family": "Vision & ophthalmic",
+  "model": "Vision-S 700 / Vision Screener",
+  "manufacturer": "Essilor Instruments",
+  "ohUse": "Computerised vision screening",
+  "connectivity": "P2 software export (PDF/CSV); P1 USB",
+  "protocol": "Essilor software",
+  "fdaCodes": "HOX",
+  "sprint": "S7",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-068",
+  "family": "Vision & ophthalmic",
+  "model": "Spot Vision Screener VS100",
+  "manufacturer": "Welch Allyn (Baxter/Hillrom)",
+  "ohUse": "Photoscreening/refraction screening in campaigns",
+  "connectivity": "P4 Wi-Fi/USB export (PDF/CSV); HL7 option",
+  "protocol": "Spot connectivity",
+  "fdaCodes": "HKO (refractor, auto – verify)",
+  "sprint": "S7",
+  "confidence": "Medium",
+  "options": [
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-069",
+  "family": "Vision & ophthalmic",
+  "model": "Digital visual-acuity systems (e.g., M&S Smart System, CSV-1000)",
+  "manufacturer": "M&S Technologies / VectorVision",
+  "ohUse": "Digital acuity and contrast sensitivity for pilots/ATCOs",
+  "connectivity": "P2 software export; P9",
+  "protocol": "Vendor software",
+  "fdaCodes": "QTO;HOX",
+  "sprint": "S7",
+  "confidence": "Medium",
+  "options": [
+   "P2",
+   "P9"
+  ]
+ },
+ {
+  "id": "MD-070",
+  "family": "Vision & ophthalmic",
+  "model": "Ishihara 38-plate / HRR / Farnsworth D-15 / Lanthony",
+  "manufacturer": "Kanehara / Richmond Products",
+  "ohUse": "Colour-vision testing (FAA/EASA accepted PIP plates; airside and electrical work)",
+  "connectivity": "P10 manual with attestation; P9 score-sheet OCR",
+  "protocol": "n/a",
+  "fdaCodes": "HIT",
+  "sprint": "S7",
+  "confidence": "High",
+  "options": [
+   "P9",
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-071",
+  "family": "Vision & ophthalmic",
+  "model": "CAD test (Colour Assessment & Diagnosis) / Waggoner CCVT",
+  "manufacturer": "City Occupational / Waggoner Diagnostics",
+  "ohUse": "Computerised colour-vision assessment (UK CAA/EASA Class 1 and ATCO practice)",
+  "connectivity": "P2 software export (CSV/PDF)",
+  "protocol": "Vendor PC software",
+  "fdaCodes": "HIT",
+  "sprint": "S7",
+  "confidence": "Medium",
+  "options": [
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-072",
+  "family": "Vision & ophthalmic",
+  "model": "Humphrey Field Analyzer HFA3",
+  "manufacturer": "Carl Zeiss Meditec",
+  "ohUse": "Visual fields for Class 1/3 initial and glaucoma follow-up",
+  "connectivity": "P7 DICOM via FORUM; P4 XML export",
+  "protocol": "ZEISS FORUM",
+  "fdaCodes": "HPT",
+  "sprint": "S12",
+  "confidence": "High",
+  "options": [
+   "P4",
+   "P7"
+  ]
+ },
+ {
+  "id": "MD-073",
+  "family": "Vision & ophthalmic",
+  "model": "Easyfield / Centerfield",
+  "manufacturer": "OCULUS",
+  "ohUse": "Perimetry in aeromedical centres",
+  "connectivity": "P1 USB; P2 OCULUS software export (GDT/PDF)",
+  "protocol": "OCULUS software",
+  "fdaCodes": "HPT",
+  "sprint": "S12",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-074",
+  "family": "Vision & ophthalmic",
+  "model": "iCare IC100 / IC200 / Reichert 7CR",
+  "manufacturer": "iCare / Reichert",
+  "ohUse": "Intra-ocular pressure screening",
+  "connectivity": "P1 USB; P3 BLE (iCare EXPORT/CLINIC); P1 RS-232 (7CR)",
+  "protocol": "iCare EXPORT / CLINIC",
+  "fdaCodes": "HKX;HKY",
+  "sprint": "S7",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-075",
+  "family": "Vision & ophthalmic",
+  "model": "TRC-NW400 / CR-2 AF / Aurora",
+  "manufacturer": "Topcon / Canon / Optomed",
+  "ohUse": "Retinal imaging (diabetic crew, hypertension)",
+  "connectivity": "P7 DICOM; P2 JPEG export",
+  "protocol": "Vendor viewers / PACS",
+  "fdaCodes": "HKI;PJZ",
+  "sprint": "S12",
+  "confidence": "High",
+  "options": [
+   "P2",
+   "P7"
+  ]
+ },
+ {
+  "id": "MD-076",
+  "family": "Vision & ophthalmic",
+  "model": "Autorefractor/keratometer KR-800 / CV-5000",
+  "manufacturer": "Topcon",
+  "ohUse": "Refraction support in aeromedical ophthalmology",
+  "connectivity": "P1 RS-232; P7 DICOM/XML",
+  "protocol": "Topcon IMAGEnet",
+  "fdaCodes": "HKO (verify)",
+  "sprint": "S12",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P7"
+  ]
+ },
+ {
+  "id": "MD-077",
+  "family": "Vision & ophthalmic",
+  "model": "iExaminer / Firefly DE500 (digital otoscope/ophthalmoscope)",
+  "manufacturer": "Welch Allyn / Firefly",
+  "ohUse": "Image capture for ENT and fundus documentation, tele-consultation from outstations",
+  "connectivity": "P9 image capture via app; P6 cloud",
+  "protocol": "Vendor apps",
+  "fdaCodes": "ERA;HLJ",
+  "sprint": "S12",
+  "confidence": "Medium",
+  "options": [
+   "P6",
+   "P9"
+  ]
+ },
+ {
+  "id": "MD-078",
+  "family": "Point-of-care laboratory",
+  "model": "Hb 201+ / Hb 801",
+  "manufacturer": "HemoCue (Radiometer)",
+  "ohUse": "Haemoglobin at pre-employment, aviation medicals and wellness",
+  "connectivity": "P1 USB/serial; P5 HemoCue 801 Connect (POCT1-A)",
+  "protocol": "HemoCue 801 Connect",
+  "fdaCodes": "GKR;KHG",
+  "sprint": "S8",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-079",
+  "family": "Point-of-care laboratory",
+  "model": "WBC DIFF",
+  "manufacturer": "HemoCue (Radiometer)",
+  "ohUse": "Point-of-care white-cell differential",
+  "connectivity": "P1 USB; P5",
+  "protocol": "HemoCue 801 Connect",
+  "fdaCodes": "GKR",
+  "sprint": "S8",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-080",
+  "family": "Point-of-care laboratory",
+  "model": "i-STAT 1 / i-STAT Alinity",
+  "manufacturer": "Abbott",
+  "ohUse": "Blood gases, electrolytes, metabolites, cardiac markers in medical response rooms",
+  "connectivity": "P5 downloader/base station → Abbott Info HQ / RALS (POCT1-A, HL7)",
+  "protocol": "Abbott Info HQ / RALS",
+  "fdaCodes": "CGA;JJX (multi – verify)",
+  "sprint": "S8",
+  "confidence": "High",
+  "options": [
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-081",
+  "family": "Point-of-care laboratory",
+  "model": "Afinion 2",
+  "manufacturer": "Abbott",
+  "ohUse": "HbA1c, lipid panel, CRP, ACR in wellness and diabetic-crew monitoring",
+  "connectivity": "P5 POCT1-A to data manager; P1 USB/Ethernet",
+  "protocol": "Abbott Info HQ / third-party DMS",
+  "fdaCodes": "PDJ;CHH",
+  "sprint": "S8",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-082",
+  "family": "Point-of-care laboratory",
+  "model": "Cholestech LDX",
+  "manufacturer": "Abbott",
+  "ohUse": "Lipid profile and glucose in wellness screening",
+  "connectivity": "P1 serial/Ethernet; P5 POCT1-A via LDX data connectivity",
+  "protocol": "Cholestech connectivity / DMS",
+  "fdaCodes": "CHH;NBW",
+  "sprint": "S8",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-083",
+  "family": "Point-of-care laboratory",
+  "model": "DCA Vantage",
+  "manufacturer": "Siemens Healthineers",
+  "ohUse": "HbA1c and ACR",
+  "connectivity": "P1 serial; P5 POCT1-A (POCcelerator)",
+  "protocol": "Siemens POCcelerator",
+  "fdaCodes": "PDJ",
+  "sprint": "S8",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-084",
+  "family": "Point-of-care laboratory",
+  "model": "cobas b 101 / cobas h 232",
+  "manufacturer": "Roche Diagnostics",
+  "ohUse": "HbA1c/lipids/CRP; cardiac markers",
+  "connectivity": "P4/P5 Wi-Fi/Ethernet to cobas infinity POC (POCT1-A)",
+  "protocol": "cobas infinity POC / cobas IT 1000",
+  "fdaCodes": "PDJ;CHH",
+  "sprint": "S8",
+  "confidence": "High",
+  "options": [
+   "P4",
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-085",
+  "family": "Point-of-care laboratory",
+  "model": "StatStrip Glucose/Ketone",
+  "manufacturer": "Nova Biomedical",
+  "ohUse": "Glucose in medical response and diabetes programmes",
+  "connectivity": "P4/P5 Ethernet/Wi-Fi (POCT1-A, NovaNet)",
+  "protocol": "NovaNet",
+  "fdaCodes": "PZI;NBW",
+  "sprint": "S8",
+  "confidence": "High",
+  "options": [
+   "P4",
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-086",
+  "family": "Point-of-care laboratory",
+  "model": "Accu-Chek Inform II / FreeStyle Precision Pro",
+  "manufacturer": "Roche / Abbott",
+  "ohUse": "Hospital-grade glucose meters",
+  "connectivity": "P5 base unit / Wi-Fi to cobas IT 1000 / PrecisionWeb (POCT1-A)",
+  "protocol": "cobas IT 1000 / PrecisionWeb",
+  "fdaCodes": "PZI;NBW",
+  "sprint": "S8",
+  "confidence": "High",
+  "options": [
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-087",
+  "family": "Point-of-care laboratory",
+  "model": "Clinitek Status+ / Status Connect",
+  "manufacturer": "Siemens Healthineers",
+  "ohUse": "Urinalysis strips (aviation medicals, pre-employment, drug-test adulteration checks)",
+  "connectivity": "P1 serial; P4/P5 Ethernet via Clinitek Status Connect (POCT1-A)",
+  "protocol": "Clinitek Status Connect / POCcelerator",
+  "fdaCodes": "KQO",
+  "sprint": "S8",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P4",
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-088",
+  "family": "Point-of-care laboratory",
+  "model": "Urisys 1100 / cobas u 411",
+  "manufacturer": "Roche Diagnostics",
+  "ohUse": "Urinalysis readers",
+  "connectivity": "P1 serial; P5 cobas infinity POC",
+  "protocol": "cobas infinity POC",
+  "fdaCodes": "KQO",
+  "sprint": "S8",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-089",
+  "family": "Point-of-care laboratory",
+  "model": "LeadCare II",
+  "manufacturer": "Magellan Diagnostics (Meridian)",
+  "ohUse": "Blood lead for OSHA 1910.1025-type surveillance (battery, paint, firing-range, engineering)",
+  "connectivity": "P9 display/printout OCR with verification; P10 manual; P1 printer port (verify data output)",
+  "protocol": "Built-in printer",
+  "fdaCodes": "DOF",
+  "sprint": "S8",
+  "confidence": "Medium – verify",
+  "options": [
+   "P1",
+   "P9",
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-090",
+  "family": "Point-of-care laboratory",
+  "model": "Hemo Control / DiaSpect Tm",
+  "manufacturer": "EKF Diagnostics",
+  "ohUse": "Haemoglobin screening",
+  "connectivity": "P1 USB; P2 export",
+  "protocol": "EKF software",
+  "fdaCodes": "GKR;KHG",
+  "sprint": "S8",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-091",
+  "family": "Point-of-care laboratory",
+  "model": "Sofia 2 / ID NOW",
+  "manufacturer": "QuidelOrtho / Abbott",
+  "ohUse": "Respiratory infection testing (outbreak and fitness-to-fly decisions)",
+  "connectivity": "P4/P5 Ethernet/Wi-Fi (Virena / POCT1-A)",
+  "protocol": "Virena / Abbott DMS",
+  "fdaCodes": "OOI;QKP (verify)",
+  "sprint": "S8",
+  "confidence": "Medium",
+  "options": [
+   "P4",
+   "P5"
+  ]
+ },
+ {
+  "id": "MD-092",
+  "family": "Point-of-care laboratory",
+  "model": "Test-mate ChE (cholinesterase)",
+  "manufacturer": "EQM Research",
+  "ohUse": "Cholinesterase monitoring for pesticide/organophosphate exposure (aircraft disinsection, grounds)",
+  "connectivity": "P9 OCR/P10 manual; P1 serial (verify)",
+  "protocol": "n/a",
+  "fdaCodes": "n/a (verify)",
+  "sprint": "S8",
+  "confidence": "Low",
+  "options": [
+   "P1",
+   "P9",
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-093",
+  "family": "Point-of-care laboratory",
+  "model": "Laboratory information system (reference labs)",
+  "manufacturer": "Various (Quest, LabCorp, hospital labs)",
+  "ohUse": "Send-out results: blood lead, biological monitoring, D&A confirmations, serology",
+  "connectivity": "P4 HL7 ORU/ORM; P8 FHIR DiagnosticReport; P6 lab portals",
+  "protocol": "LIS interfaces",
+  "fdaCodes": "n/a",
+  "sprint": "S8",
+  "confidence": "High",
+  "options": [
+   "P4",
+   "P6",
+   "P8"
+  ]
+ },
+ {
+  "id": "MD-094",
+  "family": "Drug & alcohol testing",
+  "model": "Alco-Sensor FST / Alco-Sensor IV",
+  "manufacturer": "Intoximeters",
+  "ohUse": "Alcohol screening (DOT ASD/EBT; EU 2018/1042 programmes; post-incident)",
+  "connectivity": "P1 RS-232/USB to printer or PC; P9 printout OCR",
+  "protocol": "Intoximeters software",
+  "fdaCodes": "n/a (NHTSA CPL)",
+  "sprint": "S9",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P9"
+  ]
+ },
+ {
+  "id": "MD-095",
+  "family": "Drug & alcohol testing",
+  "model": "EC/IR II (evidential breath tester)",
+  "manufacturer": "Intoximeters",
+  "ohUse": "Evidential confirmation testing",
+  "connectivity": "P1 serial/USB; P4 Ethernet download; P2 records export",
+  "protocol": "Intoximeters data software",
+  "fdaCodes": "n/a (NHTSA CPL)",
+  "sprint": "S9",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-096",
+  "family": "Drug & alcohol testing",
+  "model": "Alcotest 6820 / 7510 / 9510",
+  "manufacturer": "Dräger",
+  "ohUse": "Screening and evidential breath-alcohol testing (airports, ramp, crew programmes)",
+  "connectivity": "P1 USB/IR; P4 Ethernet (9510); P2 Dräger Diagnostics export; mobile printer",
+  "protocol": "Dräger Diagnostics software",
+  "fdaCodes": "n/a (NHTSA CPL for selected models)",
+  "sprint": "S9",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-097",
+  "family": "Drug & alcohol testing",
+  "model": "FC10 / FC20 / Phoenix 6.0 / LifeGuard",
+  "manufacturer": "Lifeloc Technologies",
+  "ohUse": "Workplace breath-alcohol testing",
+  "connectivity": "P1 USB; P2 EasyCal / Lifeloc software export; Bluetooth printer",
+  "protocol": "Lifeloc software",
+  "fdaCodes": "n/a (NHTSA CPL)",
+  "sprint": "S9",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-098",
+  "family": "Drug & alcohol testing",
+  "model": "BACtrack Mobile Pro / C6 / Workplace",
+  "manufacturer": "BACtrack",
+  "ohUse": "Connected screening devices",
+  "connectivity": "P3 BLE via app; P6 BACtrack API",
+  "protocol": "BACtrack platform",
+  "fdaCodes": "n/a",
+  "sprint": "S9",
+  "confidence": "Medium",
+  "options": [
+   "P3",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-099",
+  "family": "Drug & alcohol testing",
+  "model": "DrugTest 5000 (oral fluid)",
+  "manufacturer": "Dräger",
+  "ohUse": "On-site oral-fluid drug screening with instrumented read",
+  "connectivity": "P1 RS-232/USB; P2 Dräger Diagnostics export; printer",
+  "protocol": "Dräger Diagnostics",
+  "fdaCodes": "PJD (collection) – analyser n/a (verify)",
+  "sprint": "S9",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-100",
+  "family": "Drug & alcohol testing",
+  "model": "DDS2 Mobile Test System",
+  "manufacturer": "Abbott (Alere)",
+  "ohUse": "Oral-fluid drug screening reader",
+  "connectivity": "P1 USB; P2 software export; printer",
+  "protocol": "DDS2 software",
+  "fdaCodes": "PJD (verify)",
+  "sprint": "S9",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-101",
+  "family": "Drug & alcohol testing",
+  "model": "eCup / eReader / eScreen123",
+  "manufacturer": "Abbott (eScreen)",
+  "ohUse": "Instrumented urine drug screening with electronic chain of custody",
+  "connectivity": "P6 eScreen web services (results, eCCF)",
+  "protocol": "eScreen123 portal",
+  "fdaCodes": "PVJ;PVA;PVH;PUX;PVD;PUZ",
+  "sprint": "S9",
+  "confidence": "High",
+  "options": [
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-102",
+  "family": "Drug & alcohol testing",
+  "model": "iCup / T-Cup / QuickTox (visual cups)",
+  "manufacturer": "Abbott / various",
+  "ohUse": "Visual-read urine drug screens",
+  "connectivity": "P9 photo + OCR of cup window with verification; P10 manual",
+  "protocol": "n/a",
+  "fdaCodes": "PVJ;PVA;PVH;PUX;PVD;PUZ",
+  "sprint": "S9",
+  "confidence": "High",
+  "options": [
+   "P9",
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-103",
+  "family": "Drug & alcohol testing",
+  "model": "DrugWipe + reader / DSR-Plus fingerprint",
+  "manufacturer": "Securetec / Intelligent Fingerprinting",
+  "ohUse": "Rapid screening alternatives",
+  "connectivity": "P9/P10; P1 USB (DSR-Plus)",
+  "protocol": "Vendor software",
+  "fdaCodes": "n/a (verify)",
+  "sprint": "S9",
+  "confidence": "Low",
+  "options": [
+   "P1",
+   "P9",
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-104",
+  "family": "Drug & alcohol testing",
+  "model": "Random-testing kiosks / vehicle interlocks",
+  "manufacturer": "Various (e.g., Dräger Interlock, airport kiosks)",
+  "ohUse": "Programme devices for random/pre-duty testing",
+  "connectivity": "P6 vendor cloud; P4 LAN",
+  "protocol": "Vendor platforms",
+  "fdaCodes": "n/a",
+  "sprint": "S9",
+  "confidence": "Low",
+  "options": [
+   "P4",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-105",
+  "family": "Respiratory protection & ergonomics",
+  "model": "PortaCount Pro+ 8038 / 8040 / 8048",
+  "manufacturer": "TSI Incorporated",
+  "ohUse": "Quantitative respirator fit testing (OSHA 1910.134 App. A; ISO 16975-3)",
+  "connectivity": "P2 FitPro Ultra database/CSV export; P6 TSI Link cloud; P1 USB/Ethernet",
+  "protocol": "FitPro Ultra; TSI Link ResPro (interfaced by OH platforms)",
+  "fdaCodes": "n/a (not a medical device)",
+  "sprint": "S10",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-106",
+  "family": "Respiratory protection & ergonomics",
+  "model": "Quantifit2",
+  "manufacturer": "OHD",
+  "ohUse": "Controlled negative pressure fit testing",
+  "connectivity": "P2 OHD Logic export; P6 OHD Connect; P1 USB/Wi-Fi",
+  "protocol": "OHD Logic / OHD Connect",
+  "fdaCodes": "n/a",
+  "sprint": "S10",
+  "confidence": "High",
+  "options": [
+   "P1",
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-107",
+  "family": "Respiratory protection & ergonomics",
+  "model": "AccuFIT 9000",
+  "manufacturer": "Accutec-IHS",
+  "ohUse": "Quantitative fit testing",
+  "connectivity": "P2 software export; P1 USB",
+  "protocol": "AccuFIT software",
+  "fdaCodes": "n/a",
+  "sprint": "S10",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-108",
+  "family": "Respiratory protection & ergonomics",
+  "model": "Jamar Plus+ / Jamar Smart dynamometer",
+  "manufacturer": "Performance Health",
+  "ohUse": "Grip strength in functional capacity and HAVS/MSD assessments",
+  "connectivity": "P3 BLE (Smart); P10 manual (Plus+)",
+  "protocol": "Jamar Smart app",
+  "fdaCodes": "HRW;LBB",
+  "sprint": "S10",
+  "confidence": "Medium",
+  "options": [
+   "P3",
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-109",
+  "family": "Respiratory protection & ergonomics",
+  "model": "E-LINK / Baseline evaluation systems",
+  "manufacturer": "Biometrics Ltd / Fabrication Enterprises",
+  "ohUse": "Functional capacity evaluation (grip, pinch, ROM)",
+  "connectivity": "P1 USB; P2 export",
+  "protocol": "E-LINK software",
+  "fdaCodes": "LBB",
+  "sprint": "S10",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-110",
+  "family": "Respiratory protection & ergonomics",
+  "model": "DPNCheck / NC-stat",
+  "manufacturer": "NeuroMetrix",
+  "ohUse": "Nerve-conduction screening (carpal tunnel in baggage/cargo/keyboard work)",
+  "connectivity": "P1 USB; P2 export",
+  "protocol": "NeuroMetrix software",
+  "fdaCodes": "JXE",
+  "sprint": "S10",
+  "confidence": "Medium",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-111",
+  "family": "Respiratory protection & ergonomics",
+  "model": "HAVwear / R-Link",
+  "manufacturer": "Reactec",
+  "ohUse": "Hand-arm vibration exposure monitoring (HSE)",
+  "connectivity": "P6 Reactec Analytics API",
+  "protocol": "Reactec Analytics",
+  "fdaCodes": "n/a",
+  "sprint": "S11",
+  "confidence": "High",
+  "options": [
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-112",
+  "family": "Respiratory protection & ergonomics",
+  "model": "HVLab vibrotactile / thermal aesthesiometer",
+  "manufacturer": "HVLab (ISVR)",
+  "ohUse": "HAVS tier 4/5 sensory testing",
+  "connectivity": "P2 software export; P1 USB",
+  "protocol": "HVLab software",
+  "fdaCodes": "LLN",
+  "sprint": "S10",
+  "confidence": "Low",
+  "options": [
+   "P1",
+   "P2"
+  ]
+ },
+ {
+  "id": "MD-113",
+  "family": "Respiratory protection & ergonomics",
+  "model": "Purdue pegboard / cold provocation",
+  "manufacturer": "Lafayette Instrument / clinical",
+  "ohUse": "HAVS dexterity and vascular tests",
+  "connectivity": "P10 manual with attestation",
+  "protocol": "n/a",
+  "fdaCodes": "n/a",
+  "sprint": "S10",
+  "confidence": "High",
+  "options": [
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-114",
+  "family": "Exposure & environment feeds",
+  "model": "dBadge2 noise dosimeter",
+  "manufacturer": "Casella",
+  "ohUse": "Personal noise dose (OSHA 1910.95 / EU 2003/10/EC) feeding hearing-conservation eligibility",
+  "connectivity": "P3 BLE (Airwave app); P2 Casella Insight export",
+  "protocol": "Casella Insight / Airwave",
+  "fdaCodes": "n/a",
+  "sprint": "S11",
+  "confidence": "High",
+  "options": [
+   "P2",
+   "P3"
+  ]
+ },
+ {
+  "id": "MD-115",
+  "family": "Exposure & environment feeds",
+  "model": "Edge 5 / SoundPro",
+  "manufacturer": "TSI (Quest) / 3M",
+  "ohUse": "Noise dosimetry and sound-level surveys",
+  "connectivity": "P2 DMS export; P6 TSI Link",
+  "protocol": "Detection Management Software; TSI Link",
+  "fdaCodes": "n/a",
+  "sprint": "S11",
+  "confidence": "High",
+  "options": [
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-116",
+  "family": "Exposure & environment feeds",
+  "model": "Kestrel 5400 Heat Stress Tracker / QUESTemp 44-46",
+  "manufacturer": "Kestrel (Nielsen-Kellerman) / TSI",
+  "ohUse": "WBGT heat-stress monitoring driving heat campaigns and nudges (ISO 7243, NIOSH)",
+  "connectivity": "P3 BLE (Kestrel LiNK); P2 export; P6 TSI Link",
+  "protocol": "Kestrel LiNK; TSI Link",
+  "fdaCodes": "n/a",
+  "sprint": "S11",
+  "confidence": "High",
+  "options": [
+   "P2",
+   "P3",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-117",
+  "family": "Exposure & environment feeds",
+  "model": "X-dock / IntelliDoX / GALAXY GX2 docking stations",
+  "manufacturer": "Dräger / Honeywell / MSA",
+  "ohUse": "Gas-detector exposure logs (confined space, fuel farms, cargo fumigants)",
+  "connectivity": "P4 network/P2 export",
+  "protocol": "Dräger GasVision; Honeywell Safety Suite; MSA Link Pro",
+  "fdaCodes": "n/a",
+  "sprint": "S11",
+  "confidence": "Medium",
+  "options": [
+   "P2",
+   "P4"
+  ]
+ },
+ {
+  "id": "MD-118",
+  "family": "Exposure & environment feeds",
+  "model": "Personal electronic dosimeters & readers",
+  "manufacturer": "Mirion / Thermo Fisher",
+  "ohUse": "Ionising radiation dose for cargo screening and NDT staff; aircrew cosmic dose computed (CARI-7/SIEVERT)",
+  "connectivity": "P2 reader software export; P6 dose-computation services",
+  "protocol": "Vendor readers; dose services",
+  "fdaCodes": "n/a",
+  "sprint": "S11",
+  "confidence": "Medium",
+  "options": [
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-119",
+  "family": "Exposure & environment feeds",
+  "model": "Airport weather / heat-index feeds (METAR, site sensors)",
+  "manufacturer": "Airport authority / met services",
+  "ohUse": "Environmental conditions auto-filled on incident reports and campaign triggers",
+  "connectivity": "P6 API",
+  "protocol": "Weather APIs",
+  "fdaCodes": "n/a",
+  "sprint": "S11",
+  "confidence": "High",
+  "options": [
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-120",
+  "family": "Wearables & personal health",
+  "model": "Kenzen Patch / SlateSafety BAND V2",
+  "manufacturer": "Kenzen / SlateSafety",
+  "ohUse": "Physiological heat-strain monitoring for ramp, cargo and catering teams (consented)",
+  "connectivity": "P6 vendor cloud API (OAuth2)",
+  "protocol": "Kenzen / SlateSafety dashboards and APIs",
+  "fdaCodes": "n/a (wellness)",
+  "sprint": "S11",
+  "confidence": "High",
+  "options": [
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-121",
+  "family": "Wearables & personal health",
+  "model": "Garmin / Apple Watch / Fitbit / Oura / WHOOP",
+  "manufacturer": "Garmin / Apple / Google / Oura / WHOOP",
+  "ohUse": "Activity, sleep and HR summaries for wellness and FRMS research under consent",
+  "connectivity": "P6 Garmin Health API, HealthKit, Health Connect, Fitbit Web API, Oura API; P8 FHIR via aggregator",
+  "protocol": "Platform APIs / aggregators",
+  "fdaCodes": "QDA (ECG apps)",
+  "sprint": "S11",
+  "confidence": "High",
+  "options": [
+   "P6",
+   "P8"
+  ]
+ },
+ {
+  "id": "MD-122",
+  "family": "Wearables & personal health",
+  "model": "ReadiBand / PVT apps",
+  "manufacturer": "Fatigue Science / Joggle Research",
+  "ohUse": "Fatigue risk monitoring and psychomotor vigilance (crew, drivers)",
+  "connectivity": "P6 API; P2 export",
+  "protocol": "Vendor platforms",
+  "fdaCodes": "n/a",
+  "sprint": "S11",
+  "confidence": "Medium",
+  "options": [
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-123",
+  "family": "Wearables & personal health",
+  "model": "WatchPAT ONE / ApneaLink Air",
+  "manufacturer": "ZOLL Itamar / ResMed",
+  "ohUse": "Home sleep-apnoea testing for safety-critical roles",
+  "connectivity": "P6 CloudPAT; P2 USB (ApneaLink)",
+  "protocol": "CloudPAT; ApneaLink software",
+  "fdaCodes": "LEL;OLV (verify)",
+  "sprint": "S11",
+  "confidence": "Medium",
+  "options": [
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-124",
+  "family": "Wearables & personal health",
+  "model": "Posture / exertion wearables (e.g., Kinetic Reflex)",
+  "manufacturer": "Kinetic / various",
+  "ohUse": "Manual-handling risk feedback in baggage, cargo and catering",
+  "connectivity": "P6 API",
+  "protocol": "Vendor cloud",
+  "fdaCodes": "n/a",
+  "sprint": "S11",
+  "confidence": "Low",
+  "options": [
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-125",
+  "family": "Imaging & other",
+  "model": "Digital radiography (CXR) – Fujifilm, Carestream, Siemens, GE",
+  "manufacturer": "Various",
+  "ohUse": "Chest radiographs for silica/asbestos surveillance with ILO classification (B-reader)",
+  "connectivity": "P7 DICOM MWL/C-STORE to PACS; ILO reading worklist",
+  "protocol": "PACS/VNA",
+  "fdaCodes": "MQB (solid-state X-ray imager)",
+  "sprint": "S12",
+  "confidence": "High",
+  "options": [
+   "P7"
+  ]
+ },
+ {
+  "id": "MD-126",
+  "family": "Imaging & other",
+  "model": "Butterfly iQ+ / Vscan Air / Lumify (POCUS)",
+  "manufacturer": "Butterfly Network / GE / Philips",
+  "ohUse": "Point-of-care ultrasound in medical response and musculoskeletal assessment",
+  "connectivity": "P7 DICOM; P6 vendor cloud",
+  "protocol": "Butterfly Cloud; vendor apps",
+  "fdaCodes": "IYN;IYO (verify)",
+  "sprint": "S12",
+  "confidence": "Medium",
+  "options": [
+   "P6",
+   "P7"
+  ]
+ },
+ {
+  "id": "MD-127",
+  "family": "Imaging & other",
+  "model": "FotoFinder / DermLite + app",
+  "manufacturer": "FotoFinder / DermLite",
+  "ohUse": "Skin surveillance for UV-exposed ramp staff and chemical dermatitis documentation",
+  "connectivity": "P9 image capture; P6 cloud",
+  "protocol": "Vendor apps",
+  "fdaCodes": "n/a / class I",
+  "sprint": "S12",
+  "confidence": "Medium",
+  "options": [
+   "P6",
+   "P9"
+  ]
+ },
+ {
+  "id": "MD-128",
+  "family": "Imaging & other",
+  "model": "CogScreen-AE / CANTAB",
+  "manufacturer": "CogScreen LLC / Cambridge Cognition",
+  "ohUse": "Cognitive screening for pilots (FAA/EASA practice)",
+  "connectivity": "P2 software export; P6 cloud",
+  "protocol": "Vendor software",
+  "fdaCodes": "n/a (software)",
+  "sprint": "S12",
+  "confidence": "Medium",
+  "options": [
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-129",
+  "family": "Imaging & other",
+  "model": "Fridge-tag 2L / Saveris 2 / TempTale",
+  "manufacturer": "Berlinger / Testo / Sensitech",
+  "ohUse": "Vaccine cold-chain evidence for immunisation records",
+  "connectivity": "P6 cloud API; P2 export",
+  "protocol": "Vendor clouds",
+  "fdaCodes": "n/a",
+  "sprint": "S11",
+  "confidence": "High",
+  "options": [
+   "P2",
+   "P6"
+  ]
+ },
+ {
+  "id": "MD-130",
+  "family": "Imaging & other",
+  "model": "Barcode/label printers and scanners (Zebra, Honeywell)",
+  "manufacturer": "Zebra / Honeywell",
+  "ohUse": "Specimen and employee identification at stations and screening days",
+  "connectivity": "P1 USB HID / network",
+  "protocol": "Zebra Link-OS",
+  "fdaCodes": "n/a",
+  "sprint": "S1",
+  "confidence": "High",
+  "options": [
+   "P1"
+  ]
+ },
+ {
+  "id": "MD-131",
+  "family": "Imaging & other",
+  "model": "Capsule MDIP / CareAware iBus / Masimo Iris / Mindray eGateway (device gateways)",
+  "manufacturer": "Philips / Oracle Health / Masimo / Mindray",
+  "ohUse": "Existing hospital-style gateways in partner hospitals or WellnessZ tenants – consumed as HL7/FHIR sources rather than re-integrated",
+  "connectivity": "P4 HL7 MLLP (PCD-01); P8 FHIR",
+  "protocol": "Vendor gateways",
+  "fdaCodes": "n/a (software/MDDS)",
+  "sprint": "S1",
+  "confidence": "High",
+  "options": [
+   "P4",
+   "P8"
+  ]
+ },
+ {
+  "id": "MD-132",
+  "family": "Imaging & other",
+  "model": "Tonometer, otoscope, ophthalmoscope, stethoscope (manual instruments)",
+  "manufacturer": "Welch Allyn, Heine, Keeler, Riester",
+  "ohUse": "Routine examination instruments without data output",
+  "connectivity": "P10 manual",
+  "protocol": "n/a",
+  "fdaCodes": "HKY;ERA;HLJ;LDE",
+  "sprint": "n/a",
+  "confidence": "High",
+  "options": [
+   "P10"
+  ]
+ },
+ {
+  "id": "MD-133",
+  "family": "Imaging & other",
+  "model": "Snellen/LogMAR charts, near-vision cards, tuning forks, peak-flow (manual)",
+  "manufacturer": "Various",
+  "ohUse": "Manual tests per FAA/EASA equipment lists",
+  "connectivity": "P10 manual with attestation",
+  "protocol": "n/a",
+  "fdaCodes": "HOX",
+  "sprint": "n/a",
+  "confidence": "High",
+  "options": [
+   "P10"
+  ]
+ }
+]

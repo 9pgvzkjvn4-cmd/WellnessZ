@@ -115,7 +115,9 @@ public class ApiProxyController {
             // increment 4: E08 claim status for HR (status only)
             "/workspace/claims",
             // increment 5: E10 for-cause requests and duty status, E09 psychosocial risk register, E12 campaigns and ergonomic actions
-            "/workspace/testing", "/workspace/psychosocial", "/workspace/campaigns", "/workspace/ergonomics");
+            "/workspace/testing", "/workspace/psychosocial", "/workspace/campaigns", "/workspace/ergonomics",
+            // increment 6: E32 site device-fleet summary for clinic managers (counts and states only, no person data)
+            "/workspace/device-fleet");
 
     static boolean isCoreWorkspaceResource(String path) {
         return CORE_WORKSPACE_RESOURCES.stream().anyMatch(r -> path.equals(r) || path.startsWith(r + "/"));

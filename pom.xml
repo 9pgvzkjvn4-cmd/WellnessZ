@@ -42,6 +42,10 @@
     <module>modules/wz-e10-substance</module>
     <module>modules/wz-e11-travelhealth</module>
     <module>modules/wz-e12-promotion</module>
+    <module>modules/wz-e31-device-engine</module>
+    <module>modules/wz-e32-device-console</module>
+    <module>modules/wz-e33-device-capture</module>
+    <module>modules/wz-e34-device-security</module>
     <module>apps/wz-core-app</module>
     <module>apps/wz-bff</module>
   </modules>
@@ -92,6 +96,10 @@
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e10-substance</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e11-travelhealth</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e12-promotion</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e31-device-engine</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e32-device-console</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e33-device-capture</artifactId><version>${project.version}</version></dependency>
+      <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e34-device-security</artifactId><version>${project.version}</version></dependency>
 
       <dependency><groupId>ca.uhn.hapi.fhir</groupId><artifactId>hapi-fhir-structures-r4</artifactId><version>${hapi-fhir.version}</version></dependency>
       <dependency><groupId>ca.uhn.hapi</groupId><artifactId>hapi-base</artifactId><version>${hapi-hl7v2.version}</version></dependency>

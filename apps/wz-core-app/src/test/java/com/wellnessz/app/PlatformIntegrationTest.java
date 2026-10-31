@@ -296,11 +296,52 @@ class PlatformIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void increment6DevicePlatformBase() throws Exception {
+        // device console roles disclose nothing about people
+        for (String role : List.of("DEVICE_ADMIN", "DEVICE_APPROVER", "INTEGRATION_TESTER", "SECURITY_OPS")) {
+            mvc.perform(get("/api/v1/me").with(user(role.toLowerCase(), "S8901", "/AIRLINE", role)))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.maxDisclosure").value("NONE"));
+        }
+        // device ingest: own filter chain – no credentials, or a person's / integration bearer token, is refused
+        mvc.perform(post("/api/v1/device-ingest/hl7v2").contentType(MediaType.TEXT_PLAIN).content("MSH|^~\\&|"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("credentials_missing"));
+        mvc.perform(post("/api/v1/device-ingest/hl7v2").with(user("svc", null, null, "INTEGRATION"))
+                        .contentType(MediaType.TEXT_PLAIN).content("MSH|^~\\&|"))
+                .andExpect(status().isUnauthorized());
+        // a device token without the mTLS thumbprint is refused before E34 is even asked
+        mvc.perform(post("/api/v1/device-ingest/hl7v2").header("X-Device-Endpoint", "EP-TEST-01")
+                        .header("Authorization", "DeviceToken not-a-real-token").contentType(MediaType.TEXT_PLAIN).content("x"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("mtls_required"));
+        // unknown endpoint with both factors: refused (by E34, or fail-closed while E34 is not deployed)
+        mvc.perform(post("/api/v1/device-ingest/hl7v2").header("X-Device-Endpoint", "EP-TEST-01")
+                        .header("X-Client-Cert-Sha256", "ab".repeat(32)).header("Authorization", "DeviceToken not-a-real-token")
+                        .contentType(MediaType.TEXT_PLAIN).content("x"))
+                .andExpect(status().isUnauthorized());
+        // device credentials are not accepted on the user API
+        mvc.perform(get("/api/v1/me").header("X-Device-Endpoint", "EP-TEST-01").header("X-Client-Cert-Sha256", "ab".repeat(32))
+                        .header("Authorization", "DeviceToken not-a-real-token"))
+                .andExpect(status().isUnauthorized());
+        // schemas, retention classes and the E03 device provenance columns exist
+        assertThat(jdbc.queryForList("select schema_name from information_schema.schemata where schema_name in "
+                + "('deviceint','devicecat','devicecap','devicesec') order by 1", String.class))
+                .containsExactly("devicecap", "devicecat", "deviceint", "devicesec");
+        assertThat(jdbc.queryForList("select record_class from docs.retention_schedule where record_class like 'DEVICE_%' order by 1", String.class))
+                .containsExactly("DEVICE_CALIBRATION_QC", "DEVICE_CONFIGURATION", "DEVICE_RAW_PAYLOAD", "DEVICE_RAW_UNFILED", "DEVICE_SECURITY_EVENT");
+        assertThat(jdbc.queryForList("select column_name from information_schema.columns where table_schema = 'ohrecord' and table_name = 'result' "
+                + "and column_name in ('device_observation_id','capture_method','driver_version','verified_by','verified_at')", String.class)).hasSize(5);
+        assertThat(jdbc.queryForObject("select config_value from masterdata.config_entry where config_key = 'device.association.auto-file-threshold'",
+                String.class)).isEqualTo("0.95");
+    }
+
+    @Test
     void modulesCatalogueListsArchitecture() throws Exception {
         mvc.perform(get("/api/v1/modules").with(user("crew", "E1", null, "EMPLOYEE")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(18))
-                .andExpect(jsonPath("$[14].code").value("E15"));
+                .andExpect(jsonPath("$.length()").value(22))
+                .andExpect(jsonPath("$[14].code").value("E15"))
+                .andExpect(jsonPath("$[18].code").value("E31"))
+                .andExpect(jsonPath("$[18].delivery").value("IMPLEMENTED"))
+                .andExpect(jsonPath("$[21].code").value("E34"));
     }
 
     @Test

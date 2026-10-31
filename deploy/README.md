@@ -70,7 +70,8 @@ crewsched1, hygiene1, reception1, firstaider1` and (increment 2) `dpo1` (DPO) an
 (CLINIC_SCHEDULER), `biomed1` (BIOMEDICAL), `crewlicensing1` (CREW_LICENSING, `org_scope=/AIRLINE/OPS`) and
 `candidate1` (CANDIDATE, `employee_id=C9001`, `org_scope=/CANDIDATES`) and (increment 4) `claims1`
 (CLAIMS_COORDINATOR), `adjuster1` (TPA_ADJUSTER, `org_scope=/PARTNERS/GULFTPA`), `legal1` (LEGAL_COUNSEL), `finance1`
-(FINANCE), `procurement1` (PROCUREMENT) and `physio1` (PARTNER_PROVIDER, `org_scope=/PARTNERS/PHYSIOPLUS`) use the temporary password
+(FINANCE), `procurement1` (PROCUREMENT) and `physio1` (PARTNER_PROVIDER, `org_scope=/PARTNERS/PHYSIOPLUS`) and (increment 6) `deviceadmin1`
+(DEVICE_ADMIN), `deviceapprover1` (DEVICE_APPROVER), `inttester1` (INTEGRATION_TESTER) and `secops1` (SECURITY_OPS) use the temporary password
 `ChangeMe!123` and must change it on first login. The realm is imported only
 when it does not exist: after a realm change run `./down.sh --purge` and `./up.sh`.
 The BFF client allows redirects, post-logout redirects and web origins for the dev servers on 5173, 5174, 5175

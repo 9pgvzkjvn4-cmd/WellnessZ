@@ -23,7 +23,7 @@ spring:
     # migrations run with a separate owner role; the runtime role has DML-only grants
     user: ${WZ_DB_MIGRATOR_USERNAME:${WZ_DB_USERNAME:wz_app}}
     password: ${WZ_DB_MIGRATOR_PASSWORD:${WZ_DB_PASSWORD:}}
-    schemas: platform,masterdata,intake,casemgmt,analytics,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,treatment,claims,mentalhealth,substance,travelhealth,promotion
+    schemas: platform,masterdata,intake,casemgmt,analytics,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,treatment,claims,mentalhealth,substance,travelhealth,promotion,deviceint,devicecat,devicecap,devicesec
     locations: ${WZ_FLYWAY_LOCATIONS:classpath:db/migration}
     default-schema: platform
     create-schemas: true
@@ -138,6 +138,9 @@ wellnessz:
       # increment 5: campaign app (E12) and the safety management system (E09 aggregated peer-support figures)
       campaign-app: [messageId, campaignId, title, risk, startDate, endDate, targetUnits]
       sms-safety: [messageId, quarter, reportRef, category, count, base]
+      # increment 6: device security events to the SIEM (E34-F07, PHI-free, flat) and device fleet alerts to IT service management (E32-F05)
+      siem-device-security: [messageId, eventId, type, severity, endpointId, deviceInstanceId, siteCode, zone, sourceModule, reasonCode, actor, remoteAddress, protocol, port, rate, keyId, chainHash]
+      itsm-tickets: [messageId, ticketRef, deviceInstanceId, siteCode, alertType, severity, raisedAt]
   notification:
     quiet-hours:
       start: "21:00"
@@ -162,6 +165,12 @@ wellnessz:
     # ocr.tesseract-path: /usr/bin/tesseract
   case:
     diagnosis-required-on-close: ${WZ_DIAGNOSIS_REQUIRED_ON_CLOSE:true}
+  # increment 6: device / gateway machine traffic (kernel DeviceIngestSecurityConfig; E31 ingest, E34 authentication)
+  device:
+    ingest:
+      # SHA-256 thumbprint of the verified client certificate, set by the ingress (which must overwrite client-supplied values)
+      certificate-header: ${WZ_DEVICE_CERT_HEADER:X-Client-Cert-Sha256}
+      require-client-certificate: ${WZ_DEVICE_REQUIRE_CLIENT_CERT:true}
   ehs:
     source-system: ${WZ_EHS_SOURCE_SYSTEM:EHS}
     timezone: ${WZ_EHS_TIMEZONE:UTC}

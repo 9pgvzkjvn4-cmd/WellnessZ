@@ -44,7 +44,9 @@ public class ApiRateLimitFilter extends OncePerRequestFilter {
             chain.doFilter(request, response); // anonymous requests are rejected by authorisation anyway
             return;
         }
-        boolean machine = auth.getAuthorities().stream().anyMatch(a -> "ROLE_INTEGRATION".equals(a.getAuthority()));
+        // machine principals: integration clients and authenticated device / gateway endpoints (increment 6, E31 / E34)
+        boolean machine = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_INTEGRATION".equals(a.getAuthority()) || "ROLE_DEVICE_ENDPOINT".equals(a.getAuthority()));
         int perMinute = machine ? props.getIntegrationRateLimitPerMinute() : props.getRateLimitPerMinute();
         if (perMinute <= 0) {
             chain.doFilter(request, response);

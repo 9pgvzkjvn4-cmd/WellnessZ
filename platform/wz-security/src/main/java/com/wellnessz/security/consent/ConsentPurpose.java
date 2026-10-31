@@ -17,5 +17,7 @@ public enum ConsentPurpose {
     /** AI-assisted documentation of a consultation (ambient capture / dictation), E03-HLR-07. */
     AI_DOCUMENTATION,
     /** Video / secure-chat consultation with an OH clinician or partner specialist (E04-F07). */
-    TELEHEALTH_CONSULTATION
+    TELEHEALTH_CONSULTATION,
+    /** Self-measurement at a device kiosk (BP, weight / BMI, vision pre-screen) identified by badge (E33-HLR-07, increment 6). */
+    KIOSK_SELF_MEASUREMENT
 }

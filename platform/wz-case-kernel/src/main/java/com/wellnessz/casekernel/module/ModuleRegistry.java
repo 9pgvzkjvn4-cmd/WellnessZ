@@ -40,6 +40,11 @@ public class ModuleRegistry {
         CATALOGUE.put("E16", new String[]{"Identity, roles (ABAC), consent & immutable audit", "platform", "PLATFORM"});
         CATALOGUE.put("E17", new String[]{"Analytics, KPIs, regulatory reporting & predictive models", "platform", "PLATFORM"});
         CATALOGUE.put("E18", new String[]{"Master data, governance & no-code configuration", "platform", "PLATFORM"});
+        // increment 6 – medical device integration engine (client numbering E31–E34; E35 deployment is out of scope)
+        CATALOGUE.put("E31", new String[]{"Medical device integration engine – pipeline, adapters, normalisation & routing", "device", "PLANNED"});
+        CATALOGUE.put("E32", new String[]{"Device catalogue, administration & connectivity provisioning console", "device", "PLANNED"});
+        CATALOGUE.put("E33", new String[]{"Module-embedded device capture", "device", "PLANNED"});
+        CATALOGUE.put("E34", new String[]{"Endpoint & integration security", "device", "PLANNED"});
     }
 
     private final List<CaseModule> modules;

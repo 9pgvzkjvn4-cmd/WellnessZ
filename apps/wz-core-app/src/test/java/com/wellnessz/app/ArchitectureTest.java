@@ -21,7 +21,8 @@ class ArchitectureTest {
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.casekernel..", "com.wellnessz.ehsintake..",
                     "com.wellnessz.documents..", "com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..", "com.wellnessz.e05..",
                     "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..", "com.wellnessz.e08..",
-                    "com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e11..", "com.wellnessz.e12..");
+                    "com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e11..", "com.wellnessz.e12..",
+                    "com.wellnessz.e31..", "com.wellnessz.e32..", "com.wellnessz.e33..", "com.wellnessz.e34..");
 
     @ArchTest
     static final ArchRule kernelDoesNotDependOnBusinessModules = noClasses()
@@ -29,6 +30,7 @@ class ArchitectureTest {
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..",
                     "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..",
                     "com.wellnessz.e08..", "com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e11..", "com.wellnessz.e12..",
+                    "com.wellnessz.e31..", "com.wellnessz.e32..", "com.wellnessz.e33..", "com.wellnessz.e34..",
                     "com.wellnessz.documents..")
             .because("modules plug into the kernel through SPIs (CaseModule, CaseTransitionGuard, ChartContributor, events), never the reverse");
 
@@ -37,7 +39,8 @@ class ArchitectureTest {
             .that().resideInAPackage("com.wellnessz.documents..")
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..",
                     "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e14..", "com.wellnessz.e04..",
-                    "com.wellnessz.e08..", "com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e11..", "com.wellnessz.e12..")
+                    "com.wellnessz.e08..", "com.wellnessz.e09..", "com.wellnessz.e10..", "com.wellnessz.e11..", "com.wellnessz.e12..",
+                    "com.wellnessz.e31..", "com.wellnessz.e32..", "com.wellnessz.e33..", "com.wellnessz.e34..")
             .because("the business modules all use the document service; it must not know about any of them");
 
     @ArchTest
@@ -137,6 +140,49 @@ class ArchitectureTest {
             .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e03..", "com.wellnessz.e05..", "com.wellnessz.e06..",
                     "com.wellnessz.e07..")
             .because("scheduling never reads clinical content; it serves the other modules through SPIs");
+
+    // ---------------------------------------------------------------- increment 6: device integration engine (E31–E34)
+
+    static final String[] BUSINESS_MODULES = {"com.wellnessz.e01..", "com.wellnessz.e02..", "com.wellnessz.e03..", "com.wellnessz.e04..",
+        "com.wellnessz.e05..", "com.wellnessz.e06..", "com.wellnessz.e07..", "com.wellnessz.e08..", "com.wellnessz.e09..", "com.wellnessz.e10..",
+        "com.wellnessz.e11..", "com.wellnessz.e12..", "com.wellnessz.e14..", "com.wellnessz.ehsintake.."};
+    static final String[] DEVICE_MODULES = {"com.wellnessz.e31..", "com.wellnessz.e32..", "com.wellnessz.e33..", "com.wellnessz.e34.."};
+
+    @ArchTest
+    static final ArchRule earlierModulesDoNotDependOnDeviceModules = noClasses()
+            .that().resideInAnyPackage(BUSINESS_MODULES)
+            .should().dependOnClassesThat().resideInAnyPackage(DEVICE_MODULES)
+            .because("OH modules receive device results through the kernel DeviceObservationSink SPI (their own adapters), never from E31–E34 classes");
+
+    @ArchTest
+    static final ArchRule deviceModulesDoNotDependOnBusinessModules = noClasses()
+            .that().resideInAnyPackage(DEVICE_MODULES)
+            .should().dependOnClassesThat().resideInAnyPackage(BUSINESS_MODULES)
+            .because("the engine routes into OH modules only through com.wellnessz.casekernel.device SPIs (DeviceObservationSink, DeviceWorklistSource, DeviceEquipmentRegister)");
+
+    @ArchTest
+    static final ArchRule engineIsIndependentOfOtherDeviceModules = noClasses()
+            .that().resideInAPackage("com.wellnessz.e31..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e32..", "com.wellnessz.e33..", "com.wellnessz.e34..")
+            .because("E31 reads configuration through DeviceCatalogueLookup, sessions through DeviceCaptureSessions and authenticates through DeviceEndpointAuthenticator");
+
+    @ArchTest
+    static final ArchRule consoleIsIndependentOfOtherDeviceModules = noClasses()
+            .that().resideInAPackage("com.wellnessz.e32..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e31..", "com.wellnessz.e33..", "com.wellnessz.e34..")
+            .because("E32 uses DeviceDiagnostics (E31) and DeviceEndpointProvisioning / DevicePackageSignatures / DeviceSecretStore (E34) through the kernel");
+
+    @ArchTest
+    static final ArchRule captureIsIndependentOfOtherDeviceModules = noClasses()
+            .that().resideInAPackage("com.wellnessz.e33..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e31..", "com.wellnessz.e32..", "com.wellnessz.e34..")
+            .because("E33 uses DeviceObservationGateway (E31) and DeviceCatalogueLookup (E32) through the kernel");
+
+    @ArchTest
+    static final ArchRule securityIsIndependentOfOtherDeviceModules = noClasses()
+            .that().resideInAPackage("com.wellnessz.e34..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.wellnessz.e31..", "com.wellnessz.e32..", "com.wellnessz.e33..")
+            .because("E34 notifies E31 / E32 through DeviceEndpointStatusListener and reads configuration through DeviceCatalogueLookup");
 
     @ArchTest
     static final ArchRule intakeDoesNotDependOnTriage = noClasses()

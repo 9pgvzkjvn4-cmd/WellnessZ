@@ -105,7 +105,22 @@ public class NotificationTemplates {
             // increment 5 – E12 health promotion
             Map.entry("campaign.invitation", "Hi {{firstName}}, you are invited to {{reference}}. Book or join here: {{portalLink}}"),
             Map.entry("screening.follow-up", "Hi {{firstName}}, Occupational Health would like to follow up on your recent health check. Please book a time: {{portalLink}}"),
-            Map.entry("ergonomic.action-due", "Ergonomic action {{reference}} ({{unit}}) is due by {{dueDate}}. {{portalLink}}"));
+            Map.entry("ergonomic.action-due", "Ergonomic action {{reference}} ({{unit}}) is due by {{dueDate}}. {{portalLink}}"),
+            // increment 6 – E31–E34 device integration (content-free: device / endpoint reference, site, level, date – never a value,
+            // a measurement type of a named person, or an employee id)
+            Map.entry("device.calibration-due", "Calibration or daily check for device {{reference}} at {{site}} is due by {{dueDate}}. {{portalLink}}"),
+            Map.entry("device.locked-out", "Device {{reference}} at {{site}} is locked for capture until its calibration or quality check is recorded. {{portalLink}}"),
+            Map.entry("device.connector-alert", "Device connection alert ({{level}}) for {{reference}} at {{site}}. {{portalLink}}"),
+            Map.entry("device.unmatched-queue", "Device readings at {{site}} are waiting to be matched to an employee ({{level}}). {{portalLink}}"),
+            Map.entry("device.verification-pending", "A device reading on case {{caseRef}} is waiting for your verification. {{portalLink}}"),
+            Map.entry("device.approval-required", "Device configuration change {{reference}} needs your approval as the second reviewer. {{portalLink}}"),
+            Map.entry("device.certified", "Device configuration {{reference}} for {{site}} has been certified and can be published. {{portalLink}}"),
+            Map.entry("device.model-request-update", "Your device model request {{reference}} has moved to {{level}}. {{portalLink}}"),
+            Map.entry("device.security-alert", "Device security alert ({{level}}) on endpoint {{reference}} at {{site}}. Open the security console: {{portalLink}}"),
+            Map.entry("device.endpoint-isolated", "Endpoint {{reference}} at {{site}} has been isolated; re-certification is required before it reconnects. {{portalLink}}"),
+            Map.entry("device.certificate-expiring", "The certificate of endpoint {{reference}} expires on {{dueDate}}. Please renew it: {{portalLink}}"),
+            Map.entry("device.gateway-backlog", "Gateway {{reference}} at {{site}} is holding data offline ({{level}}). {{portalLink}}"),
+            Map.entry("device.summary-available", "Hi {{firstName}}, a summary of your recent health check is available. Please sign in: {{portalLink}}"));
 
     /** Approved template keys (for governance review and tests). */
     public java.util.Set<String> keys() {

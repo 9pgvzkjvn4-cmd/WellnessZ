@@ -566,6 +566,10 @@ character, not the user name or e-mail, not one of the last 5). The increment E2
 | `promo1` | HEALTH_PROMOTION_LEAD | S8807 · /AIRLINE | Increment 5: health promotion campaigns |
 | `ergo1` | ERGONOMIST | S8808 · /AIRLINE | Increment 5: ergonomics |
 | `eap1` | PARTNER_PROVIDER | X8809 · /PARTNERS/EAP_WELLBEING | Increment 5: employee-assistance provider |
+| `deviceadmin1` | DEVICE_ADMIN | S8901 · /AIRLINE | Increment 6: device catalogue, provisioning wizard, fleet, calibration / QC |
+| `deviceapprover1` | DEVICE_APPROVER | S8902 · /AIRLINE | Increment 6: four-eyes approval of device certifications and changes |
+| `inttester1` | INTEGRATION_TESTER | S8903 · /AIRLINE | Increment 6: driver packages, simulators, conformance tests |
+| `secops1` | SECURITY_OPS | S8904 · /AIRLINE | Increment 6: endpoint identities, device security events, isolation |
 
 Machine client: `wellnessz-integration` (client credentials, role INTEGRATION, secret `change-me-local-only`) – used
 by the E2E scripts and the `curl` checks above. Clients `wellnessz-bff` (confidential, redirect URIs for
