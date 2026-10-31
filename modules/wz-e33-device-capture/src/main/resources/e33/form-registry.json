@@ -1,0 +1,156 @@
+{
+  "registryVersion": "2026.10-1",
+  "forms": [
+    {"formCode": "E03.DEVICE_RESULT.AUDIOMETRY", "fieldGroups": [
+      {"group": "thresholds", "fields": [
+        {"path": "measurements.left.500", "label": "Left ear 500 Hz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.left.1000", "label": "Left ear 1 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.left.2000", "label": "Left ear 2 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.left.3000", "label": "Left ear 3 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.left.4000", "label": "Left ear 4 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.left.6000", "label": "Left ear 6 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.left.8000", "label": "Left ear 8 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": false},
+        {"path": "measurements.right.500", "label": "Right ear 500 Hz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.right.1000", "label": "Right ear 1 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.right.2000", "label": "Right ear 2 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.right.3000", "label": "Right ear 3 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.right.4000", "label": "Right ear 4 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.right.6000", "label": "Right ear 6 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": true},
+        {"path": "measurements.right.8000", "label": "Right ear 8 kHz", "type": "QUANTITY", "unit": "dB[HL]", "required": false}]},
+      {"group": "conditions", "fields": [
+        {"path": "measurements.transducer", "label": "Transducer", "type": "CODE", "required": true},
+        {"path": "measurements.booth", "label": "Booth", "type": "STRING", "required": false},
+        {"path": "measurements.ambientNoiseFlag", "label": "Ambient noise exceeded", "type": "BOOLEAN", "required": false},
+        {"path": "measurements.tester", "label": "Tester", "type": "STRING", "required": false}]}]},
+    {"formCode": "E03.DEVICE_RESULT.SPIROMETRY", "fieldGroups": [
+      {"group": "indices", "fields": [
+        {"path": "measurements.fev1L", "label": "FEV1", "type": "QUANTITY", "unit": "L", "required": true},
+        {"path": "measurements.fvcL", "label": "FVC", "type": "QUANTITY", "unit": "L", "required": true},
+        {"path": "measurements.fev1FvcRatio", "label": "FEV1/FVC", "type": "QUANTITY", "unit": "1", "required": true},
+        {"path": "measurements.pefLs", "label": "PEF", "type": "QUANTITY", "unit": "L/s", "required": false},
+        {"path": "measurements.fef2575Ls", "label": "FEF25-75", "type": "QUANTITY", "unit": "L/s", "required": false}]},
+      {"group": "quality", "fields": [
+        {"path": "measurements.atsErsGrade", "label": "ATS/ERS session grade", "type": "CODE", "required": true},
+        {"path": "measurements.bestTest", "label": "Best test", "type": "STRING", "required": false}]},
+      {"group": "predicted", "fields": [
+        {"path": "measurements.fev1PredictedL", "label": "FEV1 predicted (GLI-2012)", "type": "QUANTITY", "unit": "L", "required": false},
+        {"path": "measurements.fvcPredictedL", "label": "FVC predicted (GLI-2012)", "type": "QUANTITY", "unit": "L", "required": false},
+        {"path": "measurements.fev1PctPredicted", "label": "FEV1 % predicted", "type": "QUANTITY", "unit": "%", "required": false},
+        {"path": "measurements.fev1Lln", "label": "FEV1 lower limit of normal", "type": "QUANTITY", "unit": "L", "required": false}]}]},
+    {"formCode": "E03.DEVICE_RESULT.VISION", "fieldGroups": [
+      {"group": "acuity", "fields": [
+        {"path": "measurements.acuityRight", "label": "Right eye far acuity", "type": "STRING", "required": true},
+        {"path": "measurements.acuityLeft", "label": "Left eye far acuity", "type": "STRING", "required": true},
+        {"path": "measurements.binocular", "label": "Binocular far acuity", "type": "STRING", "required": true},
+        {"path": "measurements.nearBinocular", "label": "Binocular near acuity", "type": "STRING", "required": false},
+        {"path": "measurements.intermediateBinocular", "label": "Binocular intermediate acuity", "type": "STRING", "required": false},
+        {"path": "measurements.corrected", "label": "With correction", "type": "BOOLEAN", "required": true}]},
+      {"group": "colour", "fields": [
+        {"path": "measurements.colourMethod", "label": "Colour vision method", "type": "CODE", "required": false},
+        {"path": "measurements.colourResult", "label": "Colour vision result", "type": "CODE", "required": false}]},
+      {"group": "binocular-function", "fields": [
+        {"path": "measurements.stereopsisArcSec", "label": "Stereopsis", "type": "QUANTITY", "unit": "[arcsec]", "required": false},
+        {"path": "measurements.phoria", "label": "Phoria", "type": "STRING", "required": false},
+        {"path": "measurements.fieldsDeg", "label": "Horizontal field", "type": "QUANTITY", "unit": "deg", "required": false}]},
+      {"group": "template-DOT", "fields": [{"path": "measurements.binocular", "label": "Binocular far acuity (DOT 20/40)", "type": "STRING", "required": true}]},
+      {"group": "template-FAA_EASA", "fields": [{"path": "measurements.colourResult", "label": "Colour vision (FAA / EASA)", "type": "CODE", "required": true}]},
+      {"group": "template-DSE", "fields": [{"path": "measurements.intermediateBinocular", "label": "Screen distance acuity (DSE)", "type": "STRING", "required": true}]},
+      {"group": "template-AIRSIDE_DRIVING", "fields": [{"path": "measurements.fieldsDeg", "label": "Horizontal field (airside driving)", "type": "QUANTITY", "unit": "deg", "required": true}]}]},
+    {"formCode": "E03.DEVICE_RESULT.ECG", "fieldGroups": [
+      {"group": "measurements", "fields": [
+        {"path": "measurements.heartRate", "label": "Heart rate", "type": "QUANTITY", "unit": "/min", "required": true},
+        {"path": "measurements.prMs", "label": "PR interval", "type": "QUANTITY", "unit": "ms", "required": false},
+        {"path": "measurements.qrsMs", "label": "QRS duration", "type": "QUANTITY", "unit": "ms", "required": true},
+        {"path": "measurements.qtcMs", "label": "QTc", "type": "QUANTITY", "unit": "ms", "required": true}]},
+      {"group": "interpretation", "fields": [
+        {"path": "measurements.interpretation", "label": "Device interpretation (unverified until signed)", "type": "STRING", "required": false}]}]},
+    {"formCode": "E03.DEVICE_RESULT.VITALS", "fieldGroups": [
+      {"group": "blood-pressure", "fields": [
+        {"path": "measurements.systolic", "label": "Systolic", "type": "QUANTITY", "unit": "mm[Hg]", "required": true},
+        {"path": "measurements.diastolic", "label": "Diastolic", "type": "QUANTITY", "unit": "mm[Hg]", "required": true},
+        {"path": "measurements.cuffSize", "label": "Cuff size", "type": "CODE", "required": false},
+        {"path": "measurements.position", "label": "Position", "type": "CODE", "required": false},
+        {"path": "measurements.arm", "label": "Arm", "type": "CODE", "required": false},
+        {"path": "measurements.validationListed", "label": "ISO 81060-2 validated device", "type": "BOOLEAN", "required": false}]},
+      {"group": "vital-signs", "fields": [
+        {"path": "measurements.pulse", "label": "Pulse", "type": "QUANTITY", "unit": "/min", "required": false},
+        {"path": "measurements.spo2", "label": "SpO2", "type": "QUANTITY", "unit": "%", "required": false},
+        {"path": "measurements.temperatureC", "label": "Temperature", "type": "QUANTITY", "unit": "Cel", "required": false}]}]},
+    {"formCode": "E03.DEVICE_RESULT.BODY_COMPOSITION", "fieldGroups": [
+      {"group": "anthropometry", "fields": [
+        {"path": "measurements.heightCm", "label": "Height", "type": "QUANTITY", "unit": "cm", "required": true},
+        {"path": "measurements.weightKg", "label": "Weight", "type": "QUANTITY", "unit": "kg", "required": true},
+        {"path": "measurements.bmi", "label": "BMI", "type": "QUANTITY", "unit": "kg/m2", "required": false},
+        {"path": "measurements.waistCm", "label": "Waist", "type": "QUANTITY", "unit": "cm", "required": false}]},
+      {"group": "impedance", "fields": [
+        {"path": "measurements.fatPct", "label": "Body fat", "type": "QUANTITY", "unit": "%", "required": false},
+        {"path": "measurements.muscleMassKg", "label": "Muscle mass", "type": "QUANTITY", "unit": "kg", "required": false},
+        {"path": "measurements.waterPct", "label": "Body water", "type": "QUANTITY", "unit": "%", "required": false}]}]},
+    {"formCode": "E03.DEVICE_RESULT.ABPM_HOLTER", "fieldGroups": [
+      {"group": "indices", "fields": [
+        {"path": "measurements.meanDaySystolic", "label": "Mean day systolic", "type": "QUANTITY", "unit": "mm[Hg]", "required": false},
+        {"path": "measurements.meanDayDiastolic", "label": "Mean day diastolic", "type": "QUANTITY", "unit": "mm[Hg]", "required": false},
+        {"path": "measurements.meanNightSystolic", "label": "Mean night systolic", "type": "QUANTITY", "unit": "mm[Hg]", "required": false},
+        {"path": "measurements.meanNightDiastolic", "label": "Mean night diastolic", "type": "QUANTITY", "unit": "mm[Hg]", "required": false},
+        {"path": "measurements.dippingPct", "label": "Nocturnal dipping", "type": "QUANTITY", "unit": "%", "required": false},
+        {"path": "measurements.interpretation", "label": "Device interpretation (unverified until signed)", "type": "STRING", "required": false}]}]},
+    {"formCode": "E03.DEVICE_RESULT.POC", "fieldGroups": [
+      {"group": "analytes", "fields": [
+        {"path": "measurements.hba1c", "label": "HbA1c", "type": "QUANTITY", "unit": "%", "required": false},
+        {"path": "measurements.glucoseMmol", "label": "Glucose", "type": "QUANTITY", "unit": "mmol/L", "required": false},
+        {"path": "measurements.cholesterolMmol", "label": "Total cholesterol", "type": "QUANTITY", "unit": "mmol/L", "required": false},
+        {"path": "measurements.hb", "label": "Haemoglobin", "type": "QUANTITY", "unit": "g/dL", "required": false},
+        {"path": "measurements.bll", "label": "Blood lead", "type": "QUANTITY", "unit": "ug/dL", "required": false},
+        {"path": "measurements.coPpm", "label": "Exhaled CO", "type": "QUANTITY", "unit": "[ppm]", "required": false}]},
+      {"group": "quality", "fields": [
+        {"path": "measurements.qcLot", "label": "QC lot", "type": "STRING", "required": false},
+        {"path": "measurements.operator", "label": "Operator", "type": "STRING", "required": false}]}]},
+    {"formCode": "E03.DEVICE_RESULT.FIT_TEST", "fieldGroups": [
+      {"group": "fit-test", "fields": [
+        {"path": "measurements.respiratorModel", "label": "Respirator model", "type": "STRING", "required": true},
+        {"path": "measurements.respiratorSize", "label": "Respirator size", "type": "CODE", "required": true},
+        {"path": "measurements.protocol", "label": "Protocol", "type": "CODE", "required": true},
+        {"path": "measurements.overallFitFactor", "label": "Overall fit factor", "type": "QUANTITY", "unit": "1", "required": true},
+        {"path": "measurements.pass", "label": "Pass", "type": "BOOLEAN", "required": true}]}]},
+    {"formCode": "E03.DEVICE_RESULT.ERGONOMICS", "fieldGroups": [
+      {"group": "hand-arm", "fields": [
+        {"path": "measurements.gripLeftKg", "label": "Grip strength left", "type": "QUANTITY", "unit": "kg", "required": false},
+        {"path": "measurements.gripRightKg", "label": "Grip strength right", "type": "QUANTITY", "unit": "kg", "required": false},
+        {"path": "measurements.vibrotactileThreshold", "label": "Vibrotactile threshold", "type": "QUANTITY", "unit": "m/s2", "required": false},
+        {"path": "measurements.thermalThreshold", "label": "Thermal threshold", "type": "QUANTITY", "unit": "Cel", "required": false}]}]},
+    {"formCode": "E03.DEVICE_RESULT.IMAGING", "fieldGroups": [
+      {"group": "study", "fields": [
+        {"path": "measurements.studyUid", "label": "Study", "type": "STRING", "required": true},
+        {"path": "measurements.modality", "label": "Modality", "type": "CODE", "required": true},
+        {"path": "measurements.bodyPart", "label": "Body part", "type": "CODE", "required": false}]}]},
+    {"formCode": "E07.IH_MEASUREMENT", "fieldGroups": [
+      {"group": "exposure", "fields": [
+        {"path": "value", "label": "Measured value", "type": "QUANTITY", "required": true},
+        {"path": "measurementType", "label": "Measurement type", "type": "CODE", "required": true},
+        {"path": "hazardCode", "label": "Hazard", "type": "CODE", "required": true},
+        {"path": "segCode", "label": "Similar exposure group", "type": "CODE", "required": false}]}]},
+    {"formCode": "E10.BREATH_ALCOHOL", "fieldGroups": [
+      {"group": "breath-test", "fields": [
+        {"path": "breathScreenResult", "label": "Breath alcohol", "type": "QUANTITY", "unit": "mg/L", "required": true},
+        {"path": "sequence", "label": "Screening or confirmation", "type": "CODE", "required": true},
+        {"path": "deviceSerial", "label": "Device serial", "type": "STRING", "required": true},
+        {"path": "lastCalibration", "label": "Calibration / accuracy check date", "type": "STRING", "required": true}]}]},
+    {"formCode": "E10.DRUG_SCREEN", "fieldGroups": [
+      {"group": "reader", "fields": [
+        {"path": "panelResult", "label": "Panel result", "type": "CODE", "required": true},
+        {"path": "deviceSerial", "label": "Reader serial", "type": "STRING", "required": true}]}]},
+    {"formCode": "E12.SCREENING_RESULT", "fieldGroups": [
+      {"group": "measures", "fields": [
+        {"path": "measures.systolic", "label": "Systolic", "type": "QUANTITY", "unit": "mm[Hg]", "required": false},
+        {"path": "measures.diastolic", "label": "Diastolic", "type": "QUANTITY", "unit": "mm[Hg]", "required": false},
+        {"path": "measures.bmi", "label": "BMI", "type": "QUANTITY", "unit": "kg/m2", "required": false},
+        {"path": "measures.glucoseMmol", "label": "Glucose", "type": "QUANTITY", "unit": "mmol/L", "required": false},
+        {"path": "measures.cholesterolMmol", "label": "Cholesterol", "type": "QUANTITY", "unit": "mmol/L", "required": false},
+        {"path": "measures.waistCm", "label": "Waist", "type": "QUANTITY", "unit": "cm", "required": false}]}]},
+    {"formCode": "E12.WEARABLE_DAILY", "fieldGroups": [
+      {"group": "daily-totals", "fields": [
+        {"path": "STEPS", "label": "Steps", "type": "QUANTITY", "unit": "{steps}", "required": false},
+        {"path": "SLEEP_MINUTES", "label": "Sleep", "type": "QUANTITY", "unit": "min", "required": false},
+        {"path": "ACTIVE_MINUTES", "label": "Active minutes", "type": "QUANTITY", "unit": "min", "required": false}]}]}
+  ]
+}
