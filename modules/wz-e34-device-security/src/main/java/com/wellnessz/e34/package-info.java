@@ -1,5 +1,5 @@
 /**
- * E34 – Endpoint & integration security (increment 6, schema {@code devicesec}, Flyway V24).
+ * E34 – Endpoint & integration security (increment 6, schema {@code devicesec}, Flyway V25).
  *
  * <p>Endpoint identities (certificate thumbprint + hashed per-endpoint token), enrolment, zoning, package signatures,
  * connector secrets, tamper-evident security events with SIEM outbox, anomaly rules and 15-minute isolation, revocation,
