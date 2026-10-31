@@ -1,5 +1,5 @@
 /**
- * E32 – Device catalogue, administration & connectivity provisioning console (increment 6, schema {@code devicecat}, Flyway V22).
+ * E32 – Device catalogue, administration & connectivity provisioning console (increment 6, schema {@code devicecat}, Flyway V23).
  *
  * <p>Catalogue (133-model seed from the device inventory), option packs P1–P10, eight-step provisioning wizard, prerequisites,
  * configuration with four-eyes approval and change history, bindings, certification PDF, publish, fleet, calibration / QC

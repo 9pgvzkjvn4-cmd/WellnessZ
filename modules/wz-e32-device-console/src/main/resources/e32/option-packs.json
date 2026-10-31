@@ -1,0 +1,417 @@
+{
+  "version": "1.0.0",
+  "commonSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Common device configuration (all options)",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["timeSource", "timeZone", "units", "verifyBeforePost", "retentionClass"],
+    "properties": {
+      "timeSource": {"type": "string", "enum": ["NTP_GATEWAY", "DEVICE_RTC", "SERVER_RECEIPT"], "default": "NTP_GATEWAY"},
+      "timeZone": {"type": "string", "format": "iana-time-zone", "default": "Europe/London"},
+      "units": {"type": "string", "enum": ["SI", "DEVICE"], "default": "SI"},
+      "locale": {"type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$", "default": "en-GB"},
+      "driverPackageId": {"type": "string", "pattern": "^[a-z0-9]+(\\.[a-z0-9\\-]+){1,4}$"},
+      "driverVersion": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+      "referenceRangeOverrides": {"type": "array", "maxItems": 50, "default": [],
+        "items": {"type": "object", "required": ["key"], "properties": {
+          "key": {"type": "string", "maxLength": 60}, "sex": {"type": "string", "enum": ["M", "F", "*"]},
+          "ageMin": {"type": "integer", "minimum": 0, "maximum": 120}, "ageMax": {"type": "integer", "minimum": 0, "maximum": 120},
+          "low": {"type": "number"}, "high": {"type": "number"}, "text": {"type": "string", "maxLength": 200}}}},
+      "qualityGateAdditions": {"type": "array", "maxItems": 20, "default": [], "items": {"type": "string", "pattern": "^[A-Z_]{3,40}(:[A-Za-z0-9_=.]{1,40})?$"}},
+      "calibrationSchedule": {"type": "array", "maxItems": 10, "default": [],
+        "items": {"type": "object", "required": ["checkType", "intervalHours", "lockout"], "properties": {
+          "checkType": {"type": "string", "pattern": "^[A-Z0-9_]{3,40}$"}, "intervalHours": {"type": "integer", "minimum": 1, "maximum": 87600},
+          "lockout": {"type": "boolean"}}}},
+      "verifyBeforePost": {"type": "boolean", "default": true},
+      "retentionClass": {"type": "string", "enum": ["DEVICE_RAW_PAYLOAD", "DEVICE_RAW_UNFILED"], "default": "DEVICE_RAW_PAYLOAD"},
+      "tenantCode": {"type": "string", "pattern": "^[A-Z0-9_]{2,40}$", "default": "GROUP"}
+    }
+  },
+  "options": [
+    {
+      "option": "P1", "name": "Serial / USB direct",
+      "howItWorks": "RS-232, USB-CDC (virtual COM port) or USB-HID keyboard wedge connected to the Device Host agent at the station; the agent frames the byte stream with the driver's framing rule and forwards it over mutual TLS. Parsing happens centrally.",
+      "typicalDevices": ["Breath-alcohol testers", "Legacy audiometers and spirometers", "Scales", "BP kiosks", "Label and barcode devices"],
+      "securityLevel": "MEDIUM", "reliability": "HIGH", "effort": "MEDIUM",
+      "endpointKind": "DEVICE_HOST_AGENT",
+      "prerequisites": ["NETWORK_ZONE", "ENDPOINT_IDENTITY", "DRIVERS_INSTALLED", "CALIBRATION_EVIDENCE", "VENDOR_POSTURE"],
+      "stepGuide": [
+        {"step": 1, "text": "Install and enrol the Device Host agent on the station PC (enrolment token from the security console)."},
+        {"step": 2, "text": "Connect the device with the vendor cable; for USB note the vendor and product id shown by the agent's discovery."},
+        {"step": 3, "text": "Confirm the port, baud rate, parity, data and stop bits against the device's service manual; defaults come from the certified driver."},
+        {"step": 4, "text": "Choose the framing rule (line terminator, STX/ETX, length-prefixed or fixed) and push or poll mode."},
+        {"step": 5, "text": "Add the USB vendor/product pair to the allow-list; any other USB device is refused by the agent."},
+        {"step": 6, "text": "For serial-over-TCP converters configure an authenticated serial server only (credential held in the vault)."}
+      ],
+      "diagramUrl": "/assets/devices/options/p1-serial-usb.svg",
+      "help": {
+        "en": "Use for devices with an RS-232 or USB port and no network interface. The Device Host agent at the station reads the port; nothing is installed on the device.",
+        "ar": "يُستخدم للأجهزة التي تحتوي على منفذ RS-232 أو USB دون واجهة شبكة. يقرأ وكيل المضيف في المحطة المنفذ ولا يُثبَّت أي شيء على الجهاز."
+      },
+      "parameterSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "P1 Serial / USB", "type": "object", "additionalProperties": false,
+        "required": ["connection", "port", "baud", "dataBits", "parity", "stopBits", "flowControl", "framing", "mode", "hostEndpointId"],
+        "properties": {
+          "connection": {"type": "string", "enum": ["RS232", "USB_CDC", "USB_HID_WEDGE"], "default": "RS232"},
+          "port": {"type": "string", "pattern": "^(COM[0-9]{1,3}|/dev/tty[A-Za-z0-9]{1,12}|AUTO)$", "default": "AUTO"},
+          "baud": {"type": "integer", "enum": [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200], "default": 9600},
+          "dataBits": {"type": "integer", "enum": [7, 8], "default": 8},
+          "parity": {"type": "string", "enum": ["NONE", "EVEN", "ODD"], "default": "NONE"},
+          "stopBits": {"type": "integer", "enum": [1, 2], "default": 1},
+          "flowControl": {"type": "string", "enum": ["NONE", "RTS_CTS", "XON_XOFF"], "default": "NONE"},
+          "framing": {"type": "object", "required": ["type"], "default": {"type": "LINE", "terminator": "\r\n", "maxFrameBytes": 4096},
+            "properties": {"type": {"type": "string", "enum": ["LINE", "STX_ETX", "LENGTH", "FIXED"]},
+              "terminator": {"type": "string", "maxLength": 4}, "maxFrameBytes": {"type": "integer", "minimum": 1, "maximum": 65536}}},
+          "mode": {"type": "string", "enum": ["PUSH", "POLL"], "default": "PUSH"},
+          "pollCommand": {"type": "string", "maxLength": 64},
+          "pollSeconds": {"type": "integer", "minimum": 1, "maximum": 3600},
+          "usbAllowList": {"type": "array", "maxItems": 10, "items": {"type": "object", "required": ["vid", "pid"],
+            "properties": {"vid": {"type": "string", "pattern": "^[0-9A-Fa-f]{4}$"}, "pid": {"type": "string", "pattern": "^[0-9A-Fa-f]{4}$"}}}},
+          "serialServer": {"type": "object", "required": ["host", "port", "authRef"], "properties": {
+            "host": {"type": "string", "format": "hostname"}, "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+            "authRef": {"type": "string", "format": "secret"}}},
+          "hostEndpointId": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]{2,60}$"}
+        }
+      }
+    },
+    {
+      "option": "P2", "name": "Vendor software database / file export watcher",
+      "howItWorks": "Read-only connection to the vendor application's database (SQL Server, SQLite, Access) or a watched export folder (XML, GDT, CSV, PDF). The vendor software remains the regulated measurement application; the Device Host agent forwards new rows or files.",
+      "typicalDevices": ["Benson / Tremetrics / Titmus audiometry software", "Spirotrac", "EasyOne Connect", "FitPro Ultra", "MUSE / TraceMaster exports", "ABPM software"],
+      "securityLevel": "MEDIUM", "reliability": "HIGH", "effort": "MEDIUM",
+      "endpointKind": "DEVICE_HOST_AGENT",
+      "prerequisites": ["NETWORK_ZONE", "ENDPOINT_IDENTITY", "VENDOR_SOFTWARE_VERSION", "DRIVERS_INSTALLED", "CALIBRATION_EVIDENCE", "VENDOR_POSTURE"],
+      "stepGuide": [
+        {"step": 1, "text": "Confirm the vendor software version is one the driver package supports."},
+        {"step": 2, "text": "Ask the vendor PC owner for a read-only database account or a read-only share on the export folder; never use an administrator account."},
+        {"step": 3, "text": "Store the credential in the vault from this wizard; only the reference is kept in the configuration."},
+        {"step": 4, "text": "Database: keep the driver's select query and watermark column. Folder: set the path, file pattern, encoding and stability time."},
+        {"step": 5, "text": "Keep the PDF attachment rule and the de-duplication key from the driver package."}
+      ],
+      "diagramUrl": "/assets/devices/options/p2-vendor-software.svg",
+      "help": {
+        "en": "Use when the device is driven by vendor software on a PC. WellnessZ only reads what the vendor software has already stored – the vendor folder is never modified.",
+        "ar": "يُستخدم عندما يُشغَّل الجهاز ببرنامج المورّد على حاسوب. يقرأ النظام فقط ما خزّنه برنامج المورّد ولا يعدّل مجلد المورّد أبداً."
+      },
+      "parameterSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "P2 Vendor software DB / file", "type": "object", "additionalProperties": false,
+        "required": ["source", "hostEndpointId"],
+        "properties": {
+          "source": {"type": "string", "enum": ["DB_QUERY", "FOLDER_WATCH"], "default": "FOLDER_WATCH"},
+          "dialect": {"type": "string", "enum": ["SQLSERVER", "SQLITE", "ACCESS"]},
+          "connection": {"type": "object", "properties": {"host": {"type": "string", "format": "hostname"}, "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+            "database": {"type": "string", "maxLength": 200}, "path": {"type": "string", "maxLength": 500}}},
+          "dbCredentialRef": {"type": "string", "format": "secret"},
+          "query": {"type": "string", "maxLength": 2000},
+          "watermarkColumn": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"},
+          "pollSeconds": {"type": "integer", "minimum": 10, "maximum": 3600, "default": 30},
+          "path": {"type": "string", "maxLength": 500},
+          "pattern": {"type": "string", "maxLength": 100},
+          "encoding": {"type": "string", "enum": ["UTF-8", "ISO-8859-1", "WINDOWS-1252", "UTF-16LE"], "default": "UTF-8"},
+          "stabilitySeconds": {"type": "integer", "minimum": 1, "maximum": 600, "default": 5},
+          "afterRead": {"type": "string", "enum": ["KEEP", "MOVE_TO_ARCHIVE"], "default": "KEEP"},
+          "attachmentRule": {"type": "object", "properties": {"pairBy": {"type": "string", "enum": ["STEM", "XPATH", "NONE"]},
+            "selector": {"type": "string", "maxLength": 200}, "extensions": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9]{1,5}$"}}}},
+          "dedupKey": {"type": "string", "maxLength": 200},
+          "hostEndpointId": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]{2,60}$"}
+        }
+      }
+    },
+    {
+      "option": "P3", "name": "Bluetooth LE / Classic",
+      "howItWorks": "Standard GATT health profiles (BLP, HTP, PLX, WSS, GLS, BCS) or vendor GATT services; Classic SPP for older devices. A gateway, the nurse tablet or a kiosk owns the bond and forwards the characteristic values.",
+      "typicalDevices": ["BLE blood-pressure monitors", "Pulse oximeters", "Thermometers", "Scales", "Portable spirometers", "Dynamometers", "ECG patches", "Dosimeters"],
+      "securityLevel": "MEDIUM", "reliability": "MEDIUM", "effort": "LOW",
+      "endpointKind": "MOBILE_APP",
+      "prerequisites": ["ENDPOINT_IDENTITY", "PAIRING_CREDENTIALS", "CALIBRATION_EVIDENCE", "VENDOR_POSTURE"],
+      "stepGuide": [
+        {"step": 1, "text": "Choose who owns the bond: the clinic gateway, the nurse tablet or the kiosk (it must be enrolled)."},
+        {"step": 2, "text": "Pair with LE Secure Connections (passkey or numeric comparison); 'Just Works' needs an approved security exception."},
+        {"step": 3, "text": "Keep the service and characteristic UUIDs from the driver package (for example 0x1810 / 0x2A35 for blood pressure)."},
+        {"step": 4, "text": "Add the peripheral to the allow-list by its address hash (raw addresses never leave the edge)."}
+      ],
+      "diagramUrl": "/assets/devices/options/p3-bluetooth.svg",
+      "help": {
+        "en": "Use for wireless personal and point-of-care devices. Readings arrive in the open capture dialogue within seconds of the measurement.",
+        "ar": "يُستخدم للأجهزة اللاسلكية الشخصية وأجهزة نقطة الرعاية. تصل القراءات إلى نافذة الالتقاط المفتوحة خلال ثوانٍ من القياس."
+      },
+      "parameterSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "P3 Bluetooth", "type": "object", "additionalProperties": false,
+        "required": ["transport", "pairing", "bondingOwner", "bondingOwnerEndpointId", "service", "characteristics", "peripheralAllowList"],
+        "properties": {
+          "transport": {"type": "string", "enum": ["BLE", "CLASSIC_SPP"], "default": "BLE"},
+          "pairing": {"type": "string", "enum": ["LE_SECURE_CONNECTIONS_PASSKEY", "LE_SECURE_CONNECTIONS_NUMERIC", "JUST_WORKS_EXCEPTION"], "default": "LE_SECURE_CONNECTIONS_PASSKEY"},
+          "securityExceptionRef": {"type": "string", "maxLength": 60},
+          "bonding": {"type": "string", "enum": ["REQUIRED", "OPTIONAL"], "default": "REQUIRED"},
+          "bondingOwner": {"type": "string", "enum": ["GATEWAY", "TABLET", "KIOSK"], "default": "TABLET"},
+          "bondingOwnerEndpointId": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]{2,60}$"},
+          "service": {"type": "string", "pattern": "^(0x[0-9A-Fa-f]{4}|[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})$"},
+          "characteristics": {"type": "array", "minItems": 1, "maxItems": 10,
+            "items": {"type": "string", "pattern": "^(0x[0-9A-Fa-f]{4}|[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})$"}},
+          "indications": {"type": "boolean", "default": true},
+          "peripheralAllowList": {"type": "array", "minItems": 1, "maxItems": 50, "items": {"type": "object", "required": ["addressHash"],
+            "properties": {"name": {"type": "string", "maxLength": 100}, "addressHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}},
+          "reconnect": {"type": "string", "enum": ["AUTO", "ON_DEMAND"], "default": "AUTO"},
+          "rssiMinDbm": {"type": "integer", "minimum": -100, "maximum": -30, "default": -80}
+        }
+      }
+    },
+    {
+      "option": "P4", "name": "LAN / Wi-Fi – HL7 v2 over MLLP",
+      "howItWorks": "The device or vendor gateway sends ORU^R01 (IHE DEV PCD-01) over MLLP with TLS to the clinic gateway, and can receive ADT/ORM worklist messages. Vendor TCP protocols are used only where no HL7 is offered.",
+      "typicalDevices": ["Vitals monitors (Connex, Mindray, Philips, GE)", "ECG carts (MAC, PageWriter, ELI, Schiller)", "seca and A&D kiosks", "Vendor device gateways (Capsule, Iris, eGateway)"],
+      "securityLevel": "HIGH", "reliability": "HIGH", "effort": "MEDIUM",
+      "endpointKind": "GATEWAY",
+      "prerequisites": ["NETWORK_ZONE", "ENDPOINT_IDENTITY", "CERTIFICATES", "CALIBRATION_EVIDENCE", "VENDOR_POSTURE"],
+      "stepGuide": [
+        {"step": 1, "text": "Give the device a static address or DNS name in the device VLAN and raise the firewall change to the clinic gateway."},
+        {"step": 2, "text": "Set the MLLP port on the gateway listener (default 2575) and require TLS 1.3 with the modern cipher policy."},
+        {"step": 3, "text": "Enrol the device or vendor-gateway certificate if the device supports mutual TLS."},
+        {"step": 4, "text": "Copy the MSH sending application and facility from the device's HL7 settings; the receiving application is WELLNESSZ."},
+        {"step": 5, "text": "Plaintext MLLP is allowed only by a documented exception inside a segmented device VLAN behind the gateway."}
+      ],
+      "diagramUrl": "/assets/devices/options/p4-hl7-mllp.svg",
+      "help": {
+        "en": "Use for networked monitors and ECG carts that speak HL7 v2. The gateway acknowledges each message only after it is stored durably.",
+        "ar": "يُستخدم للأجهزة المتصلة بالشبكة التي تدعم HL7 v2 مثل أجهزة المراقبة وأجهزة تخطيط القلب. تؤكد البوابة كل رسالة بعد تخزينها بشكل دائم فقط."
+      },
+      "parameterSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "P4 HL7 v2 MLLP", "type": "object", "additionalProperties": false,
+        "required": ["deviceAddress", "mllp", "msh", "ackMode", "messageProfile"],
+        "properties": {
+          "deviceAddress": {"type": "object", "properties": {"ip": {"type": "string", "pattern": "^((25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})$"},
+            "dns": {"type": "string", "format": "hostname"}}},
+          "mllp": {"type": "object", "required": ["listenerEndpointId", "port", "tls"], "properties": {
+            "listenerEndpointId": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]{2,60}$"},
+            "port": {"type": "integer", "minimum": 1024, "maximum": 65535, "default": 2575},
+            "tls": {"type": "string", "enum": ["REQUIRED", "EXCEPTION_SEGMENTED_VLAN"], "default": "REQUIRED"},
+            "plaintextExceptionRef": {"type": "string", "maxLength": 60},
+            "tlsVersion": {"type": "string", "enum": ["1.2", "1.3"], "default": "1.3"},
+            "cipherPolicy": {"type": "string", "enum": ["MODERN", "COMPATIBLE"], "default": "MODERN"},
+            "clientCertRequired": {"type": "boolean", "default": true}}},
+          "msh": {"type": "object", "required": ["sendingApplication", "sendingFacility", "receivingApplication", "receivingFacility"], "properties": {
+            "sendingApplication": {"type": "string", "pattern": "^[A-Za-z0-9_\\-. ]{1,40}$"},
+            "sendingFacility": {"type": "string", "pattern": "^[A-Za-z0-9_\\-. ]{1,40}$"},
+            "receivingApplication": {"type": "string", "pattern": "^[A-Za-z0-9_\\-. ]{1,40}$", "default": "WELLNESSZ"},
+            "receivingFacility": {"type": "string", "pattern": "^[A-Za-z0-9_\\-. ]{1,40}$"}}},
+          "ackMode": {"type": "string", "enum": ["ORIGINAL"], "default": "ORIGINAL"},
+          "messageProfile": {"type": "string", "enum": ["IHE_PCD_01", "VENDOR"], "default": "IHE_PCD_01"},
+          "timeZone": {"type": "string", "format": "iana-time-zone"},
+          "worklist": {"type": "object", "properties": {"enabled": {"type": "boolean", "default": false},
+            "messageType": {"type": "string", "enum": ["ADT^A04", "ORM^O01"]}, "push": {"type": "string", "enum": ["MLLP_OUT", "NONE"]},
+            "outboundPort": {"type": "integer", "minimum": 1024, "maximum": 65535}}}
+        }
+      }
+    },
+    {
+      "option": "P5", "name": "POCT1-A2 data manager / middleware",
+      "howItWorks": "Point-of-care analysers talk POCT1-A to a vendor data manager (Info HQ / RALS, cobas infinity POC, POCcelerator, 801 Connect, Clinitek Connect), which forwards results, QC and lot data as POCT1-A XML or HL7 to the gateway.",
+      "typicalDevices": ["HemoCue", "i-STAT", "Afinion", "Cholestech LDX", "DCA Vantage", "cobas b 101", "StatStrip", "Accu-Chek Inform II", "Clinitek Status+"],
+      "securityLevel": "HIGH", "reliability": "HIGH", "effort": "MEDIUM",
+      "endpointKind": "DATA_MANAGER",
+      "prerequisites": ["NETWORK_ZONE", "ENDPOINT_IDENTITY", "VENDOR_SOFTWARE_VERSION", "CONSUMABLES", "CALIBRATION_EVIDENCE", "VENDOR_POSTURE"],
+      "stepGuide": [
+        {"step": 1, "text": "Register the analyser serial numbers in the data manager and here (device ids)."},
+        {"step": 2, "text": "Point the data manager's outbound interface to the gateway listener (POCT1-A XML or HL7 bridge)."},
+        {"step": 3, "text": "Keep the QC lot policy: a passing QC is required for each new lot and within the QC window."},
+        {"step": 4, "text": "Synchronise the operator list from the data manager so that only trained operators can run tests."}
+      ],
+      "diagramUrl": "/assets/devices/options/p5-poct1a.svg",
+      "help": {
+        "en": "Use for point-of-care analysers managed through a data manager. QC and reagent lots are checked before a result can be posted.",
+        "ar": "يُستخدم لأجهزة تحليل نقطة الرعاية المُدارة عبر مدير بيانات. يتم التحقق من مراقبة الجودة ودفعات الكواشف قبل ترحيل أي نتيجة."
+      },
+      "parameterSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "P5 POCT1-A2", "type": "object", "additionalProperties": false,
+        "required": ["dms", "transport", "operatorList", "qcLotPolicy"],
+        "properties": {
+          "dms": {"type": "object", "required": ["vendor", "endpoint", "deviceIds", "dmsId"], "properties": {
+            "vendor": {"type": "string", "enum": ["INFO_HQ", "RALS", "COBAS_INFINITY_POC", "POCCELERATOR", "CONNECT_801", "CLINITEK_CONNECT", "OTHER"]},
+            "endpoint": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]{2,60}$"},
+            "deviceIds": {"type": "array", "minItems": 1, "maxItems": 100, "items": {"type": "string", "pattern": "^[A-Za-z0-9_\\-.]{1,60}$"}},
+            "dmsId": {"type": "string", "pattern": "^[A-Za-z0-9_\\-.]{1,60}$"}}},
+          "transport": {"type": "string", "enum": ["POCT1A_XML", "HL7_ORU"], "default": "POCT1A_XML"},
+          "operatorList": {"type": "string", "enum": ["SYNC_FROM_DMS", "MANUAL"], "default": "SYNC_FROM_DMS"},
+          "qcLotPolicy": {"type": "object", "required": ["requirePassingQc", "qcWindowHours", "newLotRequiresQc"],
+            "default": {"requirePassingQc": true, "qcWindowHours": 24, "newLotRequiresQc": true},
+            "properties": {"requirePassingQc": {"type": "boolean"}, "qcWindowHours": {"type": "integer", "minimum": 1, "maximum": 720},
+              "newLotRequiresQc": {"type": "boolean"}}},
+          "resultMapping": {"type": "string", "maxLength": 120},
+          "pollSeconds": {"type": "integer", "minimum": 10, "maximum": 3600}
+        }
+      }
+    },
+    {
+      "option": "P6", "name": "Vendor cloud API / webhook",
+      "howItWorks": "OAuth2-secured REST APIs polled on a schedule, or signed webhooks from vendor clouds and consumer health platforms; consent-scoped for wearables and checked against the tenant's data-residency region.",
+      "typicalDevices": ["TSI Link", "Kenzen / SlateSafety", "Garmin / Apple / Google / Fitbit / Withings", "AED readiness clouds", "eScreen", "hearX", "Cold-chain loggers"],
+      "securityLevel": "MEDIUM", "reliability": "MEDIUM", "effort": "MEDIUM",
+      "endpointKind": "VENDOR_CLOUD",
+      "prerequisites": ["VENDOR_CLOUD_AGREEMENT", "CALIBRATION_EVIDENCE", "VENDOR_POSTURE"],
+      "stepGuide": [
+        {"step": 1, "text": "Confirm the data-processing agreement and that the vendor's region matches the tenant's residency."},
+        {"step": 2, "text": "Create an OAuth2 client in the vendor portal with the narrowest scopes; store the client secret in the vault."},
+        {"step": 3, "text": "Enable the webhook with an HMAC secret; the webhook URL is shown after publishing."},
+        {"step": 4, "text": "Set the polling interval (at least 60 seconds) and the vendor rate limit."}
+      ],
+      "diagramUrl": "/assets/devices/options/p6-cloud.svg",
+      "help": {
+        "en": "Use when results live in the vendor's cloud. Outbound calls are allowed only to hosts on the approved list.",
+        "ar": "يُستخدم عندما تكون النتائج محفوظة في سحابة المورّد. لا يُسمح بالاتصالات الصادرة إلا إلى المضيفين المعتمدين."
+      },
+      "parameterSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "P6 Vendor cloud", "type": "object", "additionalProperties": false,
+        "required": ["residencyRegion"],
+        "properties": {
+          "apiBaseUrl": {"type": "string", "pattern": "^https://[A-Za-z0-9.\\-]{1,200}(:[0-9]{2,5})?(/[A-Za-z0-9._~/\\-]*)?$"},
+          "oauth2": {"type": "object", "required": ["tokenUrl", "clientId", "clientSecretRef"], "properties": {
+            "tokenUrl": {"type": "string", "pattern": "^https://[A-Za-z0-9.\\-]{1,200}(:[0-9]{2,5})?(/[A-Za-z0-9._~/\\-]*)?$"},
+            "clientId": {"type": "string", "maxLength": 200}, "clientSecretRef": {"type": "string", "format": "secret"},
+            "scopes": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 100}}}},
+          "webhook": {"type": "object", "properties": {"enabled": {"type": "boolean", "default": true},
+            "webhookSecretRef": {"type": "string", "format": "secret"},
+            "signatureHeader": {"type": "string", "pattern": "^[A-Za-z0-9\\-]{1,60}$", "default": "X-Signature"},
+            "timestampHeader": {"type": "string", "pattern": "^[A-Za-z0-9\\-]{1,60}$", "default": "X-Timestamp"},
+            "replayWindowSeconds": {"type": "integer", "minimum": 30, "maximum": 300, "default": 300}}},
+          "poll": {"type": "object", "properties": {"enabled": {"type": "boolean", "default": false},
+            "intervalSeconds": {"type": "integer", "minimum": 60, "maximum": 86400, "default": 300},
+            "rateLimitPerMinute": {"type": "integer", "minimum": 1, "maximum": 6000, "default": 60}}},
+          "consentMapping": {"type": "object", "properties": {"purpose": {"type": "string", "enum": ["WEARABLE_DATA", "PROGRAMME"]},
+            "scopes": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 100}}}},
+          "residencyRegion": {"type": "string", "pattern": "^[A-Z]{2,10}$"}
+        }
+      }
+    },
+    {
+      "option": "P7", "name": "DICOM",
+      "howItWorks": "C-STORE, Modality Worklist and query/retrieve at the edge; the core receives DICOMweb-style JSON metadata and archives the instance. ECG waveforms (Supplement 30) and PACS / VNA routing are supported.",
+      "typicalDevices": ["Digital radiography (CXR)", "Retinal cameras", "Ultrasound", "Perimeters", "ECG systems with DICOM export"],
+      "securityLevel": "HIGH", "reliability": "HIGH", "effort": "HIGH",
+      "endpointKind": "GATEWAY",
+      "prerequisites": ["NETWORK_ZONE", "ENDPOINT_IDENTITY", "CERTIFICATES", "CALIBRATION_EVIDENCE", "VENDOR_POSTURE"],
+      "stepGuide": [
+        {"step": 1, "text": "Agree the calling and called AE titles with the modality engineer (called AE title WZ_GATEWAY)."},
+        {"step": 2, "text": "Use DICOM TLS on port 11112 and enrol the modality certificate."},
+        {"step": 3, "text": "List the storage SOP classes the modality sends; enable the worklist filter by modality and station AE title."},
+        {"step": 4, "text": "Set the PACS destination if images must also be routed to the group archive."}
+      ],
+      "diagramUrl": "/assets/devices/options/p7-dicom.svg",
+      "help": {
+        "en": "Use for imaging devices. Images are archived with their hash and linked to the OH record; reading worklists (for example ILO) can be enabled.",
+        "ar": "يُستخدم لأجهزة التصوير. تُؤرشف الصور مع بصمتها وتُربط بسجل الصحة المهنية، ويمكن تفعيل قوائم القراءة."
+      },
+      "parameterSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "P7 DICOM", "type": "object", "additionalProperties": false,
+        "required": ["aeTitles", "port", "tls", "storageClasses", "listenerEndpointId"],
+        "properties": {
+          "aeTitles": {"type": "object", "required": ["calling", "called"], "properties": {
+            "calling": {"type": "string", "pattern": "^[A-Z0-9_ ]{1,16}$"}, "called": {"type": "string", "pattern": "^[A-Z0-9_ ]{1,16}$", "default": "WZ_GATEWAY"}}},
+          "port": {"type": "integer", "minimum": 104, "maximum": 65535, "default": 11112},
+          "tls": {"type": "string", "const": "REQUIRED", "default": "REQUIRED"},
+          "storageClasses": {"type": "array", "minItems": 1, "maxItems": 20, "items": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+)+$"}},
+          "mwl": {"type": "object", "properties": {"enabled": {"type": "boolean", "default": false}, "filters": {"type": "object", "properties": {
+            "modality": {"type": "string", "pattern": "^[A-Z]{2}$"}, "stationAeTitle": {"type": "string", "pattern": "^[A-Z0-9_ ]{1,16}$"}}}}},
+          "routing": {"type": "object", "properties": {"pacsDestination": {"type": "string", "maxLength": 100}}},
+          "iloReadingWorklist": {"type": "boolean", "default": false},
+          "maxInstanceBytes": {"type": "integer", "minimum": 1024, "maximum": 52428800, "default": 52428800},
+          "listenerEndpointId": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]{2,60}$"}
+        }
+      }
+    },
+    {
+      "option": "P8", "name": "HL7 FHIR R4 API",
+      "howItWorks": "Devices, gateways and apps post FHIR Observation / Device / DeviceMetric per the PoCD implementation guide, or PCHA personal-health uploads, authenticated with mutual TLS and a token or SMART backend services.",
+      "typicalDevices": ["Modern device gateways", "seca connect", "Wearable aggregators", "WellnessZ tenant apps"],
+      "securityLevel": "HIGH", "reliability": "HIGH", "effort": "LOW",
+      "endpointKind": "DEVICE",
+      "prerequisites": ["NETWORK_ZONE", "ENDPOINT_IDENTITY", "CERTIFICATES", "CALIBRATION_EVIDENCE", "VENDOR_POSTURE"],
+      "stepGuide": [
+        {"step": 1, "text": "Register the client endpoint (gateway or app) in the security console."},
+        {"step": 2, "text": "Choose mutual TLS with a device token, or SMART backend services with the narrowest system scopes."},
+        {"step": 3, "text": "Keep the profiles from the driver package; the subject is identified by identifier only."}
+      ],
+      "diagramUrl": "/assets/devices/options/p8-fhir.svg",
+      "help": {
+        "en": "Use for devices and gateways that already speak FHIR R4. Resources are validated strictly before they are accepted.",
+        "ar": "يُستخدم للأجهزة والبوابات التي تدعم FHIR R4. يتم التحقق من الموارد بدقة قبل قبولها."
+      },
+      "parameterSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "P8 FHIR R4", "type": "object", "additionalProperties": false,
+        "required": ["clientEndpointId", "auth", "profiles", "subjectIdentifierSystem"],
+        "properties": {
+          "clientEndpointId": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]{2,60}$"},
+          "auth": {"type": "string", "enum": ["MTLS_TOKEN", "SMART_BACKEND"], "default": "MTLS_TOKEN"},
+          "smartScopes": {"type": "array", "maxItems": 20, "items": {"type": "string", "pattern": "^system/[A-Za-z]+\\.(read|write|\\*)$"}},
+          "profiles": {"type": "array", "minItems": 1, "maxItems": 20, "items": {"type": "string", "maxLength": 300}},
+          "subjectIdentifierSystem": {"type": "string", "maxLength": 200, "default": "urn:wellnessz:employee"},
+          "tenantMapping": {"type": "string", "maxLength": 100},
+          "bundleMaxEntries": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100}
+        }
+      }
+    },
+    {
+      "option": "P9", "name": "Image capture & OCR / barcode (fallback)",
+      "howItWorks": "The nurse photographs the device display or printout; OCR proposes values for the configured regions; barcodes / QR codes on printouts are decoded. Verification before posting is always mandatory.",
+      "typicalDevices": ["LeadCare II", "Display-only vision screeners", "Ishihara / D-15 scoring sheets", "Legacy breathalysers"],
+      "securityLevel": "LOW", "reliability": "MEDIUM", "effort": "LOW",
+      "endpointKind": "MOBILE_APP",
+      "prerequisites": ["CALIBRATION_EVIDENCE", "VENDOR_POSTURE"],
+      "stepGuide": [
+        {"step": 1, "text": "Select the OCR template for the device display and check the regions on a sample photograph."},
+        {"step": 2, "text": "Keep the confidence threshold at 0.90 or higher; fields below it are left empty for the nurse to type."},
+        {"step": 3, "text": "Decide whether the photograph is retained with the record or only until the result is filed."}
+      ],
+      "diagramUrl": "/assets/devices/options/p9-ocr.svg",
+      "help": {
+        "en": "Use for display-only devices or as a fallback when a connection is unavailable. The nurse always confirms every value.",
+        "ar": "يُستخدم للأجهزة ذات الشاشة فقط أو كخيار احتياطي عند تعذّر الاتصال. تؤكد الممرضة كل قيمة دائماً."
+      },
+      "parameterSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "P9 Image capture & OCR", "type": "object", "additionalProperties": false,
+        "required": ["ocrTemplate", "regions", "minConfidence", "verification", "imageRetention"],
+        "properties": {
+          "ocrTemplate": {"type": "string", "pattern": "^[A-Z0-9_]{2,60}$"},
+          "regions": {"type": "array", "minItems": 1, "maxItems": 30, "items": {"type": "object", "required": ["key", "box"], "properties": {
+            "key": {"type": "string", "maxLength": 60}, "box": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number", "minimum": 0, "maximum": 1}},
+            "pattern": {"type": "string", "maxLength": 200}}}},
+          "minConfidence": {"type": "number", "minimum": 0.5, "maximum": 1.0, "default": 0.90},
+          "barcode": {"type": "object", "properties": {"enabled": {"type": "boolean", "default": false},
+            "symbology": {"type": "string", "enum": ["QR", "CODE128", "DATAMATRIX"]}, "payloadMapping": {"type": "string", "maxLength": 500}}},
+          "verification": {"type": "string", "const": "MANDATORY", "default": "MANDATORY"},
+          "imageRetention": {"type": "string", "enum": ["DEVICE_RAW_PAYLOAD", "DEVICE_RAW_UNFILED"], "default": "DEVICE_RAW_PAYLOAD"}
+        }
+      }
+    },
+    {
+      "option": "P10", "name": "Manual entry with device attestation (last resort)",
+      "howItWorks": "The nurse enters the values and attests the device model, serial and calibration; campaign data can be imported in bulk from a CSV template. Plausibility rules from the driver package still apply.",
+      "typicalDevices": ["Snellen / LogMAR charts", "Tuning forks", "Purdue pegboard", "Screening campaigns with paper fall-back"],
+      "securityLevel": "LOW", "reliability": "LOW", "effort": "LOW",
+      "endpointKind": null,
+      "prerequisites": ["CALIBRATION_EVIDENCE", "VENDOR_POSTURE"],
+      "stepGuide": [
+        {"step": 1, "text": "Keep all four attestation fields (model, serial, calibration id and date) mandatory."},
+        {"step": 2, "text": "Limit manual entry to the clinician roles that perform the test."},
+        {"step": 3, "text": "Use the CSV template only for campaign imports; each row is still verified."}
+      ],
+      "diagramUrl": "/assets/devices/options/p10-manual.svg",
+      "help": {
+        "en": "Use only when no other option is possible. The record shows that the value was typed and which device was attested.",
+        "ar": "يُستخدم فقط عند تعذّر أي خيار آخر. يُظهر السجل أن القيمة أُدخلت يدوياً وأي جهاز تم التصديق عليه."
+      },
+      "parameterSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "P10 Manual entry", "type": "object", "additionalProperties": false,
+        "required": ["attestationFields", "allowedRoles"],
+        "properties": {
+          "attestationFields": {"type": "array", "minItems": 4, "maxItems": 4, "default": ["MODEL", "SERIAL", "CALIBRATION_ID", "CALIBRATION_DATE"],
+            "items": {"type": "string", "enum": ["MODEL", "SERIAL", "CALIBRATION_ID", "CALIBRATION_DATE"]}},
+          "csvTemplate": {"type": "string", "maxLength": 500},
+          "validationRules": {"type": "string", "enum": ["PACKAGE_PLAUSIBILITY"], "default": "PACKAGE_PLAUSIBILITY"},
+          "allowedRoles": {"type": "array", "minItems": 1, "maxItems": 6, "default": ["OH_CLINICIAN", "OH_PHYSICIAN", "NURSING_HEAD"],
+            "items": {"type": "string", "enum": ["OH_CLINICIAN", "OH_PHYSICIAN", "AME", "CMO", "NURSING_HEAD", "COLLECTOR"]}}
+        }
+      }
+    }
+  ]
+}
