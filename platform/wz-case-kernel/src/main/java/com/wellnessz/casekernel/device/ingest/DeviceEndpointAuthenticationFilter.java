@@ -116,9 +116,10 @@ public class DeviceEndpointAuthenticationFilter extends OncePerRequestFilter {
         } catch (RuntimeException ex) {
             logger.warn("Device security event could not be published: " + ex.getClass().getSimpleName());
         }
+        String safeCode = code != null && code.matches("[a-z_]{1,64}") ? code : "endpoint_unauthenticated";
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-        response.getWriter().write("{\"type\":\"about:blank\",\"title\":\"Unauthorized\",\"status\":401,\"code\":\"" + code
+        response.getWriter().write("{\"type\":\"about:blank\",\"title\":\"Unauthorized\",\"status\":401,\"code\":\"" + safeCode
                 + "\",\"detail\":\"Device endpoint authentication failed\"}");
     }
 }

@@ -31,4 +31,14 @@
     <Class name="com.wellnessz.documents.TesseractOcrProvider"/>
     <Bug pattern="COMMAND_INJECTION"/>
   </Match>
+  <!-- Device ingest chain (machine clients only, no cookies or ambient credentials): CSRF does not apply. Error bodies are
+       application/problem+json built from fixed, pattern-checked error codes – never HTML, never request data. -->
+  <Match>
+    <Class name="com.wellnessz.casekernel.device.ingest.DeviceIngestSecurityConfig"/>
+    <Or><Bug pattern="SPRING_CSRF_PROTECTION_DISABLED"/><Bug pattern="XSS_SERVLET"/></Or>
+  </Match>
+  <Match>
+    <Class name="com.wellnessz.casekernel.device.ingest.DeviceEndpointAuthenticationFilter"/>
+    <Bug pattern="XSS_SERVLET"/>
+  </Match>
 </FindBugsFilter>
