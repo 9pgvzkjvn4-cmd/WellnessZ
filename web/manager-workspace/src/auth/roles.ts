@@ -4,8 +4,10 @@ export const CASE_ROLES = ['MANAGER', 'HR', 'OH_CLINICIAN', 'OH_ADMIN', 'CASE_MA
 /**
  * Roles allowed into the workspace. Increment 5 adds SAFETY_MANAGER (for-cause test requests) and CREW_SCHEDULING
  * (duty-status list) – both see the testing screen only (docs/increment-05/API-Contract-E09-E10-E11-E12.md §4.2, §4.4).
+ * Increment 6 adds NURSING_HEAD for the site device-availability screen only (the BFF admits the role for
+ * `/workspace/device-fleet` and nothing else in the workspace, docs/increment-06/API-Contract-E31-E34.md §18).
  */
-export const WORKSPACE_ROLES = [...CASE_ROLES, 'SAFETY_MANAGER', 'CREW_SCHEDULING'] as const;
+export const WORKSPACE_ROLES = [...CASE_ROLES, 'SAFETY_MANAGER', 'CREW_SCHEDULING', 'NURSING_HEAD'] as const;
 
 /** `roles` are expected normalised (upper-case, no ROLE_ prefix); normalises defensively anyway. */
 export function hasWorkspaceAccess(roles: readonly string[] | undefined): boolean {
@@ -72,6 +74,7 @@ export type Feature =
 
 export const isSafetyManager = (roles: readonly string[] | undefined) => has(roles, 'SAFETY_MANAGER');
 export const isCrewScheduling = (roles: readonly string[] | undefined) => has(roles, 'CREW_SCHEDULING');
+export const isNursingHead = (roles: readonly string[] | undefined) => has(roles, 'NURSING_HEAD');
 
 export function canUse(feature: Feature, roles: readonly string[] | undefined): boolean {
   switch (feature) {
@@ -103,10 +106,10 @@ export function canUse(feature: Feature, roles: readonly string[] | undefined): 
     case 'campaigns':
     case 'ergonomics':
       return isManager(roles);
-    // increment 6 (docs/increment-06/API-Contract-E31-E34.md §18): site device availability, counts only. The core also allows
-    // NURSING_HEAD, but the BFF workspace rule (WORKSPACE_ROLES, unchanged) admits MANAGER only.
+    // increment 6 (docs/increment-06/API-Contract-E31-E34.md §18): site device availability, counts only – MANAGER and the
+    // clinic's NURSING_HEAD (core E32 rule; the BFF admits NURSING_HEAD for this workspace resource only)
     case 'deviceFleet':
-      return isManager(roles);
+      return isManager(roles) || isNursingHead(roles);
   }
 }
 
@@ -196,5 +199,12 @@ export function workspaceNav(roles: readonly string[] | undefined): { path: stri
   return [{ path: '/', label: 'Team cases' }, ...referralNav(roles), ...features, { path: '/analytics', label: 'Analytics' }];
 }
 
-/** Start page: team cases, or the testing screen for sessions without a case role. */
-export const homeRoute = (roles: readonly string[] | undefined) => (hasCaseAccess(roles) ? '/' : FEATURE_ROUTES.testing);
+/**
+ * Start page: team cases; without a case role the testing screen (safety manager, crew scheduling) or – for a nursing head
+ * with no other workspace role – device availability.
+ */
+export const homeRoute = (roles: readonly string[] | undefined) => {
+  if (hasCaseAccess(roles)) return '/';
+  const t = testingSections(roles);
+  return !t.forCause && !t.dutyStatus && isNursingHead(roles) ? FEATURE_ROUTES.deviceFleet : FEATURE_ROUTES.testing;
+};

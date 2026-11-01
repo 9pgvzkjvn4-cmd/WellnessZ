@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Device Console – WellnessZ device integration demo</title>
+<link rel="stylesheet" href="../shared/ui.css" data-wz-inline>
+<link rel="stylesheet" href="../shared/devices.css" data-wz-inline>
+</head>
+<body>
+<a class="wz-skip" href="#main">Skip to content</a>
+<div id="app"></div>
+<script src="../data/device-demo-data.js" data-wz-data></script>
+<script src="../shared/scenarios.js" data-wz-inline></script>
+<script src="../shared/codecs.js" data-wz-inline></script>
+<script src="../shared/engine.js" data-wz-inline></script>
+<script src="../shared/ui.js" data-wz-inline></script>
+<script src="../shared/appkit.js" data-wz-inline></script>
+<script>
+(function () {
+  'use strict';
+  var h = UI.h, raw = UI.raw, B = DXUI.badge;
+  var ui = { q: '', family: '', option: '', preview: null, lastTest: null };
+  var OPTION_ORDER = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10'];
+  function S() { return DX.session(); }
+  function me() { return DX.currentUser; }
+  function can(p) { return DX.can(p); }
+  function modelName(m) { return m.manufacturer + ' ' + m.model; }
+
+  function nav() {
+    var s = S(), pending = s.configurations.filter(function (c) { return c.status === 'AWAITING_APPROVAL'; }).length;
+    var locked = DX.fleet().filter(function (f) { return f.health === 'LOCKED_OUT'; }).length;
+    return [
+      { group: 'Provisioning', items: [{ route: 'catalogue', label: 'Catalogue (' + s.catalogue.length + ' models)' }, { route: 'configurations', label: 'Configurations' }, { route: 'approvals', label: 'Approvals', count: pending, tone: 'warn' }] },
+      { group: 'Operations', items: [{ route: 'calibration', label: 'Calibration & QC', count: locked }, { route: 'fleet', label: 'Fleet' }] },
+      { group: 'Reference', items: [{ route: 'options', label: 'Connectivity options P1–P10' }] }
+    ];
+  }
+
+  // ================================================================== catalogue
+  function catalogueRows() {
+    var q = ui.q.toLowerCase();
+    return S().catalogue.filter(function (m) {
+      return (!ui.family || m.familyCode === ui.family) && (!ui.option || m.options.indexOf(ui.option) >= 0) &&
+        (!q || (m.id + ' ' + m.manufacturer + ' ' + m.model + ' ' + m.family + ' ' + m.protocol).toLowerCase().indexOf(q) >= 0);
+    });
+  }
+  function catalogueTable() {
+    var rows = catalogueRows();
+    return h`<p class="wz-muted" data-test="cat-count">${rows.length} of ${S().catalogue.length} models</p>${UI.table([
+      { label: 'ID', render: function (m) { return h`<a href="#/model/${m.id}" data-test="model-link" data-model="${m.id}">${m.id}</a>`; } },
+      { label: 'Device / model', render: function (m) { return h`<strong>${m.model}</strong><br><span class="wz-muted">${m.manufacturer}</span>`; } },
+      { label: 'Family', key: 'family' },
+      { label: 'Options', render: function (m) { return h`<span class="dx-pill-row">${m.options.map(function (o) { return UI.badge(o, 'neutral'); })}</span>`; } },
+      { label: 'Drivers', render: function (m) { return m.drivers.length ? UI.badge(m.drivers.length + ' certified', 'success') : h`<span class="wz-muted">request</span>`; } },
+      { label: 'Confidence', render: function (m) { return m.confidence === 'High' ? UI.badge('High', 'success') : UI.badge(m.confidence, 'warn'); } }
+    ], rows, { empty: 'No model matches the search', caption: 'Device catalogue' })}`;
+  }
+  function vCatalogue() {
+    var fams = []; S().catalogue.forEach(function (m) { if (fams.indexOf(m.familyCode) < 0) fams.push(m.familyCode); });
+    return h`<div class="wz-page-head"><div><h1>Device catalogue</h1><p class="wz-lead">${S().catalogue.length} models from the client inventory (11 families), seeded into E32 with the connectivity options the wizard offers. Rows not marked 'High' need the vendor interface specification confirmed at the prerequisites step.</p></div></div>
+      <form class="dx-search" id="cat-search" onsubmit="return false">
+        ${UI.field({ type: 'search', name: 'q', label: 'Search', value: ui.q, hint: 'brand, model, family, protocol' })}
+        ${UI.field({ type: 'select', name: 'family', label: 'Family', value: ui.family, placeholder: 'All families', options: fams.map(function (f) { return { value: f, label: DXUI.label(f) }; }) })}
+        ${UI.field({ type: 'select', name: 'option', label: 'Option', value: ui.option, placeholder: 'Any option', options: OPTION_ORDER })}
+      </form><div id="cat-results">${catalogueTable()}</div>`;
+  }
+  function vModel(p) {
+    var m = DX.model(p.id); if (!m) return UI.empty('Model not found', p.id);
+    var packs = OPTION_ORDER.filter(function (o) { return m.options.indexOf(o) >= 0; }).map(function (o) { return DX.optionPack(o); });
+    var drivers = DX.driversFor(m.id);
+    var cfgs = S().configurations.filter(function (c) { return c.modelCode === m.id; });
+    return h`<div class="wz-breadcrumb"><a href="#/catalogue">Catalogue</a> › ${m.id}</div>
+      <div class="wz-page-head"><div><h1 data-test="model-title">${modelName(m)}</h1><p class="wz-lead">${m.family} · ${m.ohUse}</p></div><span class="wz-sp"></span>
+      ${can('config.write') ? h`<button class="wz-btn" data-act="provision" data-model="${m.id}" data-test="start-provisioning">Start provisioning</button>` : ''}</div>
+      <div class="wz-grid-2"><section class="wz-card"><h2>Model</h2>${UI.dl([['Inventory id', m.id], ['Manufacturer', m.manufacturer], ['Connectivity (inventory)', m.connectivity], ['Protocol / vendor software', m.protocol], ['FDA product code(s)', m.fdaCodes], ['Delivery sprint', m.sprint],
+        ['Confidence', m.confidence === 'High' ? UI.badge('High', 'success') : UI.badge(m.confidence + ' – confirm the interface specification', 'warn')], ['Lifecycle', B('config', m.lifecycle === 'ACTIVE' ? 'PUBLISHED' : 'DRAFT', m.lifecycle)], ['Vendor security posture', m.posture === 'ACCEPTABLE' ? UI.badge('Acceptable (MDS2 / SBOM)', 'success') : UI.badge(DXUI.label(m.posture), 'warn')]])}</section>
+      <section class="wz-card"><h2>Certified driver packages</h2>${drivers.length ? UI.table([{ label: 'Package', render: function (d) { return h`<code>${d.packageId}@${d.version}</code>`; } }, { label: 'Adapter', key: 'adapter' }, { label: 'Options', render: function (d) { return d.options.join(', '); } }, { label: 'Signature', render: function (d) { return h`<code class="wz-small">${d.signature.algorithm} ${d.signature.keyId}</code>`; } }], drivers) : UI.alert('warn', 'No certified driver yet', h`<p>Use request-a-model: the integration tester scopes a driver from the closest family adapter.</p>`)}
+        <h3>Configurations of this model</h3>${cfgs.length ? h`<ul class="wz-list">${cfgs.map(function (c) { return h`<li><a href="#/wizard/${c.id}">${c.id}</a> ${c.instanceId} · ${c.option || '—'} · ${c.stationCode || c.siteCode || ''} ${B('config', c.status)}</li>`; })}</ul>` : h`<p class="wz-muted">None yet.</p>`}</section></div>
+      <h2>Connectivity options for this model</h2><div class="wz-grid">${packs.map(function (o) {
+        var has = drivers.some(function (d) { return d.options.indexOf(o.option) >= 0; });
+        return h`<section class="wz-card wz-accent" data-option="${o.option}"><div class="wz-card-head"><strong>${o.option} · ${o.name}</strong>${has ? UI.badge('driver', 'success') : UI.badge('no driver', 'neutral')}</div>
+          <p class="wz-small">${o.howItWorks}</p>${UI.dl([['Security', o.securityLevel], ['Reliability', o.reliability], ['Effort', o.effort], ['Endpoint', o.endpointKind || 'none']])}
+          <details><summary>Help (EN / AR)</summary><p class="wz-small">${o.help.en}</p><p class="wz-small" dir="rtl" lang="ar">${o.help.ar}</p></details></section>`;
+      })}</div>`;
+  }
+
+  // ================================================================== configurations
+  function vConfigurations() {
+    var rows = S().configurations.slice().reverse();
+    return h`<div class="wz-page-head"><div><h1>Configurations</h1><p class="wz-lead">One configuration provisions one device instance through one connectivity option. Every change is versioned; production changes need four-eyes approval.</p></div></div>
+      ${UI.table([{ label: 'Configuration', render: function (c) { return h`<a href="#/wizard/${c.id}" data-test="cfg-link" data-model="${c.modelCode}" data-status="${c.status}">${c.id}</a> <span class="wz-muted">v${c.version}</span>`; } }, { label: 'Device', render: function (c) { var m = DX.model(c.modelCode); return h`${c.instanceId}<br><span class="wz-muted">${modelName(m)}</span>`; } },
+        { label: 'Option', render: function (c) { return c.option || '—'; } }, { label: 'Station', render: function (c) { return c.stationCode || '—'; } }, { label: 'Step', render: function (c) { return c.currentStep + ' · ' + DX.STEP_NAMES[c.currentStep - 1]; } },
+        { label: 'Status', render: function (c) { return h`${B('config', c.status)}${c.paused ? UI.badge('paused', 'neutral') : ''}${c.recertified ? UI.badge('re-certified', 'info') : ''}`; } }], rows)}`;
+  }
+
+  // ================================================================== wizard
+  function stepper(c, cur) {
+    return h`<nav class="dx-stepper" aria-label="Provisioning steps">${DX.STEP_NAMES.map(function (n, i) {
+      var st = c.stepStatus[i + 1], cls = st === 'VALID' ? 'valid' : st === 'INVALID' ? 'invalid' : st === 'IN_PROGRESS' ? 'progress' : '';
+      return h`<a href="#/wizard/${c.id}?step=${i + 1}" class="${cls}" data-step="${i + 1}" ${raw(cur === i + 1 ? 'aria-current="step"' : '')}><b>Step ${i + 1}</b>${n}</a>`;
+    })}</nav>`;
+  }
+  function vWizard(p) {
+    var c = DX.config(p.id); if (!c) return UI.empty('Configuration not found', p.id);
+    var m = DX.model(c.modelCode), step = Number(p.query.step || c.currentStep) || 1;
+    var head = h`<div class="wz-breadcrumb"><a href="#/configurations">Configurations</a> › ${c.id}</div>
+      <div class="wz-page-head"><div><h1 data-test="wizard-title">${modelName(m)} <span class="wz-muted">· ${c.id} v${c.version}</span></h1>
+      <p class="wz-lead">Device instance <strong data-test="instance-id">${c.instanceId}</strong> · ${c.option ? c.option + ' ' + DX.optionPack(c.option).name : 'option not chosen'} · ${c.stationCode || 'station not bound'} · driver ${c.driver ? c.driver.packageId + '@' + c.driver.version : '—'}</p></div>
+      <span class="wz-sp"></span><span data-test="cfg-status">${B('config', c.status)}</span>${c.recertified ? UI.badge('re-certified – waiting for the security release', 'info') : ''}</div>
+      ${c.warnings && c.warnings.length ? UI.alert('warn', 'Warnings', h`<p>${c.warnings.join('; ')}</p>`) : ''}${stepper(c, step)}`;
+    var body = [null, step1, step2, step3, step4, step5, step6, step7, step8][step](c, m);
+    return h`${head}<section class="wz-card" data-test="step-panel" data-step="${step}"><h2>Step ${step} – ${DX.STEP_NAMES[step - 1]}</h2>${body}</section>${historyCard(c)}`;
+  }
+  function editable(c) { return c.status === 'DRAFT' && can('config.write'); }
+  function historyCard(c) {
+    return h`<details class="wz-card"><summary><strong>Change history</strong> (${c.history.length})</summary><ol class="wz-timeline">${c.history.slice().reverse().map(function (x) { return h`<li><time>${DXUI.dt(x.at)} · ${DX.userName(x.by)}</time>${DXUI.label(x.action)}${x.note ? ' – ' + x.note : ''}</li>`; })}</ol></details>`;
+  }
+  function step1(c, m) {
+    return h`${UI.dl([['Model', modelName(m) + ' (' + m.id + ')'], ['Family', m.family], ['Supported options', m.options.join(', ')], ['Regulatory', 'FDA ' + m.fdaCodes], ['Posture', m.posture], ['Certified drivers', m.drivers.join(', ') || 'none']])}
+      <div class="wz-actions"><a class="wz-btn secondary" href="#/wizard/${c.id}?step=2">Next: connectivity option</a></div>`;
+  }
+  function step2(c, m) {
+    var packs = OPTION_ORDER.filter(function (o) { return m.options.indexOf(o) >= 0; }).map(function (o) { return DX.optionPack(o); });
+    return h`<p class="wz-muted">Only the options this model supports are shown, with a comparison. An option without a certified driver package cannot be chosen.</p>
+      <form id="f-step2" data-keep>${UI.table([{ label: 'Choose', render: function (o) { var d = DX.driversFor(m.id, o.option); return h`<input type="radio" name="option" value="${o.option}" aria-label="${o.option}" data-test="option-${o.option}" ${raw(c.option === o.option ? 'checked' : '')} ${raw(!editable(c) ? 'disabled' : '')}>`; } },
+        { label: 'Option', render: function (o) { return h`<strong>${o.option}</strong> ${o.name}`; } }, { label: 'Security', key: 'securityLevel' }, { label: 'Reliability', key: 'reliability' }, { label: 'Effort', key: 'effort' },
+        { label: 'Prerequisites', render: function (o) { return o.prerequisites.map(DXUI.label).join(', '); } }, { label: 'Driver', render: function (o) { var d = DX.driversFor(m.id, o.option); return d.length ? h`<code>${d[0].packageId}@${d[0].version}</code>` : UI.badge('none – request', 'neutral'); } }], packs)}
+      <div data-errors></div>${editable(c) ? h`<div class="wz-actions"><button class="wz-btn" type="button" data-act="save2" data-test="save-step">Save and continue</button></div>` : ''}</form>`;
+  }
+  function endpointsFor(c) { return S().endpoints.filter(function (e) { return !c.siteCode || e.siteCode === c.siteCode || true; }); }
+  function step3(c) {
+    if (!c.option) return UI.alert('warn', 'Choose the connectivity option first', '');
+    var eqs = S().equipment.filter(function (e) { return e.modelCode === c.modelCode; });
+    var eps = endpointsFor(c);
+    var items = c.prerequisites.length ? c.prerequisites : [];
+    return h`<p class="wz-muted">Each item is verifiable; AUTO items are checked against E34 (endpoint identity), E14 (calibration evidence) and the vendor posture. The step is valid only when every item is DONE or not applicable.</p>
+      <form id="f-step3" data-keep><div class="dx-form-grid">
+        <div class="wz-field"><label for="p3-ep">Host endpoint (gateway / agent / tablet / data manager)</label><span class="wz-hint">pick an enrolled endpoint or type a new id – a new endpoint is provisioned at publish</span>
+          <input id="p3-ep" name="endpointId" list="p3-eps" value="${c.endpointId || ''}" data-test="endpoint-input"><datalist id="p3-eps">${eps.map(function (e) { return h`<option value="${e.endpointId}">${e.kind} · ${e.status}</option>`; })}</datalist></div>
+        ${UI.field({ type: 'select', name: 'equipmentId', label: 'E14 equipment record (calibration authority)', value: c.equipmentId, placeholder: '— choose —', options: eqs.map(function (e) { return { value: e.equipmentId, label: e.equipmentId + ' · serial ' + e.serial + ' · due ' + e.calibrationDueOn }; }) })}
+        ${UI.field({ name: 'serial', label: 'Device serial', value: c.serial || '' })}</div>
+        <h3>Checklist</h3>${UI.table([{ label: 'Item', render: function (it) { return h`<strong>${DXUI.label(it.code)}</strong><br><span class="wz-small wz-muted">${DX.PREREQ_TEXT[it.code] || ''}</span>`; } },
+          { label: 'Status', render: function (it) { return it.auto ? h`${B('prereq', it.status)} <span class="wz-small wz-muted">auto</span>` : h`<select name="st-${it.code}" data-code="${it.code}" aria-label="Status of ${it.code}">${['OPEN', 'DONE', 'NOT_APPLICABLE'].map(function (s2) { return h`<option ${raw(it.status === s2 ? 'selected' : '')}>${s2}</option>`; })}</select>`; } },
+          { label: 'Evidence', render: function (it) { return it.auto ? (it.evidence ? it.evidence.text : 'run the auto-checks') : h`<input class="wz-input" name="ev-${it.code}" value="${it.evidence ? it.evidence.text : ''}" placeholder="change ref., document, note">`; } }], items)}
+        <div data-errors></div>${editable(c) ? h`<div class="wz-actions"><button class="wz-btn secondary" type="button" data-act="autocheck3">Run auto-checks</button><button class="wz-btn" type="button" data-act="save3" data-test="save-step">Save and continue</button></div>` : ''}</form>`;
+  }
+  function step4(c) {
+    if (!c.option) return UI.alert('warn', 'Choose the connectivity option first', '');
+    var pack = DX.optionPack(c.option), d = DX.stepFourDefaults(c.id), commonSchema = S().optionPacks.commonSchema;
+    var commonShown = { type: 'object', required: commonSchema.required, properties: {} };
+    ['timeSource', 'timeZone', 'units', 'locale', 'verifyBeforePost', 'retentionClass', 'qualityGateAdditions', 'calibrationSchedule', 'referenceRangeOverrides'].forEach(function (k) { commonShown.properties[k] = commonSchema.properties[k]; });
+    return h`<div class="dx-split"><div><form id="f-step4" data-keep><p class="wz-muted">Generated from the <strong>${pack.option}</strong> option-pack JSON Schema (2020-12) with defaults from the certified driver package – the administrator validates rather than invents. Secrets are write-only.</p>
+        <fieldset class="dx-fieldset"><legend>${pack.option} parameters</legend><div class="dx-form-grid" data-test="param-form">${DXUI.schemaFields(pack.parameterSchema, d.parameters, '', { secrets: c.secrets })}</div></fieldset>
+        <fieldset class="dx-fieldset"><legend>Common items</legend><div class="dx-form-grid">${DXUI.schemaFields(commonShown, { common: d.common }, 'common', {})}</div>
+        <p class="wz-small wz-muted">Driver ${d.common.driverPackageId}@${d.common.driverVersion} (certified). Gates can only be added or tightened.</p></fieldset>
+        <div data-errors></div>${editable(c) ? h`<div class="wz-actions"><button class="wz-btn" type="button" data-act="save4" data-test="save-step">Validate and save</button></div>` : ''}</form></div>
+      <aside><section class="wz-card"><h3>${pack.option} · ${pack.name}</h3><p class="wz-small">${pack.howItWorks}</p><ol class="wz-small">${pack.stepGuide.map(function (g) { return h`<li>${g.text}</li>`; })}</ol>
+        <details><summary>Help (EN / AR)</summary><p class="wz-small">${pack.help.en}</p><p class="wz-small" dir="rtl" lang="ar">${pack.help.ar}</p></details></section>
+        <section class="wz-card"><h3>Practice rules checked</h3><ul class="wz-small">${raw({ P1: '<li>USB needs a VID/PID allow-list</li><li>Poll mode needs command and interval</li><li>Line framing needs a terminator</li>', P2: '<li>Database: read-only SELECT only, credential in the vault</li><li>Folder watch: path and pattern; vendor folder stays read-only</li>', P3: "<li>LE Secure Connections; 'Just Works' only with a Security Operations exception</li><li>Bonded devices cannot use Just Works</li>", P4: '<li>MLLP over TLS; plaintext only with a documented exception inside DEVICE_VLAN</li><li>Static IP or DNS name</li>', P5: '<li>Passing QC per lot and window cannot be relaxed</li>', P6: '<li>Egress allow-list and data residency</li><li>Webhook needs an HMAC secret</li>', P7: '<li>Calling and called AE titles differ; TLS required</li>', P8: '<li>SMART backend needs system scopes</li>', P9: '<li>Verification mandatory; region boxes valid</li>', P10: '<li>All four attestation fields mandatory</li>' }[pack.option] || '')}<li>Literal secrets are refused (secret scanner)</li></ul></section></aside></div>`;
+  }
+  function step5(c) {
+    if (c.stepStatus[4] !== 'VALID') return UI.alert('warn', 'Complete step 4 first', '');
+    var d = DX.driver(c.driver.packageId, c.driver.version), bindings = c.bindings.length ? c.bindings : d.bindings;
+    var methods = c.associationMethods.length ? c.associationMethods : (d.family === 'DRUG_ALCOHOL' ? ['WORKLIST', 'SESSION'] : ['SESSION', 'VENDOR_ID_MATCH']);
+    var stations = []; S().sites.forEach(function (st) { st.stations.forEach(function (x) { stations.push({ value: x.code, label: st.code + ' · ' + x.code + ' – ' + x.name + (st.test ? ' (test site)' : '') }); }); });
+    var datasets = S().golden.filter(function (g) { return g.packageId === d.packageId; });
+    return h`<form id="f-step5" data-keep><div class="dx-form-grid">
+        <fieldset class="wz-fieldset"><legend class="wz-legend">Association methods (priority order)</legend>${['WORKLIST', 'SESSION', 'BADGE', 'VENDOR_ID_MATCH'].map(function (x) { return UI.checkbox({ name: 'methods', value: x, id: 'm-' + x, label: DXUI.label(x) + (x === 'WORKLIST' ? ' (order / test id)' : x === 'SESSION' ? ' (nurse selected the employee)' : x === 'BADGE' ? ' (badge / NFC)' : ' (vendor-typed id, ≥ 0.95 auto)'), checked: methods.indexOf(x) >= 0 }); })}
+          ${d.family === 'DRUG_ALCOHOL' ? UI.alert('restricted', 'Restricted category', h`<p>Breath alcohol accepts only WORKLIST (E10 test id) or SESSION.</p>`) : ''}</fieldset>
+        ${UI.field({ type: 'select', name: 'stationCode', label: 'Station / room', value: c.stationCode, placeholder: '— choose —', options: stations })}
+        ${UI.field({ name: 'services', label: 'Services', value: (c.services || ['Spot measurement']).join(', ') })}</div>
+        <h3>Result-to-field bindings (pre-filled from the driver)</h3>${bindings.map(function (b, i) {
+          return h`<div class="dx-fieldset" style="margin-bottom:.6rem" data-binding="${i}"><strong>${b.formCode}</strong> → ${b.target} &nbsp; ${UI.checkbox({ name: 'vbp-' + i, id: 'vbp-' + i, label: 'Verify before post', checked: b.verifyBeforePost !== false })}
+            ${UI.table([{ label: 'Bind', render: function (r) { return h`<input type="checkbox" name="bf-${i}" value="${r.k}" checked aria-label="bind ${r.k}">`; } }, { label: 'Driver key', render: function (r) { return h`<code>${r.k}</code>`; } }, { label: 'Form field', render: function (r) { return h`<code>${r.f}</code>`; } }], Object.keys(b.fields).map(function (k) { return { k: k, f: b.fields[k] }; }))}</div>`;
+        })}
+        <h3>Preview with a golden dataset</h3><div class="dx-search">${UI.field({ type: 'select', name: 'dataset', label: 'Golden dataset', value: (ui.preview && ui.preview.datasetId) || (datasets.filter(function (g) { return g.kind === 'NORMAL'; })[0] || {}).datasetId, options: datasets.map(function (g) { return { value: g.datasetId, label: g.datasetId + ' – ' + g.kind }; }) })}<button class="wz-btn secondary" type="button" data-act="preview5" data-test="preview">Preview bound fields</button></div>
+        <div id="preview-out">${ui.preview && ui.preview.cfg === c.id ? previewTable(ui.preview) : ''}</div>
+        <div data-errors></div>${editable(c) ? h`<div class="wz-actions"><button class="wz-btn" type="button" data-act="save5" data-test="save-step">Save and continue</button></div>` : ''}</form>`;
+  }
+  function previewTable(pv) {
+    if (pv.error) return UI.alert('danger', 'Preview: ' + pv.error.code, h`<p>${pv.error.message}</p>`);
+    return h`<div data-test="preview-table">${pv.bindings.map(function (b) { return h`<p><strong>${b.formCode}</strong> → ${b.target} ${b.verifyBeforePost ? UI.badge('verify before post', 'info') : UI.badge('auto-route', 'neutral')}</p>${UI.table([{ label: 'Form field', render: function (r) { return h`<code>${r.field}</code>`; } }, { label: 'Value', render: function (r) { return h`<strong data-key="${r.key}">${r.value == null ? '—' : String(r.value)}</strong> ${r.ucum || ''}`; } }, { label: 'LOINC', render: function (r) { return r.loinc || '—'; } }], b.rows)}`; })}</div>`;
+  }
+  function testTable(t) {
+    return h`<div class="wz-card" data-test="test-run" data-mode="${t.mode}" data-status="${t.status}"><div class="wz-card-head"><strong>${t.testRunId} · ${t.mode}</strong>${B('test', t.status)}</div>
+      ${t.results ? UI.table([{ label: 'Vector / check', render: function (r) { return h`${r.name}${r.negative ? h` <span class="wz-badge neutral">negative</span>` : ''}`; } }, { label: 'Dataset', render: function (r) { return r.dataset ? h`<code class="wz-small">${r.dataset}</code>` : '—'; } }, { label: 'Result', render: function (r) { return r.pass ? UI.badge('pass', 'success') : UI.badge('fail', 'danger'); } }, { label: 'Detail', key: 'actual' }], t.results) : ''}
+      <p class="wz-small">Evidence SHA-256 <span class="dx-hash">${t.evidenceSha256}</span> · ${DXUI.dt(t.finishedAt)}</p></div>`;
+  }
+  function step6(c) {
+    if (c.stepStatus[5] !== 'VALID') return UI.alert('warn', 'Complete step 5 first', '');
+    var st = DX.station(c.stationCode), nurseView = can('config.nurseReview') && !can('config.write');
+    var review = h`<section class="wz-card"><h3>Nurse review (test-form preview)</h3><p class="wz-small wz-muted">Read-only, secret-free review view: device, station, forms, bindings and test runs – no parameters, secret references or endpoint.</p>
+      ${UI.dl([['Device', DX.model(c.modelCode).model + ' (' + c.instanceId + ')'], ['Station', c.stationCode], ['Forms', c.bindings.map(function (b) { return b.formCode; }).join(', ')], ['Fields', c.bindings.map(function (b) { return Object.values(b.fields).join(', '); }).join(' | ')]])}
+      ${c.nurseReview ? h`<p>${B('test', c.nurseReview.outcome === 'ACCEPTED' ? 'PASSED' : 'FAILED', c.nurseReview.outcome)} by ${DX.userName(c.nurseReview.by)} · ${DXUI.dt(c.nurseReview.at)} – ${c.nurseReview.note}</p>` : ''}
+      ${can('config.nurseReview') && c.status === 'DRAFT' ? h`<form id="f-nurse" data-keep>${UI.field({ name: 'note', label: 'Note', value: 'Test form preview checked' })}<div class="wz-actions"><button class="wz-btn" type="button" data-act="nurse-accept" data-test="nurse-accept">Accept the preview</button><button class="wz-btn secondary" type="button" data-act="nurse-reject">Reject</button></div></form>` : ''}</section>`;
+    if (nurseView) return review;
+    return h`<p class="wz-muted">Simulator test: every package test vector including the negative cases. Live test: connection, end-to-end sample into the test form and security checks (mTLS authenticated, plaintext refused). ${st && st.test ? 'Test site – the live test is optional.' : 'Production site – a passing live test is required unless it is waived with a justification (then Security Operations co-approves).'}</p>
+      ${c.status === 'DRAFT' && can('config.test') ? h`<div class="wz-actions"><button class="wz-btn" type="button" data-act="test-sim" data-test="run-sim">Run simulator test</button><button class="wz-btn secondary" type="button" data-act="test-live" data-test="run-live">Run live test</button></div>` : ''}
+      ${c.tests.slice().reverse().map(testTable)}
+      ${editable(c) ? h`<form id="f-step6" data-keep>${UI.field({ type: 'textarea', name: 'justification', label: 'Waive the live test – justification (optional)', value: c.simulatorOnlyJustification || '', hint: 'requires the device approver AND Security Operations to approve' })}<div class="wz-actions"><button class="wz-btn secondary" type="button" data-act="save6" data-test="save-justification">Save justification</button></div></form>` : (c.simulatorOnlyJustification ? UI.alert('warn', 'Live test waived', h`<p>${c.simulatorOnlyJustification}</p>`) : '')}
+      ${review}`;
+  }
+  function step7(c) {
+    var u = me(), sub = c.submittedBy, refusedReason = u && (u.username === sub ? 'you submitted it' : c.editors.indexOf(u.username) >= 0 ? 'you changed steps 4–6 of this version' : null);
+    return h`${UI.dl([['Submitted by', sub ? DX.userName(sub) + ' · ' + DXUI.dt(c.submittedAt) : '—'], ['Editors of steps 4–6', c.editors.map(DX.userName).join(', ') || '—'], ['Approved by', c.approvedBy ? DX.userName(c.approvedBy) + ' · ' + DXUI.dt(c.approvedAt) : '—'],
+        ['Security co-approval', c.simulatorOnlyJustification ? (c.coApprovedBy ? DX.userName(c.coApprovedBy) : 'required – live test waived') : 'not required'], ['Certification', c.certificationId ? h`<a href="#/certificate/${c.id}" data-test="cert-link">${c.certificationId}</a>` : '—']])}
+      ${UI.alert('info', 'Four-eyes rule', h`<p>The approver must be a different person from the submitter and from anyone who changed steps 4–6 of this version. ${raw(c.simulatorOnlyJustification ? 'Because the live test is waived, Security Operations must co-approve.' : '')}</p>`)}
+      <form id="f-step7" data-keep><div data-errors></div><div class="wz-actions">
+        ${c.status === 'DRAFT' && can('config.submit') ? h`<button class="wz-btn" type="button" data-act="submit" data-test="submit">Submit for certification</button>` : ''}
+        ${c.status === 'AWAITING_APPROVAL' && can('config.approve') && !c.approvedBy ? h`${UI.field({ name: 'note', label: 'Approval note', value: 'Bindings and evidence checked' })}<button class="wz-btn" type="button" data-act="approve" data-test="approve">Approve and certify</button><button class="wz-btn secondary" type="button" data-act="reject" data-test="reject">Reject…</button>` : ''}
+        ${c.status === 'AWAITING_APPROVAL' && can('config.coApprove') && c.simulatorOnlyJustification && !c.coApprovedBy ? h`<button class="wz-btn" type="button" data-act="coapprove" data-test="coapprove">Security co-approval</button>` : ''}
+      </div>${c.status === 'AWAITING_APPROVAL' && can('config.approve') && refusedReason ? h`<p class="wz-small wz-muted">Note: you will be refused because ${refusedReason}.</p>` : ''}</form>`;
+  }
+  function step8(c) {
+    var ep = c.endpointId && DX.endpoint(c.endpointId), cal = DX.calibrationStatus(c.instanceId);
+    return h`${UI.dl([['Status', B('config', c.status)], ['Published', c.publishedAt ? DXUI.dt(c.publishedAt) + ' by ' + DX.userName(c.publishedBy) : '—'], ['Endpoint', ep ? h`${ep.endpointId} ${B('endpoint', ep.status)} (${ep.kind}, zone ${ep.zone})` : (c.endpointId ? c.endpointId + ' – provisioned at publish' : 'none')],
+        ['Calibration / QC', cal ? (cal.lockedOut ? UI.badge('locked out', 'danger') : UI.badge('in date', 'success')) : '—'], ['Capture lists', c.status === 'PUBLISHED' ? 'visible in the nurses\' "capture from device" list at ' + c.stationCode : 'not visible']])}
+      <div class="wz-actions">${c.status === 'CERTIFIED' && can('config.publish') ? h`<button class="wz-btn" type="button" data-act="publish" data-test="publish">Publish</button>` : ''}
+        ${['PUBLISHED', 'QUARANTINED'].indexOf(c.status) >= 0 && can('config.write') ? h`<button class="wz-btn secondary" type="button" data-act="revise" data-test="revise">Revise (new version)</button>` : ''}
+        ${c.certificationId ? h`<a class="wz-btn secondary" href="#/certificate/${c.id}">Certification record</a>` : ''}</div>`;
+  }
+
+  // ================================================================== approvals and certificate
+  function vApprovals() {
+    var rows = S().configurations.filter(function (c) { return c.status === 'AWAITING_APPROVAL'; });
+    return h`<h1>Approvals</h1><p class="wz-lead">Pending certifications. Approver ≠ submitter ≠ editors of steps 4–6.</p>${UI.table([{ label: 'Configuration', render: function (c) { return h`<a href="#/wizard/${c.id}?step=7" data-test="approval-link" data-model="${c.modelCode}">${c.id}</a>`; } }, { label: 'Device', render: function (c) { var m = DX.model(c.modelCode); return h`${modelName(m)} · ${c.option}`; } }, { label: 'Station', key: 'stationCode' }, { label: 'Submitted by', render: function (c) { return DX.userName(c.submittedBy); } }, { label: 'Editors', render: function (c) { return c.editors.map(DX.userName).join(', '); } }, { label: 'Waiting for', render: function (c) { return c.approvedBy ? 'Security co-approval' : 'Approver' + (c.simulatorOnlyJustification ? ' + Security' : ''); } }], rows, { empty: 'Nothing waiting for approval' })}`;
+  }
+  function vCertificate(p) {
+    var r = DX.certificationRecord(p.id); if (!r) return UI.empty('No certification record', 'The configuration has not been certified yet.');
+    var m = r.model;
+    return h`<div class="wz-actions no-print"><a class="wz-btn secondary" href="#/wizard/${r.configurationId}?step=7">Back to the configuration</a><button class="wz-btn" type="button" data-act="print" data-test="print">Print / save as PDF</button></div>
+      <article class="dx-cert" data-test="certificate"><h1>Device certification record ${r.certificationId}</h1><p>WellnessZ Medical Device Integration Engine – configuration ${r.configurationId} version ${r.version}, device instance ${r.deviceInstanceId}. Status at print: ${r.status}.</p>
+      <h2>Device and connectivity</h2><table><tbody><tr><th>Model</th><td>${m.manufacturer} ${m.model} (${m.id}), ${m.family}</td></tr><tr><th>Option</th><td>${r.option} – ${r.optionName}</td></tr><tr><th>Site / station</th><td>${r.site} / ${r.station ? r.station.code + ' – ' + r.station.name : '—'}</td></tr><tr><th>Serial / E14 equipment</th><td>${r.serial || '—'} / ${r.equipmentId || '—'}</td></tr>
+        <tr><th>Driver package</th><td>${r.driver.packageId}@${r.driver.version}, Ed25519 key ${r.driver.signatureKeyId}<div class="dx-hash">${r.driver.sha256}</div></td></tr></tbody></table>
+      <h2>Data-flow summary (no person data)</h2><table><tbody><tr><th>Device</th><td>${r.dataFlow.device}</td></tr><tr><th>Endpoint</th><td>${r.dataFlow.endpoint}</td></tr><tr><th>Adapter → driver</th><td>${r.dataFlow.adapter} → ${r.dataFlow.driver}</td></tr><tr><th>Quality gates</th><td>${r.dataFlow.gates.join(', ')}</td></tr><tr><th>Association</th><td>${r.dataFlow.association.join(' → ')}</td></tr>
+        <tr><th>Bindings</th><td>${r.dataFlow.bindings.map(function (b) { return b.form + ' → ' + b.target + (b.verifyBeforePost ? ' (verify before post)' : ' (auto)') + ': ' + Object.values(b.fields).join(', '); }).join('; ')}</td></tr><tr><th>Retention</th><td>${r.dataFlow.retention}</td></tr></tbody></table>
+      <h2>Prerequisites</h2><table><thead><tr><th>Item</th><th>Status</th><th>Evidence</th></tr></thead><tbody>${r.prerequisites.map(function (x) { return h`<tr><td>${DXUI.label(x.code)}</td><td>${x.status}</td><td>${x.evidence ? x.evidence.text : '—'}</td></tr>`; })}</tbody></table>
+      <h2>Tests and evidence</h2><table><thead><tr><th>Run</th><th>Mode</th><th>Status</th><th>Evidence SHA-256</th><th>Finished</th></tr></thead><tbody>${r.tests.map(function (t) { return h`<tr><td>${t.testRunId}</td><td>${t.mode}</td><td>${t.status}</td><td class="dx-hash">${t.evidenceSha256}</td><td>${DXUI.dt(t.finishedAt)}</td></tr>`; })}</tbody></table>
+      <p>Nurse review: ${r.nurseReview ? r.nurseReview.outcome + ' by ' + DX.userName(r.nurseReview.by) + ', ' + DXUI.dt(r.nurseReview.at) : '—'}${r.simulatorOnlyJustification ? '. Live test waived: ' + r.simulatorOnlyJustification : ''}</p>
+      <h2>Configuration snapshot</h2><p class="wz-small">Snapshot SHA-256 (secrets as references only)</p><div class="dx-hash" data-test="snapshot-sha">${r.snapshotSha256}</div>
+      <details><summary class="no-print">Show snapshot</summary><pre class="dx-code">${JSON.stringify(r.configurationSnapshot, null, 1)}</pre></details>
+      <h2>Approvals (four-eyes)</h2><div class="dx-sign"><div>Submitted by<br><strong>${r.submittedBy}</strong><br>${DXUI.dt(r.submittedAt)}</div><div>Approved by<br><strong>${r.approvedBy}</strong><br>${DXUI.dt(r.approvedAt)}</div><div>Security co-approval<br><strong>${r.coApprovedBy || 'not required'}</strong></div></div>
+      <p class="wz-small">Approval signature hash <span class="dx-hash">${r.approvalSignatureSha256}</span></p><p class="wz-small">Retention class DEVICE_CONFIGURATION. Synthetic demo record.</p></article>`;
+  }
+
+  // ================================================================== calibration and fleet
+  function vCalibration() {
+    var fl = DX.fleet().filter(function (f) { return f.calibration && f.calibration.checks.length; });
+    var types = S().calibration.schedules;
+    return h`<h1>Calibration &amp; QC</h1><p class="wz-lead">Annual calibration stays in E14; E32 owns the daily and periodic checks and QC lots. A due or failed check locks the device out; release needs a newer passing check (no override).</p>
+      ${UI.table([{ label: 'Device', render: function (f) { return h`<strong>${f.instanceId}</strong><br><span class="wz-muted">${f.model}</span>`; } }, { label: 'Station', key: 'stationCode' },
+        { label: 'Checks', render: function (f) { return h`${f.calibration.checks.map(function (c) { return h`<div data-check="${c.checkType}">${B('verdict', c.verdict)} <code class="wz-small">${c.checkType}</code> <span class="wz-small wz-muted">last ${c.lastCheckAt ? DXUI.dt(c.lastCheckAt) : 'never'}${c.lot ? ' · lot ' + c.lot : ''} · due ${DXUI.dt(c.dueAt)}</span></div>`; })}`; } },
+        { label: 'E14 calibration', render: function (f) { return f.calibration.calibration.status === 'VALID' ? UI.badge('due ' + f.calibration.calibration.dueOn, 'success') : UI.badge(f.calibration.calibration.status, 'warn'); } },
+        { label: 'Lockout', render: function (f) { return h`<span data-test="lock-${f.instanceId}">${f.calibration.lockedOut ? UI.badge('LOCKED OUT', 'danger') : UI.badge('available', 'success')}</span>${f.calibration.lockout && can('calibration.release') ? h` <button class="wz-btn small" type="button" data-act="release" data-inst="${f.instanceId}" data-test="release-${f.instanceId}" ${raw(f.calibration.releasable ? '' : 'title="needs a newer passing check"')}>Release</button>` : ''}`; } }], fl)}
+      ${can('calibration.record') ? h`<section class="wz-card"><h2>Record a check</h2><form id="f-check" data-keep><div class="dx-form-grid">
+        ${UI.field({ type: 'select', name: 'instanceId', label: 'Device', placeholder: '— choose —', options: fl.map(function (f) { return { value: f.instanceId, label: f.instanceId + ' · ' + f.model }; }) })}
+        ${UI.field({ type: 'select', name: 'checkType', label: 'Check', options: types.map(function (t) { return { value: t.checkType, label: t.checkType + ' (every ' + t.intervalHours + ' h)' }; }) })}
+        ${UI.field({ type: 'select', name: 'outcome', label: 'Outcome', options: ['PASS', 'FAIL'] })}
+        ${UI.field({ name: 'lot', label: 'QC / reagent lot', optional: true })}${UI.field({ type: 'date', name: 'lotExpiry', label: 'Lot expiry', optional: true })}</div>
+        <div data-errors></div><div class="wz-actions"><button class="wz-btn" type="button" data-act="record-check" data-test="record-check">Record check</button></div></form></section>` : ''}`;
+  }
+  function vFleet() {
+    var fl = DX.fleet(), sites = {};
+    fl.forEach(function (f) { var x = sites[f.siteCode] = sites[f.siteCode] || { devices: 0, healthy: 0, lockedOut: 0, quarantined: 0, alerts: 0 }; x.devices++; if (f.health === 'HEALTHY') x.healthy++; if (f.health === 'LOCKED_OUT') x.lockedOut++; if (f.health === 'QUARANTINED') x.quarantined++; x.alerts += f.alerts.length; });
+    return h`<h1>Fleet</h1><p class="wz-lead">Health, last seen, versions, calibration and alerts per device instance (from E31 diagnostics, E34 endpoint status and E32 calibration).</p>
+      <div class="wz-grid">${Object.keys(sites).map(function (k) { var x = sites[k]; return h`<div class="wz-kpi"><b>${x.devices}</b><span>${k}: ${x.healthy} healthy · ${x.lockedOut} locked out · ${x.quarantined} quarantined · ${x.alerts} alert(s)</span></div>`; })}</div><h2>Instances</h2>
+      ${UI.table([{ label: 'Instance', render: function (f) { return h`<a href="#/wizard/${f.configurationId}?step=8">${f.instanceId}</a>`; } }, { label: 'Model', render: function (f) { return h`${f.model}<br><span class="wz-muted wz-small">${f.option} · ${f.driver}</span>`; } }, { label: 'Station', key: 'stationCode' },
+        { label: 'Health', render: function (f) { return h`<span data-test="health-${f.instanceId}">${B('health', f.health)}</span>`; } }, { label: 'Last seen', render: function (f) { return DXUI.dt(f.lastSeenAt); } }, { label: 'Endpoint', render: function (f) { return f.endpointId ? h`${f.endpointId}<br>${B('endpoint', f.endpointStatus)}` : '—'; } },
+        { label: 'Alerts', render: function (f) { return f.alerts.length ? h`<ul class="wz-small">${f.alerts.map(function (a) { return h`<li>${a}</li>`; })}</ul>` : '—'; } }], fl)}`;
+  }
+  function vOptions() {
+    return h`<h1>Connectivity options P1–P10</h1><p class="wz-lead">The ten option packs offered at wizard step 2 (JSON Schema 2020-12 parameter forms, step guides, EN/AR help).</p>${S().optionPacks.options.map(function (o) {
+      return h`<section class="wz-card wz-accent" id="opt-${o.option}"><div class="wz-card-head"><h2 style="margin:0">${o.option} · ${o.name}</h2><span>${UI.badge('security ' + o.securityLevel, 'info')} ${UI.badge('reliability ' + o.reliability, 'neutral')} ${UI.badge('effort ' + o.effort, 'neutral')}</span></div>
+        <p>${o.howItWorks}</p>${UI.dl([['Typical devices', o.typicalDevices.join(', ')], ['Endpoint kind', o.endpointKind || 'none'], ['Prerequisites', o.prerequisites.map(DXUI.label).join(', ')], ['Required parameters', (o.parameterSchema.required || []).join(', ')], ['Catalogue models offering it', S().catalogue.filter(function (m) { return m.options.indexOf(o.option) >= 0; }).length]])}
+        <details><summary>Step guide</summary><ol>${o.stepGuide.map(function (g) { return h`<li>${g.text}</li>`; })}</ol></details></section>`;
+    })}`;
+  }
+
+  // ================================================================== events
+  var app = DXUI.start({ app: 'console', appName: 'Device Console', chip: 'E32', defaultRoute: 'catalogue', nav: nav,
+    routes: { catalogue: vCatalogue, 'model/:id': vModel, configurations: vConfigurations, 'wizard/:id': vWizard, approvals: vApprovals, 'certificate/:id': vCertificate, calibration: vCalibration, fleet: vFleet, options: vOptions },
+    after: function (key, p) {
+      if (key === 'calibration') DX.viewed('calibration');
+      if (key === 'certificate/:id') DX.viewed('certificate');
+      if (key === 'wizard/:id') { var c = DX.config(p.id); if (c) DX.viewed('configuration:' + c.instanceId); }
+    } });
+  var root = document.getElementById('app');
+  root.addEventListener('input', function (e) {
+    var f = e.target.closest('#cat-search'); if (!f) return;
+    var d = UI.formData(f); ui.q = d.q || ''; ui.family = d.family || ''; ui.option = d.option || '';
+    document.getElementById('cat-results').innerHTML = String(catalogueTable());
+  });
+  root.addEventListener('change', function (e) { if (e.target.closest('#cat-search')) root.dispatchEvent(new Event('input')); });
+  function cfgId() { return (location.hash.match(/wizard\/([^?]+)/) || [])[1]; }
+  function stepGo(id, n) { location.hash = '#/wizard/' + id + '?step=' + n; }
+  UI.on(root, 'click', '[data-act]', function (e, el) {
+    var act = el.getAttribute('data-act'), id = cfgId(), form = el.closest('form');
+    if (act === 'provision') { var c = DXUI.attempt(function () { return DX.createConfiguration({ modelCode: el.getAttribute('data-model') }); }, function (r) { return r.id + ' created'; }); if (c) stepGo(c.id, 2); }
+    else if (act === 'save2') { var opt = (form.querySelector('input[name=option]:checked') || {}).value; if (DXUI.attempt(function () { return DX.saveStep(id, 2, { option: opt }); }, 'Option ' + opt + ' saved', form)) stepGo(id, 3); }
+    else if (act === 'save3' || act === 'autocheck3') {
+      var d3 = UI.formData(form), items = [];
+      form.querySelectorAll('select[data-code]').forEach(function (s) { var code = s.getAttribute('data-code'); items.push({ code: code, status: s.value, evidence: { text: (form.querySelector('[name="ev-' + code + '"]') || {}).value || '' } }); });
+      var ok = DXUI.attempt(function () { return DX.saveStep(id, 3, { endpointId: d3.endpointId, equipmentId: d3.equipmentId, serial: d3.serial, items: items, allowOpen: act === 'autocheck3' }); }, act === 'autocheck3' ? 'Auto-checks run' : 'Prerequisites complete', form);
+      if (ok && act === 'save3') stepGo(id, 4); else app.render();
+    }
+    else if (act === 'save4') {
+      var col = DXUI.collectSchema(form), params = Object.assign({}, col.values); var common = params.common || {}; delete params.common;
+      var secrets = {}; Object.keys(col.secrets).forEach(function (k) { secrets[k] = col.secrets[k]; });
+      if (col.errors.length) { DXUI.showErrors(form, col.errors); UI.toast('Please correct the highlighted fields', 'danger'); return; }
+      if (DXUI.attempt(function () { return DX.saveStep(id, 4, { parameters: params, common: common, secrets: secrets }); }, 'Parameters valid against the option schema', form)) stepGo(id, 5);
+    }
+    else if (act === 'preview5') {
+      var cfg = DX.config(id), ds = UI.formData(form).dataset;
+      ui.preview = Object.assign(DX.previewBinding(cfg, ds, bindingsFromForm(form, cfg)), { cfg: id });
+      document.getElementById('preview-out').innerHTML = String(previewTable(ui.preview));
+    }
+    else if (act === 'save5') {
+      var c5 = DX.config(id), d5 = UI.formData(form);
+      if (DXUI.attempt(function () { return DX.saveStep(id, 5, { associationMethods: d5.methods || [], stationCode: d5.stationCode, services: (d5.services || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean), bindings: bindingsFromForm(form, c5) }); }, 'Association and bindings saved', form)) stepGo(id, 6);
+    }
+    else if (act === 'test-sim' || act === 'test-live') { DXUI.attempt(function () { return DX.runConfigTest(id, { mode: act === 'test-sim' ? 'SIMULATOR' : 'LIVE' }); }, function (r) { return r.mode + ' test ' + r.status; }); }
+    else if (act === 'save6') { DXUI.attempt(function () { return DX.saveStep(id, 6, { simulatorOnlyJustification: UI.formData(form).justification || null }); }, 'Justification saved'); }
+    else if (act === 'nurse-accept' || act === 'nurse-reject') { DXUI.attempt(function () { return DX.nurseReview(id, { outcome: act === 'nurse-accept' ? 'ACCEPTED' : 'REJECTED', note: UI.formData(form).note }); }, 'Review recorded'); }
+    else if (act === 'submit') { if (DXUI.attempt(function () { return DX.submitConfiguration(id); }, 'Submitted for four-eyes certification', form)) stepGo(id, 7); }
+    else if (act === 'approve') { DXUI.attempt(function () { return DX.approveConfiguration(id, { note: UI.formData(form).note }); }, function (r) { return r.status === 'CERTIFIED' ? 'Certified – ' + r.certificationId : 'Approved – waiting for the security co-approval'; }, form); }
+    else if (act === 'coapprove') { DXUI.attempt(function () { return DX.coApproveConfiguration(id); }, function (r) { return r.status === 'CERTIFIED' ? 'Certified – ' + r.certificationId : 'Co-approved'; }, form); }
+    else if (act === 'reject') {
+      UI.modal({ title: 'Reject the submission', body: UI.field({ type: 'textarea', name: 'reason', label: 'Reason' }), actions: [{ label: 'Cancel', tone: 'secondary' }, { label: 'Reject', tone: 'danger', onClick: function (close, dlg) { var reason = dlg.querySelector('[name=reason]').value; return !!DXUI.attempt(function () { return DX.rejectConfiguration(id, { reason: reason }); }, 'Returned to the administrator'); } }] });
+    }
+    else if (act === 'publish') {
+      var r = DXUI.attempt(function () { return DX.publishConfiguration(id); }, function (x) { return x.status === 'QUARANTINED' ? 'Re-certified – waiting for the security release' : 'Published'; });
+      if (r && r.enrolmentToken) DXUI.tokenModal('One-time enrolment token for ' + r.endpointId, r.enrolmentToken, 'Give this token to the installer of ' + r.endpointId + ' (zone ' + r.zone + '). It expires ' + DXUI.dt(r.enrolmentExpiresAt) + ' and can be used once.', '');
+    }
+    else if (act === 'revise') { if (DXUI.attempt(function () { return DX.reviseConfiguration(id, {}); }, 'New version created – test, review and approval required')) stepGo(id, 6); }
+    else if (act === 'release') { DXUI.attempt(function () { return DX.releaseLockout(el.getAttribute('data-inst')); }, 'Lockout released'); }
+    else if (act === 'record-check') { var dc = UI.formData(form); DXUI.attempt(function () { return DX.recordCalibrationCheck({ instanceId: dc.instanceId, checkType: dc.checkType, outcome: dc.outcome, lot: dc.lot || null, lotExpiry: dc.lotExpiry || null }); }, function (r) { return r.checkType + ' ' + r.outcome + ' recorded'; }, form); }
+    else if (act === 'print') { window.print(); }
+  });
+  function bindingsFromForm(form, c) {
+    var d = DX.driver(c.driver.packageId, c.driver.version), base = c.bindings.length ? c.bindings : d.bindings;
+    return base.map(function (b, i) {
+      var keep = Array.prototype.map.call(form.querySelectorAll('input[name="bf-' + i + '"]:checked'), function (x) { return x.value; });
+      var fields = {}; keep.forEach(function (k) { fields[k] = b.fields[k]; });
+      var vbp = form.querySelector('[name="vbp-' + i + '"]');
+      return Object.assign({}, b, { fields: fields, verifyBeforePost: vbp ? vbp.checked : b.verifyBeforePost });
+    });
+  }
+})();
+</script>
+</body>
+</html>

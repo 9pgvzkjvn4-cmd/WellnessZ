@@ -33,6 +33,11 @@ import com.wellnessz.casekernel.device.DeviceSecurityEventPublisher.DeviceSecuri
  * </ol>
  * Both are verified by the E34 {@link DeviceEndpointAuthenticator}. Every failure publishes one {@code ENDPOINT_AUTH_FAILED}
  * security event (PHI-free) and answers an RFC 9457 problem without detail about which factor failed beyond the code.
+ *
+ * <p>Status codes (one rule for the filter, the ingest access-denied handler and the module controllers): an authentication
+ * failure – missing or wrong credentials, certificate, endpoint state or zone – is <b>401</b>; an endpoint that
+ * <i>authenticated</i> but uses a path its kind may not use ({@code endpoint_forbidden}, decided by E34 only after every
+ * authentication factor passed) is <b>403</b>.</p>
  */
 public class DeviceEndpointAuthenticationFilter extends OncePerRequestFilter {
 
@@ -40,6 +45,8 @@ public class DeviceEndpointAuthenticationFilter extends OncePerRequestFilter {
     public static final String TOKEN_SCHEME = "DeviceToken ";
     private static final Pattern ENDPOINT_ID = Pattern.compile("[A-Za-z0-9._\\-]{1,64}");
     private static final Pattern SHA256_HEX = Pattern.compile("[0-9a-f]{64}");
+    /** Verdicts about an authenticated endpoint (authorisation, not authentication): answered 403. */
+    static final java.util.Set<String> FORBIDDEN_CODES = java.util.Set.of("endpoint_forbidden");
 
     private final Supplier<DeviceEndpointAuthenticator> authenticator;
     private final Supplier<DeviceSecurityEventPublisher> securityEvents;
@@ -117,9 +124,16 @@ public class DeviceEndpointAuthenticationFilter extends OncePerRequestFilter {
             logger.warn("Device security event could not be published: " + ex.getClass().getSimpleName());
         }
         String safeCode = code != null && code.matches("[a-z_]{1,64}") ? code : "endpoint_unauthenticated";
-        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        HttpStatus status = status(safeCode);
+        response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-        response.getWriter().write("{\"type\":\"about:blank\",\"title\":\"Unauthorized\",\"status\":401,\"code\":\"" + safeCode
-                + "\",\"detail\":\"Device endpoint authentication failed\"}");
+        String detail = status == HttpStatus.FORBIDDEN ? "The endpoint may not use this path" : "Device endpoint authentication failed";
+        response.getWriter().write("{\"type\":\"about:blank\",\"title\":\"" + status.getReasonPhrase() + "\",\"status\":" + status.value()
+                + ",\"code\":\"" + safeCode + "\",\"detail\":\"" + detail + "\"}");
+    }
+
+    /** 403 for an authenticated endpoint on a forbidden path, 401 for every authentication failure. */
+    static HttpStatus status(String code) {
+        return FORBIDDEN_CODES.contains(code) ? HttpStatus.FORBIDDEN : HttpStatus.UNAUTHORIZED;
     }
 }

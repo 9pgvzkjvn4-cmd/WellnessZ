@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthClient } from '../auth/AuthClient';
 import { availabilityPct, DEVICE_FLEET_PATH, toDeviceFleet } from '../api/deviceFleet';
-import { canUse, resolveFeatureRoute, workspaceNav } from '../auth/roles';
+import { canUse, hasWorkspaceAccess, homeRoute, resolveFeatureRoute, workspaceNav } from '../auth/roles';
 import { DeviceFleet, DeviceFleetTable } from './DeviceFleet';
 
 const raw = {
@@ -38,9 +38,14 @@ describe('device availability (GET /workspace/device-fleet, counts only)', () =>
     expect(renderToStaticMarkup(<DeviceFleetTable data={toDeviceFleet({ sites: [] })} />)).toContain('No medical devices are in service');
   });
 
-  it('is a MANAGER screen (the BFF workspace rule does not admit NURSING_HEAD)', () => {
+  it('is a MANAGER and NURSING_HEAD screen (the BFF admits NURSING_HEAD for this resource only)', () => {
     expect(canUse('deviceFleet', ['MANAGER'])).toBe(true);
-    for (const r of ['HR', 'OH_CLINICIAN', 'NURSING_HEAD', 'SAFETY_MANAGER']) expect(canUse('deviceFleet', [r])).toBe(false);
+    expect(canUse('deviceFleet', ['NURSING_HEAD'])).toBe(true);
+    for (const r of ['HR', 'OH_CLINICIAN', 'SAFETY_MANAGER']) expect(canUse('deviceFleet', [r])).toBe(false);
+    expect(hasWorkspaceAccess(['NURSING_HEAD'])).toBe(true);
+    expect(workspaceNav(['NURSING_HEAD'])).toEqual([{ path: '/device-fleet', label: 'Device availability' }]);
+    expect(homeRoute(['NURSING_HEAD'])).toBe('/device-fleet');
+    for (const f of ['restrictions', 'testing', 'absence', 'campaigns'] as const) expect(canUse(f, ['NURSING_HEAD'])).toBe(false);
     expect(workspaceNav(['MANAGER'])).toContainEqual({ path: '/device-fleet', label: 'Device availability' });
     expect(resolveFeatureRoute('/device-fleet', ['HR'])).toEqual({ feature: 'deviceFleet', allowed: false });
   });

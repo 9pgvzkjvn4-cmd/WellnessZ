@@ -128,6 +128,22 @@ class DeviceEndpointAuthenticationFilterTest {
     }
 
     @Test
+    void authenticatedEndpointOnAForbiddenPathIs403AndAuthenticationFailuresAre401() throws Exception {
+        MockHttpServletRequest req = ingest();
+        req.addHeader("X-Device-Endpoint", "EP-LHR-KSK-01");
+        req.addHeader("Authorization", "DeviceToken secret-token");
+        req.addHeader("X-Client-Cert-Sha256", THUMB);
+        MockHttpServletResponse res = new MockHttpServletResponse();
+        filter(c -> DeviceEndpointAuthenticator.Result.failure("endpoint_forbidden"), true).doFilter(req, res, new MockFilterChain());
+        assertThat(res.getStatus()).isEqualTo(403);
+        assertThat(res.getContentAsString()).contains("\"status\":403").contains("\"code\":\"endpoint_forbidden\"").contains("\"title\":\"Forbidden\"");
+        assertThat(events).singleElement().satisfies(e -> assertThat(e.reasonCode()).isEqualTo("endpoint_forbidden"));
+        for (String code : List.of("bad_token", "zone_violation", "endpoint_isolated", "certificate_mismatch", "mtls_required", "unknown_endpoint")) {
+            assertThat(DeviceEndpointAuthenticationFilter.status(code).value()).as(code).isEqualTo(401);
+        }
+    }
+
+    @Test
     void enrolmentPathsAreNotFiltered() throws Exception {
         MockHttpServletRequest req = new MockHttpServletRequest("POST", "/api/v1/device-enrolment/enrol");
         req.setRequestURI("/api/v1/device-enrolment/enrol");

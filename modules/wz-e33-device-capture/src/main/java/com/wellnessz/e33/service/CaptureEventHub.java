@@ -20,6 +20,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  * never values; the dialogue reads the values with {@code GET /device-capture/sessions/{id}} (which is authorised and audited).
  * Events are sent after the transaction that produced them commits. Subscribers are held in memory per instance; with several
  * replicas the dialogue falls back to polling {@code GET …/{id}} every 2 s (the contract's documented fallback).
+ * Open streams get an SSE comment ({@code :keep-alive}) every 15 s: proxies (BFF, nginx) keep the idle stream open and a
+ * browser that has gone away is detected on that write, so its emitter is released.
  */
 @Component
 public class CaptureEventHub {
@@ -83,6 +85,19 @@ public class CaptureEventHub {
         if (list != null) {
             list.forEach(SseEmitter::complete);
         }
+    }
+
+    /** Keep-alive comment on every open stream (no data, no event – the dialogue ignores it). */
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelayString = "${wellnessz.device-capture.sse-keepalive-ms:15000}",
+            initialDelayString = "${wellnessz.device-capture.sse-keepalive-ms:15000}")
+    public void keepAlive() {
+        emitters.values().forEach(list -> list.forEach(e -> {
+            try {
+                e.send(SseEmitter.event().comment("keep-alive"));
+            } catch (IOException | IllegalStateException ex) {
+                e.completeWithError(ex);
+            }
+        }));
     }
 
     public int subscribers(UUID sessionId) {

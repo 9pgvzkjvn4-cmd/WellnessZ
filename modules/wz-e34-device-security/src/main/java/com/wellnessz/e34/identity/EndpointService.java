@@ -363,8 +363,13 @@ public class EndpointService implements DeviceEndpointProvisioning {
         doRevoke(actor, ep.endpointId(), reason);
     }
 
+    /**
+     * Read-only state for E32 (data-flow summary, step-3 checks, fleet). An unknown endpoint is a 404 for the caller, but it
+     * must not mark the caller's transaction rollback-only: E32 catches it and falls back to the policy default, and the
+     * E32 demo seed (one transaction) then failed with {@code UnexpectedRollbackException} on a fresh database.
+     */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, noRollbackFor = ApiException.class)
     public EndpointState state(String endpointId) {
         Endpoint ep = repo.find(endpointId).orElseThrow(() -> ApiException.notFound("Endpoint"));
         Instant since = switch (ep.status()) {

@@ -156,6 +156,10 @@ class EndpointAuthenticatorServiceTest {
         Endpoint vendor = endpoint(EndpointKind.VENDOR_CLOUD, "VENDOR_CLOUD", EndpointStatus.ACTIVE, hasher.hash(TOKEN), NOW.plusSeconds(86400),
                 null, null, THUMB, NOW.plusSeconds(600), List.of());
         assertThat(call(vendor, TOKEN, THUMB, "10.1.2.3", "/api/v1/device-ingest/config").failureCode()).isEqualTo("endpoint_forbidden");
+        // endpoint_forbidden (403 at the filter) is only ever an authorisation verdict: without valid credentials the
+        // authentication failure is reported first (401)
+        assertThat(call(vendor, "wrong-token", THUMB, "10.1.2.3", "/api/v1/device-ingest/config").failureCode()).isEqualTo("bad_token");
+        assertThat(call(kiosk, "wrong-token", THUMB, "10.1.2.3", PATH).failureCode()).isEqualTo("bad_token");
     }
 
     @Test

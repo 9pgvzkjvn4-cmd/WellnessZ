@@ -4,6 +4,8 @@
 //   * replayed token: a one-time enrolment token can be exchanged exactly once (second use → 401 enrolment_token_invalid);
 //   * expired enrolment token → 401 enrolment_token_expired (staging only: the expiry is moved back through psql);
 //   * revoked endpoint → 401 endpoint_revoked on the next request;
+//   * an authenticated endpoint on a path its kind may not use → 403 endpoint_forbidden (authorisation), while the same call
+//     with a wrong token → 401 bad_token (authentication failures are always 401, contract §7);
 //   * object-level / function-level checks: console roles never reach person data or another role's functions.
 import { spawnSync } from 'node:child_process';
 import { Result, bearer, deviceHeaders, enrol, http, loadClient, parseArgs, provisionTestEndpoint } from './lib/pack.mjs';
@@ -55,6 +57,14 @@ if (cfg.secopsBearer && client) {
       replay.status === 401 && replay.json?.code === 'enrolment_token_invalid', `HTTP ${replay.status} ${replay.json?.code ?? ''}`);
     const ok = await http('POST', `${api}/device-ingest/certificate-renewal`, { headers: deviceHeaders(cfg, ep), body: {} });
     r.expect('enrolled-endpoint-authenticates', 'enrolled endpoint authenticates (control)', ok.status === 400, `HTTP ${ok.status}`);
+    // function-level authorisation of machine paths: a tablet (MOBILE_APP) may not post HL7 v2
+    const forbidden = await http('POST', `${api}/device-ingest/hl7v2`, { headers: { ...deviceHeaders(cfg, ep), 'Content-Type': 'text/plain' }, body: 'MSH|^~\\&|' });
+    r.expect('endpoint-path-forbidden', 'authenticated endpoint on a path its kind may not use → 403 endpoint_forbidden',
+      forbidden.status === 403 && forbidden.json?.code === 'endpoint_forbidden', `HTTP ${forbidden.status} ${forbidden.json?.code ?? ''}`);
+    const unauthenticated = await http('POST', `${api}/device-ingest/hl7v2`, {
+      headers: { ...deviceHeaders(cfg, { ...ep, token: 'not-the-token' }), 'Content-Type': 'text/plain' }, body: 'MSH|^~\\&|' });
+    r.expect('endpoint-path-unauthenticated', 'the same call with a wrong token → 401 bad_token (authentication before authorisation)',
+      unauthenticated.status === 401 && unauthenticated.json?.code === 'bad_token', `HTTP ${unauthenticated.status} ${unauthenticated.json?.code ?? ''}`);
     // revoked endpoint
     const rev = await http('POST', `${api}/device-security/endpoints/${ep.id}/revoke`, { headers: bearer(cfg.secopsBearer), body: { reasonCode: 'TEST_PACK_REVOCATION' } });
     const after = await http('POST', `${api}/device-ingest/certificate-renewal`, { headers: deviceHeaders(cfg, ep), body: {} });

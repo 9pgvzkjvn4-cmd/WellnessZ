@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Integration Lab – WellnessZ device integration demo</title>
+<link rel="stylesheet" href="../shared/ui.css" data-wz-inline>
+<link rel="stylesheet" href="../shared/devices.css" data-wz-inline>
+</head>
+<body>
+<a class="wz-skip" href="#main">Skip to content</a>
+<div id="app"></div>
+<script src="../data/device-demo-data.js" data-wz-data></script>
+<script src="../shared/scenarios.js" data-wz-inline></script>
+<script src="../shared/codecs.js" data-wz-inline></script>
+<script src="../shared/engine.js" data-wz-inline></script>
+<script src="../shared/ui.js" data-wz-inline></script>
+<script src="../shared/appkit.js" data-wz-inline></script>
+<script>
+(function () {
+  'use strict';
+  var h = UI.h, raw = UI.raw, B = DXUI.badge, C = window.DXC;
+  var ui = { target: 'DEV-000003', raw: null, headers: null, result: null, conformance: null };
+  function S() { return DX.session(); }
+  function can(p) { return DX.can(p); }
+  function now() { return S().clock; }
+  function emps() { return S().employees.map(function (e) { return { value: e.id, label: e.id + ' – ' + e.name }; }); }
+  function emp(id) { return DX.employee(id) || {}; }
+  var EX = ['BENDING', 'TALKING', 'HEAD_SIDE_TO_SIDE', 'HEAD_UP_DOWN'];
+
+  // ------------------------------------------------------------------ message generators per driver (real wire formats)
+  var GEN = {
+    'vitals.welchallyn.csm-pcd01': { title: 'HL7 v2.6 ORU^R01 (IHE PCD-01) over MLLP', fields: [['employeeId', 'Employee (PID-3)', 'emp', 'E1003'], ['systolic', 'Systolic mm[Hg]', 'number', 131], ['diastolic', 'Diastolic mm[Hg]', 'number', 84], ['pulse', 'Pulse /min', 'number', 71], ['spo2', 'SpO2 %', 'number', 97], ['temperature', 'Temperature °C', 'number', 36.6], ['cuff', 'Cuff size', ['ADULT', 'SMALL_ADULT', 'LARGE_ADULT', ''], 'ADULT'], ['omitPid', 'Omit the PID segment (malformed)', 'bool', false]],
+      build: function (v) { var e = emp(v.employeeId); return { payload: C.SIM.hl7Vitals({ at: now(), employeeId: v.employeeId, name: e.name, dob: e.dob, sex: e.sex, systolic: v.systolic, diastolic: v.diastolic, pulse: v.pulse, spo2: v.spo2, temperature: v.temperature, cuff: v.cuff, omitPid: v.omitPid, controlId: 'MSG' + now().replace(/\D/g, '').slice(4, 12) }), headers: {} }; } },
+    'ecg.ge.mac-hl7': { title: 'HL7 v2.5 ORU^R01 (GE MUSE)', fields: [['employeeId', 'Employee', 'emp', 'E1001'], ['heartRate', 'Heart rate', 'number', 72], ['prMs', 'PR ms', 'number', 160], ['qrsMs', 'QRS ms', 'number', 92], ['qtcMs', 'QTc ms', 'number', 410]],
+      build: function (v) { return { payload: C.SIM.hl7Ecg(Object.assign({ at: now() }, v)), headers: {} }; } },
+    'vitals.and.ua651ble-blp': { title: 'BLE GATT Blood Pressure Measurement 0x2A35 (IEEE-11073 SFLOAT)', fields: [['systolic', 'Systolic mm[Hg]', 'number', 128], ['diastolic', 'Diastolic mm[Hg]', 'number', 82], ['pulse', 'Pulse /min', 'number', 71], ['unit', 'Device unit', ['mmHg', 'kPa'], 'mmHg'], ['badge', 'Badge read at the device (optional)', 'text', ''], ['truncate', 'Truncate the value (malformed)', 'bool', false]],
+      build: function (v) { return { payload: C.SIM.bleBloodPressure({ at: now(), systolic: v.systolic, diastolic: v.diastolic, pulse: v.pulse, unit: v.unit === 'kPa' ? 'kPa' : null, badge: v.badge || null, truncate: v.truncate }), headers: {} }; } },
+    'vitals.nonin.plx-ble': { title: 'BLE GATT PLX Spot-check 0x2A5E (SFLOAT)', fields: [['spo2', 'SpO2 %', 'number', 97], ['pulse', 'Pulse /min', 'number', 66]], build: function (v) { return { payload: C.SIM.blePulseOximeter(Object.assign({ at: now() }, v)), headers: {} }; } },
+    'vitals.withings.thermo-htp': { title: 'BLE GATT Temperature Measurement 0x2A1C (32-bit FLOAT)', fields: [['temperature', 'Temperature', 'number', 36.8], ['unit', 'Unit', ['C', 'F'], 'C']], build: function (v) { return { payload: C.SIM.bleThermometer({ at: now(), temperature: v.temperature, unit: v.unit }), headers: {} }; } },
+    'vitals.tanita.wss-ble': { title: 'BLE GATT Weight Measurement 0x2A9D (UINT16 scaled)', fields: [['weightKg', 'Weight kg', 'number', 78.4], ['heightCm', 'Height cm', 'number', 180]], build: function (v) { return { payload: C.SIM.bleScale(Object.assign({ at: now() }, v)), headers: {} }; } },
+    'poc.abbott.afinion2-poct1a': { title: 'POCT1-A2 OBS.R01 XML (data manager)', fields: [['employeeId', 'Patient id (PT.patient_id)', 'emp', 'E1001'], ['value', 'HbA1c %', 'number', 5.6], ['lot', 'Reagent lot', 'text', 'AF-LOT-2026-10'], ['deviceId', 'Device id', 'text', 'AF2-30871']],
+      build: function (v) { return { payload: C.SIM.poct1a({ at: now(), employeeId: v.employeeId, value: v.value, lot: v.lot, deviceId: v.deviceId, controlId: now().replace(/\D/g, '').slice(6, 12) }), headers: {} }; } },
+    'spiro.ndd.easyone-connect-gdt': { title: 'GDT 6310 export (EasyOne Connect, watched folder)', fields: [['employeeId', 'Employee (3000)', 'emp', 'E1002'], ['orderRef', 'Order reference (8310)', 'text', ''], ['fev1Trials', 'FEV1 trials L (best first)', 'text', '3.91;3.86;3.82'], ['fvcTrials', 'FVC trials L', 'text', '4.97;4.91;4.88'], ['grade', 'Session grade', ['A', 'B', 'C', 'D', 'E', 'F'], 'A'], ['nAccept', 'Acceptable manoeuvres', 'number', 3]],
+      build: function (v) { var e = emp(v.employeeId), f1 = Number(String(v.fev1Trials).split(';')[0]), fv = Number(String(v.fvcTrials).split(';')[0]); var nm = e.name.split(' '); return { payload: C.SIM.gdtSpirometry({ at: now(), employeeId: e.id, first: nm[0], last: nm.slice(1).join(' '), dob: e.dob, sex: e.sex, heightCm: e.heightCm, orderRef: v.orderRef || null, fev1: f1, fvc: fv, pef: 9.2, fef2575: 3.9, grade: v.grade, nAccept: v.nAccept, fev1Trials: v.fev1Trials, fvcTrials: v.fvcTrials }), headers: { 'X-File-Name': e.id + '_' + now().replace(/\D/g, '').slice(0, 12) + '.gdt', 'X-File-Format': 'GDT' } }; } },
+    'audio.benson.cca200-db': { title: 'CSV audiogram (vendor database view, read-only)', fields: [['employeeId', 'EmployeeNo', 'emp', 'E1005'], ['left', 'Left 500–8000 Hz dB HL', 'text', '10,15,15,20,30,35,25'], ['right', 'Right 500–8000 Hz dB HL', 'text', '10,10,15,20,25,30,25'], ['retestL', 'L 1 kHz re-test', 'number', 15], ['retestR', 'R 1 kHz re-test', 'number', 10], ['ambient', 'Ambient noise exceeded', 'bool', false]],
+      build: function (v) { var e = emp(v.employeeId); return { payload: C.SIM.csvAudiogram({ at: now(), employeeId: e.id, sex: e.sex, age: new Date(now()).getUTCFullYear() - Number(e.dob.slice(0, 4)), left: v.left.split(','), right: v.right.split(','), retestL: v.retestL, retestR: v.retestR, ambient: v.ambient }), headers: { 'X-File-Name': 'audiogram_' + now().replace(/\D/g, '').slice(0, 12) + '.csv', 'X-File-Format': 'CSV' } }; } },
+    'exp.casella.dbadge-csv': { title: 'CSV dosimeter shift summary (area / group – no person)', fields: [['lex8h', 'LEX,8h dB(A)', 'number', 86.4], ['peak', 'Peak dB(C)', 'number', 128]], build: function (v) { return { payload: C.SIM.csvDosimeter({ at: now(), rows: [{ serial: 'DB2-1188', lex8h: v.lex8h, peak: v.peak, location: 'RAMP-WEST' }] }), headers: { 'X-File-Name': 'dbadge_' + now().replace(/\D/g, '').slice(0, 12) + '.csv' } }; } },
+    'da.lifeloc.fc20-serial': { title: 'RS-232 frames (Lifeloc FC20, COM3 9600 8-N-1)', fields: [['brac', 'BrAC g/210 L', 'number', 0], ['type', 'Test type', ['SCREEN', 'CONFIRM'], 'SCREEN'], ['testNo', 'Test number', 'number', 52]],
+      build: function (v) { return { payload: C.SIM.serialFc20({ at: now(), brac: v.brac, type: v.type, testNo: v.testNo, cal: '2026-10-25', serial: 'FC20-55021' }), headers: {} }; } },
+    'wear.aggregator.fhir-pcha': { title: 'FHIR R4 Bundle of Observations (PCHA)', fields: [['employeeId', 'Subject identifier', 'emp', 'E1001'], ['steps', 'Steps', 'number', 10234], ['sleep', 'Sleep minutes', 'number', 401], ['badUcum', 'Quantity without UCUM (profile violation)', 'bool', false]],
+      build: function (v) { return { payload: C.SIM.fhirWearable({ employeeId: v.employeeId, date: now().slice(0, 10), steps: v.steps, sleep: v.sleep, badUcum: v.badUcum }), headers: {} }; } },
+    'fit.tsi.link-webhook': { title: 'Vendor webhook JSON with HMAC-SHA256 (TSI Link)', fields: [['employeeId', 'Employee number', 'emp', 'E1001'], ['fitFactor', 'Overall fit factor', 'number', 245], ['exercises', 'Exercises (comma separated)', 'text', EX.join(',')], ['wrongSecret', 'Sign with a wrong secret', 'bool', false]],
+      build: function (v) { var w = C.SIM.tsiWebhook({ at: now(), employeeId: v.employeeId, fitFactor: v.fitFactor, exercises: v.exercises.split(',').map(function (x) { return x.trim(); }).filter(Boolean), wrongSecret: v.wrongSecret }, S().config.webhookSecrets['fit.tsi.link-webhook']); return { payload: w.body, headers: w.headers }; } },
+    'img.cxr.dicomweb': { title: 'DICOM PS3.18 JSON metadata (DICOMweb)', fields: [['employeeId', 'PatientID (0010,0020)', 'emp', 'E1001'], ['accession', 'Accession (0008,0050)', 'text', 'ACC-20261030-01'], ['modality', 'Modality', ['DX', 'CR'], 'DX']],
+      build: function (v) { var e = emp(v.employeeId); return { payload: C.SIM.dicomJson({ at: now(), employeeId: v.employeeId, accession: v.accession, modality: v.modality, patientName: e.name.split(' ').reverse().join('^') }), headers: {} }; } }
+  };
+  function targetDriver(target) {
+    if (/^DEV-/.test(target)) { var c = DX.configByInstance(target); return c ? DX.driver(c.driver.packageId, c.driver.version) : null; }
+    return DX.driver(target.replace(/^SIM:/, ''));
+  }
+  function genFields(pkg, prefix) {
+    var g = GEN[pkg]; if (!g) return h`<p class="wz-muted">No generator for this driver – load a golden dataset below.</p>`;
+    return h`<div class="dx-form-grid" data-gen="${pkg}">${g.fields.map(function (f) {
+      var name = (prefix || '') + f[0];
+      if (f[2] === 'emp') return UI.field({ type: 'select', name: name, label: f[1], value: f[3], options: emps() });
+      if (f[2] === 'bool') return h`<div class="wz-field">${UI.checkbox({ name: name, id: 'g-' + name, label: f[1], checked: f[3] })}</div>`;
+      if (Array.isArray(f[2])) return UI.field({ type: 'select', name: name, label: f[1], value: f[3], options: f[2].map(function (o) { return { value: o, label: o || '—' }; }) });
+      return UI.field({ type: f[2] === 'number' ? 'number' : 'text', name: name, label: f[1], value: f[3] });
+    })}</div>`;
+  }
+  function genValues(pkg, form, prefix) {
+    var d = UI.formData(form), v = {};
+    (GEN[pkg] ? GEN[pkg].fields : []).forEach(function (f) { var x = d[(prefix || '') + f[0]]; v[f[0]] = f[2] === 'number' ? Number(x) : f[2] === 'bool' ? !!x : x; });
+    return v;
+  }
+
+  // ------------------------------------------------------------------ views
+  function nav() {
+    var s = S(), um = s.unmatched.filter(function (x) { return x.status === 'OPEN'; }).length, dl = s.deadLetters.filter(function (x) { return x.status === 'OPEN'; }).length;
+    var pend = s.observations.filter(function (o) { return o.status === 'PENDING_VERIFICATION' || o.status === 'BLOCKED'; }).length;
+    return [{ group: 'Test', items: [{ route: 'simulators', label: 'Simulators & pipeline' }, { route: 'messages', label: 'Message log' }, { route: 'conformance', label: 'Golden conformance' }] },
+      { group: 'Operate', items: [{ route: 'capture', label: 'Capture preview', count: pend, tone: 'warn' }, { route: 'unmatched', label: 'Unmatched queue', count: um, tone: 'warn' }, { route: 'dead-letters', label: 'Dead letters', count: dl }] }];
+  }
+  function targets() {
+    var list = S().configurations.filter(function (c) { return ['PUBLISHED', 'QUARANTINED'].indexOf(c.status) >= 0; }).map(function (c) { var m = DX.model(c.modelCode); return { value: c.instanceId, label: c.instanceId + ' · ' + m.manufacturer + ' ' + m.model + ' (' + c.option + ', ' + c.stationCode + ')' + (c.status !== 'PUBLISHED' ? ' – ' + c.status : '') }; });
+    var sims = S().drivers.map(function (d) { return { value: 'SIM:' + d.packageId, label: 'Simulator (virtual endpoint SIM-' + d.adapter + ') · ' + d.packageId + '@' + d.version }; });
+    return list.concat(sims);
+  }
+  function rawView(result, rawText, d) {
+    if (!rawText) return '';
+    var extra = '';
+    try {
+      if (d && d.adapter === 'HL7V2') extra = h`<h3>HL7 segments</h3>${DXUI.hl7Table(rawText)}`;
+      if (d && d.adapter === 'BLE_GATT') extra = DXUI.bytes(C.describeGatt(d, rawText));
+    } catch (e) { extra = h`<p class="wz-small wz-muted">Byte view unavailable: ${e.message}</p>`; }
+    return h`${extra}`;
+  }
+  function resultPanel(res, rawText, d) {
+    if (!res) return UI.empty('No message sent yet', 'Generate a message on the left (or load a golden dataset) and send it through the pipeline.');
+    return h`<div data-test="result" data-status="${res.status}"><div class="wz-card-head"><h2 style="margin:0">Pipeline result <code>${res.messageId}</code></h2>${B('message', res.status)}</div>
+      ${res.duplicateOf ? UI.alert('warn', 'Duplicate', h`<p>Same endpoint and idempotency key as ${res.duplicateOf} – receipt DUPLICATE, nothing re-processed.</p>`) : ''}
+      <p class="wz-small wz-muted">Raw payload SHA-256 (stored before parsing)</p><div class="dx-hash" data-test="raw-sha">${res.sha256}</div>
+      ${DXUI.pipeline(res)}${res.ack ? h`<h3>Acknowledgement returned to the device</h3><pre class="dx-code" data-test="ack">${res.ack.replace(/\r/g, '\n')}</pre>` : ''}${rawView(res, rawText, d)}
+      ${res.unmatchedIds && res.unmatchedIds.length ? h`<p><a href="#/unmatched" data-test="go-unmatched">Open the unmatched queue</a></p>` : ''}${res.deadLetterId ? h`<p><a href="#/dead-letters">Open dead letters (${res.deadLetterId})</a></p>` : ''}
+      ${res.status === 'PENDING_VERIFICATION' ? h`<p><a href="#/capture">Open the capture preview</a></p>` : ''}</div>`;
+  }
+  function vSimulators() {
+    var d = targetDriver(ui.target), pkg = d && d.packageId, goldens = S().golden.filter(function (g) { return g.packageId === pkg; });
+    var cfg = /^DEV-/.test(ui.target) ? DX.configByInstance(ui.target) : null, sess = cfg && DX.activeSession(cfg.instanceId);
+    return h`<div class="wz-page-head"><div><h1>Simulators &amp; pipeline</h1><p class="wz-lead">Generate the real wire format of each device family, send it as the device's endpoint (or through a virtual simulator endpoint) and watch every stage: parse → normalise → associate → quality gates → route → persist.</p></div></div>
+      <div class="dx-split"><section class="wz-card"><form id="f-sim" data-keep>
+        ${UI.field({ type: 'select', name: 'target', label: 'Send as', value: ui.target, options: targets() })}
+        ${d ? h`<p class="wz-small">Driver <code>${d.packageId}@${d.version}</code> · adapter ${d.adapter} · gates ${d.qualityGates.join(', ')}</p>` : ''}
+        ${cfg ? h`<p class="wz-small">Endpoint ${cfg.endpointId || '—'} ${cfg.endpointId ? B('endpoint', (DX.endpoint(cfg.endpointId) || {}).status) : ''} · association ${cfg.associationMethods.join(' → ')} · ${sess ? h`capture session open for <strong>${sess.employeeId}</strong>` : 'no capture session'}</p>` : h`<p class="wz-small">Dry run: virtual endpoint, nothing is written to the record (test form).</p>`}
+        <h3>${GEN[pkg] ? GEN[pkg].title : 'Golden datasets only'}</h3>${pkg ? genFields(pkg) : ''}
+        <div class="wz-actions">${GEN[pkg] ? h`<button class="wz-btn secondary" type="button" data-act="generate" data-test="generate">Generate message</button>` : ''}
+          ${UI.field({ type: 'select', name: 'golden', label: 'or load a golden dataset', placeholder: '— golden dataset —', options: goldens.map(function (g) { return { value: g.datasetId, label: g.datasetId.split('/').pop() + ' (' + g.kind + ')' }; }) })}</div>
+        <div class="wz-field"><label for="raw-payload">Raw payload (editable)</label><textarea id="raw-payload" name="raw" class="dx-raw" data-test="raw" spellcheck="false">${ui.raw || ''}</textarea></div>
+        <div class="wz-field"><label for="raw-headers">Headers (JSON)</label><textarea id="raw-headers" name="headers" class="dx-raw" style="min-height:60px">${ui.headers ? JSON.stringify(ui.headers) : '{}'}</textarea></div>
+        <div class="wz-actions"><button class="wz-btn" type="button" data-act="send" data-test="send" ${raw(can('lab.simulate') ? '' : 'disabled')}>Send through the pipeline</button></div>
+      </form></section><section class="wz-card" id="result">${resultPanel(ui.result, ui.raw, d)}</section></div>`;
+  }
+  function vMessages() {
+    var rows = S().messages.slice().reverse();
+    return h`<h1>Message log</h1><p class="wz-lead">Every receipt with its stored raw-payload hash and pipeline trace (PHI-masked in production diagnostics).</p>${UI.table([{ label: 'Message', render: function (m) { return h`<a href="#/message/${m.id}" data-test="msg-link">${m.id}</a>`; } }, { label: 'Received', render: function (m) { return DXUI.dt(m.receivedAt); } }, { label: 'From', render: function (m) { return h`${m.instanceId || 'simulator'}<br><span class="wz-muted wz-small">${m.endpointId}</span>`; } }, { label: 'Driver', render: function (m) { return h`<code class="wz-small">${m.packageId}@${m.driverVersion}</code>`; } }, { label: 'Status', render: function (m) { return B('message', m.status); } }, { label: 'SHA-256', render: function (m) { return h`<code class="wz-small">${DXUI.short(m.sha256, 16)}</code>`; } }], rows, { empty: 'No messages yet' })}`;
+  }
+  function vMessage(p) {
+    var m = S().messages.filter(function (x) { return x.id === p.id; })[0]; if (!m) return UI.empty('Message not found', p.id);
+    var d = DX.driver(m.packageId, m.driverVersion);
+    return h`<div class="wz-breadcrumb"><a href="#/messages">Message log</a> › ${m.id}</div>${resultPanel({ messageId: m.id, status: m.status, stages: m.trace, sha256: m.sha256, ack: m.ack, duplicateOf: m.duplicateOf }, m.raw, d)}<h3>Raw payload</h3><pre class="dx-code wrap">${m.raw}</pre>`;
+  }
+  function readings(o, masked) {
+    if (masked) return h`<div class="dx-restricted" data-test="restricted-mask">🔒 Restricted reading – visible to the collector and the MRO only</div>`;
+    return h`<div class="dx-readings">${o.components.filter(function (c) { return typeof c.value === 'number' || typeof c.value === 'string'; }).slice(0, 12).map(function (c) { return h`<div class="dx-reading"><span>${c.display}</span><strong>${String(c.value)}</strong> ${c.ucum && c.ucum !== '1' ? c.ucum : ''} ${c.interpretation && c.interpretation !== 'N' ? UI.badge(c.interpretation, 'warn') : ''}</div>`; })}</div>`;
+  }
+  function vCapture() {
+    var u = DX.currentUser, collector = u && u.roles.indexOf('COLLECTOR') >= 0;
+    var pub = S().configurations.filter(function (c) { return c.status === 'PUBLISHED'; });
+    var list = S().observations.filter(function (o) { return !o.simulator && ['PENDING_VERIFICATION', 'BLOCKED'].indexOf(o.status) >= 0; }).slice().reverse();
+    var done = S().observations.filter(function (o) { return !o.simulator && ['ROUTED', 'REJECTED'].indexOf(o.status) >= 0; }).slice(-6).reverse();
+    var wl = S().worklist.filter(function (w) { return w.status === 'OPEN'; });
+    var sessions = S().captureSessions.filter(function (x) { return x.status === 'OPEN'; });
+    return h`<h1>Capture preview</h1><p class="wz-lead">What the nurse sees in the "capture from device" dialogue: open a session on a station device, the device sends, the preview shows values, flags and provenance; WARN flags must be acknowledged, BLOCK stops posting.</p>
+      <div class="dx-split"><section class="wz-card"><h2>Capture session</h2><form id="f-session" data-keep>
+        ${UI.field({ type: 'select', name: 'instanceId', label: 'Station device', placeholder: '— choose —', options: pub.map(function (c) { var m = DX.model(c.modelCode); var cal = DX.calibrationStatus(c.instanceId); return { value: c.instanceId, label: c.instanceId + ' · ' + m.model + ' · ' + c.stationCode + (cal.lockedOut ? ' (LOCKED OUT)' : '') }; }) })}
+        ${UI.field({ type: 'select', name: 'employeeId', label: 'Employee', options: emps() })}
+        ${UI.field({ type: 'select', name: 'worklistId', label: 'Worklist order / test (optional)', placeholder: '—', options: wl.map(function (w) { return { value: w.id, label: w.id + ' · ' + w.employeeId + ' · ' + w.note }; }) })}
+        <div class="wz-actions"><button class="wz-btn" type="button" data-act="open-session" data-test="open-session" ${raw(can('capture.session') ? '' : 'disabled')}>Open capture session</button></div></form>
+        ${sessions.length ? h`<h3>Open sessions</h3><ul class="wz-list" data-test="sessions">${sessions.map(function (x) { return h`<li><strong>${x.instanceId}</strong> · ${x.employeeId} ${x.worklistRef ? '· ' + x.worklistRef : ''} · opened by ${DX.userName(x.openedBy)} ${DXUI.dt(x.openedAt)}
+          <form data-keep class="dx-measure" data-inst="${x.instanceId}">${measureFields(x.instanceId)}<button class="wz-btn small" type="button" data-act="measure" data-inst="${x.instanceId}" data-test="measure-${x.instanceId}">Take measurement</button></form></li>`; })}</ul>` : h`<p class="wz-muted">No open session.</p>`}</section>
+      <section><h2>Waiting for verification</h2>${list.length ? list.map(function (o) {
+        var masked = o.restricted && !collector, m = o.instanceId ? DX.model(DX.configByInstance(o.instanceId).modelCode) : null, e = o.employeeId ? DX.employee(o.employeeId) : null;
+        var warns = o.flags.filter(function (f) { return f.outcome === 'WARN'; }), blocks = o.flags.filter(function (f) { return f.outcome === 'BLOCK'; });
+        return h`<article class="dx-preview-card" style="margin-bottom:.8rem" data-test="obs" data-obs="${o.id}" data-status="${o.status}" data-category="${o.category}">
+          <div class="wz-card-head"><div><strong>${e ? e.name : 'Unassigned'}</strong> <span class="wz-muted">${o.employeeId || ''}</span><br><span class="wz-small wz-muted">${m ? m.manufacturer + ' ' + m.model : ''} · ${o.instanceId} · ${o.category} · ${DXUI.dt(o.effectiveTime)}</span></div>${B('message', o.status)}</div>
+          ${readings(o, masked)}
+          ${blocks.map(function (f) { return UI.alert('danger', f.gate + ' – posting blocked', h`<p>${f.message}</p>`); })}
+          ${!masked ? h`<form data-keep data-obs="${o.id}">${warns.map(function (f) { return UI.checkbox({ name: 'ack', value: f.code, id: 'ack-' + o.id.slice(0, 8) + '-' + f.code, label: h`<strong>${f.gate}</strong>: ${f.message} – I have checked this` }); })}
+            <p class="wz-small wz-muted">Association ${o.association.method || '—'} ${o.association.confidence != null ? o.association.confidence.toFixed(2) : ''} · driver ${o.packageId}@${o.driverVersion} · raw SHA-256 ${DXUI.short(o.rawSha256, 16)} · target ${o.binding ? o.binding.formCode : '—'}</p>
+            <div class="wz-actions">${o.status === 'PENDING_VERIFICATION' ? h`<button class="wz-btn" type="button" data-act="accept" data-obs="${o.id}" data-test="accept">Accept and post</button>` : ''}<button class="wz-btn secondary" type="button" data-act="reject" data-obs="${o.id}">Reject / re-test</button></div></form>` : ''}</article>`;
+      }) : UI.empty('Nothing waiting', 'Device results needing verification appear here.')}
+      ${done.length ? h`<h3>Recently posted</h3><ul class="wz-list">${done.map(function (o) { return h`<li data-test="done-obs" data-status="${o.status}">${B('message', o.status)} ${o.instanceId} · ${o.employeeId || '—'} · ${o.category} · ${o.verifiedBy ? 'by ' + DX.userName(o.verifiedBy) : ''} ${DXUI.dt(o.verifiedAt || o.rejectedAt)}</li>`; })}</ul>` : ''}</section></div>`;
+  }
+  function measureFields(inst) {
+    var c = DX.configByInstance(inst); if (!c) return '';
+    var g = GEN[c.driver.packageId]; if (!g) return '';
+    var quick = g.fields.filter(function (f) { return f[2] === 'number' || Array.isArray(f[2]); }).slice(0, 3);
+    return h`<span class="dx-pill-row">${quick.map(function (f) { return h`<label class="wz-small">${f[1]} <input class="wz-input" style="width:7rem;min-height:34px" name="m-${f[0]}" value="${f[3]}"></label>`; })}</span>`;
+  }
+  function vUnmatched() {
+    var items = S().unmatched.slice().reverse();
+    return h`<h1>Unmatched queue</h1><p class="wz-lead">Nothing below the auto-file threshold (0.95) is ever filed automatically. Resolve within 8 working hours with a reason code; the result then re-enters validation.</p>
+      ${items.length ? items.map(function (it) {
+        var o = S().observations.filter(function (x) { return x.id === it.observationId; })[0] || {}, sug = it.suggestions[0];
+        return h`<article class="wz-card" data-test="um" data-um="${it.id}" data-status="${it.status}"><div class="wz-card-head"><strong>${it.id} · ${it.category} · ${it.instanceId || 'simulator'}</strong>${B('um', it.status)}</div>
+          <p class="wz-small">${o.association ? o.association.reason : ''}</p>${sug ? h`<p>Suggestion: <strong>${sug.displayName}</strong> (${sug.employeeId}) – ${sug.method} ${sug.confidence.toFixed(2)}</p>` : h`<p class="wz-muted">No suggestion.</p>`}
+          ${o.restricted ? UI.alert('restricted', 'Restricted category', h`<p>Breath-alcohol readings cannot be assigned from this queue – repeat the test with a capture session.</p>`) : ''}
+          ${it.status === 'OPEN' && can('unmatched.resolve') ? h`<form data-keep data-um="${it.id}"><div class="dx-form-grid">${UI.field({ type: 'select', name: 'employeeId', label: 'Employee', value: sug ? sug.employeeId : '', placeholder: '— choose —', options: emps() })}
+            ${UI.field({ type: 'select', name: 'reason', label: 'Reason code', options: ['CONFIRMED_IDENTITY', 'WORKLIST_ERROR', 'BADGE_ERROR', 'TEST_TRAFFIC', 'DUPLICATE', 'OTHER'] })}</div>
+            <div class="wz-actions"><button class="wz-btn" type="button" data-act="resolve" data-um="${it.id}" data-test="resolve">Resolve</button></div></form>` : (it.resolvedBy ? h`<p class="wz-small">Resolved by ${DX.userName(it.resolvedBy)} · ${it.reason} ${it.employeeId ? '→ ' + it.employeeId : ''} · ${DXUI.dt(it.resolvedAt)}</p>` : '')}</article>`;
+      }) : UI.empty('The unmatched queue is empty', '')}`;
+  }
+  function vDeadLetters() {
+    var items = S().deadLetters.slice().reverse(), sinks = S().sinks;
+    return h`<h1>Dead letters</h1><p class="wz-lead">Deterministic failures (parse, mapping) go here at once; transient ones after 5 attempts with back-off. Replay re-runs from the stored raw payload with the published (or a pinned) driver version; observation ids are UUIDv5, so replays never duplicate.</p>
+      <section class="wz-card"><h3>Route targets (sinks)</h3><p>${Object.keys(sinks).map(function (k) { return h`<span style="margin-right:1rem">${k} ${UI.badge(sinks[k], sinks[k] === 'UP' ? 'success' : 'danger')} ${can('lab.replay') ? h`<button class="wz-btn small ghost" type="button" data-act="sink" data-sink="${k}" data-state="${sinks[k] === 'UP' ? 'DOWN' : 'UP'}">${sinks[k] === 'UP' ? 'take down' : 'bring up'}</button>` : ''}</span>`; })}</p></section>
+      ${items.map(function (dl) {
+        var m = S().messages.filter(function (x) { return x.id === dl.messageId; })[0] || {}, versions = S().drivers.filter(function (d) { return d.packageId === m.packageId; });
+        return h`<article class="wz-card" data-test="dl" data-dl="${dl.id}" data-code="${dl.code}" data-status="${dl.status}"><div class="wz-card-head"><strong>${dl.id} · <code>${dl.code}</code> at ${dl.stage}</strong>${B('dl', dl.status)}</div>
+          ${UI.dl([['Message', h`<a href="#/message/${dl.messageId}">${dl.messageId}</a> · ${m.instanceId || 'simulator'} · ${m.packageId || ''}`], ['Detail (masked)', dl.detailMasked], ['Attempts', dl.attempts + ' · first ' + DXUI.dt(dl.firstFailedAt) + ' · last ' + DXUI.dt(dl.lastFailedAt)], ['Raw SHA-256', h`<code class="wz-small">${m.sha256 || ''}</code>`], dl.replayResult ? ['Replay', dl.replayResult] : null, dl.reason ? ['Discard reason', dl.reason + ' (' + (dl.retention || '') + ')'] : null])}
+          ${dl.status === 'OPEN' && can('lab.replay') ? h`<form data-keep data-dl="${dl.id}"><div class="dx-form-grid">${UI.field({ type: 'select', name: 'driverVersion', label: 'Driver version', options: versions.map(function (v) { return { value: v.version, label: v.version + ' (published)' }; }) })}${UI.field({ name: 'reason', label: 'Discard reason', optional: true })}</div>
+            <div class="wz-actions"><button class="wz-btn" type="button" data-act="replay" data-dl="${dl.id}" data-test="replay">Replay</button><button class="wz-btn secondary" type="button" data-act="discard" data-dl="${dl.id}" data-test="discard">Discard</button></div></form>` : ''}</article>`;
+      })}`;
+  }
+  function vConformance() {
+    var runs = S().conformanceRuns, last = runs[runs.length - 1];
+    return h`<div class="wz-page-head"><div><h1>Golden-dataset conformance</h1><p class="wz-lead">Runs every driver package's test vectors against its golden datasets (normal, edge, malformed) plus the duplicate and time-skew cases, through the same parsers and gates as live traffic.</p></div><span class="wz-sp"></span>
+      ${can('lab.conformance') ? h`<button class="wz-btn" type="button" data-act="conformance" data-test="run-conformance">Run conformance</button>` : ''}</div>
+      ${last ? h`<div class="wz-grid"><div class="wz-kpi"><b data-test="conf-passed">${last.passed}/${last.total}</b><span>passed · ${last.id} · ${DXUI.dt(last.at)} by ${DX.userName(last.by)}</span></div><div class="wz-kpi"><b>${S().drivers.length}</b><span>driver packages</span></div><div class="wz-kpi"><b>${S().golden.length}</b><span>golden datasets</span></div></div>
+        <p class="wz-small">Evidence SHA-256 <span class="dx-hash">${last.evidenceSha256}</span></p>
+        ${UI.table([{ label: 'Package', render: function (r) { return h`<code class="wz-small">${r.packageId}@${r.version}</code>`; } }, { label: 'Adapter', key: 'adapter' }, { label: 'Case', render: function (r) { return h`${r.name}${r.negative ? h` <span class="wz-badge neutral">negative</span>` : ''}`; } }, { label: 'Dataset', render: function (r) { return h`<code class="wz-small">${r.dataset}</code>`; } }, { label: 'Result', render: function (r) { return r.pass ? UI.badge('pass', 'success') : UI.badge('fail', 'danger'); } }, { label: 'Detail', key: 'actual' }], last.results)}` : UI.empty('No run yet', 'Run the conformance suite to check all ' + S().drivers.length + ' driver packages.')}`;
+  }
+
+  // ------------------------------------------------------------------ events
+  var app = DXUI.start({ app: 'lab', appName: 'Integration Lab', chip: 'E31 / E33', defaultRoute: 'simulators', nav: nav,
+    routes: { simulators: vSimulators, messages: vMessages, 'message/:id': vMessage, capture: vCapture, unmatched: vUnmatched, 'dead-letters': vDeadLetters, conformance: vConformance },
+    after: function (key) { if (key === 'capture') DX.viewed('capture'); } });
+  var root = document.getElementById('app');
+  root.addEventListener('change', function (e) {
+    var f = e.target.closest('#f-sim'); if (!f) return;
+    if (e.target.name === 'target') { ui.target = e.target.value; ui.raw = null; ui.result = null; ui.headers = null; app.render(); }
+    if (e.target.name === 'golden' && e.target.value) { var g = S().golden.filter(function (x) { return x.datasetId === e.target.value; })[0]; ui.raw = g.payload; ui.headers = g.headers; ui.golden = g.datasetId; f.querySelector('[name=raw]').value = g.payload; f.querySelector('[name=headers]').value = JSON.stringify(g.headers); }
+  });
+  function send(target, payload, headers, datasetId) {
+    var o = /^DEV-/.test(target) ? { instanceId: target } : { packageId: target.replace(/^SIM:/, '') };
+    o.payload = payload; o.headers = headers || {}; if (datasetId) o.datasetId = datasetId;
+    return DXUI.attempt(function () { return DX.ingest(o); }, function (r) { return 'Pipeline result: ' + r.status; });
+  }
+  UI.on(root, 'click', '[data-act]', function (e, el) {
+    var act = el.getAttribute('data-act'), form = el.closest('form');
+    if (act === 'generate') { var d = targetDriver(ui.target), b = GEN[d.packageId].build(genValues(d.packageId, form)); ui.raw = b.payload; ui.headers = b.headers; ui.golden = null; form.querySelector('[name=raw]').value = b.payload; form.querySelector('[name=headers]').value = JSON.stringify(b.headers); }
+    else if (act === 'send') {
+      var fd = UI.formData(form), hdr = {}; try { hdr = JSON.parse(fd.headers || '{}'); } catch (x) { UI.toast('Headers are not valid JSON', 'danger'); return; }
+      ui.raw = fd.raw; ui.headers = hdr;
+      var r = send(ui.target, fd.raw, hdr, ui.golden && S().golden.some(function (g) { return g.datasetId === ui.golden && g.payload === fd.raw; }) ? ui.golden : null);
+      if (r) { ui.result = r; DXUI.clean(); app.render(); }
+    }
+    else if (act === 'open-session') { var ds = UI.formData(form); DXUI.attempt(function () { return DX.openCaptureSession({ instanceId: ds.instanceId, employeeId: ds.employeeId, worklistId: ds.worklistId || null }); }, function (s2) { return 'Capture session ' + s2.id + ' open on ' + s2.instanceId; }); }
+    else if (act === 'measure') {
+      var inst = el.getAttribute('data-inst'), c = DX.configByInstance(inst), g = GEN[c.driver.packageId], vals = {};
+      g.fields.forEach(function (f) { vals[f[0]] = f[2] === 'number' ? Number(f[3]) : f[3]; });
+      var sess = DX.activeSession(inst); if (sess && vals.employeeId !== undefined) vals.employeeId = sess.employeeId;
+      Array.prototype.forEach.call(form.querySelectorAll('input[name^="m-"]'), function (i) { var k = i.name.slice(2); vals[k] = typeof vals[k] === 'number' ? Number(i.value) : i.value; });
+      if (vals.badge !== undefined) vals.badge = '';
+      var built = g.build(vals); var r2 = send(inst, built.payload, built.headers);
+      if (r2) { ui.result = r2; ui.raw = built.payload; ui.target = inst; }
+    }
+    else if (act === 'accept') { var acks = Array.prototype.map.call(form.querySelectorAll('input[name=ack]:checked'), function (x) { return x.value; }); DXUI.attempt(function () { return DX.acceptObservation(el.getAttribute('data-obs'), { acknowledgedFlags: acks }); }, 'Posted to the OH record'); }
+    else if (act === 'reject') { DXUI.attempt(function () { return DX.rejectObservation(el.getAttribute('data-obs'), { reason: 'Re-test requested' }); }, 'Rejected – re-test'); }
+    else if (act === 'resolve') { var dr = UI.formData(form); DXUI.attempt(function () { return DX.resolveUnmatched(el.getAttribute('data-um'), { employeeId: dr.employeeId, reason: dr.reason }); }, 'Resolved – the observation re-enters validation'); }
+    else if (act === 'replay') { var dv = UI.formData(form); DXUI.attempt(function () { return DX.replayDeadLetter(el.getAttribute('data-dl'), { driverVersion: dv.driverVersion }); }, function (r) { return 'Replay: ' + r.deadLetter.replayResult; }); }
+    else if (act === 'discard') { var dd = UI.formData(form); DXUI.attempt(function () { return DX.discardDeadLetter(el.getAttribute('data-dl'), { reason: dd.reason }); }, 'Discarded – raw payload kept as DEVICE_RAW_UNFILED'); }
+    else if (act === 'sink') { DXUI.attempt(function () { return DX.setSink(el.getAttribute('data-sink'), el.getAttribute('data-state')); }, 'Sink state changed'); }
+    else if (act === 'conformance') { DXUI.attempt(function () { return DX.runConformance({}); }, function (r) { return 'Conformance ' + r.passed + '/' + r.total; }); }
+  });
+})();
+</script>
+</body>
+</html>

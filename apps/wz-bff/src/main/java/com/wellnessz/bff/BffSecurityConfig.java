@@ -45,6 +45,14 @@ public class BffSecurityConfig {
             // increment 5: safety managers (for-cause requests) and crew scheduling (duty status) use the manager workspace
             "SAFETY_MANAGER", "CREW_SCHEDULING");
 
+    /**
+     * Increment 6: the clinic's nursing head sees the site device-availability summary (counts and states only, no person
+     * data – E32 {@code GET /workspace/device-fleet} admits MANAGER and NURSING_HEAD). The role is admitted for this one
+     * workspace resource only, not for the rest of {@code /bff/api/workspace/**} (least privilege).
+     */
+    static final List<String> DEVICE_FLEET_WORKSPACE_ROLES = java.util.stream.Stream.concat(WORKSPACE_ROLES.stream(), java.util.stream.Stream.of("NURSING_HEAD"))
+            .toList();
+
     /** Management port (internal only, never exposed by the ingress): probes and metrics are unauthenticated. */
     @Bean
     @org.springframework.core.annotation.Order(1)
@@ -68,6 +76,8 @@ public class BffSecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/bff/session", "/error").permitAll()
+                .requestMatchers("/bff/api/workspace/device-fleet", "/bff/api/workspace/device-fleet/**")
+                    .hasAnyRole(DEVICE_FLEET_WORKSPACE_ROLES.toArray(String[]::new))
                 .requestMatchers("/bff/api/workspace/**").hasAnyRole(WORKSPACE_ROLES.toArray(String[]::new))
                 .requestMatchers("/bff/api/**").authenticated()
                 .anyRequest().denyAll())

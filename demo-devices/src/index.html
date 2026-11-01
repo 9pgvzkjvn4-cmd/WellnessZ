@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WellnessZ – Medical Device Integration demo</title>
+<link rel="stylesheet" href="../shared/ui.css" data-wz-inline>
+<link rel="stylesheet" href="../shared/devices.css" data-wz-inline>
+</head>
+<body>
+<div id="app"></div>
+<script src="../data/device-demo-data.js" data-wz-data></script>
+<script src="../shared/scenarios.js" data-wz-inline></script>
+<script src="../shared/codecs.js" data-wz-inline></script>
+<script src="../shared/engine.js" data-wz-inline></script>
+<script src="../shared/ui.js" data-wz-inline></script>
+<!-- wz:built-apps -->
+<script>
+(function () {
+  'use strict';
+  var h = UI.h;
+  var TILES = [
+    { app: 'console', file: 'device-console.html', name: 'Device Console', who: 'Device administrator · approver · biomedical engineer', what: 'Catalogue of 133 models, the eight-step provisioning wizard with P1–P10 parameter forms, bindings with preview, simulator and live tests, four-eyes certification with a printable record, publish with a one-time enrolment token, calibration / QC lockout and release, fleet.' },
+    { app: 'lab', file: 'integration-lab.html', name: 'Integration Lab', who: 'Integration tester · OH nurse · collector', what: 'Simulators generating HL7 ORU^R01, BLE GATT (SFLOAT), POCT1-A XML, CSV / GDT exports, FHIR, HMAC webhooks and DICOM JSON; the pipeline visualiser with raw SHA-256; unmatched queue, dead letters with replay, golden conformance and the nurse capture preview.' },
+    { app: 'security', file: 'security-console.html', name: 'Security Console', who: 'Security operations · auditor', what: 'Endpoint identities and zero-touch enrolment, token rotation, zones and conduits, Ed25519 driver-signature checks, anomaly rules and the isolation drill, incidents and the hash-chained security event log.' }
+  ];
+  DX.init({ app: 'launcher' });
+  function render() {
+    var s = DX.session(), info = DX.sessionInfo(), built = window.WZ_BUILT_APPS || [];
+    document.getElementById('app').innerHTML = String(h`<header class="wz-header"><div class="wz-header-in"><span class="wz-brand"><span class="wz-logo" aria-hidden="true">Z</span>WellnessZ <span class="wz-app-name">Medical Device Integration Engine – demo pack</span></span><span class="wz-header-sp"></span><span class="wz-org-chip">E31–E34</span></div></header>
+      <main class="wz-main" id="main"><h1>Configure devices and test device data integration</h1>
+      <p class="wz-lead">Three standalone apps share one demo session in this browser (localStorage <code>${info.storageKey}</code>) and one demo data file (<code>device-demo-data.js</code>). Open each app in its own tab; changes appear in the others at once. People are synthetic; device brands and models are entries of the client inventory; driver packages and golden datasets are the engine's own resources.</p>
+      <div class="wz-grid-2">${TILES.map(function (t) { var ok = built.indexOf(t.file.replace('.html', '')) >= 0; return h`<section class="wz-card wz-accent" data-test="tile-${t.app}"><h2 style="margin-top:0">${t.name}</h2><p class="wz-muted">${t.who}</p><p>${t.what}</p>${ok ? h`<a class="wz-btn" href="${t.file}" target="_blank" rel="noopener" data-test="open-${t.app}">Open ${t.name}</a>` : h`<span class="wz-badge neutral">not built</span>`}</section>`; })}</div>
+      <div class="wz-grid"><div class="wz-kpi"><b>${s.catalogue.length}</b><span>catalogue models (11 families)</span></div><div class="wz-kpi"><b>${s.drivers.length}</b><span>signed driver packages</span></div><div class="wz-kpi"><b>${s.golden.length}</b><span>golden datasets (real payloads)</span></div><div class="wz-kpi"><b>${s.optionPacks.options.length}</b><span>connectivity options P1–P10</span></div>
+        <div class="wz-kpi"><b>${s.configurations.filter(function (c) { return c.status === 'PUBLISHED'; }).length}</b><span>published devices</span></div><div class="wz-kpi"><b>${s.endpoints.length}</b><span>endpoint identities</span></div></div>
+      <h2>Scenarios</h2><p>Pick a scenario in the demo toolbar of any app to get "next step" hints. The Excel guide <code>WellnessZ-Device-Integration-Demo-Guide.xlsx</code> lists every step with the expected result and a Pass / Fail column.</p>
+      ${UI.table([{ label: 'ID', key: 'code' }, { label: 'Scenario', render: function (x) { return h`<strong>${x.title}</strong><br><span class="wz-small wz-muted">${x.summary}</span>`; } }, { label: 'Steps', render: function (x) { return x.steps.length; } }, { label: 'Apps', render: function (x) { var a = []; x.steps.forEach(function (st) { var n = DX.APPS[st.app].short; if (a.indexOf(n) < 0) a.push(n); }); return a.join(', '); } }, { label: 'Done', render: function (x) { return DX.scenarioState().completed.indexOf(x.id) >= 0 ? UI.badge('completed', 'success') : '—'; } }], DX.scenarios())}
+      <h2>Demo session</h2>${UI.dl([['Session', info.sessionId + ' · revision ' + info.rev + ' · ' + info.sizeKb + ' kB'], ['Demo clock', info.clock + ' (advances one minute per action – runs are reproducible)'], ['Data file', 'device-demo-data.js version ' + info.seedVersion], ['Counts', info.counts.configurations + ' configurations · ' + info.counts.messages + ' messages · ' + info.counts.observations + ' observations · ' + info.counts.securityEvents + ' security events']])}
+      <p class="wz-small wz-muted">Use the toolbar to Export the session to <code>wellnessz-device-demo-session.json</code>, Import it again, or Reset to the starting data. This is a demonstration in the browser – not the production platform. Do not enter real personal data.</p></main>`);
+  }
+  DX.subscribe(render); render();
+})();
+</script>
+</body>
+</html>

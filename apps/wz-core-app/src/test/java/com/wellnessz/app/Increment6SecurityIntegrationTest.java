@@ -98,6 +98,7 @@ class Increment6SecurityIntegrationTest extends IntegrationTestBase {
     @Autowired JsonMapper json;
     @Autowired OutboxRepository outbox;
     @Autowired DeviceSpis spis;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
     @Autowired DeviceSecretStore secretStore;
     @Autowired DevicePackageSignatures signatures;
     @Autowired DeviceEndpointProvisioning provisioning;
@@ -173,6 +174,12 @@ class Increment6SecurityIntegrationTest extends IntegrationTestBase {
         ingest(endpointId, token, thumb, address, resource).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value(code));
     }
 
+    /** Authenticated endpoint on a path its kind may not use: 403 (authorisation), not 401 (authentication). */
+    void expectForbiddenPath(String endpointId, String token, String thumb, String address, String resource) throws Exception {
+        ingest(endpointId, token, thumb, address, resource).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("endpoint_forbidden")).andExpect(jsonPath("$.status").value(403));
+    }
+
     int count(String sql, Object... args) {
         Integer n = jdbc.queryForObject(sql, Integer.class, args);
         return n == null ? 0 : n;
@@ -183,6 +190,21 @@ class Increment6SecurityIntegrationTest extends IntegrationTestBase {
     }
 
     // ------------------------------------------------------------------ tests
+
+    @Test
+    void demoSeedOrderAndUnknownEndpointStateDoNotRollBackTheCallersTransaction() {
+        // root cause of the fresh-database UnexpectedRollbackException: E32's seed transaction asked E34 for the state of an
+        // endpoint the E34 seed had not created yet; the 404 inside the participating @Transactional method marked the whole
+        // seed transaction rollback-only although E32 caught it
+        org.springframework.transaction.support.TransactionTemplate tx = new org.springframework.transaction.support.TransactionTemplate(transactions);
+        tx.executeWithoutResult(s -> assertThatThrownBy(() -> spis.provisioning().state("EP-DOES-NOT-EXIST"))
+                .isInstanceOf(com.wellnessz.common.error.ApiException.class)); // commits: no UnexpectedRollbackException
+        assertThat(E34DemoSeeder.SEED_ORDER).isLessThan(com.wellnessz.e32.demo.E32DemoSeeder.SEED_ORDER);
+        // the demo seed of the first start (fresh test database) published the demo devices
+        assertThat(count("select count(*) from devicecat.configuration where status in ('PUBLISHED', 'QUARANTINED') and device_instance_id in "
+                + "('DEV-000001','DEV-000002','DEV-000003','DEV-000004','DEV-000005','DEV-000006','DEV-000007','DEV-000008')")).isEqualTo(8);
+        assertThat(spis.catalogue().instance("DEV-000003")).get().satisfies(i -> assertThat(i.published()).isTrue());
+    }
 
     @Test
     void endpointIdentityEnrolmentAndFailClosedAuthentication() throws Exception {
@@ -307,7 +329,7 @@ class Increment6SecurityIntegrationTest extends IntegrationTestBase {
         String token = enrol(fresh, EndpointKind.DEVICE_HOST_AGENT, cert);
         expectAuthOk(ep[0], token, cert.sha256());
         // a serial Device Host agent may not send FHIR (UNEXPECTED_PROTOCOL – rejected and alerted)
-        expectAuthFailure(ep[0], token, cert.sha256(), "10.20.0.1", "fhir", "endpoint_forbidden");
+        expectForbiddenPath(ep[0], token, cert.sha256(), "10.20.0.1", "fhir");
         mvc.perform(get("/api/v1/device-security/alerts").param("endpointId", ep[0]).with(secops()))
                 .andExpect(jsonPath("$[?(@.ruleCode == 'UNEXPECTED_PROTOCOL')]").exists());
         // re-issuing after enrolment is refused
@@ -323,7 +345,9 @@ class Increment6SecurityIntegrationTest extends IntegrationTestBase {
         String token = enrol(ep[1], EndpointKind.KIOSK, cert);
         expectAuthFailure(ep[0], token, cert.sha256(), "10.20.0.1", "certificate-renewal", "zone_violation");
         ingest(ep[0], token, cert.sha256(), "192.0.2.15", "certificate-renewal").andExpect(status().isBadRequest());
-        expectAuthFailure(ep[0], token, cert.sha256(), "192.0.2.15", "hl7v2", "endpoint_forbidden");
+        expectForbiddenPath(ep[0], token, cert.sha256(), "192.0.2.15", "hl7v2");
+        // with a wrong token the same path is an authentication failure (401) – endpoint_forbidden never leaks before auth
+        expectAuthFailure(ep[0], "wrong-token", cert.sha256(), "192.0.2.15", "hl7v2", "bad_token");
         // devices in the device VLAN never reach the core directly
         mvc.perform(post("/api/v1/device-security/endpoints").with(secops()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"kind\":\"DEVICE\",\"siteCode\":\"LHR\",\"zone\":\"DEVICE_VLAN\"}"))

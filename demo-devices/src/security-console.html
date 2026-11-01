@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Console – WellnessZ device integration demo</title>
+<link rel="stylesheet" href="../shared/ui.css" data-wz-inline>
+<link rel="stylesheet" href="../shared/devices.css" data-wz-inline>
+</head>
+<body>
+<a class="wz-skip" href="#main">Skip to content</a>
+<div id="app"></div>
+<script src="../data/device-demo-data.js" data-wz-data></script>
+<script src="../shared/scenarios.js" data-wz-inline></script>
+<script src="../shared/codecs.js" data-wz-inline></script>
+<script src="../shared/engine.js" data-wz-inline></script>
+<script src="../shared/ui.js" data-wz-inline></script>
+<script src="../shared/appkit.js" data-wz-inline></script>
+<script>
+(function () {
+  'use strict';
+  var h = UI.h, raw = UI.raw, B = DXUI.badge, C = window.DXC;
+  var ui = { sig: {}, verify: null, drill: null, drillStep: 0, timer: null, enrol: { endpointId: '', thumb: '' }, typeFilter: '' };
+  function S() { return DX.session(); }
+  function can(p) { return DX.can(p); }
+  var KINDS = ['GATEWAY', 'DEVICE_HOST_AGENT', 'MOBILE_APP', 'KIOSK', 'DATA_MANAGER', 'VENDOR_CLOUD'];
+
+  function nav() {
+    var s = S(), alerts = s.alerts.filter(function (a) { return a.status === 'OPEN'; }).length, iso = s.endpoints.filter(function (e) { return e.status === 'ISOLATED'; }).length;
+    return [{ group: 'Identity', items: [{ route: 'endpoints', label: 'Endpoints & enrolment', count: iso }, { route: 'zones', label: 'Zones & conduits' }, { route: 'signatures', label: 'Driver signatures' }] },
+      { group: 'Detect & respond', items: [{ route: 'anomaly', label: 'Anomaly rules & drill', count: alerts, tone: 'warn' }, { route: 'incidents', label: 'Incidents' }, { route: 'events', label: 'Security event log' }] }];
+  }
+
+  // ------------------------------------------------------------------ endpoints and enrolment
+  function vEndpoints() {
+    var s = S(), pending = s.endpoints.filter(function (e) { return e.status === 'PENDING_ENROLMENT'; });
+    var envelopes = s.installerEnvelopes || [];
+    var sel = ui.enrol.endpointId || (pending[pending.length - 1] || {}).endpointId || '';
+    var env = envelopes.filter(function (x) { return x.endpointId === sel; })[0];
+    var epSel = s.endpoints.filter(function (e) { return e.endpointId === sel; })[0];
+    var thumb = ui.enrol.thumb || '';
+    return h`<div class="wz-page-head"><div><h1>Endpoints &amp; zero-touch enrolment</h1><p class="wz-lead">One identity per gateway, Device Host agent, tablet, kiosk, data manager and vendor-cloud connection – no shared secrets. Tokens are 256-bit, stored only as hashes, compared in constant time; authentication is fail-closed and revocation is immediate.</p></div></div>
+      ${UI.table([{ label: 'Endpoint', render: function (e) { return h`<strong data-test="ep-${e.endpointId}">${e.endpointId}</strong><br><span class="wz-muted wz-small">${e.kind} · ${e.siteCode}</span>`; } }, { label: 'Zone', key: 'zone' },
+        { label: 'Status', render: function (e) { return h`<span data-test="ep-status-${e.endpointId}">${B('endpoint', e.status)}</span>`; } },
+        { label: 'Certificate', render: function (e) { if (!e.certificate) return '—'; var days = Math.round((Date.parse(e.certificate.notAfter) - Date.parse(s.clock)) / 86400000); return h`<code class="wz-small">${DXUI.short(e.certificate.sha256, 16)}</code><br>${days < 30 ? UI.badge('expires in ' + days + ' days', 'warn') : h`<span class="wz-small wz-muted">until ${DXUI.d(e.certificate.notAfter)}</span>`}`; } },
+        { label: 'Token', render: function (e) { return e.tokenHash ? h`<span class="wz-small">expires ${DXUI.d(e.tokenExpiresAt)}${e.previousTokenValidUntil && e.previousTokenValidUntil > s.clock ? h`<br>previous valid until ${DXUI.dt(e.previousTokenValidUntil)} (grace)` : ''}</span>` : (e.enrolment ? h`<span class="wz-small">enrolment token ${e.enrolment.used ? 'used' : 'open until ' + DXUI.dt(e.enrolment.expiresAt)}</span>` : '—'); } },
+        { label: 'Devices', render: function (e) { return e.deviceInstanceIds.join(', ') || '—'; } }, { label: 'Last seen', render: function (e) { return DXUI.dt(e.lastSeenAt); } },
+        { label: 'Actions', render: function (e) { if (!can('security.manage')) return '—'; return h`<span class="dx-pill-row">${e.status === 'ACTIVE' ? h`<button class="wz-btn small secondary" type="button" data-act="rotate" data-ep="${e.endpointId}" data-test="rotate-${e.endpointId}">Rotate token</button><button class="wz-btn small danger" type="button" data-act="isolate" data-ep="${e.endpointId}">Isolate</button>` : ''}${e.status === 'ISOLATED' ? h`<button class="wz-btn small" type="button" data-act="release" data-ep="${e.endpointId}" data-test="release-${e.endpointId}">Release</button>` : ''}${e.status !== 'REVOKED' ? h`<button class="wz-btn small ghost" type="button" data-act="revoke" data-ep="${e.endpointId}">Revoke</button>` : ''}</span>`; } }], s.endpoints)}
+      <div class="wz-grid-2" style="margin-top:1rem"><section class="wz-card"><h2>Create an endpoint identity</h2>
+        <form id="f-create" data-keep><div class="dx-form-grid">${UI.field({ type: 'select', name: 'kind', label: 'Kind', options: KINDS })}${UI.field({ type: 'select', name: 'siteCode', label: 'Site', options: s.sites.map(function (x) { return { value: x.code, label: x.code + ' – ' + x.name }; }) })}
+          ${UI.field({ type: 'select', name: 'zone', label: 'Zone', value: 'GATEWAY_ZONE', options: s.zones.map(function (z) { return { value: z.code, label: z.code }; }) })}</div>
+          <div data-errors></div><div class="wz-actions"><button class="wz-btn" type="button" data-act="create" data-test="create-endpoint" ${raw(can('security.manage') ? '' : 'disabled')}>Create and issue a one-time enrolment token</button></div></form></section>
+      <section class="wz-card"><h2>Zero-touch enrolment (gateway simulator)</h2><p class="wz-small wz-muted">Plays the device side of <code>POST /device-enrolment/enrol</code>: the installer enters the one-time token, the gateway presents its client-certificate thumbprint (set by the mTLS ingress) and a proof of possession. In this demo the proof is SHA-256("enrol:" + token + ":" + thumbprint) instead of a signature with the certificate's private key.</p>
+        <form id="f-enrol" data-keep><div class="dx-form-grid">${UI.field({ type: 'select', name: 'endpointId', label: 'Device being installed', value: sel, placeholder: '— choose —', options: s.endpoints.filter(function (e) { return e.status === 'PENDING_ENROLMENT' || (e.enrolment && e.enrolment.used); }).map(function (e) { return { value: e.endpointId, label: e.endpointId + ' (' + e.kind + ', ' + e.status + ')' }; }) })}
+          ${UI.field({ type: 'select', name: 'endpointKind', label: 'Endpoint kind reported', value: epSel ? epSel.kind : 'GATEWAY', options: KINDS })}</div>
+          ${env ? h`<details><summary>Installer's sealed envelope (demo only)</summary><p class="wz-small">Handed over ${DXUI.dt(env.handedOverAt)}. In production the token travels out-of-band to the installer; the console never shows it again.</p><code class="wz-small" data-test="envelope">${env.token}</code></details>` : ''}
+          ${UI.field({ name: 'token', label: 'One-time enrolment token', value: env ? env.token : '' })}
+          <div class="wz-field"><label for="thumb">Client-certificate SHA-256 (from the group device CA)</label><input id="thumb" name="thumb" class="wz-input" value="${thumb}" data-test="thumb"></div>
+          ${UI.field({ name: 'hostname', label: 'Host name', value: sel ? sel.toLowerCase().replace(/^ep-/, '') : '' })}
+          <div class="wz-actions"><button class="wz-btn secondary" type="button" data-act="gen-cert">Issue a client certificate (dev CA)</button><button class="wz-btn" type="button" data-act="enrol" data-test="enrol" ${raw(can('security.manage') ? '' : 'disabled')}>Enrol</button></div></form></section></div>`;
+  }
+
+  // ------------------------------------------------------------------ zones and conduits
+  function vZones() {
+    var s = S(), zones = s.zones.map(function (z) { return z.code; });
+    return h`<div class="wz-page-head"><div><h1>Zones &amp; conduits</h1><p class="wz-lead">Reference network design: five zones, nine conduits, deny-by-default. Devices never reach the core directly; gateways and agents call out from GATEWAY_ZONE over mutual TLS.</p></div><span class="wz-sp"></span>
+      <button class="wz-btn secondary" type="button" data-act="export-csv" data-test="export-csv">Export firewall template (CSV)</button><button class="wz-btn secondary" type="button" data-act="export-json">Export (JSON)</button></div>
+      ${UI.table([{ label: 'Zone', render: function (z) { return h`<code>${z.code}</code>`; } }, { label: 'Name', key: 'name' }, { label: 'Description', key: 'description' }, { label: 'Default', render: function (z) { return UI.badge(z.defaultPolicy, 'danger'); } }, { label: 'Endpoints', render: function (z) { return s.endpoints.filter(function (e) { return e.zone === z.code; }).map(function (e) { return e.endpointId; }).join(', ') || '—'; } }], s.zones)}
+      <h2>Conduit matrix (from → to)</h2><div class="wz-table-wrap"><table class="wz-table" data-test="conduit-matrix"><thead><tr><th>from \\ to</th>${zones.map(function (z) { return h`<th>${z}</th>`; })}</tr></thead><tbody>${zones.map(function (f) { return h`<tr><td><code>${f}</code></td>${zones.map(function (t) { var cs = s.conduits.filter(function (c) { return c.fromZone === f && c.toZone === t; }); return h`<td>${cs.length ? cs.map(function (c) { return h`<div>${UI.badge(c.protocol + (c.ports !== 'n/a' ? ':' + c.ports : ''), 'success')}</div>`; }) : h`<span class="wz-muted">deny</span>`}</td>`; })}</tr>`; })}</tbody></table></div>
+      <h2>Conduits</h2>${UI.table([{ label: 'Id', render: function (c) { return h`<code>${c.id}</code>`; } }, { label: 'From', key: 'fromZone' }, { label: 'To', key: 'toZone' }, { label: 'Protocol', key: 'protocol' }, { label: 'Ports', key: 'ports' }, { label: 'Direction', key: 'direction' }, { label: 'Description', key: 'description' }], s.conduits)}`;
+  }
+
+  // ------------------------------------------------------------------ signatures
+  function canonicalOf(d, tamper) { var c = JSON.parse(JSON.stringify(d)); delete c.signature; delete c.registry; if (tamper) { c.mappings[0].plausible = { min: 0, max: 999 }; } return C.canonicalJson(c); }
+  function verifyPkg(d, tamper) {
+    var canon = canonicalOf(d, tamper), key = S().signingKeys.filter(function (k) { return k.keyId === d.signature.keyId; })[0];
+    var subtle = window.crypto && window.crypto.subtle;
+    function simulated() { var ok = C.sha256(canon) === d.signature.canonicalSha256; return { result: ok ? 'VALID' : 'INVALID', method: 'SIMULATED – SHA-256 digest check (Ed25519 not available in this browser)', digest: C.sha256(canon) }; }
+    if (!subtle || !key) return Promise.resolve(simulated());
+    return subtle.importKey('raw', new Uint8Array(C.b64ToBytes(key.publicKey)), { name: 'Ed25519' }, false, ['verify'])
+      .then(function (k) { return subtle.verify({ name: 'Ed25519' }, k, new Uint8Array(C.b64ToBytes(d.signature.value)), new Uint8Array(C.utf8(canon))); })
+      .then(function (ok) { return { result: ok ? 'VALID' : 'INVALID', method: 'WebCrypto Ed25519 (key ' + key.keyId + ')', digest: C.sha256(canon) }; })
+      .catch(function () { return simulated(); });
+  }
+  function vSignatures() {
+    var s = S();
+    return h`<div class="wz-page-head"><div><h1>Driver-package signatures</h1><p class="wz-lead">Every driver package is signed with Ed25519 over its canonical form (UTF-8 JSON, keys sorted, no whitespace, signature removed). The browser verifies with WebCrypto when available; otherwise the check is clearly labelled SIMULATED (digest only).</p></div><span class="wz-sp"></span><button class="wz-btn" type="button" data-act="verify-all" data-test="verify-all">Verify all packages</button></div>
+      <h2>Signing keys</h2>${UI.table([{ label: 'Key id', render: function (k) { return h`<code>${k.keyId}</code>`; } }, { label: 'Algorithm', key: 'algorithm' }, { label: 'Public key (base64)', render: function (k) { return h`<code class="wz-small">${k.publicKey}</code>`; } }, { label: 'Status', render: function (k) { return UI.badge(k.status, k.status === 'ACTIVE' ? 'success' : 'neutral'); } }, { label: 'Created', render: function (k) { return DXUI.d(k.createdAt); } }], s.signingKeys)}
+      <p class="wz-small wz-muted">Demo key derived from a documented seed – not a secret. Production keys live in the HSM / KMS; revoking a key revokes its packages and suspends their instances.</p>
+      <h2>Packages</h2>${UI.table([{ label: 'Package', render: function (d) { return h`<code>${d.packageId}@${d.version}</code><br><span class="wz-small wz-muted">${d.adapter} · ${d.options.join(', ')} · models ${d.models.join(', ')}</span>`; } },
+        { label: 'Canonical SHA-256', render: function (d) { return h`<code class="wz-small">${DXUI.short(d.signature.canonicalSha256, 20)}</code>`; } },
+        { label: 'Signature', render: function (d) { var r = ui.sig[d.packageId]; return r ? h`<span data-test="sig-${d.packageId}" data-result="${r.result}">${UI.badge(r.result + (r.tampered ? ' (tampered copy)' : ''), r.result === 'VALID' ? 'success' : 'danger')}</span><br><span class="wz-small wz-muted">${r.method}</span>` : h`<span class="wz-muted">not checked</span>`; } },
+        { label: '', render: function (d) { return h`<span class="dx-pill-row"><button class="wz-btn small secondary" type="button" data-act="verify" data-pkg="${d.packageId}">Verify</button><button class="wz-btn small ghost" type="button" data-act="tamper" data-pkg="${d.packageId}" data-test="tamper-${d.packageId}">Tamper test</button></span>`; } }], s.drivers)}`;
+  }
+
+  // ------------------------------------------------------------------ anomaly rules, alerts and the drill
+  function chart(tl, upto) {
+    var W = 640, Hh = 200, pad = 30, max = Math.max.apply(null, tl.map(function (x) { return x.rate; }).concat([tl[0].threshold * 1.3]));
+    var x = function (i) { return pad + i * (W - 2 * pad) / (tl.length - 1); }, y = function (v) { return Hh - pad - v * (Hh - 2 * pad) / max; };
+    var pts = tl.slice(0, upto + 1).map(function (p, i) { return x(i) + ',' + y(p.rate); }).join(' ');
+    var iso = tl.findIndex(function (p) { return p.events.some(function (e) { return /ISOLATED/.test(e); }); });
+    return raw('<svg class="dx-chart" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="Messages per minute during the drill">' +
+      '<line x1="' + pad + '" x2="' + (W - pad) + '" y1="' + y(tl[0].threshold) + '" y2="' + y(tl[0].threshold) + '" stroke="#e0b84a" stroke-dasharray="6 4"/><text x="' + (W - pad) + '" y="' + (y(tl[0].threshold) - 4) + '" text-anchor="end" font-size="11" fill="#b58900">5 × p95 = ' + tl[0].threshold + '/min</text>' +
+      (iso >= 0 && upto >= iso ? '<line x1="' + x(iso) + '" x2="' + x(iso) + '" y1="' + pad + '" y2="' + (Hh - pad) + '" stroke="#e5484d"/><text x="' + (x(iso) + 4) + '" y="' + (pad + 10) + '" font-size="11" fill="#e5484d">isolated</text>' : '') +
+      '<polyline fill="none" stroke="#2d7dd2" stroke-width="3" points="' + pts + '"/>' +
+      tl.map(function (p, i) { return '<text x="' + x(i) + '" y="' + (Hh - 10) + '" text-anchor="middle" font-size="10" fill="#55636f">' + i + '</text>'; }).join('') +
+      '<text x="' + pad + '" y="16" font-size="11" fill="#55636f">msg / min (simulated minutes on the x-axis)</text></svg>');
+  }
+  function drillPanel() {
+    var d = ui.drill; if (!d) return UI.empty('No drill yet', 'Start a drill to see detection, throttling and automatic isolation, time-compressed (one simulated minute ≈ 0.3 s).');
+    var upto = Math.min(ui.drillStep, d.timeline.length - 1), finished = upto >= d.timeline.length - 1;
+    var log = []; d.timeline.slice(0, upto + 1).forEach(function (p) { p.events.forEach(function (e) { log.push({ at: p.at, minute: p.minute, text: e }); }); });
+    return h`<div data-test="drill" data-finished="${finished ? 'yes' : 'no'}"><div class="wz-card-head"><strong>Drill ${d.id} on ${d.endpointId}</strong><span>${finished ? UI.badge(d.withinSla ? 'isolated in ' + d.minutesToIsolate + ' min – within the ' + d.slaMinutes + '-minute SLA' : 'SLA missed', d.withinSla ? 'success' : 'danger') : UI.badge('minute ' + upto + ' / ' + (d.timeline.length - 1), 'info')}</span></div>
+      ${chart(d.timeline, upto)}<ul class="dx-drill-log">${log.map(function (l) { return h`<li><time>+${l.minute} min</time>${l.text}</li>`; })}</ul>
+      ${finished ? h`<p>Detected ${DXUI.dt(d.detectedAt)} → isolated ${DXUI.dt(d.isolatedAt)}: <span class="dx-sla" data-test="drill-minutes">${d.minutesToIsolate} min</span> · incident <a href="#/incidents">${d.incidentRef}</a></p>` : h`<button class="wz-btn small secondary" type="button" data-act="skip">Skip animation</button>`}</div>`;
+  }
+  function vAnomaly() {
+    var s = S(), actives = s.endpoints.filter(function (e) { return e.status === 'ACTIVE'; });
+    return h`<h1>Anomaly rules &amp; isolation drill</h1><p class="wz-lead">Fifteen seeded rules feed alerts; HIGH / CRITICAL raise an ITSM ticket. The compromise playbook isolates an endpoint within 15 minutes – authentication refused at once, ISOLATE queued for the gateway, devices quarantined, evidence preserved by hash. Release only after re-certification.</p>
+      <div class="dx-split"><section class="wz-card"><h2>Isolation drill</h2><form id="f-drill" data-keep>${UI.field({ type: 'select', name: 'endpointId', label: 'Endpoint', value: 'EP-LHR-TAB-01', options: actives.map(function (e) { return { value: e.endpointId, label: e.endpointId + ' (' + e.kind + ', p95 ' + e.ratePerMinuteP95 + '/min, devices ' + (e.deviceInstanceIds.join(', ') || 'none') + ')' }; }) })}
+        <p class="wz-small">Scenario: message-rate spike (MESSAGE_RATE_SPIKE, > 5 × the 7-day p95) plus an unknown device serial behind the endpoint.</p>
+        <div class="wz-actions"><button class="wz-btn danger" type="button" data-act="drill" data-test="start-drill" ${raw(can('security.manage') ? '' : 'disabled')}>Start drill</button></div></form></section>
+      <section class="wz-card" id="drill-panel">${drillPanel()}</section></div>
+      <h2>Alerts</h2>${UI.table([{ label: 'Alert', key: 'id' }, { label: 'Rule', render: function (a) { return h`<code>${a.rule}</code>`; } }, { label: 'Severity', render: function (a) { return B('severity', a.severity); } }, { label: 'Endpoint', key: 'endpointId' }, { label: 'Raised', render: function (a) { return DXUI.dt(a.raisedAt); } }, { label: 'Detail', key: 'detail' }, { label: 'Status', render: function (a) { return h`${UI.badge(a.status, a.status === 'OPEN' ? 'warn' : 'neutral')}${a.status === 'OPEN' && can('security.manage') ? h` <button class="wz-btn small ghost" type="button" data-act="ack" data-alert="${a.id}">Acknowledge</button>` : ''}`; } }], s.alerts.slice().reverse(), { empty: 'No alerts' })}
+      <h2>Rules</h2>${UI.table([{ label: 'Code', render: function (r) { return h`<code>${r.code}</code>`; } }, { label: 'Condition', key: 'description' }, { label: 'Severity', render: function (r) { return B('severity', r.severity); } }, { label: 'Threshold / window', render: function (r) { return r.threshold + ' / ' + r.windowMinutes + ' min' + (r.isolateThreshold ? ' (isolate at ' + r.isolateThreshold + ')' : ''); } }, { label: 'Action', key: 'action' }], s.anomalyRules)}`;
+  }
+  function vIncidents() {
+    var s = S();
+    return h`<h1>Incidents</h1><p class="wz-lead">Each isolation creates an incident with evidence references (raw messages by archive id and SHA-256 – not copied) and a timeline; drills record detection-to-isolation time.</p>
+      ${s.incidents.slice().reverse().map(function (i) { return h`<article class="wz-card" data-test="incident" data-ref="${i.incidentRef}" data-status="${i.status}"><div class="wz-card-head"><strong>${i.incidentRef} · ${i.endpointId} · ${i.reason}</strong>${UI.badge(i.status, i.status === 'OPEN' ? 'danger' : 'neutral')}</div>
+        ${UI.dl([['Detected → isolated', DXUI.dt(i.detectedAt) + ' → ' + DXUI.dt(i.isolatedAt) + ' (' + Math.round((Date.parse(i.isolatedAt) - Date.parse(i.detectedAt)) / 60000) + ' min)'], ['Quarantined devices', (i.quarantined || []).join(', ') || '—'], ['Drill', i.drill || '—'], ['Closed', i.closedAt ? DXUI.dt(i.closedAt) : '—']])}
+        <h3>Evidence</h3>${UI.table([{ label: 'Type', key: 'type' }, { label: 'Archive', key: 'archiveId' }, { label: 'SHA-256', render: function (e) { return h`<code class="wz-small">${e.sha256}</code>`; } }], i.evidence)}
+        <ol class="wz-timeline">${i.timeline.map(function (t) { return h`<li><time>${DXUI.dt(t.at)}</time>${t.text}</li>`; })}</ol></article>`; })}`;
+  }
+  function vEvents() {
+    var s = S(), types = []; s.securityEvents.forEach(function (e) { if (types.indexOf(e.type) < 0) types.push(e.type); });
+    var rows = s.securityEvents.filter(function (e) { return !ui.typeFilter || e.type === ui.typeFilter; }).slice().reverse();
+    var v = ui.verify;
+    return h`<div class="wz-page-head"><div><h1>Security event log</h1><p class="wz-lead">Append-only and PHI-free; each event's hash is SHA-256(previous hash + canonical event), forwarded to the SIEM (siem-device-security). Verification recomputes the whole chain.</p></div><span class="wz-sp"></span>
+      <button class="wz-btn" type="button" data-act="verify-chain" data-test="verify-chain">Verify chain</button><button class="wz-btn secondary" type="button" data-act="tamper-chain">Tamper test (in-memory copy)</button></div>
+      ${v ? (v.intact ? UI.alert('success', 'Chain intact', h`<p data-test="chain-result" data-intact="yes">${v.checked} events checked${v.tampered ? '' : ''}; head hash <code>${v.headHash}</code></p>`) : UI.alert('danger', v.tampered ? 'Tampering detected (copy)' : 'Chain broken', h`<p data-test="chain-result" data-intact="no">First broken event ${v.firstBrokenId} after ${v.checked} of ${v.total} – ${v.tampered ? 'one attribute of event ' + v.firstBrokenId + ' was changed in a copy; the stored log is untouched.' : 'investigate.'}</p>`)) : ''}
+      <form class="dx-search" onsubmit="return false">${UI.field({ type: 'select', name: 'type', label: 'Event type', value: ui.typeFilter, placeholder: 'All types', options: types.sort() })}</form>
+      ${UI.table([{ label: '#', key: 'seq', className: 'num' }, { label: 'Time', render: function (e) { return DXUI.dt(e.occurredAt); } }, { label: 'Type', render: function (e) { return h`<code data-test="event-type">${e.type}</code>`; } }, { label: 'Severity', render: function (e) { return B('severity', e.severity); } }, { label: 'Endpoint / device', render: function (e) { return (e.endpointId || '') + (e.deviceInstanceId ? ' ' + e.deviceInstanceId : '') || '—'; } }, { label: 'Actor', key: 'actor' }, { label: 'Reason', render: function (e) { return e.reasonCode || '—'; } }, { label: 'Hash / previous', render: function (e) { return h`<code class="wz-small">${e.hash.slice(0, 12)}</code><br><code class="wz-small wz-muted">${e.prevHash.slice(0, 12)}</code>`; } }], rows)}`;
+  }
+
+  // ------------------------------------------------------------------ events
+  var app = DXUI.start({ app: 'security', appName: 'Security Console', chip: 'E34', defaultRoute: 'endpoints', nav: nav,
+    routes: { endpoints: vEndpoints, zones: vZones, signatures: vSignatures, anomaly: vAnomaly, incidents: vIncidents, events: vEvents },
+    after: function (key) { if (key === 'events') DX.viewed('events'); } });
+  var root = document.getElementById('app');
+  root.addEventListener('change', function (e) {
+    if (e.target.name === 'type' && e.target.closest('.dx-search')) { ui.typeFilter = e.target.value; app.render(); }
+    if (e.target.name === 'endpointId' && e.target.closest('#f-enrol')) { ui.enrol = { endpointId: e.target.value, thumb: '' }; app.render(); }
+  });
+  function download(name, text, type) { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 300); }
+  function animate() {
+    clearInterval(ui.timer);
+    ui.timer = setInterval(function () {
+      ui.drillStep++;
+      var p = document.getElementById('drill-panel'); if (p) p.innerHTML = String(drillPanel());
+      if (!ui.drill || ui.drillStep >= ui.drill.timeline.length - 1) clearInterval(ui.timer);
+    }, 300);
+  }
+  UI.on(root, 'click', '[data-act]', function (e, el) {
+    var act = el.getAttribute('data-act'), form = el.closest('form'), ep = el.getAttribute('data-ep');
+    if (act === 'create') { var d = UI.formData(form); var r = DXUI.attempt(function () { return DX.createEndpoint({ kind: d.kind, siteCode: d.siteCode, zone: d.zone }); }, function (x) { return x.endpointId + ' created'; }, form); if (r) { ui.enrol = { endpointId: r.endpointId, thumb: '' }; app.render(); DXUI.tokenModal('One-time enrolment token for ' + r.endpointId, r.enrolmentToken, 'Hand this token to the installer of ' + r.endpointId + '. It expires ' + DXUI.dt(r.enrolmentExpiresAt) + ' (≤ 72 h) and works once, for kind ' + d.kind + ' only.'); } }
+    else if (act === 'gen-cert') { var fe = UI.formData(form); ui.enrol = { endpointId: fe.endpointId, thumb: C.sha256('demo-cert:' + fe.endpointId + ':' + DX.session().clock) }; form.querySelector('[name=thumb]').value = ui.enrol.thumb; }
+    else if (act === 'enrol') {
+      var f = UI.formData(form), token = (f.token || '').trim(), thumb = (f.thumb || '').trim();
+      var r2 = DXUI.attempt(function () { return DX.enrolEndpoint({ enrolmentToken: token, endpointKind: f.endpointKind, certificateSha256: thumb, proof: C.sha256('enrol:' + token + ':' + thumb), hostname: f.hostname }); }, function (x) { return x.endpointId + ' enrolled'; });
+      if (r2) DXUI.tokenModal('Endpoint token for ' + r2.endpointId, r2.endpointToken, 'The gateway stores this per-endpoint token (90 days, rotation with a 15-minute grace) and pulls its configuration from ' + r2.configUrl + '.');
+    }
+    else if (act === 'rotate') { var r3 = DXUI.attempt(function () { return DX.rotateToken(ep); }, 'Token rotated'); if (r3) DXUI.tokenModal('New endpoint token for ' + ep, r3.endpointToken, r3.command + '. The previous token stays valid until ' + DXUI.dt(r3.previousValidUntil) + '.'); }
+    else if (act === 'isolate') { DXUI.attempt(function () { return DX.isolateEndpoint(ep, { reasonCode: 'MANUAL', note: 'Isolated from the security console' }); }, 'Endpoint isolated – devices quarantined'); }
+    else if (act === 'release') { DXUI.attempt(function () { return DX.releaseEndpoint(ep, {}); }, 'Endpoint released'); }
+    else if (act === 'revoke') { UI.confirm('Revoke ' + ep + '?', 'The endpoint can never authenticate again (effective on the next request).', 'Revoke', 'danger').then(function (ok) { if (ok) DXUI.attempt(function () { return DX.revokeEndpoint(ep, {}); }, 'Revoked'); }); }
+    else if (act === 'export-csv' || act === 'export-json') {
+      var cs = S().conduits;
+      if (act === 'export-csv') download('wellnessz-device-conduits.csv', 'id,from_zone,to_zone,protocol,ports,direction,action,description\n' + cs.map(function (c) { return [c.id, c.fromZone, c.toZone, c.protocol, c.ports, c.direction, 'ALLOW', '"' + c.description.replace(/"/g, '""') + '"'].join(','); }).join('\n') + '\n*,*,*,*,*,*,DENY,"default deny"\n', 'text/csv');
+      else download('wellnessz-device-conduits.json', JSON.stringify({ zones: S().zones, conduits: cs, defaultPolicy: 'DENY' }, null, 1), 'application/json');
+      UI.toast('Firewall template exported', 'success');
+    }
+    else if (act === 'verify' || act === 'tamper' || act === 'verify-all') {
+      var list = act === 'verify-all' ? S().drivers : S().drivers.filter(function (d2) { return d2.packageId === el.getAttribute('data-pkg'); });
+      Promise.all(list.map(function (d2) { return verifyPkg(d2, act === 'tamper').then(function (r) { r.tampered = act === 'tamper'; ui.sig[d2.packageId] = r; return { d: d2, r: r }; }); })).then(function (res) {
+        res.forEach(function (x) { if (act !== 'verify-all' || x.r.result === 'INVALID') DXUI.attempt(function () { return DX.recordSignatureCheck({ packageId: x.d.packageId, version: x.d.version, result: x.r.result, method: x.r.method, tampered: act === 'tamper' }); }); });
+        app.render();
+        UI.toast(act === 'tamper' ? 'Tampered copy: signature ' + res[0].r.result : res.filter(function (x) { return x.r.result === 'VALID'; }).length + ' of ' + res.length + ' signature(s) valid', act === 'tamper' ? 'warn' : 'success');
+      });
+    }
+    else if (act === 'drill') { var dd = UI.formData(form); var r4 = DXUI.attempt(function () { return DX.runIsolationDrill({ endpointId: dd.endpointId }); }); if (r4) { ui.drill = r4; ui.drillStep = 0; app.render(); animate(); } }
+    else if (act === 'skip') { ui.drillStep = ui.drill.timeline.length - 1; clearInterval(ui.timer); document.getElementById('drill-panel').innerHTML = String(drillPanel()); }
+    else if (act === 'ack') { DXUI.attempt(function () { return DX.acknowledgeAlert(el.getAttribute('data-alert')); }, 'Alert acknowledged'); }
+    else if (act === 'verify-chain') { ui.verify = DX.verifyEvents(); app.render(); }
+    else if (act === 'tamper-chain') { ui.verify = Object.assign(DX.verifyTamperedCopy(Math.floor(S().securityEvents.length / 2)), { tampered: true }); app.render(); }
+  });
+})();
+</script>
+</body>
+</html>

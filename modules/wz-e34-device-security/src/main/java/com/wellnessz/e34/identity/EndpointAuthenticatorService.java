@@ -88,9 +88,6 @@ public class EndpointAuthenticatorService implements DeviceEndpointAuthenticator
                 // continue
             }
         }
-        if (ep.kind() == EndpointKind.VENDOR_CLOUD) {
-            return "endpoint_forbidden"; // vendor clouds use HMAC webhooks / OAuth2 pulls, never the ingest API
-        }
         String presented = hasher.hash(c.token());
         boolean current = TokenHasher.constantTimeEquals(presented, ep.tokenHash());
         boolean previous = TokenHasher.constantTimeEquals(presented, ep.prevTokenHash());
@@ -120,7 +117,10 @@ public class EndpointAuthenticatorService implements DeviceEndpointAuthenticator
                 && !EndpointPolicy.inAny(c.remoteAddress(), zones.ranges(ep.siteCode(), "GATEWAY_ZONE"))) {
             return "zone_violation";
         }
-        if (!EndpointPolicy.pathAllowed(ep.kind(), c.path())) {
+        // authorisation – only reached once every authentication factor passed, so endpoint_forbidden always means
+        // "authenticated but not allowed" (403 at the filter); vendor clouds use HMAC webhooks / OAuth2 pulls, never the
+        // ingest API (their path set is empty)
+        if (ep.kind() == EndpointKind.VENDOR_CLOUD || !EndpointPolicy.pathAllowed(ep.kind(), c.path())) {
             return "endpoint_forbidden";
         }
         return null;

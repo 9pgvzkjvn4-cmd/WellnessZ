@@ -75,7 +75,14 @@ public class E32DemoSeeder {
         this.tx = tx;
     }
 
+    /**
+     * After the E34 demo endpoints (E34 seeds at {@code LOWEST_PRECEDENCE - 20}; modules may not import each other, so the
+     * value is mirrored here) and before the E31 / E33 demo data (default order) that refers to the published devices.
+     */
+    public static final int SEED_ORDER = org.springframework.core.Ordered.LOWEST_PRECEDENCE - 10;
+
     @EventListener(ApplicationReadyEvent.class)
+    @org.springframework.core.annotation.Order(SEED_ORDER)
     public void seed() {
         try {
             if (store.live("DEV-000001").isPresent() || store.latest("CFG-000001").isPresent()) {
@@ -96,7 +103,8 @@ public class E32DemoSeeder {
             });
             log.info("E32 demo seed: {} driver packages registered, demo configurations published", registered);
         } catch (RuntimeException | IOException e) {
-            log.warn("E32 demo seed failed: {}", e.getClass().getSimpleName());
+            log.warn("E32 demo seed failed: {} at {}", e.getClass().getSimpleName(),
+                    e.getStackTrace().length == 0 ? "?" : e.getStackTrace()[0].toString());
         }
     }
 

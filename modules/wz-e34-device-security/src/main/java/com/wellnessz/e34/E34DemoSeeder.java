@@ -78,7 +78,11 @@ public class E34DemoSeeder {
         return TokenHasher.sha256Hex("wellnessz-demo-certificate:" + endpointId);
     }
 
+    /** Before the E32 demo seed ({@link #SEED_ORDER}): E32 certifies its demo devices against these endpoints. */
+    public static final int SEED_ORDER = org.springframework.core.Ordered.LOWEST_PRECEDENCE - 20;
+
     @EventListener(ApplicationReadyEvent.class)
+    @org.springframework.core.annotation.Order(SEED_ORDER)
     public void seed() {
         try {
             int created = tx.execute(s -> {
