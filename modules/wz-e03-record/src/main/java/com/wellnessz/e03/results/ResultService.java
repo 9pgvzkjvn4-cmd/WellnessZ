@@ -160,7 +160,8 @@ public class ResultService {
                              String referenceRange, String flag, String status, Instant effectiveAt, Instant receivedAt, String source,
                              String deviceId, String deviceModel, String calibrationId, LocalDate calibrationDate, boolean baseline,
                              String acknowledgedBy, Instant acknowledgedAt, String ackAction, String ackNote, long ageHours,
-                             boolean overdue, Map<String, Object> detail, Map<String, Object> measurements, UUID letterDocumentId) {
+                             boolean overdue, Map<String, Object> detail, Map<String, Object> measurements, UUID letterDocumentId,
+                             String captureMethod, UUID deviceObservationId, String driverVersion, String verifiedBy, Instant verifiedAt) {
     }
 
     public record LisObservation(@NotNull @Valid CodeRef code, @Size(max = 200) String value, @Size(max = 40) String unit,
@@ -177,10 +178,29 @@ public class ResultService {
     public record IngestResult(int received, int abnormal, List<UUID> resultIds) {
     }
 
-    public record DeviceRequest(@NotBlank @Pattern(regexp = "AUDIOMETRY|SPIROMETRY|VISION|ECG") String category,
+    /** Device categories of the E03 device-result capture (increment 6 widened it for the E31 routing adapter). */
+    public static final String DEVICE_CATEGORIES = "AUDIOMETRY|SPIROMETRY|VISION|ECG|VITALS|BODY_COMPOSITION|ABPM_HOLTER|POC|FIT_TEST|ERGONOMICS|IMAGING";
+
+    public record DeviceRequest(@NotBlank @Pattern(regexp = DEVICE_CATEGORIES) String category,
                                 @Size(max = 100) String deviceId, @Size(max = 100) String deviceModel,
                                 @Size(max = 100) String calibrationId, LocalDate calibrationDate, Instant performedAt, UUID caseId,
-                                UUID orderId, @NotNull @Size(max = 20) Map<String, Object> measurements) {
+                                UUID orderId, @NotNull @Size(max = 60) Map<String, Object> measurements) {
+    }
+
+    /**
+     * Provenance of a result filed by the device integration engine (E31 {@code E03.RESULT} sink, V21 columns).
+     *
+     * @param captureMethod DEVICE | OCR_VERIFIED | MANUAL_ATTESTED
+     * @param driverVersion driver package id@version that mapped the values
+     * @param verifiedBy    clinician who accepted the preview ({@code null} for auto-posting forms)
+     * @param actor         user recorded as {@code recorded_by}
+     */
+    public record EngineProvenance(UUID deviceObservationId, String captureMethod, String driverVersion, String verifiedBy, Instant verifiedAt,
+                                   String actor) {
+    }
+
+    /** @param duplicate {@code true} when the observation was filed before (same device observation id) */
+    public record EngineResult(ResultView result, boolean duplicate) {
     }
 
     public record AckRequest(@NotBlank @Pattern(regexp = "NO_ACTION|REPEAT_TEST|REFER|FOLLOW_UP_APPOINTMENT|FITNESS_REVIEW") String action,
@@ -201,7 +221,8 @@ public class ResultService {
                 r.getStatus(), r.getEffectiveAt(), r.getReceivedAt(), r.getSource(), r.getDeviceId(), r.getDeviceModel(), r.getCalibrationId(),
                 r.getCalibrationDate(), r.isBaseline(), r.getAcknowledgedBy(), r.getAcknowledgedAt(), r.getAckAction(), r.getAckNote(), age,
                 overdue, r.getDetail() == null ? null : json.map(r.getDetail()),
-                r.getMeasurements() == null ? null : json.map(r.getMeasurements()), r.getLetterDocumentId());
+                r.getMeasurements() == null ? null : json.map(r.getMeasurements()), r.getLetterDocumentId(), r.getCaptureMethod(),
+                r.getDeviceObservationId(), r.getDriverVersion(), r.getVerifiedBy(), r.getVerifiedAt());
     }
 
     @Transactional(readOnly = true)
@@ -336,18 +357,7 @@ public class ResultService {
             }
         }
         Map<String, Object> m = new LinkedHashMap<>(r.measurements());
-        Result baseline = null;
-        DeviceRules.Evaluation ev = switch (r.category()) {
-            case "AUDIOMETRY" -> {
-                baseline = results.findByEmployeeIdAndCategoryAndBaselineTrue(employeeId, "AUDIOMETRY").stream()
-                        .min(Comparator.comparing(Result::getEffectiveAt)).orElse(null);
-                yield DeviceRules.audiometry(m, baseline == null ? null : json.map(baseline.getMeasurements()),
-                        baseline == null ? null : baseline.getId().toString());
-            }
-            case "SPIROMETRY" -> DeviceRules.spirometry(m);
-            case "VISION" -> DeviceRules.vision(m);
-            default -> DeviceRules.ecg(m);
-        };
+        DeviceRules.Evaluation ev = evaluate(employeeId, r.category(), m);
         Instant now = clock.instant();
         Result res = new Result();
         res.setId(UUID.randomUUID());
@@ -388,6 +398,125 @@ public class ResultService {
         audit.record("RESULT_DEVICE", "RESULT", res.getId().toString(), AuditService.Outcome.SUCCESS,
                 r.category() + " source=" + res.getSource() + " flag=" + res.getFlag());
         return view(res, now);
+    }
+
+    /** Clinical rules of a device category ({@link DeviceRules}); audiometry compares with the employee's baseline. */
+    DeviceRules.Evaluation evaluate(String employeeId, String category, Map<String, Object> m) {
+        return switch (category) {
+            case "AUDIOMETRY" -> {
+                Result baseline = results.findByEmployeeIdAndCategoryAndBaselineTrue(employeeId, "AUDIOMETRY").stream()
+                        .min(Comparator.comparing(Result::getEffectiveAt)).orElse(null);
+                yield DeviceRules.audiometry(m, baseline == null ? null : json.map(baseline.getMeasurements()),
+                        baseline == null ? null : baseline.getId().toString());
+            }
+            case "SPIROMETRY" -> DeviceRules.spirometry(m);
+            case "VISION" -> DeviceRules.vision(m);
+            case "ECG" -> DeviceRules.ecg(m);
+            case "VITALS" -> DeviceRules.vitals(m);
+            case "POC" -> DeviceRules.poc(m);
+            case "FIT_TEST" -> DeviceRules.fitTest(m);
+            default -> DeviceRules.other(category, m);
+        };
+    }
+
+    /**
+     * Device result filed by the E31 engine (contract section 11, {@code E03.RESULT} sink): the same clinical logic as
+     * {@link #device} – calibration check, {@link DeviceRules} (STS against the baseline with the engine's OSHA age correction,
+     * spirometry % predicted, vision, ECG and the increment-6 categories), abnormal notification, follow-up listeners and
+     * audit – plus the V21 provenance columns. Idempotent on the device observation id: a repeated delivery returns the
+     * existing result. The engine has already authorised the verifying clinician; the employee, case and order are checked here.
+     */
+    @Transactional
+    public EngineResult deviceFromEngine(String employeeId, DeviceRequest r, EngineProvenance p) {
+        Result existing = results.findByDeviceObservationId(p.deviceObservationId()).orElse(null);
+        Instant now = clock.instant();
+        if (existing != null) {
+            return new EngineResult(view(existing, now), true);
+        }
+        if (!r.category().matches(DEVICE_CATEGORIES)) {
+            throw ApiException.badRequest("category_not_supported", "Category " + r.category() + " is not a device-result category");
+        }
+        Employee e = guard.employee(employeeId);
+        if (r.deviceId() != null && !r.deviceId().isBlank()) {
+            checkCalibration(r.deviceId(), r.performedAt() == null ? LocalDate.now(clock) : LocalDate.ofInstant(r.performedAt(), ZoneOffset.UTC));
+        }
+        if (r.caseId() != null) {
+            OhCase c = cases.findById(r.caseId()).orElseThrow(() -> ApiException.notFound("Case"));
+            if (!c.getEmployeeId().equals(employeeId)) {
+                throw ApiException.badRequest("case_employee_mismatch", "The case belongs to another employee");
+            }
+        }
+        LabOrder order = null;
+        if (r.orderId() != null) {
+            order = orders.findById(r.orderId()).filter(o -> o.getEmployeeId().equals(employeeId)).orElse(null);
+        }
+        Map<String, Object> m = new LinkedHashMap<>(r.measurements());
+        DeviceRules.Evaluation ev = evaluate(employeeId, r.category(), m);
+        Result res = new Result();
+        res.setId(UUID.randomUUID());
+        res.setOrderId(order == null ? null : order.getId());
+        res.setEmployeeId(e.getEmployeeId());
+        res.setCaseId(r.caseId() != null ? r.caseId() : order == null ? null : order.getCaseId());
+        res.setCategory(r.category());
+        res.setCodeSystem(ev.code().system());
+        res.setCode(ev.code().code());
+        res.setCodeDisplay(ev.code().display());
+        res.setValue(ev.value());
+        res.setUnit(ev.unit());
+        res.setReferenceRange(ev.referenceRange());
+        res.setFlag(ev.flag());
+        res.setStatus("FINAL");
+        res.setEffectiveAt(r.performedAt() == null ? now : r.performedAt());
+        res.setReceivedAt(now);
+        res.setSource("DEVICE");
+        res.setDeviceId(r.deviceId());
+        res.setDeviceModel(r.deviceModel());
+        res.setCalibrationId(r.calibrationId());
+        res.setCalibrationDate(r.calibrationDate());
+        res.setMeasurements(json.write(m));
+        res.setDetail(json.write(ev.detail()));
+        res.setBaseline(ev.baseline());
+        res.setClassification(DataClassification.CLINICAL.name());
+        res.setRecordedBy(p.actor());
+        res.setDeviceObservationId(p.deviceObservationId());
+        res.setCaptureMethod(p.captureMethod());
+        res.setDriverVersion(p.driverVersion());
+        res.setVerifiedBy(p.verifiedBy());
+        res.setVerifiedAt(p.verifiedAt());
+        results.save(res);
+        bus.publish(new E03Events.ResultReceived(res.getId().toString(), employeeId, res.getFlag()));
+        notifyFollowUp(res);
+        if (order != null) {
+            results.flush();
+            orderService.onResults(order);
+            if (!"NORMAL".equals(res.getFlag())) {
+                notifyAbnormal(order.getOrderedBy(), order.getCaseId(), order.getPlacerOrderNumber(), 1);
+            }
+        }
+        audit.recordAs(p.actor(), "DEVICE_ENGINE", "RESULT_DEVICE", "RESULT", res.getId().toString(), AuditService.Outcome.SUCCESS,
+                r.category() + " source=DEVICE capture=" + p.captureMethod() + " flag=" + res.getFlag());
+        return new EngineResult(view(res, now), false);
+    }
+
+    /**
+     * Physician sign-off of a device interpretation (E33-F06, {@code device.capture.interpretation-signed.v1}): acknowledges
+     * the routed E03 result – {@code FITNESS_REVIEW} for an abnormal result, otherwise {@code NO_ACTION}. Idempotent.
+     */
+    @Transactional
+    public boolean acknowledgeSignOff(UUID resultId, String signedBy) {
+        Result r = results.findById(resultId).orElse(null);
+        if (r == null || r.getAcknowledgedAt() != null || r.getDeviceObservationId() == null) {
+            return false;
+        }
+        String action = "NORMAL".equals(r.getFlag()) ? "NO_ACTION" : "FITNESS_REVIEW";
+        r.setAcknowledgedBy(signedBy);
+        r.setAcknowledgedAt(clock.instant());
+        r.setAckAction(action);
+        if (r.getCaseId() != null) {
+            timeline.record(r.getCaseId(), "RESULT_ACKNOWLEDGED", "Device interpretation signed off (" + action + ")");
+        }
+        audit.recordAs(signedBy, "OH", "RESULT_ACKNOWLEDGE", "RESULT", resultId.toString(), AuditService.Outcome.SUCCESS, action + " sign-off");
+        return true;
     }
 
     // ------------------------------------------------------------------ worklist & acknowledgement (E03-BL-012)

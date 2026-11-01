@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RestingECG>
+<PatientDemographics><PatientID>E1001</PatientID><PatientLastName>Employee</PatientLastName><Gender>FEMALE</Gender></PatientDemographics>
+<TestDemographics><AcquisitionDate>10-30-2026</AcquisitionDate><AcquisitionTime>10:30:00</AcquisitionTime><AcquisitionDevice>MAC5500</AcquisitionDevice></TestDemographics>
+<RestingECGMeasurements><VentricularRate>48</VentricularRate><PRInterval>210</PRInterval><QRSDuration>118</QRSDuration><QTCorrected>465</QTCorrected></RestingECGMeasurements>
+<Diagnosis><Modality>RESTING</Modality><Severity>BORDERLINE</Severity><DiagnosisStatement><StmtText>Sinus bradycardia</StmtText></DiagnosisStatement><DiagnosisStatement><StmtText>First degree AV block</StmtText></DiagnosisStatement><DiagnosisStatement><StmtText>Borderline ECG</StmtText></DiagnosisStatement></Diagnosis>
+<PDF file="ecg_0001.pdf"/>
+</RestingECG>

@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OBS.R01><HDR><HDR.control_id V="1003"/><HDR.version_id V="POCT1"/><HDR.creation_dttm V="2026-10-30T09:55:00+00:00"/><HDR.device_id V="AFN2-55120"/></HDR><OPR><OPR.operator_id V="nurse1"/></OPR><PT><PT.patient_id V="E1001"/><OBS><OBS.observation_id V="HbA1c"/><OBS.value V="5.4" U="%"/><OBS.observation_dttm V="2026-10-30T09:55:00+00:00"/><REG><REG.reagent_lot_number V="AF-LOT-2026-10"/></REG></OBS></OBS.R01>

@@ -1,0 +1,156 @@
+{
+ "packageId": "vitals.tanita.wss-ble",
+ "version": "1.0.0",
+ "family": "VITALS",
+ "models": [
+  "MD-041"
+ ],
+ "adapter": "BLE_GATT",
+ "options": [
+  "P3"
+ ],
+ "protocol": {
+  "service": "0x181D",
+  "characteristic": "0x2A9D",
+  "pairing": "LE_SECURE_CONNECTIONS_JUST_WORKS",
+  "bonding": "REQUIRED",
+  "indications": true
+ },
+ "parse": {
+  "type": "GATT_STRUCT",
+  "identity": {
+   "effectiveTime": {
+    "selector": "timestamp",
+    "format": "GATT_DATETIME"
+   }
+  },
+  "fields": [
+   {
+    "key": "flags",
+    "selector": "UINT8"
+   },
+   {
+    "key": "weightKg",
+    "selector": "UINT16:scale=0.005:unitFlagBit=0:altUnit=[lb_av]:altScale=0.01",
+    "type": "QUANTITY",
+    "unit": "kg",
+    "required": true
+   },
+   {
+    "key": "timestamp",
+    "selector": "DATETIME:flagBit=1"
+   },
+   {
+    "key": "userId",
+    "selector": "UINT8:flagBit=2"
+   },
+   {
+    "key": "bmi",
+    "selector": "UINT16:scale=0.1:flagBit=3",
+    "type": "QUANTITY",
+    "unit": "kg/m2"
+   },
+   {
+    "key": "heightCm",
+    "selector": "UINT16:scale=0.001:flagBit=3:unitFlagBit=0:altUnit=[in_i]:altScale=0.1",
+    "type": "QUANTITY",
+    "unit": "m"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "weightKg",
+   "mdc": "MDC_MASS_BODY_ACTUAL",
+   "loinc": "29463-7",
+   "display": "Body weight",
+   "ucum": "kg",
+   "decimals": 1,
+   "plausible": {
+    "min": 20,
+    "max": 300
+   }
+  },
+  {
+   "key": "bmi",
+   "mdc": "MDC_RATIO_MASS_BODY_LEN_SQ",
+   "loinc": "39156-5",
+   "display": "Body mass index",
+   "ucum": "kg/m2",
+   "decimals": 1,
+   "plausible": {
+    "min": 10,
+    "max": 80
+   }
+  },
+  {
+   "key": "heightCm",
+   "mdc": "MDC_LEN_BODY_ACTUAL",
+   "loinc": "8302-2",
+   "display": "Body height",
+   "ucum": "cm",
+   "decimals": 0,
+   "plausible": {
+    "min": 100,
+    "max": 230
+   }
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.BODY_COMPOSITION",
+   "formVersion": "1",
+   "category": "BODY_COMPOSITION",
+   "target": "E03.RESULT",
+   "fields": {
+    "weightKg": "measurements.weightKg",
+    "heightCm": "measurements.heightCm",
+    "bmi": "measurements.bmi"
+   },
+   "verifyBeforePost": true
+  },
+  {
+   "formCode": "E12.SCREENING_RESULT",
+   "formVersion": "1",
+   "category": "BODY_COMPOSITION",
+   "target": "E12.SCREENING",
+   "fields": {
+    "bmi": "measures.bmi"
+   },
+   "verifyBeforePost": false
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/vitals/tanita-wss/normal.json",
+   "expect": {
+    "weightKg": 78.4,
+    "heightCm": 180,
+    "bmi": 24.2
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/vitals/tanita-wss/malformed.json",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge-imperial",
+   "input": "golden/vitals/tanita-wss/edge.json",
+   "expect": {
+    "weightKg": 78.4,
+    "heightCm": 180
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

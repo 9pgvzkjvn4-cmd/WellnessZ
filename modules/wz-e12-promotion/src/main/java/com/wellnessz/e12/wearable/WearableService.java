@@ -170,6 +170,53 @@ public class WearableService {
         return user.employeeId();
     }
 
+    // ------------------------------------------------------------------ device engine (E31 E12.WEARABLE sink)
+
+    /**
+     * Daily aggregates from a consented wearable routed by the device engine: stored for every active enrolment of the employee
+     * whose {@code WEARABLE_DATA} consent is active and that passes {@link WearableGate}; upsert per metric and day (idempotent).
+     *
+     * @return the enrolment ids that accepted the data (empty → {@code consent_missing})
+     */
+    @Transactional
+    public List<UUID> ingestFromDevice(String actor, String employeeId, Map<String, BigDecimal> metrics, LocalDate date) {
+        LocalDate today = support.today();
+        int maxAge = Math.max(1, support.configInt("promotion.wearables.max-age-days", 31));
+        Instant now = support.now();
+        List<UUID> accepted = new ArrayList<>();
+        for (WearableEnrolment e : enrolments.findByEmployeeIdAndStatus(employeeId, "ACTIVE")) {
+            if (!consents.isActive(e.getConsentId(), employeeId, ConsentPurpose.WEARABLE_DATA)) {
+                continue;
+            }
+            boolean any = false;
+            for (Map.Entry<String, BigDecimal> m : metrics.entrySet()) {
+                if (WearableGate.check(true, true, m.getKey(), date, m.getValue(), today, maxAge) != null) {
+                    continue;
+                }
+                WearableDaily d = daily.findByEnrolmentIdAndMetricAndMetricDate(e.getId(), m.getKey(), date).orElseGet(() -> {
+                    WearableDaily n = new WearableDaily();
+                    n.setId(UUID.randomUUID());
+                    n.setEnrolmentId(e.getId());
+                    n.setEmployeeId(e.getEmployeeId());
+                    n.setCampaignId(e.getCampaignId());
+                    n.setMetric(m.getKey());
+                    n.setMetricDate(date);
+                    return n;
+                });
+                d.setValue(m.getValue().stripTrailingZeros().toPlainString());
+                d.setReceivedAt(now);
+                daily.save(d);
+                any = true;
+            }
+            if (any) {
+                accepted.add(e.getId());
+            }
+        }
+        audit.recordAs(actor, "DEVICE_ENGINE", "WEARABLE_DATA_IMPORT", "WEARABLE_ENROLMENT", null, AuditService.Outcome.SUCCESS,
+                "metrics=" + metrics.size() + " enrolments=" + accepted.size());
+        return accepted;
+    }
+
     // ------------------------------------------------------------------ aggregator (internal integration)
 
     @Transactional

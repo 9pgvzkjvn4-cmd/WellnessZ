@@ -74,6 +74,28 @@ public class CollectionService {
 
     @Transactional
     public Requirement collect(CurrentUser user, UUID testId, CollectionCommand c) {
+        return collectAs(user.username(), user.displayName(), false, testId, c);
+    }
+
+    /**
+     * Breath reading captured by an evidential breath tester through the device engine (E31 {@code E10.BREATH_ALCOHOL} sink,
+     * verified by the collector in the capture dialogue): the same collection logic, chain-of-custody form and MRO pathway as a
+     * typed reading. The specimen id is derived from the device observation id, so a repeated delivery is recognised.
+     *
+     * @return the requirement, or empty when this observation was recorded before
+     */
+    @Transactional
+    public java.util.Optional<Requirement> collectDeviceBreath(String actor, UUID testId, UUID observationId, BigDecimal brac, Instant at, String siteCode,
+                                                               String remarks) {
+        String specimenId = "DEV-" + observationId.toString().replace("-", "");
+        if (specimens.findBySpecimenId(specimenId).isPresent()) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(collectAs(actor, null, true, testId, new CollectionCommand(specimenId, SpecimenType.BREATH.name(), at,
+                siteCode == null ? "DEVICE" : siteCode, null, true, true, false, brac, remarks)));
+    }
+
+    Requirement collectAs(String username, String displayName, boolean device, UUID testId, CollectionCommand c) {
         DaTest t = core.load(testId);
         TestCore.requireStatus(t, List.of(TestStatus.REQUIRED, TestStatus.NOTIFIED, TestStatus.DISPATCHED, TestStatus.COLLECTED, TestStatus.IN_LAB));
         SpecimenType type = SpecimenType.valueOf(c.specimenType());
@@ -118,7 +140,7 @@ public class CollectionService {
         s.setSealIntact(true);
         s.setDonorIdentityChecked(true);
         s.setSplitSpecimen(!breath && c.splitSpecimen());
-        s.setCollector(user.username());
+        s.setCollector(username);
         s.setRemarks(c.remarks() == null || c.remarks().isBlank() ? null : c.remarks().strip());
         s.setLabCode(breath ? null : support.laboratoryCode());
         s.setOutOfWindow(outOfWindow);
@@ -131,17 +153,17 @@ public class CollectionService {
         fields.put("specimenType", type.name() + (s.isSplitSpecimen() ? " (split A/B)" : ""));
         fields.put("collectedAt", STAMP.format(c.collectedAt()));
         fields.put("collectionSite", c.siteCode());
-        fields.put("collector", user.displayName() == null ? user.username() : user.displayName());
+        fields.put("collector", displayName == null ? username : displayName);
         fields.put("sealIntact", "Yes");
         fields.put("laboratory", breath ? "Not applicable – evidential breath test at the collection site" : laboratoryName());
         if (s.getRemarks() != null) {
             fields.put("remarks", s.getRemarks());
         }
-        DocumentService.DocumentView ccf = documents.generateSigned(user.username(), "CHAIN_OF_CUSTODY_FORM", t.getEmployeeId(), null, fields,
+        DocumentService.DocumentView ccf = documents.generateSigned(username, "CHAIN_OF_CUSTODY_FORM", t.getEmployeeId(), null, fields,
                 DataClassification.RESTRICTED_CLINICAL);
         s.setDocumentId(ccf.id());
         specimens.save(s);
-        custody.append(s.getSpecimenId(), CustodyEvent.COLLECTED.name(), c.collectedAt(), fields.get("collector"), user.username(), Roles.COLLECTOR, now);
+        custody.append(s.getSpecimenId(), CustodyEvent.COLLECTED.name(), c.collectedAt(), fields.get("collector"), username, Roles.COLLECTOR, now);
 
         t.setSiteCode(c.siteCode());
         if (breath) {
@@ -159,8 +181,13 @@ public class CollectionService {
         } else {
             t.setUpdatedAt(now);
         }
-        audit.record("DA_SPECIMEN_COLLECTED", "DA_TEST", t.getId().toString(), AuditService.Outcome.SUCCESS,
-                type + (outOfWindow ? " out-of-window" : ""));
+        if (device) {
+            audit.recordAs(username, Roles.COLLECTOR, "DA_SPECIMEN_COLLECTED", "DA_TEST", t.getId().toString(), AuditService.Outcome.SUCCESS,
+                    type + " device" + (outOfWindow ? " out-of-window" : ""));
+        } else {
+            audit.record("DA_SPECIMEN_COLLECTED", "DA_TEST", t.getId().toString(), AuditService.Outcome.SUCCESS,
+                    type + (outOfWindow ? " out-of-window" : ""));
+        }
         return core.requirement(t, false);
     }
 

@@ -1,0 +1,11 @@
+{
+ "method": "OCR_VERIFIED",
+ "category": "POC",
+ "employeeId": "E1001",
+ "values": {
+  "bll": "unreadable"
+ },
+ "capturedAt": "2026-10-30T10:20:00Z",
+ "operator": "nurse1",
+ "ocrConfidence": 0.4
+}

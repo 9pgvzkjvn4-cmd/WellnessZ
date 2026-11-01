@@ -1,0 +1,107 @@
+{
+ "packageId": "exp.casella.dbadge-csv",
+ "version": "1.0.0",
+ "family": "EXPOSURE",
+ "models": [
+  "MD-114"
+ ],
+ "adapter": "FILE_CSV",
+ "options": [
+  "P2"
+ ],
+ "protocol": {
+  "pattern": "*.csv",
+  "encoding": "UTF-8",
+  "csvDelimiter": ",",
+  "software": "Casella Insight"
+ },
+ "parse": {
+  "type": "CSV_COLUMNS",
+  "identity": {
+   "deviceSerial": "DosimeterSerial",
+   "effectiveTime": {
+    "selector": "StartTime",
+    "format": "yyyy-MM-dd'T'HH:mm:ss",
+    "timeZone": "Europe/London"
+   }
+  },
+  "fields": [
+   {
+    "key": "lex8h",
+    "selector": "LEX8h",
+    "type": "QUANTITY",
+    "unit": "dB",
+    "required": true
+   },
+   {
+    "key": "peak",
+    "selector": "Peak"
+   },
+   {
+    "key": "location",
+    "selector": "Location"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "lex8h",
+   "loinc": "LOCAL:NOISE_LEX8H",
+   "display": "Personal noise exposure LEX,8h",
+   "ucum": "dB",
+   "decimals": 1,
+   "plausible": {
+    "min": 40,
+    "max": 140
+   }
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "PLAUSIBILITY"
+ ],
+ "bindings": [
+  {
+   "formCode": "E07.IH_MEASUREMENT",
+   "formVersion": "1",
+   "category": "EXPOSURE",
+   "target": "E07.IH_MEASUREMENT",
+   "fields": {
+    "lex8h": "value",
+    "param:segCode": "segCode",
+    "param:hazardCode": "hazardCode",
+    "const:NOISE_DOSIMETRY": "measurementType",
+    "const:dB(A)": "unit"
+   },
+   "verifyBeforePost": false
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/exposure/dbadge-csv/normal.csv",
+   "expect": {
+    "lex8h": 86.4,
+    "gates": {
+     "PLAUSIBILITY": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/exposure/dbadge-csv/malformed.csv",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge",
+   "input": "golden/exposure/dbadge-csv/edge.csv",
+   "expect": {
+    "lex8h": 92.1
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

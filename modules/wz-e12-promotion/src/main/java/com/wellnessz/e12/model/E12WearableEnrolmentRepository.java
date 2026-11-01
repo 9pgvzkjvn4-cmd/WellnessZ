@@ -13,4 +13,6 @@ public interface E12WearableEnrolmentRepository extends JpaRepository<WearableEn
     Optional<WearableEnrolment> findByEmployeeIdAndCampaignIdAndStatus(String employeeId, UUID campaignId, String status);
 
     List<WearableEnrolment> findByConsentIdAndStatus(UUID consentId, String status);
+
+    List<WearableEnrolment> findByEmployeeIdAndStatus(String employeeId, String status);
 }

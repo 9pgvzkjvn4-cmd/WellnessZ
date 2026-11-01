@@ -1,0 +1,10 @@
+{
+ "records": [
+  {
+   "port": "COM3",
+   "receivedAt": "2026-10-30T09:50:00Z",
+   "encoding": "TEXT",
+   "data": "GARBLED FRAME ###\r\n"
+  }
+ ]
+}

@@ -338,20 +338,41 @@ public class ScreeningService {
 
     @Transactional
     public ResultView recordResult(CurrentUser user, UUID eventId, ResultCommand cmd) {
-        ScreeningEvent e = requireEvent(eventId);
         records.requireClinical(user, cmd.employeeId(), DataClassification.CLINICAL, AccessPolicy.Action.CREATE, "SCREENING_RESULT_RECORD");
+        return record(user.username(), user.displayName(), eventId, cmd.employeeId(), cmd.measures().asMap(), false);
+    }
+
+    /**
+     * Screening-day / kiosk measurement routed by the device engine (E31 {@code E12.SCREENING} sink, {@code orderRef} = event
+     * id): thresholds, follow-up case and letter stay E12 logic. Idempotent per participant (a second delivery returns the
+     * existing result with {@code duplicate=true}).
+     */
+    @Transactional
+    public DeviceResult recordFromDevice(String actor, UUID eventId, String employeeId, Measures measures) {
+        java.util.Optional<ScreeningResult> existing = results.findFirstByEventIdAndEmployeeId(eventId, employeeId);
+        if (existing.isPresent()) {
+            return new DeviceResult(resultView(existing.get()), true);
+        }
+        return new DeviceResult(record(actor, null, eventId, employeeId, measures.asMap(), true), false);
+    }
+
+    public record DeviceResult(ResultView result, boolean duplicate) {
+    }
+
+    ResultView record(String username, String displayNameOfUser, UUID eventId, String employeeId, Map<String, BigDecimal> measuresMap, boolean device) {
+        ScreeningEvent e = requireEvent(eventId);
         if ("CANCELLED".equals(e.getStatus())) {
             throw ApiException.conflict("event_cancelled", "The screening event was cancelled");
         }
         if (e.getEventDate().isAfter(support.today().plusDays(1))) {
             throw PromotionSupport.unprocessable("event_not_started", "Results can be recorded from the day of the event");
         }
-        ScreeningParticipant p = participants.findByEventIdAndEmployeeId(eventId, cmd.employeeId())
+        ScreeningParticipant p = participants.findByEventIdAndEmployeeId(eventId, employeeId)
                 .orElseThrow(() -> PromotionSupport.unprocessable("not_registered", "The employee is not a participant of this event"));
-        if (results.existsByEventIdAndEmployeeId(eventId, cmd.employeeId())) {
+        if (results.existsByEventIdAndEmployeeId(eventId, employeeId)) {
             throw ApiException.conflict("result_exists", "A result was already recorded for this participant");
         }
-        Map<String, BigDecimal> measures = cmd.measures().asMap();
+        Map<String, BigDecimal> measures = measuresMap;
         if (measures.isEmpty()) {
             throw ApiException.badRequest("no_measures", "At least one measure is required");
         }
@@ -361,25 +382,30 @@ public class ScreeningService {
         draft.setId(UUID.randomUUID());
         draft.setEventId(eventId);
         draft.setParticipantId(p.getId());
-        draft.setEmployeeId(cmd.employeeId());
+        draft.setEmployeeId(employeeId);
         draft.setUnitCode(p.getUnitCode());
         draft.setMeasures(support.write(measures));
         draft.setFlags(PromotionSupport.joinCsv(flags));
         draft.setOutcome(ScreeningThresholds.outcome(flags));
-        draft.setRecordedBy(user.username());
+        draft.setRecordedBy(username);
         draft.setRecordedAt(now);
         ScreeningResult r = results.save(draft);
         p.setStatus("SCREENED");
         if (e.getCampaignId() != null) {
             campaigns.findById(e.getCampaignId()).filter(c -> "ACTIVE".equals(c.getStatus()) || "COMPLETED".equals(c.getStatus()))
-                    .ifPresent(c -> campaignService.record(c, support.requireEmployee(cmd.employeeId()), "SCREENING_" + e.getEventType(),
+                    .ifPresent(c -> campaignService.record(c, support.requireEmployee(employeeId), "SCREENING_" + e.getEventType(),
                             now, null, "SCREENING", r.getId().toString()));
         }
         if ("ABNORMAL".equals(r.getOutcome())) {
-            followUp(r, e, user.displayName() == null ? user.username() : user.displayName(), user.username());
+            followUp(r, e, displayNameOfUser == null ? username : displayNameOfUser, username);
         }
-        audit.record("SCREENING_RESULT_RECORD", "SCREENING_RESULT", r.getId().toString(), AuditService.Outcome.SUCCESS,
-                "employee=" + cmd.employeeId() + " outcome=" + r.getOutcome());
+        if (device) {
+            audit.recordAs(username, "DEVICE_ENGINE", "SCREENING_RESULT_RECORD", "SCREENING_RESULT", r.getId().toString(), AuditService.Outcome.SUCCESS,
+                    "employee=" + employeeId + " outcome=" + r.getOutcome() + " source=DEVICE");
+        } else {
+            audit.record("SCREENING_RESULT_RECORD", "SCREENING_RESULT", r.getId().toString(), AuditService.Outcome.SUCCESS,
+                    "employee=" + employeeId + " outcome=" + r.getOutcome());
+        }
         return resultView(r);
     }
 

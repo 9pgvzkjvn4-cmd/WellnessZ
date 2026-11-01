@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import com.wellnessz.casekernel.module.CaseModule;
 
 /** Registers E31 with the module registry (enablement flag {@code modules.e31.enabled}). */
-@Component
+@Component("e31E31Module")
 public class E31Module implements CaseModule {
 
     @Override

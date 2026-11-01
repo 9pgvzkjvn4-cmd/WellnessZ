@@ -1,0 +1,170 @@
+{
+ "packageId": "fit.tsi.link-webhook",
+ "version": "1.0.0",
+ "family": "RESP_ERGONOMICS",
+ "models": [
+  "MD-105"
+ ],
+ "adapter": "WEBHOOK_JSON",
+ "options": [
+  "P6"
+ ],
+ "protocol": {
+  "signature": {
+   "header": "X-Signature",
+   "algorithm": "HMAC_SHA256",
+   "timestampHeader": "X-Timestamp",
+   "replayWindowSeconds": 300,
+   "secretRef": "PARAMETER:webhookSecretRef"
+  },
+  "poll": {
+   "enabled": false,
+   "url": "PARAMETER:apiBaseUrl",
+   "oauth2": {
+    "tokenUrl": "PARAMETER:tokenUrl",
+    "clientId": "PARAMETER:clientId",
+    "secretRef": "PARAMETER:clientSecretRef",
+    "scopes": [
+     "fittest.read"
+    ]
+   },
+   "intervalSeconds": 300
+  }
+ },
+ "parse": {
+  "type": "JSON_POINTER",
+  "identity": {
+   "employee": "/subject/employeeNumber",
+   "deviceSerial": "/instrument/serial",
+   "effectiveTime": {
+    "selector": "/completedAt",
+    "format": "ISO_OFFSET"
+   }
+  },
+  "fields": [
+   {
+    "key": "overallFitFactor",
+    "selector": "/overallFitFactor",
+    "type": "QUANTITY",
+    "unit": "1",
+    "required": true
+   },
+   {
+    "key": "pass",
+    "selector": "/pass",
+    "type": "BOOLEAN"
+   },
+   {
+    "key": "protocol",
+    "selector": "/protocol",
+    "type": "CODE"
+   },
+   {
+    "key": "respiratorModel",
+    "selector": "/respirator/model",
+    "type": "STRING"
+   },
+   {
+    "key": "respiratorSize",
+    "selector": "/respirator/size",
+    "type": "CODE"
+   },
+   {
+    "key": "exercises",
+    "selector": "/exercises",
+    "type": "STRING"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "overallFitFactor",
+   "loinc": "LOCAL:FIT_FACTOR_OVERALL",
+   "display": "Respirator overall fit factor",
+   "ucum": "1",
+   "plausible": {
+    "min": 1,
+    "max": 10000
+   }
+  },
+  {
+   "key": "pass",
+   "loinc": "LOCAL:FIT_PASS",
+   "display": "Respirator fit test passed"
+  },
+  {
+   "key": "protocol",
+   "loinc": "LOCAL:FIT_PROTOCOL",
+   "display": "Fit test protocol"
+  },
+  {
+   "key": "respiratorModel",
+   "loinc": "LOCAL:RESPIRATOR",
+   "display": "Respirator model"
+  },
+  {
+   "key": "respiratorSize",
+   "loinc": "LOCAL:RESPIRATOR_SIZE",
+   "display": "Respirator size"
+  },
+  {
+   "key": "exercises",
+   "loinc": "LOCAL:EXERCISES",
+   "display": "Fit test exercises"
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "QC_DAILY:FIT_DAILY_CHECK",
+  "FIT_EXERCISES_COMPLETE",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.FIT_TEST",
+   "formVersion": "1",
+   "category": "FIT_TEST",
+   "target": "E03.RESULT",
+   "fields": {
+    "overallFitFactor": "measurements.overallFitFactor",
+    "pass": "measurements.pass",
+    "protocol": "measurements.protocol",
+    "respiratorModel": "measurements.respiratorModel",
+    "respiratorSize": "measurements.respiratorSize"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/resp-ergonomics/tsi-link/normal.json",
+   "expect": {
+    "overallFitFactor": 245,
+    "pass": "true",
+    "gates": {
+     "FIT_EXERCISES_COMPLETE": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/resp-ergonomics/tsi-link/malformed.json",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge-incomplete",
+   "input": "golden/resp-ergonomics/tsi-link/edge.json",
+   "expect": {
+    "gates": {
+     "FIT_EXERCISES_COMPLETE": "BLOCK"
+    }
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

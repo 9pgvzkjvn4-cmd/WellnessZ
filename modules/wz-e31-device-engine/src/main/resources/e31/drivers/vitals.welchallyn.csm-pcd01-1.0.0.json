@@ -1,0 +1,219 @@
+{
+ "packageId": "vitals.welchallyn.csm-pcd01",
+ "version": "1.0.0",
+ "family": "VITALS",
+ "models": [
+  "MD-027"
+ ],
+ "adapter": "HL7V2",
+ "options": [
+  "P4"
+ ],
+ "capabilities": {
+  "worklistPush": "HL7_ADT",
+  "startFromForm": false,
+  "historicRetrieval": false
+ },
+ "protocol": {
+  "hl7Version": "2.6",
+  "messageTypes": [
+   "ORU^R01"
+  ],
+  "profile": "IHE_PCD_01",
+  "ackMode": "ORIGINAL",
+  "mllpPort": 2575,
+  "tls": "REQUIRED",
+  "validationListed": true,
+  "software": "CSM firmware 2.4"
+ },
+ "parse": {
+  "type": "HL7_SEGMENTS",
+  "identity": {
+   "employee": "PID-3.1",
+   "name": "PID-5",
+   "dateOfBirth": "PID-7",
+   "sex": "PID-8",
+   "deviceSerial": "OBX[OBX-3.1=69837^MDC_DEV_METER_PHYSIO_MULTI_PARAM_MDS]/OBX-18.1",
+   "effectiveTime": {
+    "selector": "OBR-7",
+    "format": "yyyyMMddHHmmssZ"
+   }
+  },
+  "fields": [
+   {
+    "key": "systolic",
+    "selector": "OBX[OBX-3.1=150021]/OBX-5",
+    "type": "QUANTITY",
+    "unit": "mm[Hg]",
+    "required": true
+   },
+   {
+    "key": "diastolic",
+    "selector": "OBX[OBX-3.1=150022]/OBX-5",
+    "type": "QUANTITY",
+    "unit": "mm[Hg]",
+    "required": true
+   },
+   {
+    "key": "pulse",
+    "selector": "OBX[OBX-3.1=149530]/OBX-5",
+    "type": "QUANTITY",
+    "unit": "/min"
+   },
+   {
+    "key": "spo2",
+    "selector": "OBX[OBX-3.1=150456]/OBX-5",
+    "type": "QUANTITY",
+    "unit": "%"
+   },
+   {
+    "key": "temperatureC",
+    "selector": "OBX[OBX-3.1=150364]/OBX-5",
+    "type": "QUANTITY",
+    "unit": "Cel"
+   },
+   {
+    "key": "cuffSize",
+    "selector": "OBX[OBX-3.1=CUFF_SIZE]/OBX-5",
+    "type": "CODE"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "systolic",
+   "mdc": "MDC_PRESS_BLD_NONINV_SYS",
+   "loinc": "8480-6",
+   "display": "Systolic blood pressure",
+   "ucum": "mm[Hg]",
+   "convert": {
+    "fromUnit": "kPa",
+    "factor": 7.50062
+   },
+   "plausible": {
+    "min": 60,
+    "max": 260
+   }
+  },
+  {
+   "key": "diastolic",
+   "mdc": "MDC_PRESS_BLD_NONINV_DIA",
+   "loinc": "8462-4",
+   "display": "Diastolic blood pressure",
+   "ucum": "mm[Hg]",
+   "convert": {
+    "fromUnit": "kPa",
+    "factor": 7.50062
+   },
+   "plausible": {
+    "min": 30,
+    "max": 160
+   }
+  },
+  {
+   "key": "pulse",
+   "mdc": "MDC_PULS_RATE_NON_INV",
+   "loinc": "8867-4",
+   "display": "Heart rate",
+   "ucum": "/min",
+   "plausible": {
+    "min": 25,
+    "max": 240
+   }
+  },
+  {
+   "key": "spo2",
+   "mdc": "MDC_PULS_OXIM_SAT_O2",
+   "loinc": "59408-5",
+   "display": "Oxygen saturation by pulse oximetry",
+   "ucum": "%",
+   "plausible": {
+    "min": 50,
+    "max": 100
+   }
+  },
+  {
+   "key": "temperatureC",
+   "mdc": "MDC_TEMP_BODY",
+   "loinc": "8310-5",
+   "display": "Body temperature",
+   "ucum": "Cel",
+   "decimals": 1,
+   "plausible": {
+    "min": 30,
+    "max": 43
+   }
+  },
+  {
+   "key": "cuffSize",
+   "loinc": "8358-4",
+   "display": "Blood pressure device cuff size"
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "BP_CUFF_VALIDATION",
+  "PLAUSIBILITY",
+  "CLOCK_SKEW",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.VITALS",
+   "formVersion": "1",
+   "category": "VITALS",
+   "target": "E03.RESULT",
+   "fields": {
+    "systolic": "measurements.systolic",
+    "diastolic": "measurements.diastolic",
+    "pulse": "measurements.pulse",
+    "spo2": "measurements.spo2",
+    "temperatureC": "measurements.temperatureC",
+    "cuffSize": "measurements.cuffSize"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/vitals/csm-pcd01/normal.hl7",
+   "expect": {
+    "systolic": 124,
+    "diastolic": 78,
+    "gates": {
+     "PLAUSIBILITY": "PASS",
+     "BP_CUFF_VALIDATION": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/vitals/csm-pcd01/missing-pid.hl7",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "implausible",
+   "input": "golden/vitals/csm-pcd01/sys-400.hl7",
+   "expect": {
+    "gates": {
+     "PLAUSIBILITY": "BLOCK"
+    }
+   }
+  },
+  {
+   "name": "edge",
+   "input": "golden/vitals/csm-pcd01/edge.hl7",
+   "expect": {
+    "spo2": 100,
+    "gates": {
+     "PLAUSIBILITY": "PASS"
+    }
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

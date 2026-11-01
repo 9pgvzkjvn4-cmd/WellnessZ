@@ -1,0 +1,22 @@
+{
+ "subject": {
+  "employeeNumber": "E1001"
+ },
+ "instrument": {
+  "serial": "PC8048-2201"
+ },
+ "completedAt": "2026-10-30T10:10:00Z",
+ "overallFitFactor": 245,
+ "pass": true,
+ "protocol": "OSHA_FAST_FFR",
+ "respirator": {
+  "model": "3M 8210",
+  "size": "M"
+ },
+ "exercises": [
+  "BENDING",
+  "TALKING",
+  "HEAD_SIDE_TO_SIDE",
+  "HEAD_UP_DOWN"
+ ]
+}

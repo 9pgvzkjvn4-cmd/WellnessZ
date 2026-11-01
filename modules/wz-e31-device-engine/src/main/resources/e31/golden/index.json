@@ -1,0 +1,1229 @@
+[
+ {
+  "datasetId": "vitals/csm-pcd01/normal",
+  "family": "VITALS",
+  "adapter": "HL7V2",
+  "packageId": "vitals.welchallyn.csm-pcd01",
+  "kind": "NORMAL",
+  "resource": "golden/vitals/csm-pcd01/normal.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "PCD-01 ORU^R01 vitals panel for the demo employee E1001",
+  "headers": {},
+  "expect": {
+   "status": "PENDING_VERIFICATION"
+  }
+ },
+ {
+  "datasetId": "vitals/csm-pcd01/edge",
+  "family": "VITALS",
+  "adapter": "HL7V2",
+  "packageId": "vitals.welchallyn.csm-pcd01",
+  "kind": "EDGE",
+  "resource": "golden/vitals/csm-pcd01/edge.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "Values at the edge of the plausible ranges (SpO2 100 %, bradycardia, stage-2 pressure)",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/csm-pcd01/missing-pid",
+  "family": "VITALS",
+  "adapter": "HL7V2",
+  "packageId": "vitals.welchallyn.csm-pcd01",
+  "kind": "MALFORMED",
+  "resource": "golden/vitals/csm-pcd01/missing-pid.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "ORU^R01 without PID segment \u2013 AE acknowledgement, dead letter parse_failed",
+  "headers": {},
+  "expect": {
+   "error": "parse_failed"
+  }
+ },
+ {
+  "datasetId": "vitals/csm-pcd01/sys-400",
+  "family": "VITALS",
+  "adapter": "HL7V2",
+  "packageId": "vitals.welchallyn.csm-pcd01",
+  "kind": "EDGE",
+  "resource": "golden/vitals/csm-pcd01/sys-400.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "Implausible systolic pressure \u2013 PLAUSIBILITY blocks",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/csm-pcd01/time-skew",
+  "family": "VITALS",
+  "adapter": "HL7V2",
+  "packageId": "vitals.welchallyn.csm-pcd01",
+  "kind": "TIME_SKEW",
+  "resource": "golden/vitals/csm-pcd01/time-skew.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "Edge clock 5 minutes fast \u2013 clock skew corrected (WARN)",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/csm-pcd01/duplicate",
+  "family": "VITALS",
+  "adapter": "HL7V2",
+  "packageId": "vitals.welchallyn.csm-pcd01",
+  "kind": "DUPLICATE",
+  "resource": "golden/vitals/csm-pcd01/duplicate.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "Same message sent twice with the same idempotency key \u2013 second receipt DUPLICATE",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/csm-pcd01/unknown-employee",
+  "family": "VITALS",
+  "adapter": "HL7V2",
+  "packageId": "vitals.welchallyn.csm-pcd01",
+  "kind": "EDGE",
+  "resource": "golden/vitals/csm-pcd01/unknown-employee.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "Vendor-typed employee id with case / leading-zero differences \u2013 unmatched with suggestion E1001",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "spirometry/easyone-gdt/normal",
+  "family": "SPIROMETRY",
+  "adapter": "FILE_GDT",
+  "packageId": "spiro.ndd.easyone-connect-gdt",
+  "kind": "NORMAL",
+  "resource": "golden/spirometry/easyone-gdt/normal.gdt",
+  "contentType": "text/plain; charset=ISO-8859-1",
+  "description": "GDT 6310 spirometry session (grade A) for the demo employee E1002, demographics for GLI-2012",
+  "headers": {
+   "X-File-Name": "E1002_20261030.gdt",
+   "X-File-Format": "GDT"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "spirometry/easyone-gdt/edge",
+  "family": "SPIROMETRY",
+  "adapter": "FILE_GDT",
+  "packageId": "spiro.ndd.easyone-connect-gdt",
+  "kind": "EDGE",
+  "resource": "golden/spirometry/easyone-gdt/edge.gdt",
+  "contentType": "text/plain; charset=ISO-8859-1",
+  "description": "Obstructive pattern with grade D \u2013 ATS/ERS grade below minimum (WARN)",
+  "headers": {
+   "X-File-Name": "E1002_edge.gdt",
+   "X-File-Format": "GDT"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "spirometry/easyone-gdt/malformed",
+  "family": "SPIROMETRY",
+  "adapter": "FILE_GDT",
+  "packageId": "spiro.ndd.easyone-connect-gdt",
+  "kind": "MALFORMED",
+  "resource": "golden/spirometry/easyone-gdt/malformed.gdt",
+  "contentType": "text/plain; charset=ISO-8859-1",
+  "description": "Broken GDT lines \u2013 parse_failed",
+  "headers": {
+   "X-File-Name": "broken.gdt",
+   "X-File-Format": "GDT"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "spirometry/easyone-gdt/time-skew",
+  "family": "SPIROMETRY",
+  "adapter": "FILE_GDT",
+  "packageId": "spiro.ndd.easyone-connect-gdt",
+  "kind": "TIME_SKEW",
+  "resource": "golden/spirometry/easyone-gdt/time-skew.gdt",
+  "contentType": "text/plain; charset=ISO-8859-1",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "X-File-Name": "E1002_skew.gdt",
+   "X-File-Format": "GDT",
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "spirometry/easyone-gdt/duplicate",
+  "family": "SPIROMETRY",
+  "adapter": "FILE_GDT",
+  "packageId": "spiro.ndd.easyone-connect-gdt",
+  "kind": "DUPLICATE",
+  "resource": "golden/spirometry/easyone-gdt/duplicate.gdt",
+  "contentType": "text/plain; charset=ISO-8859-1",
+  "description": "Same export twice",
+  "headers": {
+   "X-File-Name": "E1002_dup.gdt",
+   "X-File-Format": "GDT"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "spirometry/easyone-gdt/grade-f",
+  "family": "SPIROMETRY",
+  "adapter": "FILE_GDT",
+  "packageId": "spiro.ndd.easyone-connect-gdt",
+  "kind": "EDGE",
+  "resource": "golden/spirometry/easyone-gdt/grade-f.gdt",
+  "contentType": "text/plain; charset=ISO-8859-1",
+  "description": "No acceptable manoeuvre (grade F) \u2013 ATS_ERS_GRADE blocks",
+  "headers": {
+   "X-File-Name": "E1002_f.gdt",
+   "X-File-Format": "GDT"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "audiometry/cca200-db/normal",
+  "family": "AUDIOMETRY",
+  "adapter": "FILE_CSV",
+  "packageId": "audio.benson.cca200-db",
+  "kind": "NORMAL",
+  "resource": "golden/audiometry/cca200-db/normal.csv",
+  "contentType": "text/csv",
+  "description": "Audiogram for E1001 (both ears 500\u20138000 Hz, 1 kHz re-test within tolerance)",
+  "headers": {
+   "X-File-Name": "audiogram_1.csv",
+   "X-File-Format": "CSV"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "audiometry/cca200-db/edge",
+  "family": "AUDIOMETRY",
+  "adapter": "FILE_CSV",
+  "packageId": "audio.benson.cca200-db",
+  "kind": "EDGE",
+  "resource": "golden/audiometry/cca200-db/edge.csv",
+  "contentType": "text/csv",
+  "description": "Re-test outside tolerance and ambient noise exceeded \u2013 WARN flags",
+  "headers": {
+   "X-File-Name": "audiogram_2.csv",
+   "X-File-Format": "CSV"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "audiometry/cca200-db/malformed",
+  "family": "AUDIOMETRY",
+  "adapter": "FILE_CSV",
+  "packageId": "audio.benson.cca200-db",
+  "kind": "MALFORMED",
+  "resource": "golden/audiometry/cca200-db/malformed.csv",
+  "contentType": "text/csv",
+  "description": "Unterminated quoted field \u2013 parse_failed",
+  "headers": {
+   "X-File-Name": "audiogram_3.csv",
+   "X-File-Format": "CSV"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "audiometry/cca200-db/time-skew",
+  "family": "AUDIOMETRY",
+  "adapter": "FILE_CSV",
+  "packageId": "audio.benson.cca200-db",
+  "kind": "TIME_SKEW",
+  "resource": "golden/audiometry/cca200-db/time-skew.csv",
+  "contentType": "text/csv",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "X-File-Name": "audiogram_4.csv",
+   "X-File-Format": "CSV",
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "audiometry/cca200-db/duplicate",
+  "family": "AUDIOMETRY",
+  "adapter": "FILE_CSV",
+  "packageId": "audio.benson.cca200-db",
+  "kind": "DUPLICATE",
+  "resource": "golden/audiometry/cca200-db/duplicate.csv",
+  "contentType": "text/csv",
+  "description": "Same export twice",
+  "headers": {
+   "X-File-Name": "audiogram_5.csv",
+   "X-File-Format": "CSV"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "cardiology/muse-xml/normal",
+  "family": "CARDIOLOGY",
+  "adapter": "FILE_XML",
+  "packageId": "ecg.ge.muse-xml",
+  "kind": "NORMAL",
+  "resource": "golden/cardiology/muse-xml/normal.xml",
+  "contentType": "application/xml",
+  "description": "Resting 12-lead ECG measurements and device interpretation (unverified) for E1001",
+  "headers": {
+   "X-File-Name": "ecg_0001.xml",
+   "X-File-Format": "XML"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "cardiology/muse-xml/edge",
+  "family": "CARDIOLOGY",
+  "adapter": "FILE_XML",
+  "packageId": "ecg.ge.muse-xml",
+  "kind": "EDGE",
+  "resource": "golden/cardiology/muse-xml/edge.xml",
+  "contentType": "application/xml",
+  "description": "Bradycardia, first-degree AV block, borderline QTc",
+  "headers": {
+   "X-File-Name": "ecg_0002.xml",
+   "X-File-Format": "XML"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "cardiology/muse-xml/malformed",
+  "family": "CARDIOLOGY",
+  "adapter": "FILE_XML",
+  "packageId": "ecg.ge.muse-xml",
+  "kind": "MALFORMED",
+  "resource": "golden/cardiology/muse-xml/malformed.xml",
+  "contentType": "application/xml",
+  "description": "Truncated XML \u2013 parse_failed",
+  "headers": {
+   "X-File-Name": "ecg_0003.xml",
+   "X-File-Format": "XML"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "cardiology/muse-xml/time-skew",
+  "family": "CARDIOLOGY",
+  "adapter": "FILE_XML",
+  "packageId": "ecg.ge.muse-xml",
+  "kind": "TIME_SKEW",
+  "resource": "golden/cardiology/muse-xml/time-skew.xml",
+  "contentType": "application/xml",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "X-File-Name": "ecg_0004.xml",
+   "X-File-Format": "XML",
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "cardiology/muse-xml/duplicate",
+  "family": "CARDIOLOGY",
+  "adapter": "FILE_XML",
+  "packageId": "ecg.ge.muse-xml",
+  "kind": "DUPLICATE",
+  "resource": "golden/cardiology/muse-xml/duplicate.xml",
+  "contentType": "application/xml",
+  "description": "Same export twice",
+  "headers": {
+   "X-File-Name": "ecg_0005.xml",
+   "X-File-Format": "XML"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/ua651ble-blp/normal",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.and.ua651ble-blp",
+  "kind": "NORMAL",
+  "resource": "golden/vitals/ua651ble-blp/normal.json",
+  "contentType": "application/json",
+  "description": "Blood Pressure Measurement 0x2A35 (mmHg, time stamp, pulse) from the nurse tablet",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/ua651ble-blp/edge",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.and.ua651ble-blp",
+  "kind": "EDGE",
+  "resource": "golden/vitals/ua651ble-blp/edge.json",
+  "contentType": "application/json",
+  "description": "Pressure reported in kPa \u2013 converted to mm[Hg] by the driver",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/ua651ble-blp/malformed",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.and.ua651ble-blp",
+  "kind": "MALFORMED",
+  "resource": "golden/vitals/ua651ble-blp/malformed.json",
+  "contentType": "application/json",
+  "description": "Truncated characteristic value \u2013 parse_failed",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/ua651ble-blp/time-skew",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.and.ua651ble-blp",
+  "kind": "TIME_SKEW",
+  "resource": "golden/vitals/ua651ble-blp/time-skew.json",
+  "contentType": "application/json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/ua651ble-blp/duplicate",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.and.ua651ble-blp",
+  "kind": "DUPLICATE",
+  "resource": "golden/vitals/ua651ble-blp/duplicate.json",
+  "contentType": "application/json",
+  "description": "Same upload twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/thermo-htp/normal",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.withings.thermo-htp",
+  "kind": "NORMAL",
+  "resource": "golden/vitals/thermo-htp/normal.json",
+  "contentType": "application/json",
+  "description": "Temperature Measurement 0x2A1C (FLOAT, Celsius)",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/thermo-htp/edge",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.withings.thermo-htp",
+  "kind": "EDGE",
+  "resource": "golden/vitals/thermo-htp/edge.json",
+  "contentType": "application/json",
+  "description": "Fahrenheit reading converted to Cel",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/thermo-htp/malformed",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.withings.thermo-htp",
+  "kind": "MALFORMED",
+  "resource": "golden/vitals/thermo-htp/malformed.json",
+  "contentType": "application/json",
+  "description": "Truncated value",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/thermo-htp/time-skew",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.withings.thermo-htp",
+  "kind": "TIME_SKEW",
+  "resource": "golden/vitals/thermo-htp/time-skew.json",
+  "contentType": "application/json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/thermo-htp/duplicate",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.withings.thermo-htp",
+  "kind": "DUPLICATE",
+  "resource": "golden/vitals/thermo-htp/duplicate.json",
+  "contentType": "application/json",
+  "description": "Same upload twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/nonin-plx/normal",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.nonin.plx-ble",
+  "kind": "NORMAL",
+  "resource": "golden/vitals/nonin-plx/normal.json",
+  "contentType": "application/json",
+  "description": "PLX Spot-check Measurement 0x2A5E",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/nonin-plx/edge",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.nonin.plx-ble",
+  "kind": "EDGE",
+  "resource": "golden/vitals/nonin-plx/edge.json",
+  "contentType": "application/json",
+  "description": "SpO2 100 % without device time stamp",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/nonin-plx/malformed",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.nonin.plx-ble",
+  "kind": "MALFORMED",
+  "resource": "golden/vitals/nonin-plx/malformed.json",
+  "contentType": "application/json",
+  "description": "Envelope without records",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/nonin-plx/time-skew",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.nonin.plx-ble",
+  "kind": "TIME_SKEW",
+  "resource": "golden/vitals/nonin-plx/time-skew.json",
+  "contentType": "application/json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/nonin-plx/duplicate",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.nonin.plx-ble",
+  "kind": "DUPLICATE",
+  "resource": "golden/vitals/nonin-plx/duplicate.json",
+  "contentType": "application/json",
+  "description": "Same upload twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/tanita-wss/normal",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.tanita.wss-ble",
+  "kind": "NORMAL",
+  "resource": "golden/vitals/tanita-wss/normal.json",
+  "contentType": "application/json",
+  "description": "Weight Measurement 0x2A9D with BMI and height (SI)",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/tanita-wss/edge",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.tanita.wss-ble",
+  "kind": "EDGE",
+  "resource": "golden/vitals/tanita-wss/edge.json",
+  "contentType": "application/json",
+  "description": "Imperial units (lb, in) converted to kg / cm",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/tanita-wss/malformed",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.tanita.wss-ble",
+  "kind": "MALFORMED",
+  "resource": "golden/vitals/tanita-wss/malformed.json",
+  "contentType": "application/json",
+  "description": "Truncated value",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/tanita-wss/time-skew",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.tanita.wss-ble",
+  "kind": "TIME_SKEW",
+  "resource": "golden/vitals/tanita-wss/time-skew.json",
+  "contentType": "application/json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/tanita-wss/duplicate",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.tanita.wss-ble",
+  "kind": "DUPLICATE",
+  "resource": "golden/vitals/tanita-wss/duplicate.json",
+  "contentType": "application/json",
+  "description": "Same upload twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/withings-bcs/normal",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.withings.bodycomp-bcs",
+  "kind": "NORMAL",
+  "resource": "golden/vitals/withings-bcs/normal.json",
+  "contentType": "application/json",
+  "description": "Body Composition Measurement 0x2A9C (fat %, weight, height; BMI computed)",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/withings-bcs/edge",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.withings.bodycomp-bcs",
+  "kind": "EDGE",
+  "resource": "golden/vitals/withings-bcs/edge.json",
+  "contentType": "application/json",
+  "description": "Low body fat and weight",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/withings-bcs/malformed",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.withings.bodycomp-bcs",
+  "kind": "MALFORMED",
+  "resource": "golden/vitals/withings-bcs/malformed.json",
+  "contentType": "application/json",
+  "description": "Truncated value",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/withings-bcs/time-skew",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.withings.bodycomp-bcs",
+  "kind": "TIME_SKEW",
+  "resource": "golden/vitals/withings-bcs/time-skew.json",
+  "contentType": "application/json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "vitals/withings-bcs/duplicate",
+  "family": "VITALS",
+  "adapter": "BLE_GATT",
+  "packageId": "vitals.withings.bodycomp-bcs",
+  "kind": "DUPLICATE",
+  "resource": "golden/vitals/withings-bcs/duplicate.json",
+  "contentType": "application/json",
+  "description": "Same upload twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "drug-alcohol/fc20-serial/normal",
+  "family": "DRUG_ALCOHOL",
+  "adapter": "SERIAL",
+  "packageId": "da.lifeloc.fc20-serial",
+  "kind": "NORMAL",
+  "resource": "golden/drug-alcohol/fc20-serial/normal.json",
+  "contentType": "application/json",
+  "description": "Breath alcohol screen 0.000 g/210 L (restricted category)",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "drug-alcohol/fc20-serial/edge",
+  "family": "DRUG_ALCOHOL",
+  "adapter": "SERIAL",
+  "packageId": "da.lifeloc.fc20-serial",
+  "kind": "EDGE",
+  "resource": "golden/drug-alcohol/fc20-serial/edge.json",
+  "contentType": "application/json",
+  "description": "Confirmation test above zero",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "drug-alcohol/fc20-serial/malformed",
+  "family": "DRUG_ALCOHOL",
+  "adapter": "SERIAL",
+  "packageId": "da.lifeloc.fc20-serial",
+  "kind": "MALFORMED",
+  "resource": "golden/drug-alcohol/fc20-serial/malformed.json",
+  "contentType": "application/json",
+  "description": "Frame matching none of the fields \u2013 parse_failed",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "drug-alcohol/fc20-serial/time-skew",
+  "family": "DRUG_ALCOHOL",
+  "adapter": "SERIAL",
+  "packageId": "da.lifeloc.fc20-serial",
+  "kind": "TIME_SKEW",
+  "resource": "golden/drug-alcohol/fc20-serial/time-skew.json",
+  "contentType": "application/json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "drug-alcohol/fc20-serial/duplicate",
+  "family": "DRUG_ALCOHOL",
+  "adapter": "SERIAL",
+  "packageId": "da.lifeloc.fc20-serial",
+  "kind": "DUPLICATE",
+  "resource": "golden/drug-alcohol/fc20-serial/duplicate.json",
+  "contentType": "application/json",
+  "description": "Same frame twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "poc/afinion2-poct1a/normal",
+  "family": "POC",
+  "adapter": "POCT1A",
+  "packageId": "poc.abbott.afinion2-poct1a",
+  "kind": "NORMAL",
+  "resource": "golden/poc/afinion2-poct1a/normal.xml",
+  "contentType": "application/xml",
+  "description": "POCT1-A OBS.R01 HbA1c with reagent lot for E1001",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "poc/afinion2-poct1a/edge",
+  "family": "POC",
+  "adapter": "POCT1A",
+  "packageId": "poc.abbott.afinion2-poct1a",
+  "kind": "EDGE",
+  "resource": "golden/poc/afinion2-poct1a/edge.xml",
+  "contentType": "application/xml",
+  "description": "HbA1c above the reference range (interpretation H)",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "poc/afinion2-poct1a/malformed",
+  "family": "POC",
+  "adapter": "POCT1A",
+  "packageId": "poc.abbott.afinion2-poct1a",
+  "kind": "MALFORMED",
+  "resource": "golden/poc/afinion2-poct1a/malformed.xml",
+  "contentType": "application/xml",
+  "description": "Unbalanced XML \u2013 AE acknowledgement",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "poc/afinion2-poct1a/time-skew",
+  "family": "POC",
+  "adapter": "POCT1A",
+  "packageId": "poc.abbott.afinion2-poct1a",
+  "kind": "TIME_SKEW",
+  "resource": "golden/poc/afinion2-poct1a/time-skew.xml",
+  "contentType": "application/xml",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "poc/afinion2-poct1a/duplicate",
+  "family": "POC",
+  "adapter": "POCT1A",
+  "packageId": "poc.abbott.afinion2-poct1a",
+  "kind": "DUPLICATE",
+  "resource": "golden/poc/afinion2-poct1a/duplicate.xml",
+  "contentType": "application/xml",
+  "description": "Same message twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "wearable/fhir-pcha/normal",
+  "family": "WEARABLE",
+  "adapter": "FHIR",
+  "packageId": "wear.aggregator.fhir-pcha",
+  "kind": "NORMAL",
+  "resource": "golden/wearable/fhir-pcha/normal.json",
+  "contentType": "application/fhir+json",
+  "description": "FHIR Bundle with daily steps and sleep for E1001 (consented wearables)",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "wearable/fhir-pcha/edge",
+  "family": "WEARABLE",
+  "adapter": "FHIR",
+  "packageId": "wear.aggregator.fhir-pcha",
+  "kind": "EDGE",
+  "resource": "golden/wearable/fhir-pcha/edge.json",
+  "contentType": "application/fhir+json",
+  "description": "A day without data (zeros)",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "wearable/fhir-pcha/malformed",
+  "family": "WEARABLE",
+  "adapter": "FHIR",
+  "packageId": "wear.aggregator.fhir-pcha",
+  "kind": "MALFORMED",
+  "resource": "golden/wearable/fhir-pcha/malformed.json",
+  "contentType": "application/fhir+json",
+  "description": "Quantity without UCUM \u2013 profile_violation",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "wearable/fhir-pcha/time-skew",
+  "family": "WEARABLE",
+  "adapter": "FHIR",
+  "packageId": "wear.aggregator.fhir-pcha",
+  "kind": "TIME_SKEW",
+  "resource": "golden/wearable/fhir-pcha/time-skew.json",
+  "contentType": "application/fhir+json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "wearable/fhir-pcha/duplicate",
+  "family": "WEARABLE",
+  "adapter": "FHIR",
+  "packageId": "wear.aggregator.fhir-pcha",
+  "kind": "DUPLICATE",
+  "resource": "golden/wearable/fhir-pcha/duplicate.json",
+  "contentType": "application/fhir+json",
+  "description": "Same bundle twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "resp-ergonomics/tsi-link/normal",
+  "family": "RESP_ERGONOMICS",
+  "adapter": "WEBHOOK_JSON",
+  "packageId": "fit.tsi.link-webhook",
+  "kind": "NORMAL",
+  "resource": "golden/resp-ergonomics/tsi-link/normal.json",
+  "contentType": "application/json",
+  "description": "TSI Link webhook: quantitative fit test passed (OSHA fast protocol)",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "resp-ergonomics/tsi-link/edge",
+  "family": "RESP_ERGONOMICS",
+  "adapter": "WEBHOOK_JSON",
+  "packageId": "fit.tsi.link-webhook",
+  "kind": "EDGE",
+  "resource": "golden/resp-ergonomics/tsi-link/edge.json",
+  "contentType": "application/json",
+  "description": "Fit test failed and incomplete \u2013 FIT_EXERCISES_COMPLETE blocks",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "resp-ergonomics/tsi-link/malformed",
+  "family": "RESP_ERGONOMICS",
+  "adapter": "WEBHOOK_JSON",
+  "packageId": "fit.tsi.link-webhook",
+  "kind": "MALFORMED",
+  "resource": "golden/resp-ergonomics/tsi-link/malformed.json",
+  "contentType": "application/json",
+  "description": "Non-numeric fit factor \u2013 parse_failed",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "resp-ergonomics/tsi-link/time-skew",
+  "family": "RESP_ERGONOMICS",
+  "adapter": "WEBHOOK_JSON",
+  "packageId": "fit.tsi.link-webhook",
+  "kind": "TIME_SKEW",
+  "resource": "golden/resp-ergonomics/tsi-link/time-skew.json",
+  "contentType": "application/json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "resp-ergonomics/tsi-link/duplicate",
+  "family": "RESP_ERGONOMICS",
+  "adapter": "WEBHOOK_JSON",
+  "packageId": "fit.tsi.link-webhook",
+  "kind": "DUPLICATE",
+  "resource": "golden/resp-ergonomics/tsi-link/duplicate.json",
+  "contentType": "application/json",
+  "description": "Same delivery twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "imaging/cxr-dicomweb/normal",
+  "family": "IMAGING",
+  "adapter": "DICOMWEB",
+  "packageId": "img.cxr.dicomweb",
+  "kind": "NORMAL",
+  "resource": "golden/imaging/cxr-dicomweb/normal.json",
+  "contentType": "application/dicom+json",
+  "description": "Chest X-ray instance metadata (PS3.18 JSON) for silica surveillance",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "imaging/cxr-dicomweb/edge",
+  "family": "IMAGING",
+  "adapter": "DICOMWEB",
+  "packageId": "img.cxr.dicomweb",
+  "kind": "EDGE",
+  "resource": "golden/imaging/cxr-dicomweb/edge.json",
+  "contentType": "application/dicom+json",
+  "description": "Computed radiography modality",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "imaging/cxr-dicomweb/malformed",
+  "family": "IMAGING",
+  "adapter": "DICOMWEB",
+  "packageId": "img.cxr.dicomweb",
+  "kind": "MALFORMED",
+  "resource": "golden/imaging/cxr-dicomweb/malformed.json",
+  "contentType": "application/dicom+json",
+  "description": "Dataset without Study Instance UID \u2013 profile_violation",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "imaging/cxr-dicomweb/time-skew",
+  "family": "IMAGING",
+  "adapter": "DICOMWEB",
+  "packageId": "img.cxr.dicomweb",
+  "kind": "TIME_SKEW",
+  "resource": "golden/imaging/cxr-dicomweb/time-skew.json",
+  "contentType": "application/dicom+json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "imaging/cxr-dicomweb/duplicate",
+  "family": "IMAGING",
+  "adapter": "DICOMWEB",
+  "packageId": "img.cxr.dicomweb",
+  "kind": "DUPLICATE",
+  "resource": "golden/imaging/cxr-dicomweb/duplicate.json",
+  "contentType": "application/dicom+json",
+  "description": "Same metadata twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "poc/leadcare2-ocr/normal",
+  "family": "POC",
+  "adapter": "OCR",
+  "packageId": "poc.magellan.leadcare2-ocr",
+  "kind": "NORMAL",
+  "resource": "golden/poc/leadcare2-ocr/normal.json",
+  "contentType": "application/json",
+  "description": "Blood lead read from the display by OCR and confirmed by the nurse",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "poc/leadcare2-ocr/edge",
+  "family": "POC",
+  "adapter": "OCR",
+  "packageId": "poc.magellan.leadcare2-ocr",
+  "kind": "EDGE",
+  "resource": "golden/poc/leadcare2-ocr/edge.json",
+  "contentType": "application/json",
+  "description": "Low OCR confidence (typed by the clinician), value above the reference",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "poc/leadcare2-ocr/malformed",
+  "family": "POC",
+  "adapter": "OCR",
+  "packageId": "poc.magellan.leadcare2-ocr",
+  "kind": "MALFORMED",
+  "resource": "golden/poc/leadcare2-ocr/malformed.json",
+  "contentType": "application/json",
+  "description": "Unreadable value \u2013 parse_failed",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "poc/leadcare2-ocr/time-skew",
+  "family": "POC",
+  "adapter": "OCR",
+  "packageId": "poc.magellan.leadcare2-ocr",
+  "kind": "TIME_SKEW",
+  "resource": "golden/poc/leadcare2-ocr/time-skew.json",
+  "contentType": "application/json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "poc/leadcare2-ocr/duplicate",
+  "family": "POC",
+  "adapter": "OCR",
+  "packageId": "poc.magellan.leadcare2-ocr",
+  "kind": "DUPLICATE",
+  "resource": "golden/poc/leadcare2-ocr/duplicate.json",
+  "contentType": "application/json",
+  "description": "Same entry replayed twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vision/manual-snellen/normal",
+  "family": "VISION",
+  "adapter": "MANUAL",
+  "packageId": "vision.manual.snellen",
+  "kind": "NORMAL",
+  "resource": "golden/vision/manual-snellen/normal.json",
+  "contentType": "application/json",
+  "description": "Snellen acuity entered with device and calibration attestation",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vision/manual-snellen/edge",
+  "family": "VISION",
+  "adapter": "MANUAL",
+  "packageId": "vision.manual.snellen",
+  "kind": "EDGE",
+  "resource": "golden/vision/manual-snellen/edge.json",
+  "contentType": "application/json",
+  "description": "Reduced acuity without attestation \u2013 ATTESTATION blocks",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vision/manual-snellen/malformed",
+  "family": "VISION",
+  "adapter": "MANUAL",
+  "packageId": "vision.manual.snellen",
+  "kind": "MALFORMED",
+  "resource": "golden/vision/manual-snellen/malformed.json",
+  "contentType": "application/json",
+  "description": "No values \u2013 parse_failed",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "vision/manual-snellen/time-skew",
+  "family": "VISION",
+  "adapter": "MANUAL",
+  "packageId": "vision.manual.snellen",
+  "kind": "TIME_SKEW",
+  "resource": "golden/vision/manual-snellen/time-skew.json",
+  "contentType": "application/json",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "vision/manual-snellen/duplicate",
+  "family": "VISION",
+  "adapter": "MANUAL",
+  "packageId": "vision.manual.snellen",
+  "kind": "DUPLICATE",
+  "resource": "golden/vision/manual-snellen/duplicate.json",
+  "contentType": "application/json",
+  "description": "Same entry replayed twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "exposure/dbadge-csv/normal",
+  "family": "EXPOSURE",
+  "adapter": "FILE_CSV",
+  "packageId": "exp.casella.dbadge-csv",
+  "kind": "NORMAL",
+  "resource": "golden/exposure/dbadge-csv/normal.csv",
+  "contentType": "text/csv",
+  "description": "Noise dosimeter shift summary (LEX,8h) for an exposure group",
+  "headers": {
+   "X-File-Name": "dbadge_1.csv",
+   "X-File-Format": "CSV"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "exposure/dbadge-csv/edge",
+  "family": "EXPOSURE",
+  "adapter": "FILE_CSV",
+  "packageId": "exp.casella.dbadge-csv",
+  "kind": "EDGE",
+  "resource": "golden/exposure/dbadge-csv/edge.csv",
+  "contentType": "text/csv",
+  "description": "Two dosimeters, one above the upper action value",
+  "headers": {
+   "X-File-Name": "dbadge_2.csv",
+   "X-File-Format": "CSV"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "exposure/dbadge-csv/malformed",
+  "family": "EXPOSURE",
+  "adapter": "FILE_CSV",
+  "packageId": "exp.casella.dbadge-csv",
+  "kind": "MALFORMED",
+  "resource": "golden/exposure/dbadge-csv/malformed.csv",
+  "contentType": "text/csv",
+  "description": "Non-numeric level \u2013 parse_failed",
+  "headers": {
+   "X-File-Name": "dbadge_3.csv",
+   "X-File-Format": "CSV"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "exposure/dbadge-csv/time-skew",
+  "family": "EXPOSURE",
+  "adapter": "FILE_CSV",
+  "packageId": "exp.casella.dbadge-csv",
+  "kind": "TIME_SKEW",
+  "resource": "golden/exposure/dbadge-csv/time-skew.csv",
+  "contentType": "text/csv",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "X-File-Name": "dbadge_4.csv",
+   "X-File-Format": "CSV",
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "exposure/dbadge-csv/duplicate",
+  "family": "EXPOSURE",
+  "adapter": "FILE_CSV",
+  "packageId": "exp.casella.dbadge-csv",
+  "kind": "DUPLICATE",
+  "resource": "golden/exposure/dbadge-csv/duplicate.csv",
+  "contentType": "text/csv",
+  "description": "Same export twice",
+  "headers": {
+   "X-File-Name": "dbadge_5.csv",
+   "X-File-Format": "CSV"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "cardiology/ecg.ge.mac-hl7/normal",
+  "family": "CARDIOLOGY",
+  "adapter": "HL7V2",
+  "packageId": "ecg.ge.mac-hl7",
+  "kind": "NORMAL",
+  "resource": "golden/cardiology/ecg.ge.mac-hl7/normal.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "GE MAC resting ECG via MUSE HL7 ORU for E1001",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "cardiology/ecg.ge.mac-hl7/malformed",
+  "family": "CARDIOLOGY",
+  "adapter": "HL7V2",
+  "packageId": "ecg.ge.mac-hl7",
+  "kind": "MALFORMED",
+  "resource": "golden/cardiology/ecg.ge.mac-hl7/malformed.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "ORU without PID - parse_failed",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "cardiology/ecg.ge.mac-hl7/edge-long-qtc",
+  "family": "CARDIOLOGY",
+  "adapter": "HL7V2",
+  "packageId": "ecg.ge.mac-hl7",
+  "kind": "EDGE",
+  "resource": "golden/cardiology/ecg.ge.mac-hl7/edge-long-qtc.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "Long QTc 520 ms",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "cardiology/ecg.ge.mac-hl7/time-skew",
+  "family": "CARDIOLOGY",
+  "adapter": "HL7V2",
+  "packageId": "ecg.ge.mac-hl7",
+  "kind": "TIME_SKEW",
+  "resource": "golden/cardiology/ecg.ge.mac-hl7/time-skew.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
+  "expect": {}
+ },
+ {
+  "datasetId": "cardiology/ecg.ge.mac-hl7/duplicate",
+  "family": "CARDIOLOGY",
+  "adapter": "HL7V2",
+  "packageId": "ecg.ge.mac-hl7",
+  "kind": "DUPLICATE",
+  "resource": "golden/cardiology/ecg.ge.mac-hl7/duplicate.hl7",
+  "contentType": "application/hl7-v2",
+  "description": "Same message twice",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "perf/mixed-50ps",
+  "family": "VITALS",
+  "adapter": "HL7V2",
+  "packageId": "vitals.welchallyn.csm-pcd01",
+  "kind": "PERFORMANCE",
+  "resource": "golden/perf/mixed-50ps.json",
+  "contentType": "application/json",
+  "description": "Performance profile: mixed spot measurements, 50 msg/s",
+  "headers": {},
+  "expect": {}
+ }
+]

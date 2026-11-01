@@ -1,0 +1,23 @@
+{
+ "description": "Mixed spot measurements at 50 messages per second for 60 s (2x peak soak: 100/s)",
+ "ratePerSecond": 50,
+ "durationSeconds": 60,
+ "mix": [
+  {
+   "datasetId": "vitals/csm-pcd01/normal",
+   "share": 0.4
+  },
+  {
+   "datasetId": "vitals/ua651ble-blp/normal",
+   "share": 0.3
+  },
+  {
+   "datasetId": "poc/afinion2-poct1a/normal",
+   "share": 0.15
+  },
+  {
+   "datasetId": "audiometry/cca200-db/normal",
+   "share": 0.15
+  }
+ ]
+}

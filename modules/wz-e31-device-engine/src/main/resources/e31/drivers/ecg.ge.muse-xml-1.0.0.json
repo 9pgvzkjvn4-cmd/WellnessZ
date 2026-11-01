@@ -1,0 +1,184 @@
+{
+ "packageId": "ecg.ge.muse-xml",
+ "version": "1.0.0",
+ "family": "CARDIOLOGY",
+ "models": [
+  "MD-045"
+ ],
+ "adapter": "FILE_XML",
+ "options": [
+  "P2"
+ ],
+ "capabilities": {
+  "worklistPush": "HL7_ORM",
+  "startFromForm": true,
+  "historicRetrieval": false
+ },
+ "protocol": {
+  "pattern": "*.xml",
+  "encoding": "UTF-8",
+  "attachmentRule": {
+   "pairBy": "XPATH",
+   "selector": "/RestingECG/PDF/@file",
+   "extensions": [
+    "pdf"
+   ]
+  },
+  "software": "MUSE v9"
+ },
+ "parse": {
+  "type": "XPATH",
+  "identity": {
+   "employee": "/RestingECG/PatientDemographics/PatientID",
+   "effectiveTime": {
+    "selector": "concat(/RestingECG/TestDemographics/AcquisitionDate,' ',/RestingECG/TestDemographics/AcquisitionTime)",
+    "format": "MM-dd-yyyy HH:mm:ss",
+    "timeZone": "Europe/London"
+   }
+  },
+  "fields": [
+   {
+    "key": "heartRate",
+    "selector": "/RestingECG/RestingECGMeasurements/VentricularRate",
+    "type": "QUANTITY",
+    "unit": "/min",
+    "required": true
+   },
+   {
+    "key": "prMs",
+    "selector": "/RestingECG/RestingECGMeasurements/PRInterval",
+    "type": "QUANTITY",
+    "unit": "ms"
+   },
+   {
+    "key": "qrsMs",
+    "selector": "/RestingECG/RestingECGMeasurements/QRSDuration",
+    "type": "QUANTITY",
+    "unit": "ms"
+   },
+   {
+    "key": "qtcMs",
+    "selector": "/RestingECG/RestingECGMeasurements/QTCorrected",
+    "type": "QUANTITY",
+    "unit": "ms"
+   },
+   {
+    "key": "interpretationClass",
+    "selector": "/RestingECG/Diagnosis/Severity",
+    "type": "CODE"
+   },
+   {
+    "key": "interpretation",
+    "selector": "string-join(/RestingECG/Diagnosis/DiagnosisStatement/StmtText,' ')",
+    "type": "STRING"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "heartRate",
+   "mdc": "MDC_ECG_HEART_RATE",
+   "loinc": "8867-4",
+   "display": "Heart rate",
+   "ucum": "/min",
+   "plausible": {
+    "min": 20,
+    "max": 250
+   }
+  },
+  {
+   "key": "prMs",
+   "mdc": "MDC_ECG_TIME_PD_PR",
+   "loinc": "8625-6",
+   "display": "PR interval",
+   "ucum": "ms",
+   "plausible": {
+    "min": 40,
+    "max": 500
+   }
+  },
+  {
+   "key": "qrsMs",
+   "mdc": "MDC_ECG_TIME_PD_QRS",
+   "loinc": "8633-0",
+   "display": "QRS duration",
+   "ucum": "ms",
+   "plausible": {
+    "min": 30,
+    "max": 300
+   }
+  },
+  {
+   "key": "qtcMs",
+   "mdc": "MDC_ECG_TIME_PD_QTc",
+   "loinc": "8636-3",
+   "display": "QTc interval",
+   "ucum": "ms",
+   "plausible": {
+    "min": 200,
+    "max": 750
+   }
+  },
+  {
+   "key": "interpretationClass",
+   "loinc": "LOCAL:ECG_CLASS",
+   "display": "ECG interpretation class (device, unverified)"
+  },
+  {
+   "key": "interpretation",
+   "loinc": "18844-1",
+   "display": "ECG interpretation (device, unverified)"
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.ECG",
+   "formVersion": "1",
+   "category": "ECG",
+   "target": "E03.RESULT",
+   "fields": {
+    "heartRate": "measurements.heartRate",
+    "prMs": "measurements.prMs",
+    "qrsMs": "measurements.qrsMs",
+    "qtcMs": "measurements.qtcMs",
+    "interpretationClass": "measurements.interpretation"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/cardiology/muse-xml/normal.xml",
+   "expect": {
+    "heartRate": 72,
+    "interpretation": "Normal sinus rhythm Normal ECG",
+    "gates": {
+     "PLAUSIBILITY": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/cardiology/muse-xml/malformed.xml",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge",
+   "input": "golden/cardiology/muse-xml/edge.xml",
+   "expect": {
+    "heartRate": 48,
+    "interpretationClass": "BORDERLINE"
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

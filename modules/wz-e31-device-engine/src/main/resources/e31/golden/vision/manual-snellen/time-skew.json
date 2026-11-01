@@ -1,0 +1,18 @@
+{
+ "method": "MANUAL_ATTESTED",
+ "category": "VISION",
+ "employeeId": "E1001",
+ "values": {
+  "acuityRight": "6/6",
+  "acuityLeft": "6/6",
+  "binocular": "6/6",
+  "corrected": false
+ },
+ "capturedAt": "2026-10-30T11:25:00Z",
+ "operator": "nurse1",
+ "attestation": "DEVICE_AND_CALIBRATION_ATTESTED",
+ "attestedModel": "Snellen 6 m chart",
+ "attestedSerial": "CHART-LHR-02",
+ "attestedCalibrationId": "VIS-CAL-2026-07",
+ "attestedCalibrationDate": "2026-07-01"
+}
