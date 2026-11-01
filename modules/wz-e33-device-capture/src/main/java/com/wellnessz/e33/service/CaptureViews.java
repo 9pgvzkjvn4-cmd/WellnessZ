@@ -72,18 +72,18 @@ public final class CaptureViews {
     public record ProvenanceView(String captureMethod, String model, String manufacturer, String serial, String udi, String firmware,
                                  String driver, String calibrationId, LocalDate calibrationDate, String calibrationVerdict, String operator,
                                  String verifiedBy, Instant verifiedAt, String associationMethod, BigDecimal associationConfidence,
-                                 long clockSkewMillis, String rawPayloadSha256) {
+                                 long clockSkewMillis, String rawPayloadSha256, boolean simulated) {
 
         static ProvenanceView of(DeviceObservation o) {
             DeviceObservation.Provenance p = o.provenance();
             String method = o.captureMethod() == null ? null : o.captureMethod().name();
             if (p == null) {
-                return new ProvenanceView(method, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 0, null);
+                return new ProvenanceView(method, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 0, null, false);
             }
             String driver = p.driverPackageId() == null ? null : p.driverPackageId() + "@" + p.driverVersion();
             return new ProvenanceView(method, p.model(), p.manufacturer(), p.serial(), p.udi(), p.firmware(), driver, p.calibrationId(),
                     p.calibrationDate(), p.calibrationVerdict(), p.operator(), p.verifiedBy(), p.verifiedAt(), p.associationMethod(),
-                    p.associationConfidence(), p.clockSkewMillis(), p.rawPayloadSha256());
+                    p.associationConfidence(), p.clockSkewMillis(), p.rawPayloadSha256(), p.simulated());
         }
     }
 
@@ -91,6 +91,12 @@ public final class CaptureViews {
     }
 
     public record AnnotationView(UUID id, String author, Instant createdAt, String text) {
+    }
+
+    /** The marking of a reading; simulator test traffic is always marked as such ("simulated test reading · …"). */
+    public static String marking(String captureMethod, String model, Instant at, boolean simulated) {
+        String m = marking(captureMethod, model, at);
+        return simulated ? m.replace("device-sourced", "simulated test reading") : m;
     }
 
     /** {@code device-sourced · EasyOne Air · 31 Oct 2026 09:14 UTC} – or the fall-back marking. */

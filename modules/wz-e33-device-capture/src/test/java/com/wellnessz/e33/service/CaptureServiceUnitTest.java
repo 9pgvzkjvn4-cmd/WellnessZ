@@ -66,6 +66,7 @@ class CaptureServiceUnitTest {
         assertThat(CaptureViews.marking("DEVICE", "EasyOne Air", at)).isEqualTo("device-sourced · EasyOne Air · 31 Oct 2026 09:14 UTC");
         assertThat(CaptureViews.marking("OCR_VERIFIED", "EasyOne Air", at)).isEqualTo("photo verified");
         assertThat(CaptureViews.marking("MANUAL_ATTESTED", null, at)).isEqualTo("entered manually – attested");
+        assertThat(CaptureViews.marking("DEVICE", "UA-651BLE", at, true)).isEqualTo("simulated test reading · UA-651BLE · 31 Oct 2026 09:14 UTC");
     }
 
     @Test

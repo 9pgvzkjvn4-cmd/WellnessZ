@@ -871,7 +871,8 @@ public class CaptureSessionService {
         boolean decided = round.stream().allMatch(o -> o.getDecision() != null);
         return new CaptureViews.Preview(lo.observationId(), last.status(), method, lo.effectiveAt(), values, flags,
                 !blocked && !decided, verify, attachments, fields, CaptureViews.ProvenanceView.of(lo),
-                CaptureViews.marking(method, model, lo.effectiveAt()), s.getInterpretationStatus(), sequence, comparison);
+                CaptureViews.marking(method, model, lo.effectiveAt(), lo.provenance() != null && lo.provenance().simulated()),
+                s.getInterpretationStatus(), sequence, comparison);
     }
 
     /** Today in UTC (for tests and the batch service). */

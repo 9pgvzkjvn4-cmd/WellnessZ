@@ -73,7 +73,7 @@ public class ResultDeviceSink implements DeviceObservationSink {
         DeviceObservation.Provenance p = o.provenance();
         UUID orderId = orderId(o.orderRef());
         String deviceId = o.equipmentDeviceId() != null ? o.equipmentDeviceId() : null;
-        ResultService.DeviceRequest req = new ResultService.DeviceRequest(o.category().name(), deviceId, p == null ? null : p.model(),
+        ResultService.DeviceRequest req = new ResultService.DeviceRequest(o.category().name(), deviceId, deviceModel(p),
                 p == null ? null : p.calibrationId(), p == null ? null : p.calibrationDate(), o.effectiveAt(), o.caseId(), orderId, measurements);
         try {
             ResultService.EngineResult r = results.deviceFromEngine(o.employeeId(), req, new ResultService.EngineProvenance(o.observationId(),
@@ -139,6 +139,17 @@ public class ResultDeviceSink implements DeviceObservationSink {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    /**
+     * The device model on the E03 result; simulator test traffic that a clinician accepted in a capture session keeps its
+     * marking in the record ("Simulated – UA-651BLE").
+     */
+    static String deviceModel(DeviceObservation.Provenance p) {
+        if (p == null) {
+            return null;
+        }
+        return p.simulated() ? truncate("Simulated – " + (p.model() == null ? "device" : p.model()), 100) : p.model();
     }
 
     static String truncate(String s, int n) {
