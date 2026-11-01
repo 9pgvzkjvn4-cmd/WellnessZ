@@ -297,3 +297,33 @@ true
       readOnly: true
     {{- end }}
 {{- end -}}
+
+{{/* ===================== device ingest (increment 6) ===================== */}}
+{{/* ingress-nginx configuration-snippet for the device ingest locations: (dict "header" <cert header> "mtls" <bool>)
+     1. more_clear_input_headers (headers-more, rewrite phase): drop every client-supplied certificate / identity /
+        forwarding header - including RFC 7239 "Forwarded", which Spring's ForwardedHeaderFilter would prefer.
+     2. access_by_lua_block: on the mTLS host set <header> = lower-case hex SHA-256 of the DER leaf certificate that
+        nginx VERIFIED against auth-tls-secret ($ssl_client_verify == SUCCESS, else 403); always overwrite
+        X-Forwarded-For with the TCP peer, so core (forward-headers-strategy=framework, left-most value) sees the
+        real gateway address for the zone CIDR check even if the controller computes a full forwarded-for chain.
+     nginx's own $ssl_client_fingerprint is SHA-1, hence the Lua (lua-resty-core ngx.ssl + lua-resty-string, both
+     shipped in the ingress-nginx controller image). */}}
+{{- define "wellnessz.deviceIngest.snippet" -}}
+more_clear_input_headers "{{ .header }}" "X-Client-Cert*" "X-SSL-Client*" "ssl-client-*" "X-Forwarded-Client-Cert" "Forwarded" "X-Forwarded-Prefix" "X-Original-Forwarded-For" "X-Real-IP";
+access_by_lua_block {
+{{- if .mtls }}
+  if ngx.var.ssl_client_verify ~= "SUCCESS" then
+    return ngx.exit(ngx.HTTP_FORBIDDEN)
+  end
+  local der = require("ngx.ssl").cert_pem_to_der(ngx.var.ssl_client_raw_cert or "")
+  if not der then
+    ngx.log(ngx.ERR, "wellnessz device ingest: client certificate could not be converted to DER")
+    return ngx.exit(ngx.HTTP_FORBIDDEN)
+  end
+  local sha256 = require("resty.sha256"):new()
+  sha256:update(der)
+  ngx.req.set_header("{{ .header }}", require("resty.string").to_hex(sha256:final()))
+{{- end }}
+  ngx.req.set_header("X-Forwarded-For", ngx.var.remote_addr)
+}
+{{- end -}}

@@ -115,5 +115,42 @@ spec:
                 port:
                   name: http
           {{- end }}
+{{- /* Machine paths are served only by the device ingest (mTLS + thumbprint set by the controller). On the public API
+       host a client could send the thumbprint header itself, so deny them there. ingress-nginx applies
+       whitelist-source-range per location; AGIC / GCE use the Terraform WAF rules instead. */}}
+{{- if and $ing.api.blockDevicePaths (contains "nginx" $ing.className) (not $ing.useClassAnnotation) }}
+{{- $dp := .Values.deviceIngest.paths }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "wellnessz.fullname" . }}-api-device-deny
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wellnessz.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/whitelist-source-range: "127.0.0.1/32"
+spec:
+  ingressClassName: {{ $ing.className }}
+  {{- if and $ing.tls.enabled $ing.tls.secretName }}
+  tls:
+    - hosts:
+        - {{ $ing.api.host | quote }}
+      secretName: {{ $ing.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ $ing.api.host | quote }}
+      http:
+        paths:
+          {{- range (list $dp.ingest $dp.enrolment $dp.webhooks) }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $root.Values.core) }}
+                port:
+                  name: http
+          {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}

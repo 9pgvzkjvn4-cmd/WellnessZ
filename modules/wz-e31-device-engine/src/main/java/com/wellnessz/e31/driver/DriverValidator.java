@@ -115,6 +115,7 @@ public final class DriverValidator {
             }
         }
         for (DriverPackage.Binding b : pkg.bindings()) {
+            breathAlcoholUnit(pkg, b, errors);
             if (deployedTargets != null && !deployedTargets.contains(b.target())) {
                 warnings.add("bindings." + b.formCode() + ": target " + b.target() + " is not deployed (route_target_unavailable)");
             }
@@ -171,6 +172,27 @@ public final class DriverValidator {
         } else if (n.isArray()) {
             for (int i = 0; i < n.size(); i++) {
                 scanSecrets(n.get(i), path + "[" + i + "]", findings);
+            }
+        }
+    }
+
+    /** UCUM unit of E10's breath screen result (e-CCF field in g/210 L). */
+    public static final String E10_BREATH_UNIT = "g/(210.L)";
+
+    /**
+     * A binding into E10's {@code breathScreenResult} must deliver g/210 L: the mapping's target UCUM is {@code g/(210.L)} – a
+     * device reporting mg/L is converted by the NORMALISE stage (factor 0.21, {@code TerminologySnapshot.BUILT_IN}) – so E10
+     * always receives its own unit and no UI converts.
+     */
+    static void breathAlcoholUnit(DriverPackage pkg, DriverPackage.Binding b, List<String> errors) {
+        for (Map.Entry<String, String> e : b.fields().entrySet()) {
+            if (!"breathScreenResult".equals(e.getValue())) {
+                continue;
+            }
+            String ucum = pkg.mapping(e.getKey()).map(DriverPackage.Mapping::ucum).orElse(null);
+            if (!E10_BREATH_UNIT.equals(ucum)) {
+                errors.add("mappings." + e.getKey() + ": a binding to E10 breathScreenResult needs UCUM " + E10_BREATH_UNIT
+                        + " (convert mg/L with factor 0.21)");
             }
         }
     }

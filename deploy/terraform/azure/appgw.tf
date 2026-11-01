@@ -43,6 +43,24 @@ resource "azurerm_web_application_firewall_policy" "main" {
     }
   }
 
+  # Increment 6 (E34): machine paths are served only by the dedicated device ingest (mTLS, thumbprint
+  # header set by that controller). Through App Gateway a client could forge X-Client-Cert-Sha256, so
+  # block them on every public host. NOTE: in waf_mode = "Detection" (dev) this rule only logs.
+  custom_rules {
+    name      = "BlockDevicePathsOnPublicApi"
+    priority  = 5
+    rule_type = "MatchRule"
+    action    = "Block"
+    match_conditions {
+      match_variables {
+        variable_name = "RequestUri"
+      }
+      operator     = "Contains"
+      match_values = ["/api/v1/device-ingest", "/api/v1/device-enrolment", "/api/v1/device-webhooks"]
+      transforms   = ["Lowercase", "UrlDecode"]
+    }
+  }
+
   # Example rate limit on authentication endpoints (credential stuffing)
   custom_rules {
     name                 = "RateLimitLogin"

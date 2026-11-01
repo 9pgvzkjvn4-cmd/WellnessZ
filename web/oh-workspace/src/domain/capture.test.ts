@@ -109,13 +109,14 @@ describe('helpers', () => {
     expect(displayValue({ value: 36.8, unit: 'Cel' })).toBe('36.8 °C');
     expect(displayValue({ value: 0.81, unit: '1' })).toBe('0.81');
     expect(displayValue({ text: '6/6' })).toBe('6/6');
+    expect(displayValue({ value: 0.042, unit: 'g/(210.L)' })).toBe('0.042 g/210 L');
   });
   it('orders surveillance forms by programme', () => {
     expect(surveillanceCaptureForms('NOISE Hearing conservation')[0]!.formCode).toBe('E03.DEVICE_RESULT.AUDIOMETRY');
     expect(surveillanceCaptureForms('RESP Respirable dust – spirometry')[0]!.formCode).toBe('E03.DEVICE_RESULT.SPIROMETRY');
   });
   it('reads an accepted value for the host form', () => {
-    const s = baseSession({ state: 'ACCEPTED', preview: { ...preview([]), values: [{ observationId: 'o1', key: 'breathScreenResult', value: 0.05, unit: 'mg/L' }] } });
+    const s = baseSession({ state: 'ACCEPTED', preview: { ...preview([]), values: [{ observationId: 'o1', key: 'breathScreenResult', value: 0.05, unit: 'g/(210.L)' }] } });
     expect(acceptedValue(s, ['brac', 'breathScreenResult'])).toBe(0.05);
     expect(acceptedValue(undefined, ['x'])).toBeUndefined();
   });

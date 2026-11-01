@@ -229,7 +229,8 @@ export interface OpenSessionRequest {
   employeeId: string;
   caseId?: string;
   orderRef?: string;
-  deviceInstanceId: string;
+  /** Omitted for a capture without a device (photo / manual entry) – only when no device at the station is available. */
+  deviceInstanceId?: string;
   siteCode: string;
   stationCode: string;
 }
@@ -339,6 +340,20 @@ export function attachmentHref(link: string): string {
   return `${BFF_API_PREFIX}${link.startsWith('/') ? link : `/${link}`}`;
 }
 
+/** One capture awaiting physician sign-off (`GET /device-capture/sign-offs`) – no values; the detail reads the session. */
+export interface SignOffItem {
+  sessionId: string;
+  category: string;
+  formCode: string;
+  employeeId: string;
+  employeeName?: string | null;
+  siteCode?: string | null;
+  stationCode?: string | null;
+  deviceName?: string | null;
+  acceptedAt?: string | null;
+  verifiedBy?: string | null;
+}
+
 export function captureApi(client: AuthClient) {
   const base = '/device-capture';
   return {
@@ -355,6 +370,7 @@ export function captureApi(client: AuthClient) {
       client.api<CaptureSession>(`${base}/sessions/${seg(id)}/reject`, { method: 'POST', body: { reasonCode, ...(note ? { note } : {}) } }),
     cancel: (id: string) => client.api<CaptureSession>(`${base}/sessions/${seg(id)}/cancel`, { method: 'POST' }),
     fallback: (id: string, req: FallbackRequest) => client.api<CaptureSession>(`${base}/sessions/${seg(id)}/fallback`, { method: 'POST', body: req }),
+    signOffs: (siteCode?: string) => client.api<SignOffItem[]>(`${base}/sign-offs${buildQuery({ siteCode })}`),
     signOff: (id: string, note?: string) => client.api<CaptureSession>(`${base}/sessions/${seg(id)}/sign-off`, { method: 'POST', body: note ? { note } : {} }),
     annotate: (id: string, text: string) => client.api<AnnotationView>(`${base}/sessions/${seg(id)}/annotations`, { method: 'POST', body: { text } }),
     ocr: (image: Blob, fileName: string, opts: { deviceInstanceId?: string; modelCode?: string; category?: string }) => {

@@ -72,7 +72,7 @@ public class CaptureController {
     public record OpenRequest(@NotBlank @Pattern(regexp = Spel.CODE) String formCode, @Pattern(regexp = "[0-9]{1,3}") String formVersion,
                               @Pattern(regexp = "[A-Za-z0-9_\\-]{1,60}") String fieldGroup, @NotBlank @Pattern(regexp = Spel.ID) String employeeId,
                               UUID caseId, @Size(max = 80) @Pattern(regexp = "[A-Za-z0-9:_\\-]{1,80}") String orderRef,
-                              @NotBlank @Pattern(regexp = Spel.ID) String deviceInstanceId, @NotBlank @Pattern(regexp = Spel.ID) String siteCode,
+                              @Pattern(regexp = Spel.ID) String deviceInstanceId, @NotBlank @Pattern(regexp = Spel.ID) String siteCode,
                               @NotBlank @Pattern(regexp = Spel.ID) String stationCode) {
     }
 
@@ -190,6 +190,12 @@ public class CaptureController {
     @PreAuthorize(Spel.PHYSICIANS)
     public CaptureViews.SessionView signOff(@PathVariable UUID id, @Valid @RequestBody(required = false) SignOffRequest r) {
         return sessions.signOff(users.require(), id, r == null ? null : r.note());
+    }
+
+    @GetMapping("/sign-offs")
+    @PreAuthorize(Spel.PHYSICIANS)
+    public List<CaptureSessionService.SignOffItem> signOffs(@RequestParam(required = false) @Pattern(regexp = Spel.ID) String siteCode) {
+        return sessions.pendingSignOffs(users.require(), siteCode);
     }
 
     @PostMapping("/sessions/{id}/annotations")

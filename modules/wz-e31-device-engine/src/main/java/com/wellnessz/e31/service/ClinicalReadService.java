@@ -72,7 +72,17 @@ public class ClinicalReadService {
                                   List<DeviceObservation.QualityFlag> flags, DeviceObservation.Provenance provenance,
                                   List<DeviceObservation.Attachment> attachments, String formCode, Map<String, Object> boundFields,
                                   String routedRecordType, String routedRecordId, boolean restricted, String restrictedNote,
-                                  List<FhirStore.Stored> fhir) {
+                                  List<FhirStore.Stored> fhir, UUID rawArchiveId) {
+    }
+
+    /**
+     * Provenance-only view for DEVICE_ADMIN / AUDITOR (no person data: no employee, values, flags, bound fields or filed record):
+     * device, driver, calibration, association method and the archive ids with their SHA-256, so that the integrity of the raw
+     * payload and attachments can be checked with {@code GET /device-engine/archive/{archiveId}/verify}.
+     */
+    public record ProvenanceView(UUID observationId, String category, String status, Instant effectiveAt, String deviceInstanceId,
+                                 String captureMethod, DeviceObservation.Provenance provenance, UUID rawArchiveId, String rawPayloadSha256,
+                                 List<DeviceObservation.Attachment> attachments, boolean restricted) {
     }
 
     static boolean restrictedViewer(CurrentUser user) {
@@ -101,7 +111,43 @@ public class ClinicalReadService {
                 o.effectiveAt(), o.deviceInstanceId(), o.captureMethod().name(), hide ? null : o.canonical().components(),
                 hide ? List.of() : o.canonical().flags(), hide ? null : o.canonical().provenance(), hide ? List.of() : o.canonical().attachments(),
                 o.formCode(), hide ? Map.of() : o.boundFields(), o.routedRecordType(), hide ? null : o.routedRecordId(), o.restricted(),
-                hide ? "Restricted reading" : null, withFhir && !hide ? fhir.bundle(o.id(), o.deviceInstanceId()) : List.of());
+                hide ? "Restricted reading" : null, withFhir && !hide ? fhir.bundle(o.id(), o.deviceInstanceId()) : List.of(),
+                hide ? null : rawArchiveId(o));
+    }
+
+    UUID rawArchiveId(ObservationStore.ObservationRow o) {
+        return messages.find(o.messageId()).map(MessageStore.MessageRow::rawObjectId).orElse(null);
+    }
+
+    /**
+     * Archive hash check by whoever may read the observation (ABAC; restricted readings only for MRO / physicians): the raw
+     * payload of the observation's message ({@code archiveId} omitted) or one of its attachments. No content is returned.
+     */
+    public RawPayloadStore.Verification verifyArchive(CurrentUser user, UUID observationId, UUID archiveId) {
+        ObservationStore.ObservationRow o = readable(user, observationId);
+        if (o.restricted() && !restrictedViewer(user)) {
+            throw ApiException.notFound("Archive");
+        }
+        UUID rawId = rawArchiveId(o);
+        UUID target = archiveId == null ? rawId : archiveId;
+        boolean linked = target != null && (target.equals(rawId)
+                || o.canonical().attachments().stream().anyMatch(a -> a.archiveId().equals(target)));
+        if (!linked) {
+            throw ApiException.notFound("Archive");
+        }
+        RawPayloadStore.Verification v = raw.verify(target);
+        audit.record("DEVICE_ARCHIVE_VERIFY", "DEVICE_ARCHIVE", target.toString(), AuditService.Outcome.SUCCESS,
+                (v.intact() ? "intact" : "MISMATCH") + " observation=" + observationId);
+        return v;
+    }
+
+    /** Provenance-only view (DEVICE_ADMIN / AUDITOR) – not a person-level read; audited as a provenance read. */
+    public ProvenanceView provenance(UUID observationId) {
+        ObservationStore.ObservationRow o = observations.find(observationId).orElseThrow(() -> ApiException.notFound("Observation"));
+        DeviceObservation.Provenance p = o.canonical().provenance();
+        audit.record("DEVICE_PROVENANCE_READ", "DEVICE_OBSERVATION", observationId.toString(), AuditService.Outcome.SUCCESS, o.category().name());
+        return new ProvenanceView(o.id(), o.category().name(), ObservationService.externalStatus(o.status()), o.effectiveAt(), o.deviceInstanceId(),
+                o.captureMethod().name(), p, rawArchiveId(o), p == null ? null : p.rawPayloadSha256(), o.canonical().attachments(), o.restricted());
     }
 
     ObservationStore.ObservationRow readable(CurrentUser user, UUID id) {

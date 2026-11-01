@@ -25,6 +25,11 @@
 {{- $_ := set $env "WZ_FLYWAY_CLIENT_SCHEMAS" (include "wellnessz.clientMigrationSchemas" $root) }}
 {{- $_ := set $env "WZ_FLYWAY_CLIENT_TABLE" $m.table }}
 {{- end }}
+{{- /* increment 6: thumbprint header set by the device ingest (must match deviceIngest.certificateHeader) */}}
+{{- if and (eq $key "core") $root.Values.deviceIngest.enabled }}
+{{- $_ := set $env "WZ_DEVICE_CERT_HEADER" $root.Values.deviceIngest.certificateHeader }}
+{{- $_ := set $env "WZ_DEVICE_REQUIRE_CLIENT_CERT" "true" }}
+{{- end }}
 {{- $_ := set $env "SPRING_PROFILES_ACTIVE" $root.Values.global.springProfiles }}
 {{- $_ := set $env "SERVER_PORT" (toString $comp.ports.http) }}
 {{- $_ := set $env "MANAGEMENT_SERVER_PORT" (toString $comp.ports.management) }}

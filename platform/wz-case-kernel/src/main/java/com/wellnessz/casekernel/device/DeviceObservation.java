@@ -81,11 +81,25 @@ public record DeviceObservation(UUID observationId, UUID reportId, DeviceCodes.C
      * @param associationMethod WORKLIST | SESSION | BADGE | VENDOR_ID_MATCH | MANUAL_RESOLUTION | ENTERED_IN_FORM
      * @param associationConfidence 0.00–1.00
      * @param clockSkewMillis   device clock minus engine clock at receipt (applied to {@code effectiveAt})
+     * @param simulated         {@code true} for test traffic from an E31 simulator run (contract section 12) – never a measurement on
+     *                          a person; it reaches an employee record only when a capture session explicitly accepts it, and the
+     *                          flag travels with it (FHIR Provenance extension {@code urn:wellnessz:fhir:simulated})
      */
     public record Provenance(String modelCode, String manufacturer, String model, String udi, String serial, String firmware,
                              String softwareVersion, String driverPackageId, String driverVersion, String calibrationId,
                              LocalDate calibrationDate, String calibrationVerdict, String operator, String verifiedBy, Instant verifiedAt,
-                             String associationMethod, BigDecimal associationConfidence, long clockSkewMillis, String rawPayloadSha256) {
+                             String associationMethod, BigDecimal associationConfidence, long clockSkewMillis, String rawPayloadSha256,
+                             boolean simulated) {
+
+        /** Provenance of a real (not simulated) capture – the increment-6 base signature. */
+        public Provenance(String modelCode, String manufacturer, String model, String udi, String serial, String firmware,
+                          String softwareVersion, String driverPackageId, String driverVersion, String calibrationId,
+                          LocalDate calibrationDate, String calibrationVerdict, String operator, String verifiedBy, Instant verifiedAt,
+                          String associationMethod, BigDecimal associationConfidence, long clockSkewMillis, String rawPayloadSha256) {
+            this(modelCode, manufacturer, model, udi, serial, firmware, softwareVersion, driverPackageId, driverVersion, calibrationId,
+                    calibrationDate, calibrationVerdict, operator, verifiedBy, verifiedAt, associationMethod, associationConfidence, clockSkewMillis,
+                    rawPayloadSha256, false);
+        }
     }
 
     /**

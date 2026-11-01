@@ -123,7 +123,7 @@ public class IngestService {
                 if (pdf != null) {
                     messages.update(pdf.id(), "ACK", "PROCESSED", 1, null, null, null, null);
                 }
-                if (instanceId != null) {
+                if (instanceId != null && !a.testTraffic()) { // simulator traffic never makes a connector look alive
                     touchConnector(instanceId, tenant, a.source().endpointId(), site, instance == null || instance.option() == null ? null
                             : instance.option().code(), now);
                 }

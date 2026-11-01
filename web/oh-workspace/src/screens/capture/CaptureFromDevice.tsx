@@ -87,9 +87,9 @@ function DeviceList({ client, session, onSessionExpired, employeeId, formCode, f
   const action = useAction(onSessionExpired);
   const canCapture = can(session.roles, 'deviceCapture');
 
-  async function open(d: DeviceChoice) {
+  async function open(d?: DeviceChoice) {
     await action.run(async () => {
-      const s = await api.open({ formCode, employeeId, deviceInstanceId: d.deviceInstanceId, siteCode: station.siteCode, stationCode: station.stationCode, ...(fieldGroup ? { fieldGroup } : {}), ...(caseId ? { caseId } : {}), ...(orderRef ? { orderRef } : {}) });
+      const s = await api.open({ formCode, employeeId, ...(d ? { deviceInstanceId: d.deviceInstanceId } : {}), siteCode: station.siteCode, stationCode: station.stationCode, ...(fieldGroup ? { fieldGroup } : {}), ...(caseId ? { caseId } : {}), ...(orderRef ? { orderRef } : {}) });
       onOpened(s);
     });
   }
@@ -97,10 +97,12 @@ function DeviceList({ client, session, onSessionExpired, employeeId, formCode, f
   if (devices.loading && !devices.data) return <Loading label="Finding devices at this station…" />;
   if (devices.error) return <ErrorAlert error={devices.error} />;
   const list = devices.data ?? [];
+  // no available device at the station: the fall-back paths (photo / OCR, manual with attestation) without a device
+  const noneAvailable = !list.some((d) => d.status === 'AVAILABLE');
   return (
     <div>
       {list.length === 0 ? (
-        <Empty>No certified device for this measurement at this station. Use the form's manual entry or change the station.</Empty>
+        <Empty>No certified device for this measurement at this station. Enter the values from a photo or manually, or change the station.</Empty>
       ) : (
         <ul className="device-choices" aria-label="Devices at this station">
           {list.map((d) => (
@@ -125,6 +127,9 @@ function DeviceList({ client, session, onSessionExpired, employeeId, formCode, f
         </ul>
       )}
       <div className="actions">
+        {canCapture && noneAvailable && (
+          <button type="button" className="secondary" disabled={action.busy} onClick={() => void open()}>Enter without a device (photo or manual)</button>
+        )}
         <button type="button" className="link-button" onClick={devices.reload}>Refresh device status</button>
       </div>
       <ActionFeedback error={action.error} />

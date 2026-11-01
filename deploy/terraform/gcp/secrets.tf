@@ -15,13 +15,16 @@ locals {
     "wz-bff-session-key"      = ["bff"]
     "wz-graph-client-secret"  = ["core"]
     "wz-cloudsql-server-ca"   = ["core", "bff", "migrations"]
+    # increment 6 (E34) - mounted into core only when Helm deviceIngest.enabled
+    "wz-device-token-pepper"  = ["core"]
+    "wz-device-trust-anchors" = ["core"]
   }
   generated_secret_values = {
     "wz-db-password"          = ephemeral.random_password.wz_app.result
     "wz-migrator-db-password" = ephemeral.random_password.wz_migrator.result
     "wz-bff-db-password"      = ephemeral.random_password.wz_bff.result
   }
-  placeholder_secrets = toset(["wz-master-key", "wz-pseudonym-key", "wz-bff-client-secret", "wz-bff-session-key", "wz-graph-client-secret"])
+  placeholder_secrets = toset(["wz-master-key", "wz-pseudonym-key", "wz-bff-client-secret", "wz-bff-session-key", "wz-graph-client-secret", "wz-device-trust-anchors"])
 
   secret_access = merge([
     for s, owners in local.secrets : { for o in owners : "${s}/${o}" => { secret = s, owner = o } }
@@ -61,6 +64,18 @@ resource "google_secret_manager_secret_version" "placeholder" {
 
   lifecycle {
     # Real values are added as newer versions by operators
+    ignore_changes = all
+  }
+}
+
+# Device token pepper placeholder: deliberately shorter than 16 bytes so core (TokenHasher) refuses to
+# start until an operator adds the real value (openssl rand -base64 32 | gcloud secrets versions add ...).
+resource "google_secret_manager_secret_version" "device_pepper_placeholder" {
+  secret                 = google_secret_manager_secret.app["wz-device-token-pepper"].id
+  secret_data_wo         = "REPLACE-ME"
+  secret_data_wo_version = 1
+
+  lifecycle {
     ignore_changes = all
   }
 }

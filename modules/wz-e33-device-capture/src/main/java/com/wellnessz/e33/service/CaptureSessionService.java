@@ -155,9 +155,19 @@ public class CaptureSessionService {
         } else {
             records.requireClinical(user, cmd.employeeId(), DataClassification.CLINICAL, AccessPolicy.Action.CREATE, "DEVICE_CAPTURE_OPEN");
         }
-        DeviceListService.DeviceChoice choice = devices.choice(cmd.deviceInstanceId(), form.formCode(), cmd.siteCode());
-        if ("BUSY".equals(choice.status())) {
-            throw busy(choice.heldBy());
+        boolean deviceless = cmd.deviceInstanceId() == null || cmd.deviceInstanceId().isBlank();
+        DeviceListService.DeviceChoice choice = null;
+        if (deviceless) {
+            // fall-back paths without a device (photo / OCR, manual with attestation – contract 14.3) only when the station
+            // has no available device for the form; restricted categories keep their rules (collector only, no photo path)
+            if (devices.devices(form.formCode(), cmd.siteCode(), cmd.stationCode()).stream().anyMatch(DeviceListService.DeviceChoice::available)) {
+                throw CaptureSupport.unprocessable("device_available", "A device is available at the station – capture from the device");
+            }
+        } else {
+            choice = devices.choice(cmd.deviceInstanceId(), form.formCode(), cmd.siteCode());
+            if ("BUSY".equals(choice.status())) {
+                throw busy(choice.heldBy());
+            }
         }
         Instant now = support.now();
         CaptureSession s = new CaptureSession();
@@ -171,8 +181,8 @@ public class CaptureSessionService {
         s.setFieldGroup(cmd.fieldGroup());
         s.setCategory(form.category().name());
         s.setRestricted(restricted);
-        s.setDeviceInstanceId(cmd.deviceInstanceId());
-        s.setOriginalDeviceInstanceId(cmd.deviceInstanceId());
+        s.setDeviceInstanceId(deviceless ? null : cmd.deviceInstanceId());
+        s.setOriginalDeviceInstanceId(deviceless ? null : cmd.deviceInstanceId());
         s.setOperator(user.username());
         s.setSiteCode(cmd.siteCode());
         s.setStationCode(cmd.stationCode());
@@ -180,7 +190,12 @@ public class CaptureSessionService {
         s.setLastActivityAt(now);
         s.setExpiresAt(now.plusSeconds(60L * support.sessionTimeoutMinutes()));
         String detail;
-        if (choice.available()) {
+        if (deviceless) {
+            s.setState(State.FALLBACK_OFFERED.name());
+            s.setFallbackReason("DEVICE_UNAVAILABLE");
+            s.setContextPush("NONE");
+            detail = "no_device_at_station";
+        } else if (choice.available()) {
             s.setState(State.LISTENING.name());
             s.setContextPush(contextPush(devices.instance(cmd.deviceInstanceId()).orElse(null)));
             detail = "push=" + s.getContextPush();
@@ -525,6 +540,42 @@ public class CaptureSessionService {
         return view(user, s);
     }
 
+    /**
+     * One line of the physician sign-off queue: who and what awaits sign-off, without values (the detail screen reads the
+     * session through {@code GET /device-capture/sessions/{id}}, which is authorised and audited).
+     */
+    public record SignOffItem(UUID sessionId, String category, String formCode, String employeeId, String employeeName, String siteCode,
+                              String stationCode, String deviceName, Instant acceptedAt, String verifiedBy) {
+    }
+
+    /**
+     * Captures awaiting physician sign-off (ECG / ABPM interpretations, state ACCEPTED + interpretation UNVERIFIED) for the
+     * signing roles of each form, filtered by ABAC on the employee (clinical read) and optionally by site; oldest first.
+     */
+    @Transactional(readOnly = true)
+    public List<SignOffItem> pendingSignOffs(CurrentUser user, String siteCode) {
+        support.requireEnabled();
+        List<SignOffItem> out = new ArrayList<>();
+        for (CaptureSession s : sessions.findTop500ByStateAndInterpretationStatusOrderByVerifiedAtAsc(State.ACCEPTED.name(), "UNVERIFIED")) {
+            if (siteCode != null && !siteCode.equals(s.getSiteCode()) || s.isRestricted()) {
+                continue;
+            }
+            if (VerificationRule.roles(forms.rule(s.getFormCode()).getSignOffRoles()).stream().noneMatch(user::hasRole)) {
+                continue;
+            }
+            Optional<Employee> e = support.employee(s.getEmployeeId());
+            if (e.isEmpty() || !records.canSeeClinical(user, e.get(), DataClassification.CLINICAL)) {
+                continue;
+            }
+            String device = s.getOriginalDeviceInstanceId() == null ? null : DeviceListService.displayName(DeviceCodes.Category.valueOf(s.getCategory()),
+                    s.getStationCode());
+            out.add(new SignOffItem(s.getId(), s.getCategory(), s.getFormCode(), s.getEmployeeId(), e.get().getDisplayName(), s.getSiteCode(),
+                    s.getStationCode(), device, s.getVerifiedAt(), s.getVerifiedBy()));
+        }
+        audit.record("DEVICE_SIGN_OFF_QUEUE_READ", "DEVICE_CAPTURE_SESSION", "sign-off-queue", AuditService.Outcome.SUCCESS, "rows=" + out.size());
+        return out;
+    }
+
     @Transactional
     public CaptureViews.AnnotationView annotate(CurrentUser user, UUID id, String text) {
         support.requireEnabled();
@@ -757,9 +808,7 @@ public class CaptureSessionService {
                 .filter(a -> !"TIMEOUT".equals(a) && !"RESULT".equals(a) && !"UNAVAILABLE".equals(a) && !"SUBMIT_ENTRY".equals(a))
                 .filter(a -> !("ACCEPT".equals(a) && blocked)).toList();
         CaptureViews.Preview preview = valuesVisible ? preview(s) : null;
-        String deviceName = s.getDeviceInstanceId() == null ? null
-                : DeviceListService.displayName(DeviceCodes.Category.valueOf(s.getCategory()),
-                devices.instance(s.getDeviceInstanceId()).map(DeviceCatalogueLookup.DeviceInstance::stationCode).orElse(s.getStationCode()));
+        String deviceName = devices.displayName(s.getDeviceInstanceId(), s.getFormCode(), s.getSiteCode(), s.getStationCode());
         List<CaptureViews.AnnotationView> notes = valuesVisible
                 ? annotations.findBySessionIdOrderByCreatedAtAsc(s.getId()).stream()
                 .map(a -> new CaptureViews.AnnotationView(a.getId(), a.getAuthor(), a.getCreatedAt(), a.getText())).toList()

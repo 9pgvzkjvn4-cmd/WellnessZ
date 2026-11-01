@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { OBSERVATION_CATEGORIES, RESOLUTION_CODES, UNMATCHED_STATUSES, engineApi, type ResolutionCode, type UnmatchedItem } from '../../api/deviceEngine';
+import { OBSERVATION_CATEGORIES, RESOLUTION_CODES, UNMATCHED_STATUSES, engineApi, type Provenance, type ResolutionCode, type UnmatchedItem } from '../../api/deviceEngine';
 import { attachmentHref } from '../../api/deviceCapture';
 import type { EmployeeRef } from '../../api/types';
 import { can } from '../../auth/roles';
@@ -222,19 +222,110 @@ function ArchiveCheck({ client, onSessionExpired, initial = '' }: { client: Scre
   );
 }
 
-/** One observation: values (or "restricted reading"), quality flags, provenance incl. raw-payload hash, attachments, FHIR. */
+/** Hash check of the observation's own raw payload and attachments – for whoever may read the observation (ABAC server-side). */
+function ObservationArchiveCheck({ client, onSessionExpired, observationId, rawArchiveId, attachments }: { client: ScreenProps['client']; onSessionExpired: () => void; observationId: string; rawArchiveId?: string | null; attachments: { archiveId: string; kind: string }[] }) {
+  const action = useAction(onSessionExpired);
+  const [results, setResults] = useState<Record<string, { intact: boolean; sha256Stored: string; sha256Computed: string }>>({});
+  const targets = [...(rawArchiveId ? [{ archiveId: rawArchiveId, label: 'Raw payload', raw: true }] : []), ...attachments.map((a) => ({ archiveId: a.archiveId, label: humanise(a.kind), raw: false }))];
+  if (targets.length === 0) return null;
+  async function verify(archiveId: string, raw: boolean) {
+    await action.run(async () => {
+      const v = await engineApi(client).verifyObservationArchive(observationId, raw ? undefined : archiveId);
+      setResults((r) => ({ ...r, [archiveId]: v }));
+    });
+  }
+  return (
+    <div className="tile">
+      <h2>Archive integrity check</h2>
+      <p className="small muted">Recomputes the SHA-256 of the archived object and compares it with the stored hash. No content is shown.</p>
+      <ul className="plain-list">
+        {targets.map((t) => {
+          const r = results[t.archiveId];
+          return (
+            <li key={t.archiveId}>
+              {t.label} <span className="mono small">{t.archiveId}</span>{' '}
+              <button type="button" disabled={action.busy} onClick={() => void verify(t.archiveId, t.raw)}>Verify hash{t.raw ? '' : ` (${t.label.toLowerCase()})`}</button>
+              {r && (
+                <Alert kind={r.intact ? 'success' : 'error'}>
+                  {r.intact ? 'Intact – the stored and recomputed SHA-256 match.' : 'Mismatch – the archived object does not match its stored hash.'}
+                  <span className="small mono break"> stored {r.sha256Stored} · computed {r.sha256Computed}</span>
+                </Alert>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <ActionFeedback error={action.error} />
+    </div>
+  );
+}
+
+function ProvenanceList({ p }: { p: Provenance }) {
+  return (
+    <>
+      <h2>Provenance</h2>
+      {p.simulated && <Alert kind="warning">Simulated test reading – produced by a simulator run, not by a measurement on a person.</Alert>}
+      <dl className="definitions">
+        <div><dt>Device</dt><dd>{[p.manufacturer, p.model].filter(Boolean).join(' ') || '–'} {p.modelCode && <span className="mono small">{p.modelCode}</span>}</dd></div>
+        <div><dt>Serial · UDI</dt><dd>{p.serial ?? '–'} · {p.udi ?? '–'}</dd></div>
+        <div><dt>Firmware · software</dt><dd>{p.firmware ?? '–'} · {p.softwareVersion ?? '–'}</dd></div>
+        <div><dt>Driver</dt><dd className="mono">{p.driverPackageId ? `${p.driverPackageId}@${p.driverVersion}` : '–'}</dd></div>
+        <div><dt>Calibration</dt><dd>{p.calibrationId ?? '–'} {p.calibrationDate ?? ''} {p.calibrationVerdict ? `(${humanise(p.calibrationVerdict)})` : ''}</dd></div>
+        <div><dt>Operator · verified by</dt><dd>{p.operator ?? '–'} · {p.verifiedBy ? `${p.verifiedBy} ${formatDate(p.verifiedAt)}` : 'not yet verified'}</dd></div>
+        <div><dt>Association</dt><dd>{humanise(p.associationMethod)}{p.associationConfidence !== null && p.associationConfidence !== undefined ? ` · confidence ${Number(p.associationConfidence).toFixed(2)}` : ''}</dd></div>
+        <div><dt>Clock offset</dt><dd>{p.clockSkewMillis ? `${Math.round(p.clockSkewMillis / 1000)} s (corrected)` : 'none'}</dd></div>
+        <div><dt>Raw payload SHA-256</dt><dd className="mono break">{p.rawPayloadSha256 ?? '–'}</dd></div>
+      </dl>
+    </>
+  );
+}
+
+/**
+ * One observation: values (or "restricted reading"), quality flags, provenance incl. raw-payload hash, attachments, FHIR and
+ * the archive hash check (observation readers). DEVICE_ADMIN / AUDITOR see the provenance-only view (no person data) with the
+ * archive check of the raw payload.
+ */
 export function ObservationDetail({ client, session, onSessionExpired, observationId }: ScreenProps & { observationId: string }) {
   const api = engineApi(client);
+  const reader = can(session.roles, 'deviceObservations');
   const [fhir, setFhir] = useState(false);
-  const obs = useAsync(() => api.observation(observationId, fhir), onSessionExpired, [observationId, fhir]);
+  const obs = useAsync(() => (reader ? api.observation(observationId, fhir) : Promise.resolve(undefined)), onSessionExpired, [observationId, fhir, reader]);
+  const prov = useAsync(() => (!reader && can(session.roles, 'deviceArchiveVerify') ? api.provenance(observationId) : Promise.resolve(undefined)), onSessionExpired, [observationId, reader]);
   const o = obs.data;
   const p = o?.provenance;
+  const pv = prov.data;
   return (
     <section>
       <p className="breadcrumb"><a href="#/devices/observations">Observations</a> › <span className="mono">{observationId.slice(0, 8)}</span></p>
       <PageTitle>Device observation</PageTitle>
-      {obs.loading && !o && <Loading />}
+      {(obs.loading && !o) || (prov.loading && !pv) ? <Loading /> : null}
       {!!obs.error && <ErrorAlert error={obs.error} />}
+      {!!prov.error && <ErrorAlert error={prov.error} />}
+      {pv && (
+        <>
+          <Alert kind="info">Provenance only – person data and values are not shown to device administrators and auditors.</Alert>
+          <dl className="definitions">
+            <div><dt>Category</dt><dd>{humanise(pv.category)} {pv.restricted && <span className="badge badge-warning">Restricted</span>}</dd></div>
+            <div><dt>Status</dt><dd><StateBadge code={pv.status} /></dd></div>
+            <div><dt>Measured</dt><dd>{formatDate(pv.effectiveAt)}</dd></div>
+            <div><dt>Capture method</dt><dd>{humanise(pv.captureMethod)}</dd></div>
+            <div><dt>Device instance</dt><dd className="mono">{pv.deviceInstanceId ?? '–'}</dd></div>
+            <div><dt>Raw payload archive</dt><dd className="mono break">{pv.rawArchiveId ?? '–'}</dd></div>
+          </dl>
+          {pv.provenance && <ProvenanceList p={pv.provenance} />}
+          {pv.attachments.length > 0 && (
+            <>
+              <h2>Attachments</h2>
+              <ul className="plain-list">
+                {pv.attachments.map((a) => (
+                  <li key={a.archiveId}>{humanise(a.kind)} <span className="mono small">{a.archiveId}</span> <span className="small muted">{a.mediaType} · {formatBytes(a.sizeBytes)} · SHA-256 <ShortHash value={a.sha256} /></span></li>
+                ))}
+              </ul>
+            </>
+          )}
+          <ArchiveCheck key={pv.observationId} client={client} onSessionExpired={onSessionExpired} initial={pv.rawArchiveId ?? ''} />
+        </>
+      )}
       {o && (
         <>
           <dl className="definitions">
@@ -276,22 +367,7 @@ export function ObservationDetail({ client, session, onSessionExpired, observati
               </ul>
             </>
           )}
-          {p && (
-            <>
-              <h2>Provenance</h2>
-              <dl className="definitions">
-                <div><dt>Device</dt><dd>{[p.manufacturer, p.model].filter(Boolean).join(' ') || '–'} {p.modelCode && <span className="mono small">{p.modelCode}</span>}</dd></div>
-                <div><dt>Serial · UDI</dt><dd>{p.serial ?? '–'} · {p.udi ?? '–'}</dd></div>
-                <div><dt>Firmware · software</dt><dd>{p.firmware ?? '–'} · {p.softwareVersion ?? '–'}</dd></div>
-                <div><dt>Driver</dt><dd className="mono">{p.driverPackageId ? `${p.driverPackageId}@${p.driverVersion}` : '–'}</dd></div>
-                <div><dt>Calibration</dt><dd>{p.calibrationId ?? '–'} {p.calibrationDate ?? ''} {p.calibrationVerdict ? `(${humanise(p.calibrationVerdict)})` : ''}</dd></div>
-                <div><dt>Operator · verified by</dt><dd>{p.operator ?? '–'} · {p.verifiedBy ? `${p.verifiedBy} ${formatDate(p.verifiedAt)}` : 'not yet verified'}</dd></div>
-                <div><dt>Association</dt><dd>{humanise(p.associationMethod)}{p.associationConfidence !== null && p.associationConfidence !== undefined ? ` · confidence ${Number(p.associationConfidence).toFixed(2)}` : ''}</dd></div>
-                <div><dt>Clock offset</dt><dd>{p.clockSkewMillis ? `${Math.round(p.clockSkewMillis / 1000)} s (corrected)` : 'none'}</dd></div>
-                <div><dt>Raw payload SHA-256</dt><dd className="mono break">{p.rawPayloadSha256 ?? '–'}</dd></div>
-              </dl>
-            </>
-          )}
+          {p && <ProvenanceList p={p} />}
           {o.attachments.length > 0 && (
             <>
               <h2>Attachments</h2>
@@ -316,9 +392,11 @@ export function ObservationDetail({ client, session, onSessionExpired, observati
               ))}
             </details>
           )}
+          {o.components !== null && o.components !== undefined && (
+            <ObservationArchiveCheck key={o.observationId} client={client} onSessionExpired={onSessionExpired} observationId={o.observationId} rawArchiveId={o.rawArchiveId} attachments={o.attachments} />
+          )}
         </>
       )}
-      {can(session.roles, 'deviceArchiveVerify') && <ArchiveCheck key={o?.observationId ?? 'none'} client={client} onSessionExpired={onSessionExpired} initial={o?.attachments[0]?.archiveId ?? ''} />}
     </section>
   );
 }

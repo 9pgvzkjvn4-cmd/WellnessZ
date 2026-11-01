@@ -6,7 +6,7 @@ import type { BatchView } from '../../api/deviceCapture';
 import { baseSession, devices, vitalsPreview } from '../../testing/captureFixtures';
 import { mockApi, reply, sessionFor } from '../../testing/mockApi';
 import { BatchMode, CaptureKpis, SignOffScreen } from './CaptureScreens';
-import { rememberPendingSignOff, resetWorkstation, setStation } from './workstation';
+import { resetWorkstation, setStation } from './workstation';
 
 const noop = () => {};
 const props = (api: ReturnType<typeof mockApi>, ...roles: string[]) => ({ client: api.client, session: sessionFor(...roles), onSessionExpired: noop });
@@ -112,11 +112,17 @@ describe('ECG / ABPM sign-off', () => {
     preview: vitalsPreview({ values: [{ observationId: 'o7', key: 'heartRate', display: 'Heart rate', value: 64, unit: '/min' }, { observationId: 'o7', key: 'interpretation', display: 'Device interpretation', text: 'Sinus rhythm' }], attachments: [{ archiveId: 'a7', kind: 'PDF', mediaType: 'application/pdf', sha256: 'c'.repeat(64), sizeBytes: 20480, link: '/device-engine/observations/o7/attachments/a7' }], interpretationStatus: 'UNVERIFIED', marking: 'device-sourced · MAC 2000 · 1 Nov 2026 09:30 UTC' }),
     ...over,
   });
-  it('lists captures awaiting sign-off at this workstation', async () => {
-    rememberPendingSignOff({ sessionId: sid(7), category: 'ECG', employeeId: 'E1001', employeeName: 'Erin Example', acceptedAt: '2026-11-01T09:31:00Z' });
-    const api = mockApi({});
+  it('lists the captures awaiting sign-off from the server (GET /device-capture/sign-offs)', async () => {
+    const api = mockApi({ 'GET /device-capture/sign-offs': [{ sessionId: sid(7), category: 'ECG', formCode: 'E03.DEVICE_RESULT.ECG', employeeId: 'E1001', employeeName: 'Erin Example', siteCode: 'LHR', deviceName: 'Electrocardiograph – Room 2', acceptedAt: '2026-11-01T09:31:00Z', verifiedBy: 'nurse1' }] });
     render(<SignOffScreen {...props(api, 'OH_PHYSICIAN')} />);
-    expect(screen.getByRole('link', { name: 'Ecg – Erin Example' }).getAttribute('href')).toBe(`#/devices/sign-off/${sid(7)}`);
+    expect((await screen.findByRole('link', { name: 'Ecg – Erin Example' })).getAttribute('href')).toBe(`#/devices/sign-off/${sid(7)}`);
+    expect(screen.getByText(/by nurse1 · Electrocardiograph – Room 2 · LHR/)).toBeTruthy();
+    expect(api.find('GET', '/device-capture/sign-offs')).toHaveLength(1);
+  });
+  it('shows an empty queue', async () => {
+    const api = mockApi({ 'GET /device-capture/sign-offs': [] });
+    render(<SignOffScreen {...props(api, 'OH_PHYSICIAN')} />);
+    expect(await screen.findByText(/No captures are awaiting sign-off/)).toBeTruthy();
   });
   it('physician signs off an unverified interpretation; the PDF is linked', async () => {
     const user = userEvent.setup();

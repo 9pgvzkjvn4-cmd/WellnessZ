@@ -52,7 +52,8 @@ public class EngineController {
 
     static final String OH_READ = "hasAnyRole('OH_CLINICIAN','OH_PHYSICIAN','AME','CMO','NURSING_HEAD','CASE_MANAGER','MRO')";
     static final String UNMATCHED = "hasAnyRole('OH_CLINICIAN','OH_PHYSICIAN','NURSING_HEAD','AME','CMO')";
-    static final String OPS = "hasAnyRole('DEVICE_ADMIN','SECURITY_OPS','PLATFORM_ADMIN','NURSING_HEAD')";
+    /** Operations views (connector health, metrics, alerts) – technical and PHI-free: ids, states, counts and rates only. */
+    static final String OPS = "hasAnyRole('DEVICE_ADMIN','SECURITY_OPS','PLATFORM_ADMIN','NURSING_HEAD','INTEGRATION_TESTER')";
     static final String CLINICIANS_AND_TESTERS = "hasAnyRole('INTEGRATION_TESTER','DEVICE_ADMIN','OH_CLINICIAN','OH_PHYSICIAN','AME','CMO','NURSING_HEAD')";
 
     private final ClinicalReadService clinical;
@@ -98,6 +99,19 @@ public class EngineController {
     @PreAuthorize(OH_READ)
     public ClinicalReadService.ObservationView observation(@PathVariable UUID id, @RequestParam(required = false) String format) {
         return clinical.get(user(), id, "fhir".equalsIgnoreCase(format));
+    }
+
+    @GetMapping("/observations/{id}/archive/verify")
+    @PreAuthorize(OH_READ)
+    public RawPayloadStore.Verification verifyObservationArchive(@PathVariable UUID id, @RequestParam(required = false) UUID archiveId) {
+        return clinical.verifyArchive(user(), id, archiveId);
+    }
+
+    @GetMapping("/observations/{id}/provenance")
+    @PreAuthorize("hasAnyRole('DEVICE_ADMIN','AUDITOR')")
+    public ClinicalReadService.ProvenanceView provenance(@PathVariable UUID id) {
+        user();
+        return clinical.provenance(id);
     }
 
     @GetMapping("/observations/{id}/attachments/{archiveId}")
@@ -258,7 +272,8 @@ public class EngineController {
     public record SimulatorRequest(@NotBlank @Size(max = 160) String datasetId, @Min(1) @Max(500) Integer count,
                                    @Pattern(regexp = "[a-z0-9]+(\\.[a-z0-9\\-]+){1,4}") String driverPackageId,
                                    @Pattern(regexp = "\\d{1,5}\\.\\d{1,5}\\.\\d{1,5}") String driverVersion, Boolean targetTestForm,
-                                   @Min(1) @Max(200) Integer ratePerSecond) {
+                                   @Min(1) @Max(200) Integer ratePerSecond,
+                                   @Pattern(regexp = "[A-Za-z0-9._\\-]{1,64}") String deviceInstanceId) {
     }
 
     @PostMapping("/simulators/{adapter}/run")
@@ -266,7 +281,7 @@ public class EngineController {
     public SimulatorService.RunResult simulate(@PathVariable @Pattern(regexp = "[A-Z0-9_]{2,20}") String adapter,
                                                @RequestBody @jakarta.validation.Valid SimulatorRequest r) {
         return simulators.run(user().username(), adapter, r.datasetId(), r.count(), r.driverPackageId(), r.driverVersion(),
-                Boolean.TRUE.equals(r.targetTestForm()), null);
+                Boolean.TRUE.equals(r.targetTestForm()), null, r.deviceInstanceId());
     }
 
     // ------------------------------------------------------------------ terminology, gates

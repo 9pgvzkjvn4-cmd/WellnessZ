@@ -19,7 +19,7 @@ describe('Capture embedded in the E10 collection form (breath alcohol, restricte
     const user = userEvent.setup();
     const S = baseSession({ formCode: 'E10.BREATH_ALCOHOL', category: 'BREATH_ALCOHOL', restricted: true, orderRef: 'T-1', deviceInstanceId: 'DEV-000005', deviceName: 'Breath alcohol tester – Room 3', operator: 'tester' });
     let cur = S;
-    const preview = vitalsPreview({ values: [{ observationId: 'o5', key: 'breathScreenResult', display: 'Breath alcohol', value: 0.1, unit: 'mg/L' }], marking: 'device-sourced · Alcotest 7510 · 1 Nov 2026 10:00 UTC' });
+    const preview = vitalsPreview({ values: [{ observationId: 'o5', key: 'brac', display: 'Alcohol [Mass/volume] in Breath', value: 0.021, unit: 'g/(210.L)' }], marking: 'device-sourced · Alcotest 7510 · 1 Nov 2026 10:00 UTC' });
     const api = mockApi({
       'GET /testing/requirements': [{ id: 'T-1', ref: 'DA-2026-0001', employeeId: 'E1004', displayName: 'Robin Random', reason: 'RANDOM', panels: ['ALCOHOL_BREATH'], status: 'NOTIFIED', dueAt: '2026-11-01T12:00:00Z', siteCode: 'LHR' }],
       'GET /device-capture/forms/E10.BREATH_ALCOHOL': { formCode: 'E10.BREATH_ALCOHOL', formVersion: '1', module: 'E10', category: 'BREATH_ALCOHOL', target: 'E10.BREATH_ALCOHOL', fieldGroups: [] },

@@ -14,7 +14,7 @@ import type { ScreenProps } from '../types';
 import { ComparisonBlock, MarkingTag, PreviewValues, ProvenanceDetails, QualityFlags } from './CapturePreview';
 import { StationPicker } from './StationPicker';
 import { useLiveSession } from './useLiveSession';
-import { forgetPendingSignOff, usePendingSignOffs, useStation } from './workstation';
+import { forgetPendingSignOff, useStation } from './workstation';
 
 // ---------------------------------------------------------------- connectivity (batch mode works offline on the tablet)
 const subscribeOnline = (cb: () => void) => {
@@ -275,21 +275,34 @@ function BatchEntry({ client, onSessionExpired, entry, online, onChanged }: { cl
  * a physician signs it off; sign-off acknowledges the E03 result and releases the summary where the form allows it.
  */
 export function SignOffScreen({ client, session, onSessionExpired, sessionId }: ScreenProps & { sessionId?: string }) {
-  const pending = usePendingSignOffs();
-  const [lookup, setLookup] = useState('');
   if (sessionId) return <SignOffDetail client={client} session={session} onSessionExpired={onSessionExpired} sessionId={sessionId} />;
+  return <SignOffQueue client={client} session={session} onSessionExpired={onSessionExpired} />;
+}
+
+/** Captures awaiting sign-off for the signing physician (server list, ABAC-filtered; oldest first). */
+function SignOffQueue({ client, onSessionExpired }: ScreenProps) {
+  const [lookup, setLookup] = useState('');
+  const [siteCode, setSiteCode] = useState('');
+  const list = useAsync(() => captureApi(client).signOffs(siteCode.trim() || undefined), onSessionExpired, [siteCode]);
+  const pending = list.data ?? [];
   return (
     <section>
       <PageTitle sub="Device interpretations of ECGs and ambulatory blood pressure / Holter recordings are unverified until a physician signs them off.">ECG and ABPM sign-off</PageTitle>
-      <h2>Captured at this workstation</h2>
-      {pending.length === 0 ? (
-        <Empty>No captures awaiting sign-off in this session. Open a capture by its reference below.</Empty>
-      ) : (
+      <div className="filters inline-form">
+        <Field label="Site" hint="Leave empty for all sites you may see">{(id) => <input id={id} className="mono" maxLength={40} value={siteCode} onChange={(e) => setSiteCode(e.target.value.toUpperCase())} />}</Field>
+      </div>
+      <h2>Awaiting sign-off</h2>
+      {list.loading && !list.data && <Loading />}
+      {!!list.error && <ErrorAlert error={list.error} />}
+      {list.data && pending.length === 0 && <Empty>No captures are awaiting sign-off. Open a capture by its reference below.</Empty>}
+      {pending.length > 0 && (
         <ul className="card-list">
           {pending.map((p) => (
             <li key={p.sessionId} className="card">
               <a href={`#/devices/sign-off/${encodeURIComponent(p.sessionId)}`}>{humanise(p.category)} – {p.employeeName ?? p.employeeId}</a>
-              <div className="small muted">accepted {formatDate(p.acceptedAt)} · reference <span className="mono">{p.sessionId.slice(0, 8)}</span></div>
+              <div className="small muted">
+                accepted {formatDate(p.acceptedAt)}{p.verifiedBy ? ` by ${p.verifiedBy}` : ''}{p.deviceName ? ` · ${p.deviceName}` : ''}{p.siteCode ? ` · ${p.siteCode}` : ''} · reference <span className="mono">{p.sessionId.slice(0, 8)}</span>
+              </div>
             </li>
           ))}
         </ul>

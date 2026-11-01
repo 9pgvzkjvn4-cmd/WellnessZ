@@ -65,6 +65,21 @@ resource "google_compute_security_policy" "waf" {
     description = "Log4j JNDI lookup (cve-canary, all signatures)"
   }
 
+  # Increment 6 (E34): machine paths are served only by the dedicated device ingest (mTLS, thumbprint
+  # header set by that controller); through the public load balancer a client could forge
+  # X-Client-Cert-Sha256. Always enforced (an access control, not a tuning rule - no preview).
+  rule {
+    action   = "deny(403)"
+    priority = 900
+    preview  = false
+    match {
+      expr {
+        expression = "request.path.lower().urlDecode().contains('/api/v1/device-')"
+      }
+    }
+    description = "Block device machine paths on public hosts (device ingest only)"
+  }
+
   # Throttle authentication endpoints (credential stuffing)
   rule {
     action   = "rate_based_ban"

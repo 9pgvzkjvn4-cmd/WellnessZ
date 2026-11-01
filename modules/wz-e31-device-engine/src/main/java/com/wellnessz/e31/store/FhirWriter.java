@@ -314,6 +314,9 @@ public final class FhirWriter {
         if (o.associationMethod() != null) {
             p.addExtension("urn:wellnessz:fhir:association", new StringType(o.associationMethod() + "|" + (o.confidence() == null ? "" : o.confidence())));
         }
+        if (o.testTraffic() || pv != null && pv.simulated()) {
+            p.addExtension("urn:wellnessz:fhir:simulated", new BooleanType(true)); // simulator test traffic, never a measurement
+        }
         return p;
     }
 

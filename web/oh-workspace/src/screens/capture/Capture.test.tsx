@@ -69,6 +69,21 @@ describe('Capture from device – device list', () => {
     expect(screen.getByText(/Updating every 2 seconds/)).toBeTruthy();
   });
 
+  it('offers a capture without a device (photo / manual) only when no device at the station is available', async () => {
+    const user = userEvent.setup();
+    const offered = baseSession({ state: 'FALLBACK_OFFERED', fallbackReason: 'DEVICE_UNAVAILABLE', deviceInstanceId: null, deviceName: null });
+    const api = mockApi(routes({ 'GET /device-capture/devices': [], 'POST /device-capture/sessions': offered, [`GET ${S}`]: offered }));
+    render(panel(api));
+    await user.click(await screen.findByRole('button', { name: 'Enter without a device (photo or manual)' }));
+    await waitFor(() => expect(api.find('POST', '/device-capture/sessions')).toHaveLength(1));
+    expect(api.find('POST', '/device-capture/sessions')[0]!.body).toEqual({ formCode: 'E03.DEVICE_RESULT.VITALS', employeeId: 'E1001', siteCode: 'LHR', stationCode: 'LHR-OH-ROOM-1' });
+    cleanup();
+    // with an available device the device-less entry is not offered
+    render(panel(mockApi(routes())));
+    await screen.findByRole('list', { name: 'Devices at this station' });
+    expect(screen.queryByRole('button', { name: /Enter without a device/ })).toBeNull();
+  });
+
   it('asks for the station when the catalogue is not readable (collector) and remembers it in memory', async () => {
     resetWorkstation();
     const user = userEvent.setup();

@@ -181,7 +181,7 @@ export function ocrPrefill(fields: readonly { key: string; value?: number | null
 
 /** Display a component value with its unit (UCUM brackets removed for reading). */
 export function displayValue(v: { value?: number | null; text?: string | null; unit?: string | null }): string {
-  const unit = v.unit && v.unit !== '1' ? ` ${v.unit.replace(/\[|\]/g, '').replace('Cel', '°C').replace('/min', '/min')}` : '';
+  const unit = v.unit && v.unit !== '1' ? ` ${v.unit.replace('g/(210.L)', 'g/210 L').replace(/\[|\]/g, '').replace('Cel', '°C').replace('/min', '/min')}` : '';
   if (v.value !== null && v.value !== undefined) return `${v.value}${unit}`;
   return v.text ?? '–';
 }

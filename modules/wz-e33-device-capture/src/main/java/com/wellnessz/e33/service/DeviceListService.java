@@ -75,13 +75,85 @@ public class DeviceListService {
     public List<DeviceChoice> devices(String formCode, String siteCode, String stationCode) {
         FormRegistry.Form form = forms.require(formCode);
         LocalDate today = support.today();
+        List<DeviceCatalogueLookup.DeviceInstance> listed = atStation(form, siteCode, stationCode);
+        Map<String, String> names = displayNames(listed, form.category());
         List<DeviceChoice> out = new ArrayList<>();
-        for (DeviceCatalogueLookup.DeviceInstance i : spis.catalogue().instancesAtStation(siteCode, stationCode, form.category())) {
-            if (i.published() && servesForm(i, formCode)) {
-                out.add(evaluate(i, form.category(), today));
+        for (DeviceCatalogueLookup.DeviceInstance i : listed) {
+            DeviceChoice c = evaluate(i, form.category(), today);
+            out.add(new DeviceChoice(c.deviceInstanceId(), names.getOrDefault(i.deviceInstanceId(), c.displayName()), c.model(), c.option(),
+                    c.status(), c.lockReason(), c.nextAction(), c.heldBy()));
+        }
+        return out;
+    }
+
+    private List<DeviceCatalogueLookup.DeviceInstance> atStation(FormRegistry.Form form, String siteCode, String stationCode) {
+        return spis.catalogue().instancesAtStation(siteCode, stationCode, form.category()).stream()
+                .filter(i -> i.published() && servesForm(i, form.formCode())).toList();
+    }
+
+    /**
+     * The name of a session's device as the station list shows it (disambiguated against the other devices of the form at
+     * the station), {@code null} without a device.
+     */
+    @Transactional(readOnly = true)
+    public String displayName(String deviceInstanceId, String formCode, String siteCode, String fallbackStation) {
+        if (deviceInstanceId == null) {
+            return null;
+        }
+        FormRegistry.Form form = forms.require(formCode);
+        Optional<DeviceCatalogueLookup.DeviceInstance> i = instance(deviceInstanceId);
+        String station = i.map(DeviceCatalogueLookup.DeviceInstance::stationCode).orElse(fallbackStation);
+        String plain = displayName(form.category(), station);
+        if (i.isEmpty() || siteCode == null || station == null) {
+            return plain;
+        }
+        return displayNames(atStation(form, siteCode, station), form.category()).getOrDefault(deviceInstanceId, plain);
+    }
+
+    /**
+     * Station display names, unique per station (contract 14.2 "Spirometer – Room 2"): when two devices at the station would
+     * get the same name, the model is appended ("Vital signs monitor – Room 1 (Connex Spot)"); when the model is shared too,
+     * a short asset tag – the E14 equipment id, else the end of the serial number, else the instance id
+     * ("… (Connex Spot · SPIRO-HQ-01)"). No technical parameters.
+     */
+    static Map<String, String> displayNames(List<DeviceCatalogueLookup.DeviceInstance> instances, DeviceCodes.Category category) {
+        Map<String, String> base = new java.util.LinkedHashMap<>();
+        instances.forEach(i -> base.put(i.deviceInstanceId(), displayName(category, i.stationCode())));
+        Map<String, String> out = new java.util.LinkedHashMap<>(base);
+        Map<String, List<DeviceCatalogueLookup.DeviceInstance>> byName = new java.util.LinkedHashMap<>();
+        instances.forEach(i -> byName.computeIfAbsent(base.get(i.deviceInstanceId()), k -> new ArrayList<>()).add(i));
+        for (Map.Entry<String, List<DeviceCatalogueLookup.DeviceInstance>> e : byName.entrySet()) {
+            List<DeviceCatalogueLookup.DeviceInstance> group = e.getValue();
+            if (group.size() < 2) {
+                continue;
+            }
+            Map<String, Long> models = new java.util.HashMap<>();
+            group.forEach(i -> models.merge(String.valueOf(i.model()), 1L, Long::sum));
+            java.util.Set<String> used = new java.util.HashSet<>();
+            for (DeviceCatalogueLookup.DeviceInstance i : group) {
+                String model = i.model() == null || i.model().isBlank() ? null : i.model();
+                String suffix = model != null && models.get(model) == 1 ? model
+                        : (model == null ? "" : model + " · ") + assetTag(i);
+                String name = e.getKey() + " (" + suffix + ")";
+                if (!used.add(name)) {
+                    name = e.getKey() + " (" + suffix + " · " + i.deviceInstanceId() + ")";
+                    used.add(name);
+                }
+                out.put(i.deviceInstanceId(), name);
             }
         }
         return out;
+    }
+
+    static String assetTag(DeviceCatalogueLookup.DeviceInstance i) {
+        if (i.equipmentDeviceId() != null && !i.equipmentDeviceId().isBlank()) {
+            return i.equipmentDeviceId();
+        }
+        if (i.serial() != null && !i.serial().isBlank()) {
+            String serial = i.serial().strip();
+            return "SN …" + serial.substring(Math.max(0, serial.length() - 4));
+        }
+        return i.deviceInstanceId();
     }
 
     /** Status of one instance for a form (404 when it is not a published instance serving the form at the site). */

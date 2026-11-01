@@ -46,6 +46,53 @@ class NormaliserTest {
         assertThat(n.clockSkewMillis()).isZero();
     }
 
+    /** The FC20 package as a mg/L-reporting breath tester (e.g. Alcotest-style output "RESULT 0.200 mg/L"). */
+    static String mgPerLitreBreathPackage() throws java.io.IOException {
+        try (java.io.InputStream in = NormaliserTest.class.getResourceAsStream("/e31/drivers/da.lifeloc.fc20-serial-1.0.0.json")) {
+            String json = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            return json.replace("g/210L\",", "mg/L\",").replace("\"unit\": \"g/(210.L)\",\n    \"required\"", "\"unit\": \"mg/L\",\n    \"required\"");
+        }
+    }
+
+    @Test
+    void breathAlcoholInMgPerLitreIsConvertedToTheE10UnitGramsPer210Litres() throws Exception {
+        com.wellnessz.e31.driver.DriverParser parser = new com.wellnessz.e31.driver.DriverParser(TestSupport.json());
+        String json = mgPerLitreBreathPackage();
+        DriverPackage p = parser.parse(json);
+        assertThat(p.mapping("brac").orElseThrow().ucum()).isEqualTo("g/(210.L)");
+        byte[] message = ("{\"records\":[{\"port\":\"COM3\",\"receivedAt\":\"2026-10-30T09:50:00Z\",\"encoding\":\"TEXT\","
+                + "\"data\":\"TEST#0050\\r\\nRESULT 0.200 mg/L\\r\\nTYPE CONFIRM\\r\\nCAL 2026-10-01\\r\\nSN FC20-30112\\r\\n\"}]}")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        ParsedRecord r = TestSupport.adapters().parse(new ParseContext(p, message, null, Map.of(), RECEIVED, ZoneOffset.UTC)).get(0);
+        assertThat(r.values().get("brac").unit()).isEqualTo("mg/L");
+        Normaliser.Result n = Normaliser.normalise(p, r, TestSupport.terminology(), new Normaliser.Context(RECEIVED, null, null, 120));
+        DeviceObservation.Component brac = n.component("brac").orElseThrow();
+        // 0.200 mg/L × 0.21 = 0.042 g/210 L (UCUM: 1 mg/L = 0.001 g/L = 0.21 g/(210.L))
+        assertThat(brac.value()).isEqualByComparingTo("0.042");
+        assertThat(brac.ucum()).isEqualTo("g/(210.L)");
+        // the binding into E10 carries the converted value in E10's unit
+        assertThat(com.wellnessz.e31.routing.Router.boundFields(selection(p.bindings().get(0)),
+                n.components(), n.derived(), Map.of())).containsEntry("breathScreenResult", new BigDecimal("0.042"));
+        // the built-in UCUM pair (also in the other direction)
+        assertThat(TestSupport.terminology().convert(new BigDecimal("0.042"), "g/(210.L)", "mg/L").orElseThrow()).isEqualByComparingTo("0.2");
+    }
+
+    static com.wellnessz.e31.routing.Router.Selection selection(DriverPackage.Binding b) {
+        return new com.wellnessz.e31.routing.Router.Selection(b.formCode(), b.formVersion(), b.category(), b.target(), b.fields(), b.verifyBeforePost(),
+                List.of());
+    }
+
+    @Test
+    void aBindingToTheE10BreathFieldMustUseGramsPer210Litres() throws Exception {
+        com.wellnessz.e31.driver.DriverParser parser = new com.wellnessz.e31.driver.DriverParser(TestSupport.json());
+        String ok = mgPerLitreBreathPackage();
+        assertThat(com.wellnessz.e31.driver.DriverValidator.validate(parser, ok, TestSupport.terminology(), null).errors())
+                .noneMatch(e -> e.contains("breathScreenResult"));
+        String wrong = ok.replace("\"ucum\": \"g/(210.L)\"", "\"ucum\": \"mg/L\"");
+        assertThat(com.wellnessz.e31.driver.DriverValidator.validate(parser, wrong, TestSupport.terminology(), null).errors())
+                .anyMatch(e -> e.contains("breathScreenResult") && e.contains("g/(210.L)"));
+    }
+
     @Test
     void driverConversionKpaAndTableConversionsFahrenheitAndImperial() {
         Normaliser.Result bp = normalise("vitals.and.ua651ble-blp", "vitals/ua651ble-blp/edge.json", null);

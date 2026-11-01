@@ -1,0 +1,268 @@
+{{- /*
+Optional device gateway (apps/wz-device-gateway) for a clinic edge cluster (k3s / MicroK8s on the hardened
+gateway host - deploy/edge/). Single writer of the encrypted store-and-forward journal: 1 replica, Recreate,
+ReadWriteOnce volume. Status page / actuator stay on 127.0.0.1:8095 inside the pod (the gateway's
+LoopbackOnlyFilter refuses other peers), so probes are exec probes, and no Service exposes that port.
+*/ -}}
+{{- if .Values.deviceGateway.enabled }}
+{{- $root := . -}}
+{{- $gw := .Values.deviceGateway -}}
+{{- $ctx := dict "root" $root "comp" $gw }}
+{{- $name := include "wellnessz.componentName" $ctx }}
+{{- $secretDir := "/etc/wellnessz/gateway/secrets" }}
+{{- $s := $gw.secrets }}
+{{- if not $s.existingSecret }}
+{{- fail "deviceGateway.secrets.existingSecret is required (group-PKI client key store, its password, master key, enrolment token)" }}
+{{- end }}
+{{- if not (hasPrefix "https://" $gw.coreUrl) }}
+{{- fail "deviceGateway.coreUrl must be https:// (mTLS to the device ingest)" }}
+{{- end }}
+{{- if not $gw.listeners }}
+{{- fail "deviceGateway.listeners must name at least one device-facing listener" }}
+{{- end }}
+{{- if $gw.serviceAccount.create }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "wellnessz.serviceAccountName" $ctx }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $gw.name) | nindent 4 }}
+  {{- with $gw.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: false
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-config
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $gw.name) | nindent 4 }}
+data:
+  application.yml: |
+    {{- $gw.config | nindent 4 }}
+{{- if not $gw.persistence.existingClaim }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-data
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $gw.name) | nindent 4 }}
+  annotations:
+    # never delete the journal with the release: it may hold readings not yet forwarded
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    {{- toYaml $gw.persistence.accessModes | nindent 4 }}
+  {{- with $gw.persistence.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $gw.persistence.size }}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $gw.name) | nindent 4 }}
+  {{- with $gw.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $gw.service.type }}
+  {{- if has $gw.service.type (list "LoadBalancer" "NodePort") }}
+  externalTrafficPolicy: {{ $gw.service.externalTrafficPolicy }}
+  {{- end }}
+  {{- if eq $gw.service.type "LoadBalancer" }}
+  {{- with $gw.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  {{- with $gw.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  selector:
+    {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" $gw.name) | nindent 4 }}
+  ports:
+    {{- range $gw.listeners }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .name }}
+      protocol: TCP
+    {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $gw.name) | nindent 4 }}
+    wellnessz.io/zone: device
+  annotations:
+    # Reviewed exceptions, same reasoning as core / bff (docs/security/Security-Enhancement-Guideline.md)
+    checkov.io/skip1: CKV_K8S_11=No CPU limit by design (JVM CFS throttling); requests bound scheduling on the edge node
+    checkov.io/skip2: CKV_K8S_43=Default values use tags for local use; edge UAT/PROD overlays set global.requireImageDigests and the pipeline pins the digest
+    checkov.io/skip3: CKV_K8S_15=Images are pinned by digest in UAT/PROD, so IfNotPresent cannot run a different image (and the edge keeps working while the registry is unreachable)
+    {{- with $root.Values.global.commonAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  # one writer of the journal: never run two pods on the same volume
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" $gw.name) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "wellnessz.componentLabels" (dict "root" $root "component" $gw.name) | nindent 8 }}
+        wellnessz.io/zone: device
+        {{- with $gw.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ $gw.config | sha256sum }}
+        {{- with $gw.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "wellnessz.serviceAccountName" $ctx }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- with $root.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "wellnessz.podSecurityContext" $ctx | nindent 8 }}
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: {{ $gw.name }}
+          image: {{ include "wellnessz.image" $ctx | quote }}
+          imagePullPolicy: {{ $root.Values.global.imagePullPolicy }}
+          securityContext:
+            {{- toYaml $root.Values.containerSecurityContext | nindent 12 }}
+          ports:
+            {{- range $gw.listeners }}
+            - name: {{ .name }}
+              containerPort: {{ .port }}
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: WZ_GATEWAY_ROLE
+              value: {{ $gw.role | quote }}
+            - name: WZ_GATEWAY_CORE_URL
+              value: {{ $gw.coreUrl | quote }}
+            - name: WZ_GATEWAY_DATA_DIR
+              value: /var/lib/wellnessz-gateway
+            - name: WZ_GATEWAY_STATUS_ADDRESS
+              value: 127.0.0.1
+            - name: WZ_GATEWAY_STATUS_PORT
+              value: {{ $gw.statusPort | quote }}
+            - name: WZ_GATEWAY_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+              value: /config/
+            - name: WZ_GATEWAY_KEYSTORE
+              value: {{ printf "%s/%s" $secretDir $s.keystore | quote }}
+            - name: WZ_GATEWAY_KEYSTORE_PASSWORD
+              value: {{ printf "file:%s/%s" $secretDir $s.keystorePassword | quote }}
+            {{- if $s.truststore }}
+            - name: WZ_GATEWAY_TRUSTSTORE
+              value: {{ printf "%s/%s" $secretDir $s.truststore | quote }}
+            {{- end }}
+            {{- if $s.truststorePassword }}
+            - name: WZ_GATEWAY_TRUSTSTORE_PASSWORD
+              value: {{ printf "file:%s/%s" $secretDir $s.truststorePassword | quote }}
+            {{- end }}
+            {{- if $s.masterKey }}
+            - name: WZ_MASTER_KEY_FILE
+              value: {{ printf "%s/%s" $secretDir $s.masterKey | quote }}
+            {{- end }}
+            {{- if $s.enrolmentToken }}
+            - name: WZ_GATEWAY_ENROLMENT_TOKEN_FILE
+              value: {{ printf "%s/%s" $secretDir $s.enrolmentToken | quote }}
+            {{- end }}
+            {{- with $gw.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- $probe := printf "exec 3<>/dev/tcp/127.0.0.1/%d && printf 'GET /actuator/health/%%s HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3" (int $gw.statusPort) }}
+          # exec probes: the status server answers loopback peers only (kubelet httpGet would come from the node IP)
+          startupProbe:
+            exec:
+              command: ["bash", "-c", {{ printf $probe "liveness" | quote }}]
+            periodSeconds: 10
+            failureThreshold: 30
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["bash", "-c", {{ printf $probe "liveness" | quote }}]
+            periodSeconds: 20
+            failureThreshold: 3
+            timeoutSeconds: 5
+          # readiness = enrolled, connectors started, queue < 90 % and not quarantined
+          readinessProbe:
+            exec:
+              command: ["bash", "-c", {{ printf $probe "readiness" | quote }}]
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml $gw.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/wellnessz-gateway
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: secrets
+              mountPath: {{ $secretDir }}
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ default (printf "%s-data" $name) $gw.persistence.existingClaim }}
+        - name: config
+          configMap:
+            name: {{ $name }}-config
+        - name: secrets
+          secret:
+            secretName: {{ $s.existingSecret }}
+            defaultMode: 0440   # owner root, group = fsGroup 10001 (the gateway user)
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ $gw.tmpSizeLimit }}
+      {{- with $gw.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $gw.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $gw.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

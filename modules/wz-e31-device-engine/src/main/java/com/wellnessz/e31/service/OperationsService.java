@@ -148,9 +148,10 @@ public class OperationsService {
 
     ConnectorHealth health(String id, String endpoint, String site, String option, Instant lastSeen, String endpointStatus, Instant now) {
         Timestamp since = Timestamp.from(now.minus(Duration.ofHours(24)));
-        long msgs = count("select count(*) from deviceint.message where device_instance_id = ? and received_at >= ?", id, since);
-        long errors = count("select count(*) from deviceint.message where device_instance_id = ? and received_at >= ? and status in ('DEAD_LETTER','RETRY')",
-                id, since);
+        // simulator runs fed as the device (test traffic) do not count towards the connector's health
+        long msgs = count("select count(*) from deviceint.message where device_instance_id = ? and received_at >= ? and test_traffic = false", id, since);
+        long errors = count("select count(*) from deviceint.message where device_instance_id = ? and received_at >= ? and test_traffic = false "
+                + "and status in ('DEAD_LETTER','RETRY')", id, since);
         long unmatched = count("select count(*) from deviceint.unmatched_item where device_instance_id = ? and status = 'OPEN'", id);
         long dead = count("select count(*) from deviceint.dead_letter where device_instance_id = ? and status = 'OPEN'", id);
         Long p95 = jdbc.queryForObject("""

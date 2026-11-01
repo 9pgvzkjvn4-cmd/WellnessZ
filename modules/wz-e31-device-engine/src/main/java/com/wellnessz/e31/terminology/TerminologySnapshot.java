@@ -39,6 +39,18 @@ public final class TerminologySnapshot implements Terminology {
         this.osha = Map.copyOf(o);
     }
 
+    /**
+     * UCUM conversions every release carries (used when the {@code unit_conversion} table has no row for the pair).
+     * <p><b>Breath alcohol</b> – E10's e-CCF field {@code breathScreenResult} is in g/210 L (UCUM {@code g/(210.L)}); many
+     * evidential breath testers (e.g. Dräger Alcotest in the UK / EU) report mg/L. Both are mass concentrations of ethanol in
+     * breath, so the conversion is exact unit arithmetic, not a blood/breath partition ratio:
+     * {@code 1 mg/L = 0.001 g/L = 0.001 × 210 g/(210.L) = 0.21 g/(210.L)} (factor 0.21; inverse 1/0.21 = 4.76190476).
+     * Example: 0.20 mg/L = 0.042 g/210 L.</p>
+     */
+    public static final Map<String, BigDecimal[]> BUILT_IN = Map.of(
+            conversionKey("mg/L", "g/(210.L)"), new BigDecimal[] {new BigDecimal("0.21"), BigDecimal.ZERO},
+            conversionKey("g/(210.L)", "mg/L"), new BigDecimal[] {BigDecimal.ONE.divide(new BigDecimal("0.21"), MathContext.DECIMAL64), BigDecimal.ZERO});
+
     public static String conversionKey(String from, String to) {
         return from + "->" + to;
     }
@@ -75,7 +87,7 @@ public final class TerminologySnapshot implements Terminology {
         if (fromUnit.equals(toUnit)) {
             return Optional.of(value);
         }
-        BigDecimal[] c = conversions.get(conversionKey(fromUnit, toUnit));
+        BigDecimal[] c = conversions.getOrDefault(conversionKey(fromUnit, toUnit), BUILT_IN.get(conversionKey(fromUnit, toUnit)));
         return c == null ? Optional.empty() : Optional.of(value.multiply(c[0], MathContext.DECIMAL64).add(c[1], MathContext.DECIMAL64));
     }
 

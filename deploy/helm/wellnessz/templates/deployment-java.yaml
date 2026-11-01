@@ -133,6 +133,9 @@ spec:
             {{- if eq $mig.mode "app" }}
             {{- $files = concat $files $root.Values.secrets.migrations.files }}
             {{- end }}
+            {{- if and (eq $key "core") $root.Values.deviceIngest.enabled }}
+            {{- $files = concat $files $root.Values.secrets.device.files }}
+            {{- end }}
             {{- range $files }}
             {{- if .env }}
             - name: {{ .env }}

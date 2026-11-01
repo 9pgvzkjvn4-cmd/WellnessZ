@@ -161,6 +161,21 @@ public class AssociationService {
         return new Result(d, session, orderRef, caseId, candidates);
     }
 
+    /**
+     * Association of simulator test traffic: the capture session listening on the device is the only source (the dataset's
+     * synthetic identity is ignored – no conflict, no vendor id, badge or worklist match); without a session the reading stays
+     * unassociated ({@code test_traffic}). Candidates are not persisted.
+     */
+    public Result associateTestTraffic(Request r) {
+        DeviceCaptureSessions.SessionBinding s = r.session();
+        if (s == null || s.employeeId() == null) {
+            return new Result(new AssociationEngine.Decision("UNMATCHED", null, null, null, "test_traffic", List.of()), null, null, null, List.of());
+        }
+        AssociationEngine.Candidate c = new AssociationEngine.Candidate(s.employeeId(), "SESSION", C100, name(s.employeeId()));
+        return new Result(new AssociationEngine.Decision("ASSOCIATED", s.employeeId(), "SESSION", C100, null, List.of()), s, s.orderRef(), s.caseId(),
+                List.of(c));
+    }
+
     /** Methods that never come from the device configuration: a clinician's resolution, entry in the form, area measurements. */
     static final java.util.Set<String> ALWAYS_ALLOWED = java.util.Set.of("MANUAL_RESOLUTION", "ENTERED_IN_FORM", "AREA_MEASUREMENT");
 

@@ -21,6 +21,9 @@ public interface E33CaptureSessionRepository extends JpaRepository<CaptureSessio
 
     List<CaptureSession> findByEmployeeIdOrderByOpenedAtDesc(String employeeId);
 
+    /** Accepted captures whose device interpretation still awaits physician sign-off (ECG / ABPM, contract 14.4). */
+    List<CaptureSession> findTop500ByStateAndInterpretationStatusOrderByVerifiedAtAsc(String state, String interpretationStatus);
+
     @Query("select s from E33CaptureSession s where s.siteCode = :site and s.openedAt >= :from and s.openedAt < :to")
     List<CaptureSession> findOpenedAtSite(@Param("site") String site, @Param("from") Instant from, @Param("to") Instant to);
 

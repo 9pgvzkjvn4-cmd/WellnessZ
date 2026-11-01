@@ -92,6 +92,9 @@ locals {
     "wz-bff-db-password"      = { owner = "bff" }
     "wz-bff-session-key"      = { owner = "bff" }
     "wz-graph-client-secret"  = { owner = "core" }
+    # increment 6 (E34) - mounted into core only when Helm deviceIngest.enabled
+    "wz-device-token-pepper"  = { owner = "core" }
+    "wz-device-trust-anchors" = { owner = "core" }
   }
   generated_secrets = toset(["wz-pg-admin-password", "wz-db-password", "wz-bff-db-password", "wz-migrator-db-password"])
   kv_secret_values = {
@@ -104,6 +107,11 @@ locals {
     "wz-master-key"           = "REPLACE-ME-openssl-rand-base64-32"
     "wz-pseudonym-key"        = "REPLACE-ME-openssl-rand-base64-32"
     "wz-bff-client-secret"    = "REPLACE-ME-from-IdP-app-registration"
+    # Deliberately shorter than 16 bytes: core (TokenHasher) refuses to start with it, so a known
+    # placeholder pepper can never hash real endpoint tokens. Replace with: openssl rand -base64 32
+    "wz-device-token-pepper" = "REPLACE-ME"
+    # PEM bundle of the group-PKI root / issuing CA(s); until replaced, every enrolment is refused
+    "wz-device-trust-anchors" = "REPLACE-ME-group-PKI-CA-bundle-PEM"
   }
 }
 

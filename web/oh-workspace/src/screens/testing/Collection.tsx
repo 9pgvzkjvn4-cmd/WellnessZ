@@ -142,9 +142,9 @@ function CcfForm({ client, session, onSessionExpired, req, onDone }: ScreenProps
           onAccepted={(_r, s) => {
             const v = s.preview?.values.find((x) => (x.key === 'breathScreenResult' || x.key === 'brac') && x.value !== null && x.value !== undefined);
             if (v?.value === undefined || v.value === null) return;
-            const g210 = v.unit && /mg\/L/i.test(v.unit) ? Math.round(v.value * 0.21 * 1000) / 1000 : v.value;
+            // the engine normalises and binds breath alcohol in E10's unit g/210 L (mg/L devices are converted server-side)
             setDeviceMarking(s.preview?.marking ?? 'device-sourced');
-            set({ breathScreenResult: g210.toFixed(3) });
+            set({ breathScreenResult: v.value.toFixed(3) });
           }}
         />
       )}

@@ -441,7 +441,13 @@ class Increment6CaptureIntegrationTest extends IntegrationTestBase {
         Map<String, JsonNode> byId = new LinkedHashMap<>();
         list.forEach(n -> byId.put(n.path("deviceInstanceId").asString(), n));
         assertThat(byId).containsKeys("DEV-T-VITALS-2", "DEV-T-VITALS-LOCK").doesNotContainKey("DEV-T-VITALS-QUAR");
-        assertThat(byId.get("DEV-T-VITALS-2").path("displayName").asString()).isEqualTo("Vital signs monitor – Room 1");
+        // three vital-signs devices at Room 1: names stay unique (model, then a short asset tag when the model is shared)
+        assertThat(byId.get("DEV-T-VITALS-2").path("displayName").asString()).isEqualTo("Vital signs monitor – Room 1 (BLE BP cuff)");
+        assertThat(byId.get("DEV-T-VITALS-1").path("displayName").asString()).isEqualTo("Vital signs monitor – Room 1 (Connex Spot · SN …LS-1)");
+        assertThat(byId.get("DEV-T-VITALS-LOCK").path("displayName").asString()).isEqualTo("Vital signs monitor – Room 1 (Connex Spot · SN …LOCK)");
+        java.util.Set<String> names = new java.util.HashSet<>();
+        list.forEach(n -> names.add(n.path("displayName").asString()));
+        assertThat(names).hasSize(list.size());
         assertThat(byId.get("DEV-T-VITALS-LOCK").path("status").asString()).isEqualTo("LOCKED_OUT");
         assertThat(byId.get("DEV-T-VITALS-LOCK").path("lockReason").asString()).isEqualTo("qc_due");
         // no technical parameters (E33-HLR-01)
@@ -454,7 +460,7 @@ class Increment6CaptureIntegrationTest extends IntegrationTestBase {
         String id = s.path("sessionId").asString();
         assertThat(s.path("state").asString()).isEqualTo("LISTENING");
         assertThat(s.path("contextPush").asString()).isEqualTo("PUSH_WORKLIST");
-        assertThat(s.path("deviceName").asString()).isEqualTo("Vital signs monitor – Room 1");
+        assertThat(s.path("deviceName").asString()).isEqualTo("Vital signs monitor – Room 1 (Connex Spot · SN …LS-1)");
         // one session per device
         JsonNode busy = open(NURSE2, "E03.DEVICE_RESULT.VITALS", "E1002", "DEV-T-VITALS-1", "LHR-OH-ROOM-1", null, 409);
         assertThat(busy.path("code").asString()).isEqualTo("device_busy");
@@ -672,6 +678,81 @@ class Increment6CaptureIntegrationTest extends IntegrationTestBase {
         JsonNode note = call(post("/api/v1/device-capture/sessions/" + id + "/annotations"), PHYSICIAN, Map.of("text", "Repeat at next periodic review"), 201);
         assertThat(jdbc.queryForObject("select text from devicecap.capture_annotation where id = ?::uuid", String.class, note.path("id").asString()))
                 .startsWith("v1:");
+    }
+
+    @Test
+    void signOffQueueListsAcceptedEcgCapturesForSigningRolesOnly() throws Exception {
+        String id = open(NURSE, "E03.DEVICE_RESULT.ECG", "E1003", "DEV-T-ECG-1", "LHR-OH-ROOM-2", null, 201).path("sessionId").asString();
+        engine.reading("DEV-T-ECG-1", Category.ECG, Map.of("heartRate", 71, "qrsMs", 96, "qtcMs", 415, "interpretation", "Sinus rhythm"), pass());
+        // not yet accepted: not in the queue
+        JsonNode before = call(get("/api/v1/device-capture/sign-offs"), PHYSICIAN, null, 200);
+        before.forEach(n -> assertThat(n.path("sessionId").asString()).isNotEqualTo(id));
+        call(post("/api/v1/device-capture/sessions/" + id + "/accept"), NURSE, Map.of(), 200);
+        JsonNode queue = call(get("/api/v1/device-capture/sign-offs?siteCode=LHR"), PHYSICIAN, null, 200);
+        JsonNode item = null;
+        for (JsonNode n : queue) {
+            if (id.equals(n.path("sessionId").asString())) {
+                item = n;
+            }
+        }
+        assertThat(item).isNotNull();
+        assertThat(item.path("category").asString()).isEqualTo("ECG");
+        assertThat(item.path("employeeId").asString()).isEqualTo("E1003");
+        assertThat(item.path("verifiedBy").asString()).isEqualTo("nurse1");
+        assertThat(item.has("values")).isFalse();
+        assertThat(queue.toString()).doesNotContain("Sinus rhythm"); // the list carries no values / interpretation text
+        // other sites, non-signing roles and console roles
+        JsonNode other = call(get("/api/v1/device-capture/sign-offs?siteCode=DXB"), PHYSICIAN, null, 200);
+        other.forEach(n -> assertThat(n.path("sessionId").asString()).isNotEqualTo(id));
+        call(get("/api/v1/device-capture/sign-offs"), NURSE, null, 403);
+        call(get("/api/v1/device-capture/sign-offs"), NURSING_HEAD, null, 403);
+        call(get("/api/v1/device-capture/sign-offs"), DEVICE_ADMIN, null, 403);
+        // signed off → leaves the queue
+        call(post("/api/v1/device-capture/sessions/" + id + "/sign-off"), PHYSICIAN, Map.of(), 200);
+        JsonNode after = call(get("/api/v1/device-capture/sign-offs"), PHYSICIAN, null, 200);
+        after.forEach(n -> assertThat(n.path("sessionId").asString()).isNotEqualTo(id));
+    }
+
+    @Test
+    void sessionWithoutDeviceOffersOnlyTheEntryPathsWhenTheStationHasNoAvailableDevice() throws Exception {
+        // Room 1 has an available vitals device → capture from the device
+        Map<String, Object> req = new LinkedHashMap<>(Map.of("formCode", "E03.DEVICE_RESULT.VITALS", "formVersion", "1", "employeeId", "E1005",
+                "siteCode", "LHR", "stationCode", "LHR-OH-ROOM-1"));
+        assertThat(call(post("/api/v1/device-capture/sessions"), NURSE, req, 422).path("code").asString()).isEqualTo("device_available");
+        // a station without any vitals device: photo / manual entry without a device
+        req.put("stationCode", "LHR-OH-ROOM-9");
+        JsonNode s = call(post("/api/v1/device-capture/sessions"), NURSE, req, 201);
+        String id = s.path("sessionId").asString();
+        assertThat(s.path("state").asString()).isEqualTo("FALLBACK_OFFERED");
+        assertThat(s.path("fallbackReason").asString()).isEqualTo("DEVICE_UNAVAILABLE");
+        assertThat(s.has("deviceInstanceId")).isFalse();
+        List<String> paths = new ArrayList<>();
+        s.path("fallbackOptions").forEach(o -> paths.add(o.path("path").asString()));
+        assertThat(paths).containsExactly("OCR_VERIFIED", "MANUAL_ATTESTED");
+        Map<String, Object> attested = Map.of("model", "Connex Spot", "serial", "SN-SPARE-1", "calibrationId", "CAL-9",
+                "calibrationDate", LocalDate.now().minusDays(10).toString());
+        JsonNode man = call(post("/api/v1/device-capture/sessions/" + id + "/fallback"), NURSE,
+                Map.of("path", "MANUAL_ATTESTED", "reasonCode", "DEVICE_UNAVAILABLE", "values", Map.of("systolic", 118, "diastolic", 76),
+                        "attested", attested), 200);
+        assertThat(man.path("state").asString()).isEqualTo("PREVIEW");
+        assertThat(man.path("path").asString()).isEqualTo("MANUAL_ATTESTED");
+        call(post("/api/v1/device-capture/sessions/" + id + "/accept"), NURSE, Map.of(), 200);
+        assertThat(jdbc.queryForObject("select original_device_instance_id from devicecap.capture_session where id = ?::uuid", String.class, id)).isNull();
+
+        // restricted category: collector only, no photo path, manual entry with attestation (MRO-visible)
+        Map<String, Object> breath = new LinkedHashMap<>(Map.of("formCode", "E10.BREATH_ALCOHOL", "formVersion", "1", "employeeId", "E1004",
+                "siteCode", "LHR", "stationCode", "LHR-OH-ROOM-9", "orderRef", "DA-TEST-9"));
+        call(post("/api/v1/device-capture/sessions"), NURSE, breath, 403);
+        JsonNode b = call(post("/api/v1/device-capture/sessions"), COLLECTOR, breath, 201);
+        List<String> bp = new ArrayList<>();
+        b.path("fallbackOptions").forEach(o -> bp.add(o.path("path").asString()));
+        assertThat(bp).containsExactly("MANUAL_ATTESTED");
+        breath.remove("orderRef");
+        assertThat(call(post("/api/v1/device-capture/sessions"), COLLECTOR, breath, 422).path("code").asString()).isEqualTo("order_required");
+        // breath alcohol at Room 3 has an available device: no device-less session there
+        breath.put("orderRef", "DA-TEST-9");
+        breath.put("stationCode", "LHR-OH-ROOM-3");
+        assertThat(call(post("/api/v1/device-capture/sessions"), COLLECTOR, breath, 422).path("code").asString()).isEqualTo("device_available");
     }
 
     @Test

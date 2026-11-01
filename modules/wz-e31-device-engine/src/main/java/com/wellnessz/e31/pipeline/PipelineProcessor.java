@@ -317,6 +317,12 @@ public class PipelineProcessor {
     Prepared prepare(MessageStore.MessageRow m, DeviceCatalogueLookup.DeviceInstance instance, DriverPackage pkg, ParsedRecord rec, JsonNode fb) {
         Normaliser.Result norm = Normaliser.normalise(pkg, rec, terminology,
                 new Normaliser.Context(m.receivedAt(), m.capturedAt(), m.edgeClock(), settings.maxSkewSeconds()));
+        if (simulatedOnDevice(m, instance)) {
+            // a simulator run on a published device arrives "now": the golden dataset's own timestamp would fall outside the
+            // capture session's window and would mis-date the reading if a session accepts it
+            norm = new Normaliser.Result(norm.components(), m.receivedAt(), norm.deviceTime(), norm.clockSkewMillis(), norm.demographics(),
+                    norm.derived());
+        }
         DeviceCaptureSessions.SessionBinding session = association.session(instance, norm.effectiveAt()).orElse(null);
         String preferred = fb == null ? null : text(fb, "formCode");
         // fall-back values use the binding and gates of their FORM driver (the device's own binding may assume a connected device)
@@ -335,6 +341,17 @@ public class PipelineProcessor {
         return new Prepared(rec, norm, session, sel, id, method, fallback, entered);
     }
 
+    /** Simulator test traffic fed as a published device instance ({@code deviceInstanceId} on the simulator run). */
+    static boolean simulatedOnDevice(MessageStore.MessageRow m, DeviceCatalogueLookup.DeviceInstance instance) {
+        return m.testTraffic() && instance != null && !DriverRuntime.virtual(instance.deviceInstanceId());
+    }
+
+    /** Quality flag shown with every simulated reading (preview, observation view). */
+    static DeviceObservation.QualityFlag simulatedFlag() {
+        return new DeviceObservation.QualityFlag("SIMULATED", DeviceCodes.GateOutcome.INFO, "simulated_test_traffic",
+                "Simulated test reading from a simulator run – not measured on this person.");
+    }
+
     static String text(JsonNode n, String member) {
         JsonNode v = n.get(member);
         return v == null || v.isNull() ? null : v.asString();
@@ -350,10 +367,13 @@ public class PipelineProcessor {
         DeviceCodes.Category category = p.selection().category();
         boolean restricted = RESTRICTED.contains(category);
         boolean virtual = DriverRuntime.virtual(instance.deviceInstanceId());
-        AssociationService.Result assoc = association.associate(new AssociationService.Request(p.observationId(), instance, p.record().identity(),
-                category, p.norm().effectiveAt(), restricted, existing, p.enteredEmployee(), p.session(), true));
+        AssociationService.Request request = new AssociationService.Request(p.observationId(), instance, p.record().identity(),
+                category, p.norm().effectiveAt(), restricted, existing, p.enteredEmployee(), p.session(), true);
+        // test traffic associates only with a capture session that listens on the device – never by the synthetic identity in the
+        // dataset (vendor id, badge, worklist), so it cannot land in a real employee's record or in the clinicians' queue
+        AssociationService.Result assoc = m.testTraffic() ? association.associateTestTraffic(request) : association.associate(request);
         AssociationEngine.Decision d = assoc.decision();
-        boolean verify = p.selection().verifyBeforePost() || p.captureMethod() != DeviceCodes.CaptureMethod.DEVICE || restricted;
+        boolean verify = p.selection().verifyBeforePost() || p.captureMethod() != DeviceCodes.CaptureMethod.DEVICE || restricted || m.testTraffic();
         String employee = d.associated() ? d.employeeId() : null;
         GateEnvironment gateEnv = virtual ? GateEnvironment.SIMULATOR : env;
         GateContext gctx = new GateContext(pkg, category, p.norm().components(), instance.deviceInstanceId(), instance.equipmentDeviceId(),
@@ -362,6 +382,9 @@ public class PipelineProcessor {
                 att(p, a -> a.attestedCalibrationId()), p.fallback() == null ? null : p.fallback().attestedCalibrationDate(),
                 p.fallback() == null ? null : p.fallback().ocrConfidence(), settings.ocrMinConfidence(), verify, gateEnv);
         List<DeviceObservation.QualityFlag> flags = new ArrayList<>(Gates.run(p.selection().qualityGates(), gctx));
+        if (m.testTraffic()) {
+            flags.add(simulatedFlag());
+        }
         if (employee != null) {
             observations.latestRouted(employee, category).filter(l -> l.effectiveAt().isAfter(p.norm().effectiveAt()) && !l.id().equals(p.observationId()))
                     .ifPresent(l -> flags.add(new DeviceObservation.QualityFlag("OUT_OF_SEQUENCE", DeviceCodes.GateOutcome.INFO, "out_of_sequence",
@@ -376,7 +399,8 @@ public class PipelineProcessor {
                 cal == null ? null : cal.calibrationId(), cal == null || cal.calibrationDueOn() == null ? null : cal.calibrationDueOn(),
                 cal == null ? null : cal.verdict().name(),
                 p.record().identity().operator() != null ? p.record().identity().operator() : p.session() == null ? null : p.session().operator(),
-                null, null, d.associated() ? d.method() : null, d.associated() ? d.confidence() : null, p.norm().clockSkewMillis(), m.sha256());
+                null, null, d.associated() ? d.method() : null, d.associated() ? d.confidence() : null, p.norm().clockSkewMillis(), m.sha256(),
+                m.testTraffic());
         List<DeviceObservation.Attachment> attachments = attachments(m, p);
         CanonicalDoc.Demographics demo = new CanonicalDoc.Demographics(p.norm().demographics().sex(), p.norm().demographics().ageYears(),
                 p.norm().demographics().heightCm(), p.norm().demographics().dateOfBirth(), null);
@@ -399,7 +423,10 @@ public class PipelineProcessor {
         messages.stage(m.id(), row.id(), "VALIDATE", blocked ? "WARN" : "OK", blocked ? "observation_blocked" : null, 0);
         observations.upsert(row);
         attachments.forEach(a -> raw.reference(a.archiveId()));
-        if ("UNMATCHED".equals(status)) {
+        if ("UNMATCHED".equals(status) && m.testTraffic()) {
+            // simulator traffic without a listening capture session: kept for the run's evidence, never queued for clinicians
+            messages.stage(m.id(), row.id(), "ASSOCIATE", "WARN", "test_traffic_unassociated", 0);
+        } else if ("UNMATCHED".equals(status)) {
             List<ObservationStore.Suggestion> sug = d.suggestions().stream()
                     .map(c -> new ObservationStore.Suggestion(c.employeeId(), c.displayName(), c.method(), c.confidence())).toList();
             observations.openUnmatched(row, d.reason(), sug, now.plus(Duration.ofHours(settings.unmatchedSlaHours())));
@@ -463,7 +490,15 @@ public class PipelineProcessor {
      */
     public ObservationStore.ObservationRow route(ObservationStore.ObservationRow row, MessageStore.MessageRow m,
                                                  DeviceCatalogueLookup.DeviceInstance instance, String actor, boolean verified) {
-        if (row.testTraffic() && (m == null || !m.routeTestForm())) {
+        if (row.testTraffic() && !sessionAccepted(row, verified)) {
+            if (m != null && m.routeTestForm()) {
+                // wizard test form: the run's evidence – never a production sink
+                ObservationStore.ObservationRow test = copy(row, "ROUTED", "TEST_FORM", row.id().toString(), null, row.routeAttempts() + 1);
+                observations.upsert(test);
+                messages.stage(m.id(), row.id(), "ROUTE", "OK", "test_form", 0);
+                writeFhir(test, instance, m, "preliminary");
+                return test;
+            }
             writeFhir(row, instance, m, "preliminary");
             return row;
         }
@@ -523,6 +558,14 @@ public class PipelineProcessor {
         bus.publish(new E31Events.ObservationRouted(out.id().toString(), out.category().name(), out.routeTarget(), d.recordId(),
                 out.deviceInstanceId()));
         return out;
+    }
+
+    /**
+     * Test traffic reaches a production sink only when a clinician accepted it in the capture session it was associated with
+     * (session association, verified accept) – the explicit opt-in of contract section 12.
+     */
+    static boolean sessionAccepted(ObservationStore.ObservationRow row, boolean verified) {
+        return verified && row.sessionId() != null && row.employeeId() != null && "SESSION".equals(row.associationMethod());
     }
 
     static ObservationStore.ObservationRow copy(ObservationStore.ObservationRow r, String status, String recordType, String recordId, String reject,

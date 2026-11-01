@@ -96,7 +96,7 @@ public class ObservationService implements DeviceObservationGateway {
             DeviceObservation.Provenance verifiedProv = p == null ? null : new DeviceObservation.Provenance(p.modelCode(), p.manufacturer(), p.model(),
                     p.udi(), p.serial(), p.firmware(), p.softwareVersion(), p.driverPackageId(), p.driverVersion(), p.calibrationId(), p.calibrationDate(),
                     p.calibrationVerdict(), p.operator(), actor, now, p.associationMethod(), p.associationConfidence(), p.clockSkewMillis(),
-                    p.rawPayloadSha256());
+                    p.rawPayloadSha256(), p.simulated());
             ObservationStore.ObservationRow verified = new ObservationStore.ObservationRow(o.id(), o.messageId(), o.recordIndex(), o.reportId(),
                     o.tenantCode(), o.siteCode(), o.employeeId(), o.caseId(), o.orderRef(), o.deviceInstanceId(), o.equipmentDeviceId(), o.category(),
                     o.status(), o.captureMethod(), o.restricted(), o.associationMethod(), o.confidence(), o.sessionId(), o.formCode(), o.formVersion(),

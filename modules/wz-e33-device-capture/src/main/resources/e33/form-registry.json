@@ -131,7 +131,7 @@
         {"path": "segCode", "label": "Similar exposure group", "type": "CODE", "required": false}]}]},
     {"formCode": "E10.BREATH_ALCOHOL", "fieldGroups": [
       {"group": "breath-test", "fields": [
-        {"path": "breathScreenResult", "label": "Breath alcohol", "type": "QUANTITY", "unit": "mg/L", "required": true},
+        {"path": "breathScreenResult", "label": "Breath alcohol (g/210 L)", "type": "QUANTITY", "unit": "g/(210.L)", "required": true},
         {"path": "sequence", "label": "Screening or confirmation", "type": "CODE", "required": true},
         {"path": "deviceSerial", "label": "Device serial", "type": "STRING", "required": true},
         {"path": "lastCalibration", "label": "Calibration / accuracy check date", "type": "STRING", "required": true}]}]},

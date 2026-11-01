@@ -24,6 +24,32 @@ class CaptureServiceUnitTest {
         assertThat(DeviceListService.displayName(DeviceCodes.Category.VITALS, null)).isEqualTo("Vital signs monitor");
     }
 
+    static com.wellnessz.casekernel.device.DeviceCatalogueLookup.DeviceInstance inst(String id, String model, String serial, String equipment,
+                                                                                    String station) {
+        return new com.wellnessz.casekernel.device.DeviceCatalogueLookup.DeviceInstance(id, "MD-027", DeviceCodes.Family.VITALS, "Vendor", model,
+                serial, null, "1.0", equipment, DeviceCodes.Option.P4_HL7_MLLP, "PUBLISHED", "LHR", station, "EP-1", "pkg", "1.0.0",
+                java.util.Set.of(DeviceCodes.Category.VITALS), Map.of(), List.of("SESSION"), true, List.of(), "UTC", "GROUP", 1);
+    }
+
+    @Test
+    void stationDisplayNamesAreDisambiguatedByModelThenAssetTag() {
+        Map<String, String> names = DeviceListService.displayNames(List.of(
+                inst("DEV-1", "Connex Spot", "CSM-100042", "VIT-LHR-01", "LHR-OH-ROOM-1"),
+                inst("DEV-2", "UA-651BLE", "UA651-77310", null, "LHR-OH-ROOM-1"),
+                inst("DEV-3", "Connex Spot", "CSM-100777", null, "LHR-OH-ROOM-1"),
+                inst("DEV-4", "Connex Spot", null, null, "LHR-OH-ROOM-2")), DeviceCodes.Category.VITALS);
+        assertThat(names).containsEntry("DEV-1", "Vital signs monitor – Room 1 (Connex Spot · VIT-LHR-01)")
+                .containsEntry("DEV-2", "Vital signs monitor – Room 1 (UA-651BLE)")
+                .containsEntry("DEV-3", "Vital signs monitor – Room 1 (Connex Spot · SN …0777)")
+                .containsEntry("DEV-4", "Vital signs monitor – Room 2"); // alone at its station: unchanged
+        assertThat(new java.util.HashSet<>(names.values())).hasSize(4);
+        // identical model and no asset tag / serial: the instance id keeps the names apart
+        Map<String, String> same = DeviceListService.displayNames(List.of(inst("DEV-A", "Scale", null, null, "LHR-OH-ROOM-1"),
+                inst("DEV-B", "Scale", null, null, "LHR-OH-ROOM-1")), DeviceCodes.Category.VITALS);
+        assertThat(same.get("DEV-A")).isEqualTo("Vital signs monitor – Room 1 (Scale · DEV-A)");
+        assertThat(same.get("DEV-B")).isEqualTo("Vital signs monitor – Room 1 (Scale · DEV-B)");
+    }
+
     @Test
     void transitionsAreAuditedPerState() {
         assertThat(CaptureTransitions.auditAction(Trigger.ACCEPT, State.ACCEPTED)).isEqualTo("DEVICE_CAPTURE_ACCEPT");

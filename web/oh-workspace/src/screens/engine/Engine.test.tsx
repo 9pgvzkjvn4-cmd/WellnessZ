@@ -129,6 +129,37 @@ describe('Observations and provenance', () => {
     expect(await screen.findByText('Restricted reading – MRO only')).toBeTruthy();
     expect(screen.queryByText(/FHIR resources/)).toBeNull();
   });
+  it('an observation reader verifies the raw payload and attachments of the observation', async () => {
+    const user = userEvent.setup();
+    const raw = '44444444-4444-4444-8444-444444444444';
+    const pdf = '55555555-5555-4555-8555-555555555555';
+    const api = mockApi({
+      'GET /device-engine/observations/o1': { observationId: 'o1', category: 'ECG', status: 'ROUTED', captureMethod: 'DEVICE', components: [{ key: 'heartRate', value: 64, ucum: '/min' }], flags: [], provenance: { model: 'MAC 2000', rawPayloadSha256: 'e'.repeat(64) }, attachments: [{ archiveId: pdf, kind: 'PDF', mediaType: 'application/pdf', sha256: 'c'.repeat(64), sizeBytes: 2048 }], restricted: false, rawArchiveId: raw },
+      'GET /device-engine/observations/o1/archive/verify': { sha256Stored: 'e'.repeat(64), sha256Computed: 'e'.repeat(64), intact: true },
+    });
+    render(<ObservationDetail {...props(api, 'OH_PHYSICIAN')} observationId="o1" />);
+    await user.click(await screen.findByRole('button', { name: 'Verify hash' }));
+    expect(await screen.findByText(/Intact – the stored and recomputed SHA-256 match/)).toBeTruthy();
+    expect(api.find('GET', '/device-engine/observations/o1/archive/verify')[0]!.path).toBe('/device-engine/observations/o1/archive/verify');
+    await user.click(screen.getByRole('button', { name: 'Verify hash (pdf)' }));
+    await waitFor(() => expect(api.find('GET', `/device-engine/observations/o1/archive/verify?archiveId=${pdf}`)).toHaveLength(1));
+    expect(api.find('GET', '/device-engine/archive/')).toHaveLength(0);
+  });
+  it('DEVICE_ADMIN / AUDITOR get the provenance-only view of an observation with the raw-payload check', async () => {
+    const user = userEvent.setup();
+    const raw = '66666666-6666-4666-8666-666666666666';
+    const api = mockApi({
+      'GET /device-engine/observations/o1/provenance': { observationId: 'o1', category: 'VITALS', status: 'ROUTED', captureMethod: 'DEVICE', deviceInstanceId: 'DEV-000003', provenance: { model: 'Connex Spot', driverPackageId: 'vitals.welchallyn.csm-pcd01', driverVersion: '1.0.0', rawPayloadSha256: 'd'.repeat(64), simulated: true }, rawArchiveId: raw, rawPayloadSha256: 'd'.repeat(64), attachments: [], restricted: false },
+      [`GET /device-engine/archive/${raw}/verify`]: { sha256Stored: 'd'.repeat(64), sha256Computed: 'd'.repeat(64), intact: true },
+    });
+    render(<ObservationDetail {...props(api, 'AUDITOR')} observationId="o1" />);
+    expect(await screen.findByText(/Provenance only/)).toBeTruthy();
+    expect(screen.getByText(/Simulated test reading/)).toBeTruthy();
+    expect(api.find('GET', '/device-engine/observations/o1')).toHaveLength(1); // the provenance view only, never the person-level read
+    expect((screen.getByLabelText(/Archive id/) as HTMLInputElement).value).toBe(raw);
+    await user.click(screen.getByRole('button', { name: 'Verify hash' }));
+    expect(await screen.findByText(/Intact – the stored and recomputed SHA-256 match/)).toBeTruthy();
+  });
   it('DEVICE_ADMIN gets the archive integrity check only', async () => {
     const user = userEvent.setup();
     const id = '33333333-3333-4333-8333-333333333333';

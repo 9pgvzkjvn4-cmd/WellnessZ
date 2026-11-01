@@ -1,489 +1,598 @@
 # =============================================================================
 # WellnessZ Helm chart - default values (secure, cloud-neutral).
 # Layer a platform file on top:
-#   -f values.yaml -f values-azure.yaml | values-gcp.yaml | values-hybrid.yaml | values-local.yaml
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys -f values.yaml -f values-azure.yaml | values-gcp.yaml | values-hybrid.yaml | values-local.yaml
 # Secrets are NEVER set in values files: they are mounted from Azure Key Vault,
 # GCP Secret Manager or HashiCorp Vault through the Secrets Store CSI driver
 # (secrets.provider) or, for local clusters only, from a pre-created Secret.
 # =============================================================================
 
 global:
-  # Registry + repository prefix, e.g. ghcr.io/acme/wellnessz, myacr.azurecr.io/wellnessz,
-  # europe-west4-docker.pkg.dev/my-project/wellnessz
-  imageRegistry: ghcr.io/OWNER/wellnessz
-  # Defaults to .Chart.AppVersion when empty. CD sets this to the release tag.
-  imageTag: ""
-  imagePullPolicy: IfNotPresent
-  imagePullSecrets: []
-  # Environment name (local|dev|uat|prod) - label, OTel deployment.environment.
-  environment: dev
-  # Refuse to render unless every enabled component is pinned by digest
-  # (component.image.digest). On in prod: only the signed release digests that
-  # passed dev and uat can be deployed (set by .github/workflows/deploy-env.yml).
-  requireImageDigests: false
-  # Spring profile(s) for core and bff (local|azure|gcp|hybrid|prod)
-  springProfiles: prod
-  # OpenShift: let the restricted-v2 SCC assign UIDs (omits runAsUser/runAsGroup/fsGroup)
-  openshift: false
-  commonLabels: {}
-  commonAnnotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Registry + repository prefix, e.g. ghcr.io/acme/wellnessz, myacr.azurecr.io/wellnessz,
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# europe-west4-docker.pkg.dev/my-project/wellnessz
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimageRegistry: ghcr.io/OWNER/wellnessz
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Defaults to .Chart.AppVersion when empty. CD sets this to the release tag.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimageTag: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimagePullPolicy: IfNotPresent
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimagePullSecrets: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Environment name (local|dev|uat|prod) - label, OTel deployment.environment.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenvironment: dev
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Refuse to render unless every enabled component is pinned by digest
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# (component.image.digest). On in prod: only the signed release digests that
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# passed dev and uat can be deployed (set by .github/workflows/deploy-env.yml).
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrequireImageDigests: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Spring profile(s) for core and bff (local|azure|gcp|hybrid|prod)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysspringProfiles: prod
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# OpenShift: let the restricted-v2 SCC assign UIDs (omits runAsUser/runAsGroup/fsGroup)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysopenshift: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyscommonLabels: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyscommonAnnotations: {}
 
 # -----------------------------------------------------------------------------
 # Workload identity - no static cloud credentials in the cluster.
 # -----------------------------------------------------------------------------
 workloadIdentity:
-  azure:
-    enabled: false
-    tenantId: ""
-    # Client IDs of the user-assigned managed identities (Terraform outputs)
-    clientIds:
-      core: ""
-      bff: ""
-      migrations: ""
-  gcp:
-    enabled: false
-    # Google service account emails (Terraform outputs)
-    serviceAccounts:
-      core: ""
-      bff: ""
-      migrations: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysazure:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  tenantId: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Client IDs of the user-assigned managed identities (Terraform outputs)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  clientIds:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    core: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    bff: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    migrations: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysgcp:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Google service account emails (Terraform outputs)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  serviceAccounts:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    core: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    bff: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    migrations: ""
 
 # -----------------------------------------------------------------------------
 # Secrets - Secrets Store CSI driver (secrets-store.csi.x-k8s.io/v1)
-#   provider: none  -> use secrets.existingSecret.* (envFrom), local clusters only
-#   provider: azure -> Azure Key Vault provider (workload identity)
-#   provider: gcp   -> GCP Secret Manager provider (workload identity)
-#   provider: vault -> HashiCorp Vault provider (Kubernetes auth)
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys provider: none  -> use secrets.existingSecret.* (envFrom), local clusters only
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys provider: azure -> Azure Key Vault provider (workload identity)
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys provider: gcp   -> GCP Secret Manager provider (workload identity)
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys provider: vault -> HashiCorp Vault provider (Kubernetes auth)
 # Files land in <mountPath>/<component>/<fileName>; the apps read them through
 # `file:` references (wz-secrets SecretResolver) or WZ_MASTER_KEY_FILE.
 # -----------------------------------------------------------------------------
 secrets:
-  provider: none
-  mountPath: /mnt/secrets
-  # Also mirror into a Kubernetes Secret (secretObjects). Keep false so
-  # secret material is not persisted in etcd.
-  syncToKubernetesSecret: false
-  azure:
-    keyVaultName: ""
-    tenantId: ""
-    cloudName: AzurePublicCloud
-  gcp:
-    projectId: ""
-    # "gke" = GKE-managed Secret Manager add-on (driver secrets-store-gke.csi.k8s.io)
-    # "gcp" = open-source secrets-store-csi-driver-provider-gcp
-    providerName: gke
-  # CSI driver name; GKE add-on uses secrets-store-gke.csi.k8s.io
-  csiDriver: secrets-store.csi.k8s.io
-  vault:
-    address: ""
-    kubernetesMountPath: kubernetes
-    roles:
-      core: wellnessz-core
-      bff: wellnessz-bff
-      migrations: wellnessz-migrations
-  # remoteName = Key Vault secret name / Secret Manager secret id / Vault "path#key"
-  # env/format: export an env var pointing at the mounted file
-  #   format: fileRef -> ENV=file:<path>   (wz-secrets SecretResolver, sensitive props)
-  #   format: path    -> ENV=<path>        (e.g. WZ_MASTER_KEY_FILE)
-  core:
-    files:
-      - fileName: wz-db-password
-        remoteName: wz-db-password
-        env: WZ_DB_PASSWORD
-        format: fileRef
-      - fileName: wz-master-key
-        remoteName: wz-master-key
-        env: WZ_MASTER_KEY_FILE
-        format: path
-      - fileName: wz-pseudonym-key
-        remoteName: wz-pseudonym-key
-        env: WZ_PSEUDONYM_KEY
-        format: fileRef
-  bff:
-    files:
-      - fileName: wz-bff-client-secret
-        remoteName: wz-bff-client-secret
-        env: WZ_BFF_CLIENT_SECRET
-        format: fileRef
-      - fileName: wz-bff-db-password
-        remoteName: wz-bff-db-password
-        env: WZ_BFF_DB_PASSWORD
-        format: fileRef
-      # Session-encryption key - deliberately NOT the core master key
-      - fileName: wz-bff-session-key
-        remoteName: wz-bff-session-key
-        env: WZ_MASTER_KEY_FILE
-        format: path
-  migrations:
-    files:
-      # migrations.mode=app: merged into the core and bff volumes;
-      # mode=job: mounted only into the Flyway Job.
-      - fileName: wz-migrator-db-password
-        remoteName: wz-migrator-db-password
-        env: WZ_DB_MIGRATOR_PASSWORD
-        format: fileRef
-  # provider=none only: names of pre-created Secrets injected with envFrom.
-  existingSecret:
-    core: ""
-    bff: ""
-    migrations: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysprovider: none
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysmountPath: /mnt/secrets
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Also mirror into a Kubernetes Secret (secretObjects). Keep false so
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# secret material is not persisted in etcd.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyssyncToKubernetesSecret: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysazure:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  keyVaultName: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  tenantId: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  cloudName: AzurePublicCloud
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysgcp:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  projectId: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # "gke" = GKE-managed Secret Manager add-on (driver secrets-store-gke.csi.k8s.io)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # "gcp" = open-source secrets-store-csi-driver-provider-gcp
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  providerName: gke
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# CSI driver name; GKE add-on uses secrets-store-gke.csi.k8s.io
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyscsiDriver: secrets-store.csi.k8s.io
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysvault:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  address: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  kubernetesMountPath: kubernetes
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  roles:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    core: wellnessz-core
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    bff: wellnessz-bff
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    migrations: wellnessz-migrations
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# remoteName = Key Vault secret name / Secret Manager secret id / Vault "path#key"
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# env/format: export an env var pointing at the mounted file
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#   format: fileRef -> ENV=file:<path>   (wz-secrets SecretResolver, sensitive props)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#   format: path    -> ENV=<path>        (e.g. WZ_MASTER_KEY_FILE)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyscore:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  files:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    - fileName: wz-db-password
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      remoteName: wz-db-password
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      env: WZ_DB_PASSWORD
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      format: fileRef
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    - fileName: wz-master-key
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      remoteName: wz-master-key
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      env: WZ_MASTER_KEY_FILE
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      format: path
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    - fileName: wz-pseudonym-key
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      remoteName: wz-pseudonym-key
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      env: WZ_PSEUDONYM_KEY
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      format: fileRef
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysbff:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  files:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    - fileName: wz-bff-client-secret
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      remoteName: wz-bff-client-secret
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      env: WZ_BFF_CLIENT_SECRET
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      format: fileRef
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    - fileName: wz-bff-db-password
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      remoteName: wz-bff-db-password
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      env: WZ_BFF_DB_PASSWORD
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      format: fileRef
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    # Session-encryption key - deliberately NOT the core master key
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    - fileName: wz-bff-session-key
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      remoteName: wz-bff-session-key
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      env: WZ_MASTER_KEY_FILE
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      format: path
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysmigrations:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  files:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    # migrations.mode=app: merged into the core and bff volumes;
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    # mode=job: mounted only into the Flyway Job.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    - fileName: wz-migrator-db-password
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      remoteName: wz-migrator-db-password
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      env: WZ_DB_MIGRATOR_PASSWORD
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      format: fileRef
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Increment 6 (E34) device-security secrets, mounted into core ONLY when
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# deviceIngest.enabled (kept separate from core.files so platform overlays that
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# replace core.files do not drop them). Same identity / SecretProviderClass as core.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#   WZ_DEVICE_TOKEN_PEPPER  -> wellnessz.device.security.token-pepper (TokenHasher): HMAC pepper for
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#                              endpoint-token hashes, >= 16 bytes (32 random bytes recommended), never in the DB.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#                              `file:` reference resolved by wz-secrets (property name contains "token").
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#   WZ_DEVICE_TRUST_ANCHORS -> wellnessz.device.pki.trust-anchors (CertificateVerifier): path to a PEM
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#                              bundle with the group-PKI root / issuing CA(s) used to validate enrolment chains.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#                              Public material, but kept in the vault so it is change-controlled with the CA.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Rotating the pepper invalidates every endpoint token (re-enrolment / ROTATE_TOKEN) - see
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# docs/increment-06/04-Device-Administrator-Guide.md.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysdevice:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  files:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    - fileName: wz-device-token-pepper
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      remoteName: wz-device-token-pepper
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      env: WZ_DEVICE_TOKEN_PEPPER
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      format: fileRef
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    - fileName: wz-device-trust-anchors.pem
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      remoteName: wz-device-trust-anchors
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      env: WZ_DEVICE_TRUST_ANCHORS
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      format: path
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# provider=none only: names of pre-created Secrets injected with envFrom.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysexistingSecret:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  core: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  bff: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  migrations: ""
 
 # -----------------------------------------------------------------------------
 # Database migrations (Flyway) - core (schemas platform..analytics) and bff
 # (schema bff, Spring Session tables). Table-level grants come from the
 # migrations via the ${app_role} placeholder.
-#   app: core and bff run Flyway on start-up as the schema-owner role
-#        (WZ_DB_MIGRATOR_USERNAME / WZ_DB_MIGRATOR_PASSWORD)
-#   job: a pre-install/pre-upgrade Job runs Flyway CLI; core then runs with
-#        Flyway disabled and never holds the migrator credential (preferred
-#        for prod - least privilege).
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys app: core and bff run Flyway on start-up as the schema-owner role
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      (WZ_DB_MIGRATOR_USERNAME / WZ_DB_MIGRATOR_PASSWORD)
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys job: a pre-install/pre-upgrade Job runs Flyway CLI; core then runs with
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      Flyway disabled and never holds the migrator credential (preferred
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      for prod - least privilege).
 # -----------------------------------------------------------------------------
 migrations:
-  mode: app
-  migratorUsername: wz_migrator
-  job:
-    image:
-      repository: flyway/flyway
-      tag: 11.20.3-alpine
-      # sha256 digest of the (mirrored) Flyway image; set it in UAT/PROD so the migration Job is pinned like the
-      # product images (go-live item, security assessment 2026-10). Takes precedence over tag.
-      digest: ""
-      fullName: ""   # overrides repository:tag / @digest when set (e.g. mirrored image)
-    # Location of SQL migrations inside the images (Spring Boot layered extraction)
-    core:
-      locationInImage: /app/BOOT-INF/classes/db/migration
-      schemas: platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,treatment,claims,mentalhealth,substance,travelhealth,promotion,deviceint,devicecat,devicecap,devicesec,analytics
-      table: flyway_schema_history
-      appRole: wz_app
-    bff:
-      locationInImage: /app/BOOT-INF/classes/db/bff
-      schemas: bff
-      table: flyway_schema_history_bff
-      appRole: wz_bff
-    # JDBC URL for Flyway; defaults to core.env.WZ_DB_URL
-    dbUrl: ""
-    extraArgs: []
-    backoffLimit: 1
-    activeDeadlineSeconds: 900
-    ttlSecondsAfterFinished: 86400
-    resources:
-      requests: { cpu: 100m, memory: 256Mi }
-      limits: { memory: 512Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysmode: app
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysmigratorUsername: wz_migrator
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysjob:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  image:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    repository: flyway/flyway
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    tag: 11.20.3-alpine
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    # sha256 digest of the (mirrored) Flyway image; set it in UAT/PROD so the migration Job is pinned like the
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    # product images (go-live item, security assessment 2026-10). Takes precedence over tag.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    digest: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    fullName: ""   # overrides repository:tag / @digest when set (e.g. mirrored image)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Location of SQL migrations inside the images (Spring Boot layered extraction)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  core:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    locationInImage: /app/BOOT-INF/classes/db/migration
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    schemas: platform,masterdata,intake,casemgmt,triage,docs,ohrecord,fitness,absence,surveillance,scheduling,treatment,claims,mentalhealth,substance,travelhealth,promotion,deviceint,devicecat,devicecap,devicesec,analytics
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    table: flyway_schema_history
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    appRole: wz_app
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  bff:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    locationInImage: /app/BOOT-INF/classes/db/bff
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    schemas: bff
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    table: flyway_schema_history_bff
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    appRole: wz_bff
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # JDBC URL for Flyway; defaults to core.env.WZ_DB_URL
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  dbUrl: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  extraArgs: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  backoffLimit: 1
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  activeDeadlineSeconds: 900
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  ttlSecondsAfterFinished: 86400
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  resources:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    requests: { cpu: 100m, memory: 256Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    limits: { memory: 512Mi }
 
 # -----------------------------------------------------------------------------
 # Shared pod hardening (applied to every workload)
 # -----------------------------------------------------------------------------
 podSecurityContext:
-  runAsNonRoot: true
-  seccompProfile:
-    type: RuntimeDefault
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrunAsNonRoot: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysseccompProfile:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  type: RuntimeDefault
 containerSecurityContext:
-  allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
-  privileged: false
-  capabilities:
-    drop: ["ALL"]
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysallowPrivilegeEscalation: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysreadOnlyRootFilesystem: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysprivileged: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyscapabilities:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  drop: ["ALL"]
 
 # -----------------------------------------------------------------------------
 # Observability knobs per environment (rendered into the core/bff ConfigMaps;
 # empty = application default)
-#   logLevel       -> LOGGING_LEVEL_COM_WELLNESSZ
-#   rootLogLevel   -> LOGGING_LEVEL_ROOT
-#   traceSampling  -> MANAGEMENT_TRACING_SAMPLING_PROBABILITY (+ WZ_TRACE_SAMPLING), 0.0-1.0
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys logLevel       -> LOGGING_LEVEL_COM_WELLNESSZ
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys rootLogLevel   -> LOGGING_LEVEL_ROOT
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys traceSampling  -> MANAGEMENT_TRACING_SAMPLING_PROBABILITY (+ WZ_TRACE_SAMPLING), 0.0-1.0
 # -----------------------------------------------------------------------------
 observability:
-  logLevel: ""
-  rootLogLevel: ""
-  traceSampling: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyslogLevel: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrootLogLevel: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystraceSampling: ""
 
 topologySpread:
-  enabled: true
-  # ScheduleAnyway keeps single-zone clusters schedulable; use DoNotSchedule in prod.
-  whenUnsatisfiable: ScheduleAnyway
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# ScheduleAnyway keeps single-zone clusters schedulable; use DoNotSchedule in prod.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyswhenUnsatisfiable: ScheduleAnyway
 
 # -----------------------------------------------------------------------------
 # Core API (apps/wz-core-app)
 # -----------------------------------------------------------------------------
 core:
-  enabled: true
-  name: core
-  image:
-    repository: wz-core-app
-    tag: ""
-    digest: ""      # sha256:... - takes precedence over tag (recommended in prod)
-  replicaCount: 2
-  runAsUser: 10001
-  ports:
-    http: 8080
-    management: 8081
-  service:
-    type: ClusterIP
-    annotations: {}
-  resources:
-    requests: { cpu: 500m, memory: 1Gi }
-    limits: { memory: 1536Mi }
-  tmpSizeLimit: 512Mi
-  probes:
-    livenessPath: /actuator/health/liveness
-    readinessPath: /actuator/health/readiness
-    startupFailureThreshold: 36   # x5s = 3 min (Flyway on first start)
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 6
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
-  pdb:
-    enabled: true
-    minAvailable: 1
-  serviceAccount:
-    create: true
-    name: ""
-    annotations: {}
-  podAnnotations: {}
-  podLabels: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-  # Non-secret configuration (rendered into a ConfigMap)
-  env:
-    # sslmode is set through WZ_DB_SSLMODE (app default verify-full)
-    WZ_DB_URL: "jdbc:postgresql://postgres.example.internal:5432/wellnessz?sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
-    WZ_DB_USERNAME: wz_app
-    WZ_DB_SSLMODE: verify-full
-    WZ_OIDC_ISSUERS: ""
-    WZ_OIDC_AUDIENCE: wellnessz-api
-    WZ_CORS_ORIGINS: ""
-    WZ_ANALYTICS_MIN_GROUP: "5"
-    WZ_EHS_MAILBOX_MODE: none
-    WZ_SMTP_HOST: ""
-    WZ_SMTP_PORT: "587"
-    # links in content-free notifications – keep in line with ingress.hosts
-    WZ_EMPLOYEE_PORTAL_URL: "https://employee.wellnessz.example.com"
-    WZ_MANAGER_WORKSPACE_URL: "https://manager.wellnessz.example.com"
-    WZ_OH_WORKSPACE_URL: "https://oh.wellnessz.example.com"
-    WZ_PARTNER_PORTAL_URL: "https://partners.wellnessz.example.com"
-    OTEL_EXPORTER_OTLP_ENDPOINT: ""
-    OTEL_SERVICE_NAME: wz-core-app
-  extraEnv: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysname: core
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimage:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  repository: wz-core-app
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  tag: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  digest: ""      # sha256:... - takes precedence over tag (recommended in prod)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysreplicaCount: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrunAsUser: 10001
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysports:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  http: 8080
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  management: 8081
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysservice:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  type: ClusterIP
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysresources:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  requests: { cpu: 500m, memory: 1Gi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  limits: { memory: 1536Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystmpSizeLimit: 512Mi
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysprobes:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  livenessPath: /actuator/health/liveness
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  readinessPath: /actuator/health/readiness
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  startupFailureThreshold: 36   # x5s = 3 min (Flyway on first start)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysautoscaling:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minReplicas: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  maxReplicas: 6
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  targetCPUUtilizationPercentage: 70
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  targetMemoryUtilizationPercentage: 80
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspdb:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minAvailable: 1
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysserviceAccount:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  create: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  name: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodAnnotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodLabels: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysnodeSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystolerations: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysaffinity: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Non-secret configuration (rendered into a ConfigMap)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenv:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # sslmode is set through WZ_DB_SSLMODE (app default verify-full)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_DB_URL: "jdbc:postgresql://postgres.example.internal:5432/wellnessz?sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_DB_USERNAME: wz_app
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_DB_SSLMODE: verify-full
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_OIDC_ISSUERS: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_OIDC_AUDIENCE: wellnessz-api
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_CORS_ORIGINS: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_ANALYTICS_MIN_GROUP: "5"
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_EHS_MAILBOX_MODE: none
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_SMTP_HOST: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_SMTP_PORT: "587"
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # links in content-free notifications – keep in line with ingress.hosts
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_EMPLOYEE_PORTAL_URL: "https://employee.wellnessz.example.com"
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_MANAGER_WORKSPACE_URL: "https://manager.wellnessz.example.com"
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_OH_WORKSPACE_URL: "https://oh.wellnessz.example.com"
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_PARTNER_PORTAL_URL: "https://partners.wellnessz.example.com"
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  OTEL_EXPORTER_OTLP_ENDPOINT: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  OTEL_SERVICE_NAME: wz-core-app
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysextraEnv: []
 
 # -----------------------------------------------------------------------------
 # Backend-for-Frontend (apps/wz-bff)
 # -----------------------------------------------------------------------------
 bff:
-  enabled: true
-  name: bff
-  image:
-    repository: wz-bff
-    tag: ""
-    digest: ""
-  replicaCount: 2
-  runAsUser: 10001
-  ports:
-    http: 8090
-    management: 8081
-  service:
-    type: ClusterIP
-    annotations: {}
-  resources:
-    requests: { cpu: 250m, memory: 512Mi }
-    limits: { memory: 1Gi }
-  tmpSizeLimit: 256Mi
-  probes:
-    livenessPath: /actuator/health/liveness
-    readinessPath: /actuator/health/readiness
-    startupFailureThreshold: 24
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 6
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
-  pdb:
-    enabled: true
-    minAvailable: 1
-  serviceAccount:
-    create: true
-    name: ""
-    annotations: {}
-  podAnnotations: {}
-  podLabels: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-  env:
-    WZ_BFF_ISSUER_URI: ""
-    WZ_BFF_CLIENT_ID: wellnessz-bff
-    # Empty = in-cluster core Service (http://<release>-core:8080). Set when
-    # core runs elsewhere (hybrid: on-prem core over private connectivity).
-    WZ_CORE_API_URL: ""
-    WZ_BFF_POST_LOGOUT_URI: ""
-    # Session store: empty = core.env.WZ_DB_URL (schema bff, role wz_bff)
-    WZ_BFF_DB_URL: ""
-    WZ_BFF_DB_USERNAME: wz_bff
-    WZ_DB_SSLMODE: verify-full
-    WZ_COOKIE_SECURE: "true"
-    OTEL_EXPORTER_OTLP_ENDPOINT: ""
-    OTEL_SERVICE_NAME: wz-bff
-  extraEnv: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysname: bff
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimage:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  repository: wz-bff
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  tag: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  digest: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysreplicaCount: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrunAsUser: 10001
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysports:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  http: 8090
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  management: 8081
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysservice:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  type: ClusterIP
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysresources:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  requests: { cpu: 250m, memory: 512Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  limits: { memory: 1Gi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystmpSizeLimit: 256Mi
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysprobes:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  livenessPath: /actuator/health/liveness
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  readinessPath: /actuator/health/readiness
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  startupFailureThreshold: 24
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysautoscaling:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minReplicas: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  maxReplicas: 6
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  targetCPUUtilizationPercentage: 70
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  targetMemoryUtilizationPercentage: 80
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspdb:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minAvailable: 1
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysserviceAccount:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  create: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  name: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodAnnotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodLabels: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysnodeSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystolerations: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysaffinity: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenv:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_BFF_ISSUER_URI: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_BFF_CLIENT_ID: wellnessz-bff
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Empty = in-cluster core Service (http://<release>-core:8080). Set when
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # core runs elsewhere (hybrid: on-prem core over private connectivity).
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_CORE_API_URL: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_BFF_POST_LOGOUT_URI: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Session store: empty = core.env.WZ_DB_URL (schema bff, role wz_bff)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_BFF_DB_URL: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_BFF_DB_USERNAME: wz_bff
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_DB_SSLMODE: verify-full
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  WZ_COOKIE_SECURE: "true"
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  OTEL_EXPORTER_OTLP_ENDPOINT: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  OTEL_SERVICE_NAME: wz-bff
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysextraEnv: []
 
 # -----------------------------------------------------------------------------
 # Static web apps (nginx-unprivileged, port 8080)
 # -----------------------------------------------------------------------------
 employeePortal:
-  enabled: true
-  name: employee-portal
-  image:
-    repository: employee-app
-    tag: ""
-    digest: ""
-  replicaCount: 2
-  runAsUser: 101      # nginx-unprivileged image user
-  ports:
-    http: 8080
-  service:
-    type: ClusterIP
-    annotations: {}
-  resources:
-    requests: { cpu: 50m, memory: 64Mi }
-    limits: { memory: 128Mi }
-  tmpSizeLimit: 64Mi
-  probes:
-    path: /healthz
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 4
-    targetCPUUtilizationPercentage: 70
-  pdb:
-    enabled: true
-    minAvailable: 1
-  serviceAccount:
-    create: true
-    name: ""
-    annotations: {}
-  podAnnotations: {}
-  podLabels: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysname: employee-portal
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimage:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  repository: employee-app
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  tag: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  digest: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysreplicaCount: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrunAsUser: 101      # nginx-unprivileged image user
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysports:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  http: 8080
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysservice:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  type: ClusterIP
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysresources:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  requests: { cpu: 50m, memory: 64Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  limits: { memory: 128Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystmpSizeLimit: 64Mi
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysprobes:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  path: /healthz
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysautoscaling:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minReplicas: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  maxReplicas: 4
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  targetCPUUtilizationPercentage: 70
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspdb:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minAvailable: 1
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysserviceAccount:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  create: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  name: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodAnnotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodLabels: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysnodeSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystolerations: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysaffinity: {}
 
 managerWorkspace:
-  enabled: true
-  name: manager-workspace
-  image:
-    repository: manager-workspace
-    tag: ""
-    digest: ""
-  replicaCount: 2
-  runAsUser: 101
-  ports:
-    http: 8080
-  service:
-    type: ClusterIP
-    annotations: {}
-  resources:
-    requests: { cpu: 50m, memory: 64Mi }
-    limits: { memory: 128Mi }
-  tmpSizeLimit: 64Mi
-  probes:
-    path: /healthz
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 4
-    targetCPUUtilizationPercentage: 70
-  pdb:
-    enabled: true
-    minAvailable: 1
-  serviceAccount:
-    create: true
-    name: ""
-    annotations: {}
-  podAnnotations: {}
-  podLabels: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysname: manager-workspace
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimage:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  repository: manager-workspace
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  tag: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  digest: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysreplicaCount: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrunAsUser: 101
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysports:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  http: 8080
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysservice:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  type: ClusterIP
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysresources:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  requests: { cpu: 50m, memory: 64Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  limits: { memory: 128Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystmpSizeLimit: 64Mi
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysprobes:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  path: /healthz
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysautoscaling:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minReplicas: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  maxReplicas: 4
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  targetCPUUtilizationPercentage: 70
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspdb:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minAvailable: 1
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysserviceAccount:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  create: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  name: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodAnnotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodLabels: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysnodeSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystolerations: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysaffinity: {}
 
 # Occupational-health clinical workspace (E01 intake, E02 triage queues & SLA). Same-origin BFF login.
 ohWorkspace:
-  enabled: true
-  name: oh-workspace
-  image:
-    repository: oh-workspace
-    tag: ""
-    digest: ""
-  replicaCount: 2
-  runAsUser: 101
-  ports:
-    http: 8080
-  service:
-    type: ClusterIP
-    annotations: {}
-  resources:
-    requests: { cpu: 50m, memory: 64Mi }
-    limits: { memory: 128Mi }
-  tmpSizeLimit: 64Mi
-  probes:
-    path: /healthz
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 4
-    targetCPUUtilizationPercentage: 70
-  pdb:
-    enabled: true
-    minAvailable: 1
-  serviceAccount:
-    create: true
-    name: ""
-    annotations: {}
-  podAnnotations: {}
-  podLabels: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysname: oh-workspace
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimage:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  repository: oh-workspace
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  tag: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  digest: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysreplicaCount: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrunAsUser: 101
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysports:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  http: 8080
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysservice:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  type: ClusterIP
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysresources:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  requests: { cpu: 50m, memory: 64Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  limits: { memory: 128Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystmpSizeLimit: 64Mi
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysprobes:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  path: /healthz
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysautoscaling:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minReplicas: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  maxReplicas: 4
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  targetCPUUtilizationPercentage: 70
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspdb:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minAvailable: 1
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysserviceAccount:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  create: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  name: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodAnnotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodLabels: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysnodeSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystolerations: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysaffinity: {}
 
 # Partner portal (increment 4): external providers and TPA adjusters. Same-origin BFF login; the core API grants
 # PARTNER_PROVIDER / TPA_ADJUSTER only when the token proves MFA (wellnessz.security.mfa-required-roles).
 partnerPortal:
-  enabled: true
-  name: partner-portal
-  image:
-    repository: partner-portal
-    tag: ""
-    digest: ""
-  replicaCount: 2
-  runAsUser: 101
-  ports:
-    http: 8080
-  service:
-    type: ClusterIP
-    annotations: {}
-  resources:
-    requests: { cpu: 50m, memory: 64Mi }
-    limits: { memory: 128Mi }
-  tmpSizeLimit: 64Mi
-  probes:
-    path: /healthz
-  autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 4
-    targetCPUUtilizationPercentage: 70
-  pdb:
-    enabled: true
-    minAvailable: 1
-  serviceAccount:
-    create: true
-    name: ""
-    annotations: {}
-  podAnnotations: {}
-  podLabels: {}
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysname: partner-portal
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimage:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  repository: partner-portal
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  tag: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  digest: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysreplicaCount: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrunAsUser: 101
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysports:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  http: 8080
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysservice:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  type: ClusterIP
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysresources:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  requests: { cpu: 50m, memory: 64Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  limits: { memory: 128Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystmpSizeLimit: 64Mi
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysprobes:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  path: /healthz
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysautoscaling:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minReplicas: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  maxReplicas: 4
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  targetCPUUtilizationPercentage: 70
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspdb:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  minAvailable: 1
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysserviceAccount:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  create: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  name: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodAnnotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodLabels: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysnodeSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystolerations: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysaffinity: {}
+
+# -----------------------------------------------------------------------------
+# Device gateway (apps/wz-device-gateway) - OPTIONAL, for a clinic edge cluster
+# (k3s / MicroK8s on the hardened gateway host, see deploy/edge/). Off in every
+# cloud overlay: the gateway runs at the site, next to the devices, and calls the
+# device ingest host over mTLS. Enable with values-edge-k3s.yaml +
+# environments/edge/<env>.yaml (core, bff and web apps are disabled there).
+# Single replica (one writer of the encrypted store-and-forward journal), Recreate
+# strategy, persistent volume for the data dir (identity, queue, ledgers).
+# -----------------------------------------------------------------------------
+deviceGateway:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysname: device-gateway
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysimage:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  repository: wz-device-gateway
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  tag: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  digest: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrunAsUser: 10001
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrole: GATEWAY                # GATEWAY | DEVICE_HOST_AGENT
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Device ingest base URL (deviceIngest.host of the core environment); /api/v1 is appended by the gateway
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyscoreUrl: https://ingest.wellnessz.example.com
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Status page + actuator stay on 127.0.0.1 inside the pod (LoopbackOnlyFilter); probes use exec
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysstatusPort: 8095
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysports:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  http: 8095                 # informational only - never exposed by a Service
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Device-facing listeners exposed by the Service (must match wz.gateway.* connectors in config)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyslisteners:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  - { name: mllp-tls, port: 2575 }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  - { name: poct-tls, port: 2576 }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysservice:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # k3s ServiceLB / MetalLB: LoadBalancer on the device VLAN interface; NodePort also works
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  type: LoadBalancer
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  loadBalancerIP: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Restrict to the device VLAN(s) at the LB as well as in the NetworkPolicy
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  loadBalancerSourceRanges: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  externalTrafficPolicy: Local
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspersistence:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Must be an encrypted volume (LUKS on the host, see deploy/edge/hardening-checklist.md)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  size: 4Gi
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  storageClassName: ""       # k3s: local-path
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  accessModes: [ReadWriteOnce]
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  existingClaim: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Spring Boot application.yml content (wz.gateway.* connectors, heartbeat, queue) mounted at /config/.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Secrets only as file:/ENC() references to the mounted secret files below.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysconfig: |
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  wz:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    gateway:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      heartbeat:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys        baseline: CIS-L1
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Pre-created Secret (k3s: sealed-secrets / external-secrets / vault agent) mounted read-only at
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys (all optional except client.p12 +
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# keystore-password and either master-key or the data-dir key file):
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#   client.p12, keystore-password      -> WZ_GATEWAY_KEYSTORE / _PASSWORD (group-PKI client cert)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#   truststore.p12, truststore-password -> WZ_GATEWAY_TRUSTSTORE / _PASSWORD (ingress server CA)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#   master-key                          -> WZ_MASTER_KEY_FILE (TPM-unsealed by the host, deploy/edge)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#   enrolment-token                     -> WZ_GATEWAY_ENROLMENT_TOKEN_FILE (one-time; delete the key after enrolment)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#   listener.p12, listener-password     -> referenced from config as file:/etc/wellnessz/gateway/secrets/...
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyssecrets:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  existingSecret: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  keystore: client.p12
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  keystorePassword: keystore-password
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  truststore: ""             # e.g. truststore.p12
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  truststorePassword: ""     # e.g. truststore-password
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  masterKey: master-key
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enrolmentToken: enrolment-token
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysresources:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  requests: { cpu: 100m, memory: 384Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  limits: { memory: 768Mi }
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystmpSizeLimit: 64Mi
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysserviceAccount:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  create: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  name: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  annotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodAnnotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspodLabels: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysnodeSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystolerations: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysaffinity: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysextraEnv: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# NetworkPolicy of the gateway pod (device zone)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysnetworkPolicy:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Device VLAN CIDRs allowed to reach the listeners. Empty = no ingress at all (fail closed).
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  deviceCidrs: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Device ingest endpoint (ingress LB) CIDRs reachable on 443. Empty = networkPolicy.https rule.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  coreCidrs: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Vendor DB pollers, serial-over-TCP terminal servers, NTP ... (raw NetworkPolicyEgressRule list)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  extraEgress: []
 
 # -----------------------------------------------------------------------------
 # Ingress (TLS terminated at the controller / cloud load balancer)
@@ -492,148 +601,219 @@ partnerPortal:
 # exposes core /api/v1 for the mobile app (PKCE bearer tokens) and M2M clients.
 # -----------------------------------------------------------------------------
 ingress:
-  enabled: true
-  # Controller-specific settings live in the platform overlays (AGIC, GCE,
-  # OpenShift router, ...). NOTE: the community ingress-nginx project was
-  # retired in March 2026 - prefer a supported controller for new clusters.
-  className: nginx
-  # Applied to every Ingress (HTTPS redirect, WAF, body size, ...)
-  annotations: {}
-  webAnnotations: {}
-  apiAnnotations: {}
-  # Use `kubernetes.io/ingress.class` annotation instead of spec.ingressClassName (GKE GCE)
-  useClassAnnotation: false
-  tls:
-    enabled: true
-    # Secret holding the certificate (cert-manager, Key Vault sync, etc.).
-    # Leave empty when the cloud LB supplies certificates (GKE ManagedCertificate,
-    # AGIC with Key Vault certificate annotation).
-    secretName: wellnessz-tls
-  bffPaths: [/bff, /oauth2, /login, /logout]
-  hosts:
-    employeePortal: employee.wellnessz.example.com
-    managerWorkspace: manager.wellnessz.example.com
-    ohWorkspace: oh.wellnessz.example.com
-    partnerPortal: partners.wellnessz.example.com
-  api:
-    enabled: true
-    host: api.wellnessz.example.com
-    paths: [/api/v1]
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Controller-specific settings live in the platform overlays (AGIC, GCE,
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# OpenShift router, ...). NOTE: the community ingress-nginx project was
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# retired in March 2026 - prefer a supported controller for new clusters.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysclassName: nginx
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Applied to every Ingress (HTTPS redirect, WAF, body size, ...)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysannotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyswebAnnotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysapiAnnotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Use `kubernetes.io/ingress.class` annotation instead of spec.ingressClassName (GKE GCE)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysuseClassAnnotation: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystls:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Secret holding the certificate (cert-manager, Key Vault sync, etc.).
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Leave empty when the cloud LB supplies certificates (GKE ManagedCertificate,
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # AGIC with Key Vault certificate annotation).
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  secretName: wellnessz-tls
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysbffPaths: [/bff, /oauth2, /login, /logout]
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyshosts:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  employeePortal: employee.wellnessz.example.com
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  managerWorkspace: manager.wellnessz.example.com
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  ohWorkspace: oh.wellnessz.example.com
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  partnerPortal: partners.wellnessz.example.com
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysapi:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  host: api.wellnessz.example.com
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  paths: [/api/v1]
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Machine paths (/api/v1/device-*) must never be reachable through the public API host: there
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # the client could send X-Client-Cert-Sha256 itself. For NGINX-class controllers the chart
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # renders a deny-all Ingress for those paths on the API host (whitelist-source-range 127.0.0.1/32
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # is applied per location). AGIC / GCE: the equivalent block is a WAF custom rule in Terraform
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # (azure/appgw.tf BlockDevicePathsOnPublicApi, gcp/armor.tf priority 900).
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  blockDevicePaths: true
+
+# -----------------------------------------------------------------------------
+# Device ingest (increment 6 - E31 ingest API, E34 endpoint identity).
+# Machine traffic from gateways, Device Host agents, data managers and vendor
+# clouds reaches core ONLY through this ingress (contract §7, solution design §5.1/§8):
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys * TLS with client-certificate verification (mTLS) against the group-PKI CA;
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys * the SHA-256 thumbprint (lower-case hex of the DER leaf) of the VERIFIED
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys   client certificate is passed as X-Client-Cert-Sha256 (core:
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys   wellnessz.device.ingest.certificate-header); never a client-supplied value;
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys * X-Forwarded-For is overwritten with the TCP peer (core resolves the zone
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys   CIDR check from it via server.forward-headers-strategy=framework) and any
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys   client-supplied certificate / forwarding headers are stripped.
+# Rendered for ingress-nginx (dedicated controller instance, IngressClass
+# `nginx-device`, see deploy/device-ingress/README.md for the controller
+# settings this relies on). AGIC / GKE differences are documented there; for
+# other controllers set deviceIngest.flavour=custom and supply annotations.
+# -----------------------------------------------------------------------------
+deviceIngest:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# nginx  -> ingress-nginx annotations (auth-tls + Lua thumbprint snippet) - the supported path
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# custom -> only deviceIngest.annotations are rendered (operator supplies the platform equivalent)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysflavour: nginx
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysclassName: nginx-device
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyshost: ingest.wellnessz.example.com
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyspaths:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  ingest: /api/v1/device-ingest
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enrolment: /api/v1/device-enrolment
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  webhooks: /api/v1/device-webhooks
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Must equal core wellnessz.device.ingest.certificate-header (WZ_DEVICE_CERT_HEADER, rendered into core env)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyscertificateHeader: X-Client-Cert-Sha256
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keystls:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Server certificate for deviceIngest.host (and webhooks.host); cert-manager / Key Vault sync
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  secretName: wellnessz-device-ingest-tls
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysmtls:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # "<namespace>/<secret>" holding ca.crt = group-PKI issuing CA bundle (+ optional ca.crl,
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # refreshed by the PKI job - nginx has no OCSP for client certificates). REQUIRED when enabled.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  caSecret: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  verifyDepth: 2
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Optional regex on the subject DN, e.g. "CN=EP-[A-Z]{3}-(GW|AGT|DM|TAB|KSK)-[0-9]{2}"
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  matchCN: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Source CIDRs allowed at the edge (gateway-zone / clinic LAN NAT ranges = E34 zone_cidr rows).
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Empty = no edge allow-list (core still enforces zone CIDRs per endpoint).
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyssourceRanges: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Streamed attachments are <= 50 MB (device.ingest.max-payload-bytes); batches <= 10 MB
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysmaxBodySize: 64m
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysproxyReadTimeout: 60
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Per-client-IP requests/second at the edge (0 = off; core applies per-endpoint budgets anyway)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysrateLimitRps: 0
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Vendor-cloud webhooks (P6) cannot present client certificates (HMAC-signed instead).
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# host set  -> separate Ingress on this host WITHOUT client-certificate verification
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys#              (same header stripping, own sourceRanges); recommended.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# host ""   -> webhooks path is served on deviceIngest.host and needs a group-PKI client cert.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyswebhooks:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  host: webhooks.wellnessz.example.com
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  sourceRanges: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  rateLimitRps: 10
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Extra / platform-specific annotations, merged last (win over rendered ones)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysannotations: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Where the device ingress controller pods run: NetworkPolicy peers allowed to reach core:8080
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyscontroller:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  namespaceSelector:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    matchLabels:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      kubernetes.io/metadata.name: ingress-nginx-device
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  podSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  ipBlocks: []
 
 # -----------------------------------------------------------------------------
 # GKE-only objects (rendered when gcp.*.enabled)
 # -----------------------------------------------------------------------------
 gcp:
-  backendConfig:
-    enabled: false
-    securityPolicy: ""        # Cloud Armor policy name (Terraform output)
-    timeoutSec: 60
-    logging:
-      enable: true
-      sampleRate: 1.0
-  frontendConfig:
-    enabled: false
-    sslPolicy: ""             # Terraform output (TLS 1.2+, MODERN/RESTRICTED)
-  managedCertificate:
-    enabled: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysbackendConfig:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  securityPolicy: ""        # Cloud Armor policy name (Terraform output)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  timeoutSec: 60
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  logging:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    enable: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    sampleRate: 1.0
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysfrontendConfig:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  sslPolicy: ""             # Terraform output (TLS 1.2+, MODERN/RESTRICTED)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysmanagedCertificate:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: false
 
 # -----------------------------------------------------------------------------
 # NetworkPolicies - default deny, explicit allow
 # -----------------------------------------------------------------------------
 networkPolicy:
-  enabled: true
-  # Deny-all for every pod in the namespace (recommended: dedicated namespace)
-  defaultDenyNamespace: true
-  dns:
-    namespaceSelector:
-      matchLabels:
-        kubernetes.io/metadata.name: kube-system
-    podSelector:
-      matchLabels:
-        k8s-app: kube-dns
-    # e.g. NodeLocal DNSCache 169.254.20.10/32
-    extraIpBlocks: []
-  # Where ingress traffic comes from. Either selectors (in-cluster controller)
-  # or ipBlocks (AGIC / GCE load balancers reach pods directly).
-  ingressController:
-    namespaceSelector:
-      matchLabels:
-        kubernetes.io/metadata.name: ingress-nginx
-    podSelector: {}
-    ipBlocks: []
-    # Allow the same peers to reach the management port (cloud L7 load
-    # balancers - AGIC / GCE - health-check pods directly on the readiness probe port)
-    allowHealthChecks: false
-  # Prometheus / OTel scraping of management ports
-  monitoring:
-    enabled: true
-    namespaceSelector:
-      matchLabels:
-        kubernetes.io/metadata.name: monitoring
-  # PostgreSQL endpoints for core (and migration job)
-  database:
-    port: 5432
-    cidrs: []
-    # Alternatively select an in-cluster database (e.g. CloudNativePG)
-    namespaceSelector: {}
-    podSelector: {}
-  # OIDC IdP (JWKS / token endpoint), Microsoft Graph, etc. 443/TCP
-  https:
-    cidrs: ["0.0.0.0/0"]
-    except: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
-  # OTLP collector
-  otel:
-    enabled: false
-    namespaceSelector: {}
-    podSelector: {}
-    ports: [4317, 4318]
-  # Extra peers allowed to reach core:8080 (raw NetworkPolicyPeer list), e.g.
-  # the cloud BFF egress range in hybrid deployments: [{ipBlock: {cidr: 10.20.0.0/24}}]
-  coreExtraIngressPeers: []
-  # Extra egress rules appended per component (raw NetworkPolicyEgressRule)
-  extraEgress:
-    core: []
-    bff: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Deny-all for every pod in the namespace (recommended: dedicated namespace)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysdefaultDenyNamespace: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysdns:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  namespaceSelector:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    matchLabels:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      kubernetes.io/metadata.name: kube-system
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  podSelector:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    matchLabels:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      k8s-app: kube-dns
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # e.g. NodeLocal DNSCache 169.254.20.10/32
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  extraIpBlocks: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Where ingress traffic comes from. Either selectors (in-cluster controller)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# or ipBlocks (AGIC / GCE load balancers reach pods directly).
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysingressController:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  namespaceSelector:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    matchLabels:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      kubernetes.io/metadata.name: ingress-nginx
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  podSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  ipBlocks: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Allow the same peers to reach the management port (cloud L7 load
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # balancers - AGIC / GCE - health-check pods directly on the readiness probe port)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  allowHealthChecks: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Prometheus / OTel scraping of management ports
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysmonitoring:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: true
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  namespaceSelector:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    matchLabels:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys      kubernetes.io/metadata.name: monitoring
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# PostgreSQL endpoints for core (and migration job)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysdatabase:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  port: 5432
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  cidrs: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Alternatively select an in-cluster database (e.g. CloudNativePG)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  namespaceSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  podSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# OIDC IdP (JWKS / token endpoint), Microsoft Graph, etc. 443/TCP
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyshttps:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  cidrs: ["0.0.0.0/0"]
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  except: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# OTLP collector
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysotel:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  namespaceSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  podSelector: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  ports: [4317, 4318]
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Extra peers allowed to reach core:8080 (raw NetworkPolicyPeer list), e.g.
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# the cloud BFF egress range in hybrid deployments: [{ipBlock: {cidr: 10.20.0.0/24}}]
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyscoreExtraIngressPeers: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys# Extra egress rules appended per component (raw NetworkPolicyEgressRule)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysextraEgress:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  core: []
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  bff: []
 
 # -----------------------------------------------------------------------------
 # Observability
 # -----------------------------------------------------------------------------
 serviceMonitor:
-  enabled: false
-  interval: 30s
-  labels: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysenabled: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysinterval: 30s
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keyslabels: {}
 
 # -----------------------------------------------------------------------------
 # Client-specific customisation (per client deployment, no chart fork needed).
 # See deploy/environments/README.md "Client customisation".
-#   client        -> WZ_CLIENT_ID + label wellnessz.io/client on every object
-#   featureFlags  -> WZ_FEATURE_<NAME> on core and bff (name upper-cased,
-#                    non-alphanumerics -> "_"), e.g. ehsMailbox: true -> WZ_FEATURE_EHSMAILBOX=true,
-#                    travel-health-v2: false -> WZ_FEATURE_TRAVEL_HEALTH_V2=false
-#   migrations    -> client-specific Flyway migrations (db/client/<client>)
-#                    applied AFTER the core set, in their own schema(s) and
-#                    history table so they never collide with product versions.
-#                    Source: an extension image (preferred - built, scanned and
-#                    signed like the product images) or a ConfigMap of *.sql.
-#                    migrations.mode=job -> extra Flyway step in the migration Job
-#                    migrations.mode=app -> mounted into core, WZ_FLYWAY_EXTRA_LOCATIONS
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys client        -> WZ_CLIENT_ID + label wellnessz.io/client on every object
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys featureFlags  -> WZ_FEATURE_<NAME> on core and bff (name upper-cased,
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys                  non-alphanumerics -> "_"), e.g. ehsMailbox: true -> WZ_FEATURE_EHSMAILBOX=true,
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys                  travel-health-v2: false -> WZ_FEATURE_TRAVEL_HEALTH_V2=false
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys migrations    -> client-specific Flyway migrations (db/client/<client>)
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys                  applied AFTER the core set, in their own schema(s) and
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys                  history table so they never collide with product versions.
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys                  Source: an extension image (preferred - built, scanned and
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys                  signed like the product images) or a ConfigMap of *.sql.
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys                  migrations.mode=job -> extra Flyway step in the migration Job
+# /etc/wellnessz/gateway/secrets (mode 0400). Expected keys                  migrations.mode=app -> mounted into core, WZ_FLYWAY_EXTRA_LOCATIONS
 # Arbitrary extra env vars: core.extraEnv / bff.extraEnv (raw EnvVar list).
 # -----------------------------------------------------------------------------
 customisation:
-  client: ""
-  featureFlags: {}
-  migrations:
-    enabled: false
-    # Extension image containing the SQL under `path` (needs `sh` and `cp`)
-    image:
-      repository: ""     # e.g. wz-client-acme (relative to global.imageRegistry) or a full reference
-      tag: ""
-      digest: ""
-      path: /client/db/migration
-    # Alternative to the image: ConfigMap whose keys are V<n>__<desc>.sql files
-    configMap: ""
-    # Default schema: client_<client>
-    schemas: ""
-    table: flyway_schema_history_client
-    # Mount point inside core (migrations.mode=app)
-    mountPath: /opt/wellnessz/client-migrations
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysclient: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysfeatureFlags: {}
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keysmigrations:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  enabled: false
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Extension image containing the SQL under `path` (needs `sh` and `cp`)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  image:
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    repository: ""     # e.g. wz-client-acme (relative to global.imageRegistry) or a full reference
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    tag: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    digest: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys    path: /client/db/migration
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Alternative to the image: ConfigMap whose keys are V<n>__<desc>.sql files
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  configMap: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Default schema: client_<client>
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  schemas: ""
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  table: flyway_schema_history_client
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  # Mount point inside core (migrations.mode=app)
+ /etc/wellnessz/gateway/secrets (mode 0400). Expected keys  mountPath: /opt/wellnessz/client-migrations

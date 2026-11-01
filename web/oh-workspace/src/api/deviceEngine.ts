@@ -62,6 +62,8 @@ export interface Provenance {
   associationConfidence?: number | null;
   clockSkewMillis?: number;
   rawPayloadSha256?: string | null;
+  /** Test traffic from a simulator run (contract §12) – never a real measurement. */
+  simulated?: boolean;
 }
 export interface Attachment {
   archiveId: string;
@@ -111,6 +113,22 @@ export interface ObservationView {
   restricted: boolean;
   restrictedNote?: string | null;
   fhir?: FhirStored[] | null;
+  /** Raw payload archive of the observation's message (absent for a restricted reading the viewer may not open). */
+  rawArchiveId?: string | null;
+}
+/** Provenance-only view for DEVICE_ADMIN / AUDITOR – no employee, values or filed record. */
+export interface ProvenanceView {
+  observationId: string;
+  category: string;
+  status: string;
+  effectiveAt?: string | null;
+  deviceInstanceId?: string | null;
+  captureMethod?: string | null;
+  provenance?: Provenance | null;
+  rawArchiveId?: string | null;
+  rawPayloadSha256?: string | null;
+  attachments: Attachment[];
+  restricted: boolean;
 }
 
 export interface Suggestion {
@@ -293,6 +311,10 @@ export function engineApi(client: AuthClient) {
     observations: (q: { employeeId: string; category?: string; from?: string; to?: string }) =>
       client.api<ObservationSummary[]>(`${base}/observations${buildQuery(q)}`),
     observation: (id: string, fhir = false) => client.api<ObservationView>(`${base}/observations/${seg(id)}${fhir ? '?format=fhir' : ''}`),
+    provenance: (id: string) => client.api<ProvenanceView>(`${base}/observations/${seg(id)}/provenance`),
+    /** Hash check of the observation's raw payload (or one of its attachments) by whoever may read the observation. */
+    verifyObservationArchive: (id: string, archiveId?: string) =>
+      client.api<ArchiveVerification>(`${base}/observations/${seg(id)}/archive/verify${buildQuery({ archiveId })}`),
     unmatched: (q: { siteCode?: string; status?: string }) => client.api<UnmatchedItem[]>(`${base}/unmatched${buildQuery(q)}`),
     unmatchedCount: (siteCode?: string) => client.api<{ open: number; overdue: number }>(`${base}/unmatched/count${buildQuery({ siteCode })}`),
     resolve: (id: string, body: { employeeId?: string; reasonCode: ResolutionCode; note?: string; discard?: boolean }) =>

@@ -1,0 +1,97 @@
+{{- /*
+Device ingest Ingress(es) - increment 6 machine traffic (E31 ingest, E34 enrolment, P6 webhooks).
+  <fullname>-device-ingest   deviceIngest.host: /device-ingest, /device-enrolment (+ /device-webhooks when
+                             deviceIngest.webhooks.host is empty); mTLS against the group-PKI CA.
+  <fullname>-device-webhooks deviceIngest.webhooks.host: /device-webhooks without client certificates
+                             (vendor clouds sign with HMAC instead).
+Both strip client-supplied certificate / forwarding headers and overwrite X-Forwarded-For with the TCP peer;
+only the mTLS host sets the thumbprint header, and only from the VERIFIED client certificate.
+Controller prerequisites (dedicated ingress-nginx instance): deploy/device-ingress/README.md.
+*/ -}}
+{{- if .Values.deviceIngest.enabled }}
+{{- $root := . -}}
+{{- $di := .Values.deviceIngest -}}
+{{- if not .Values.core.enabled }}
+{{- fail "deviceIngest.enabled=true needs core.enabled=true in the same release (the ingest API is served by core)" }}
+{{- end }}
+{{- if not (has $di.flavour (list "nginx" "custom")) }}
+{{- fail "deviceIngest.flavour must be nginx or custom (AGIC / GKE: see deploy/device-ingress/README.md)" }}
+{{- end }}
+{{- if and (eq $di.flavour "nginx") (not $di.mtls.caSecret) }}
+{{- fail "deviceIngest.mtls.caSecret (\"<namespace>/<secret>\" with the group-PKI ca.crt) is required for flavour nginx" }}
+{{- end }}
+{{- $coreSvc := include "wellnessz.componentName" (dict "root" $root "comp" .Values.core) }}
+{{- $hdr := $di.certificateHeader }}
+{{- $sets := list (dict "suffix" "device-ingest" "host" $di.host "mtls" true "sourceRanges" $di.sourceRanges "rps" $di.rateLimitRps
+      "paths" (ternary (list $di.paths.ingest $di.paths.enrolment) (list $di.paths.ingest $di.paths.enrolment $di.paths.webhooks) (not (empty $di.webhooks.host)))) }}
+{{- if $di.webhooks.host }}
+{{- $sets = append $sets (dict "suffix" "device-webhooks" "host" $di.webhooks.host "mtls" false "sourceRanges" $di.webhooks.sourceRanges "rps" $di.webhooks.rateLimitRps "paths" (list $di.paths.webhooks)) }}
+{{- end }}
+{{- range $s := $sets }}
+{{- $ann := dict }}
+{{- if eq $di.flavour "nginx" }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/ssl-redirect" "true" }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/force-ssl-redirect" "true" }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/backend-protocol" "HTTP" }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/proxy-body-size" (toString $di.maxBodySize) }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/proxy-request-buffering" "off" }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/proxy-read-timeout" (toString $di.proxyReadTimeout) }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/proxy-send-timeout" (toString $di.proxyReadTimeout) }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/enable-cors" "false" }}
+{{- with $s.sourceRanges }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/whitelist-source-range" (join "," .) }}
+{{- end }}
+{{- if gt (int $s.rps) 0 }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/limit-rps" (toString $s.rps) }}
+{{- end }}
+{{- if $s.mtls }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/auth-tls-secret" $di.mtls.caSecret }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/auth-tls-verify-client" "on" }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/auth-tls-verify-depth" (toString $di.mtls.verifyDepth) }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream" "false" }}
+{{- with $di.mtls.matchCN }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/auth-tls-match-cn" . }}
+{{- end }}
+{{- end }}
+{{- /* Header hygiene + thumbprint. Needs allow-snippet-annotations=true and annotations-risk-level=Critical on
+       the DEDICATED device controller only (deploy/device-ingress/ingress-nginx-values.yaml). */}}
+{{- $snippet := include "wellnessz.deviceIngest.snippet" (dict "header" $hdr "mtls" $s.mtls) }}
+{{- $_ := set $ann "nginx.ingress.kubernetes.io/configuration-snippet" $snippet }}
+{{- end }}
+{{- $ann = merge (deepCopy (default (dict) $di.annotations)) $ann }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "wellnessz.fullname" $root }}-{{ $s.suffix }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $s.suffix) | nindent 4 }}
+    wellnessz.io/zone: device
+  {{- with $ann }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ $di.className }}
+  tls:
+    - hosts:
+        - {{ $s.host | quote }}
+      {{- with $di.tls.secretName }}
+      secretName: {{ . }}
+      {{- end }}
+  rules:
+    - host: {{ $s.host | quote }}
+      http:
+        paths:
+          {{- range $s.paths }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $coreSvc }}
+                port:
+                  name: http
+          {{- end }}
+{{- end }}
+{{- end }}

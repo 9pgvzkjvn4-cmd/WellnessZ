@@ -111,7 +111,7 @@ spec:
 {{- end }}
 {{- if .Values.core.enabled }}
 ---
-# 5) Core: bff (+ ingress controller for the API host) -> core; core -> DB, IdP/Graph (443), OTel
+# 5) Core: bff (+ ingress controller for the API host, + device ingest controller) -> core; core -> DB, IdP/Graph (443), OTel
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -131,6 +131,11 @@ spec:
     {{- end }}
     {{- if and .Values.ingress.enabled .Values.ingress.api.enabled }}
     {{- $corePeers = printf "%s\n%s" $corePeers (include "wellnessz.np.ingressControllerPeers" $np) }}
+    {{- end }}
+    {{- /* increment 6: the dedicated device ingest controller (mTLS, thumbprint header) */}}
+    {{- if .Values.deviceIngest.enabled }}
+    {{- $dc := .Values.deviceIngest.controller }}
+    {{- $corePeers = printf "%s\n%s" $corePeers (include "wellnessz.np.ingressControllerPeers" (dict "ingressController" $dc)) }}
     {{- end }}
     {{- with $np.coreExtraIngressPeers }}
     {{- $corePeers = printf "%s\n%s" $corePeers (toYaml .) }}
@@ -166,5 +171,54 @@ spec:
   egress:
     {{- include "wellnessz.np.dbEgress" $np | nindent 4 }}
 {{- end }}
+{{- end }}
+{{- if .Values.deviceGateway.enabled }}
+{{- $gw := .Values.deviceGateway }}
+{{- $gwnp := $gw.networkPolicy }}
+---
+# 7) Device zone - edge gateway: device VLAN -> listeners only; gateway -> device ingest (443 mTLS), DNS, listed extras.
+#    No ingress to the status port (loopback only), no other egress (no internet, no lateral movement).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "wellnessz.componentName" (dict "root" $root "comp" $gw) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "wellnessz.componentLabels" (dict "root" $root "component" $gw.name) | nindent 4 }}
+    wellnessz.io/zone: device
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "wellnessz.componentSelectorLabels" (dict "root" $root "component" $gw.name) | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    {{- if $gwnp.deviceCidrs }}
+    - from:
+        {{- range $gwnp.deviceCidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        {{- range $gw.listeners }}
+        - protocol: TCP
+          port: {{ .port }}
+        {{- end }}
+    {{- end }}
+  egress:
+    {{- if $gwnp.coreCidrs }}
+    - to:
+        {{- range $gwnp.coreCidrs }}
+        - ipBlock:
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 443
+    {{- else }}
+    {{- include "wellnessz.np.httpsEgress" $np | nindent 4 }}
+    {{- end }}
+    {{- with $gwnp.extraEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 {{- end }}
 {{- end }}
