@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RestingECG>
+<PatientDemographics><PatientID>E1001</PatientID><PatientLastName>Employee</PatientLastName><Gender>FEMALE</Gender></PatientDemographics>
+<TestDemographics><AcquisitionDate>10-30-2026</AcquisitionDate><AcquisitionTime>12:30:00</AcquisitionTime><AcquisitionDevice>MAC5500</AcquisitionDevice></TestDemographics>
+<RestingECGMeasurements><VentricularRate>71</VentricularRate><PRInterval>159</PRInterval><QRSDuration>91</QRSDuration><QTCorrected>407</QTCorrected></RestingECGMeasurements>
+<Diagnosis><Modality>RESTING</Modality><Severity>NORMAL</Severity><DiagnosisStatement><StmtText>Normal ECG</StmtText></DiagnosisStatement></Diagnosis>
+<PDF file="ecg_0001.pdf"/>
+</RestingECG>

@@ -1,0 +1,119 @@
+{
+ "packageId": "vitals.nonin.plx-ble",
+ "version": "1.0.0",
+ "family": "VITALS",
+ "models": [
+  "MD-033"
+ ],
+ "adapter": "BLE_GATT",
+ "options": [
+  "P3"
+ ],
+ "protocol": {
+  "service": "0x1822",
+  "characteristic": "0x2A5E",
+  "pairing": "LE_SECURE_CONNECTIONS_PASSKEY",
+  "bonding": "REQUIRED",
+  "indications": true
+ },
+ "parse": {
+  "type": "GATT_STRUCT",
+  "identity": {
+   "effectiveTime": {
+    "selector": "timestamp",
+    "format": "GATT_DATETIME"
+   }
+  },
+  "fields": [
+   {
+    "key": "flags",
+    "selector": "UINT8"
+   },
+   {
+    "key": "spo2",
+    "selector": "SFLOAT",
+    "type": "QUANTITY",
+    "unit": "%",
+    "required": true
+   },
+   {
+    "key": "pulse",
+    "selector": "SFLOAT",
+    "type": "QUANTITY",
+    "unit": "/min"
+   },
+   {
+    "key": "timestamp",
+    "selector": "DATETIME:flagBit=0"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "spo2",
+   "mdc": "MDC_PULS_OXIM_SAT_O2",
+   "loinc": "59408-5",
+   "display": "Oxygen saturation by pulse oximetry",
+   "ucum": "%",
+   "plausible": {
+    "min": 50,
+    "max": 100
+   }
+  },
+  {
+   "key": "pulse",
+   "mdc": "MDC_PULS_OXIM_PULS_RATE",
+   "loinc": "8867-4",
+   "display": "Heart rate",
+   "ucum": "/min",
+   "plausible": {
+    "min": 25,
+    "max": 240
+   }
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.VITALS",
+   "formVersion": "1",
+   "category": "VITALS",
+   "target": "E03.RESULT",
+   "fields": {
+    "spo2": "measurements.spo2",
+    "pulse": "measurements.pulse"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/vitals/nonin-plx/normal.json",
+   "expect": {
+    "spo2": 97,
+    "pulse": 66
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/vitals/nonin-plx/malformed.json",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge",
+   "input": "golden/vitals/nonin-plx/edge.json",
+   "expect": {
+    "spo2": 100
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

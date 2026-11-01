@@ -17,6 +17,10 @@ import com.wellnessz.e03.support.CodeRef;
  *   <li>SPIROMETRY – FEV1/FVC &lt; 0.70 or FEV1 &lt; 80 % predicted;</li>
  *   <li>VISION – binocular acuity worse than 6/12 or colour plates &lt; 12/15;</li>
  *   <li>ECG – device / reader interpretation ABNORMAL or BORDERLINE (physician review).</li>
+ *   <li>Increment 6 (device engine): VITALS – plausible ranges, abnormal at ≥ 140 / ≥ 90 mm[Hg], SpO2 &lt; 94 % or ≥ 38 °C;
+ *       POC – abnormal when the engine's reference-range interpretation is H / L / A; FIT_TEST – {@code pass=false};
+ *       other categories NORMAL with their coded panel. Audiometry STS uses the OSHA Appendix F age correction when the
+ *       engine supplies {@code ageCorrection} for both the current and the baseline audiogram.</li>
  * </ul>
  */
 public final class DeviceRules {
@@ -57,8 +61,12 @@ public final class DeviceRules {
             detail.put("baseline", true);
             return new Evaluation(AUDIOGRAM, value + " (baseline)", "dB HL", null, "NORMAL", detail, true);
         }
-        double shiftL = avgL - avg234(ear(baseline, "left"));
-        double shiftR = avgR - avg234(ear(baseline, "right"));
+        double correction = ageCorrection(measurements, baseline);
+        double shiftL = avgL - avg234(ear(baseline, "left")) - correction;
+        double shiftR = avgR - avg234(ear(baseline, "right")) - correction;
+        if (correction != 0) {
+            detail.put("ageCorrectionDb", round1(correction));
+        }
         boolean stsL = shiftL >= STS_DB;
         boolean stsR = shiftR >= STS_DB;
         Map<String, Object> sts = new LinkedHashMap<>();
@@ -96,6 +104,28 @@ public final class DeviceRules {
             }
         }
         return out;
+    }
+
+    /**
+     * OSHA 29 CFR 1910.95 App. F: average over 2, 3 and 4 kHz of (correction at the current age − correction at the baseline
+     * age); 0 when either audiogram carries no {@code ageCorrection} map (supplied by the device engine from its tables).
+     */
+    @SuppressWarnings("unchecked")
+    static double ageCorrection(Map<String, Object> current, Map<String, Object> baseline) {
+        if (!(current.get("ageCorrection") instanceof Map<?, ?> now) || baseline == null
+                || !(baseline.get("ageCorrection") instanceof Map<?, ?> base)) {
+            return 0;
+        }
+        double sum = 0;
+        for (String f : STS_FREQUENCIES) {
+            Object a = ((Map<Object, Object>) now).get(f);
+            Object b = ((Map<Object, Object>) base).get(f);
+            if (!(a instanceof Number na) || !(b instanceof Number nb)) {
+                return 0;
+            }
+            sum += na.doubleValue() - nb.doubleValue();
+        }
+        return sum / STS_FREQUENCIES.size();
     }
 
     static double avg234(Map<String, Double> ear) {
@@ -205,6 +235,99 @@ public final class DeviceRules {
             value += ", QTc " + qtc.intValue() + " ms";
         }
         return new Evaluation(ECG, value, null, null, "NORMAL".equals(interpretation) ? "NORMAL" : "ABNORMAL", detail, false);
+    }
+
+    // ------------------------------------------------------------------ increment 6 categories (device engine)
+
+    public static final CodeRef VITALS = new CodeRef("LOINC", "85353-1", "Vital signs panel");
+
+    public static Evaluation vitals(Map<String, Object> m) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        Double sys = range(m, "systolic", 60, 260);
+        Double dia = range(m, "diastolic", 30, 160);
+        Double pulse = range(m, "pulse", 25, 240);
+        Double spo2 = range(m, "spo2", 50, 100);
+        Double temp = range(m, "temperatureC", 30, 43);
+        StringBuilder value = new StringBuilder();
+        if (sys != null && dia != null) {
+            value.append("BP ").append(sys.intValue()).append('/').append(dia.intValue()).append(" mm[Hg]");
+        }
+        if (pulse != null) {
+            value.append(value.isEmpty() ? "" : ", ").append("pulse ").append(pulse.intValue()).append("/min");
+        }
+        if (spo2 != null) {
+            value.append(value.isEmpty() ? "" : ", ").append("SpO2 ").append(spo2.intValue()).append(" %");
+        }
+        if (temp != null) {
+            value.append(value.isEmpty() ? "" : ", ").append(round1(temp)).append(" Cel");
+        }
+        boolean abnormal = sys != null && sys >= 140 || dia != null && dia >= 90 || spo2 != null && spo2 < 94 || temp != null && temp >= 38;
+        detail.put("hypertensionRange", sys != null && sys >= 140 || dia != null && dia >= 90);
+        return new Evaluation(VITALS, value.isEmpty() ? "Vital signs recorded" : value.toString(), null, "BP < 140/90; SpO2 >= 94 %; < 38 Cel",
+                abnormal ? "ABNORMAL" : "NORMAL", detail, false);
+    }
+
+    /** Point of care: abnormal when an analyte is outside its reference range ({@code interpretations} from the engine). */
+    public static Evaluation poc(Map<String, Object> m) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        boolean abnormal = false;
+        if (m.get("interpretations") instanceof Map<?, ?> interp) {
+            for (Map.Entry<?, ?> e : interp.entrySet()) {
+                String v = String.valueOf(e.getValue());
+                if (!"N".equals(v)) {
+                    abnormal = true;
+                    detail.put(String.valueOf(e.getKey()), v);
+                }
+            }
+        }
+        return new Evaluation(new CodeRef("LOCAL", "POC_PANEL", "Point-of-care panel"), summary(m), null, "Within reference ranges",
+                abnormal ? "ABNORMAL" : "NORMAL", detail, false);
+    }
+
+    public static Evaluation fitTest(Map<String, Object> m) {
+        Object pass = m.get("pass");
+        boolean failed = Boolean.FALSE.equals(pass) || "false".equals(String.valueOf(pass));
+        Object ff = m.get("overallFitFactor");
+        String value = "Overall fit factor " + (ff instanceof Number n ? n.intValue() : "n/a") + (failed ? " (fail)" : " (pass)");
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("pass", !failed);
+        return new Evaluation(new CodeRef("LOCAL", "FIT_TEST", "Respirator fit test"), value, null, "Pass", failed ? "ABNORMAL" : "NORMAL", detail, false);
+    }
+
+    /** BODY_COMPOSITION, ABPM_HOLTER, ERGONOMICS, IMAGING: recorded, coded panel, NORMAL (clinical review in the module). */
+    public static Evaluation other(String category, Map<String, Object> m) {
+        CodeRef code = switch (category) {
+            case "BODY_COMPOSITION" -> new CodeRef("LOINC", "29463-7", "Body weight and composition");
+            case "IMAGING" -> new CodeRef("LOCAL", "IMAGING_STUDY", "Imaging study");
+            case "ABPM_HOLTER" -> new CodeRef("LOCAL", "ABPM_HOLTER", "Ambulatory blood pressure / Holter");
+            default -> new CodeRef("LOCAL", category.length() > 40 ? category.substring(0, 40) : category, category);
+        };
+        return new Evaluation(code, summary(m), null, null, "NORMAL", new LinkedHashMap<>(), false);
+    }
+
+    static Double range(Map<String, Object> m, String key, double min, double max) {
+        Object o = m.get(key);
+        if (o == null) {
+            return null;
+        }
+        if (!(o instanceof Number n) || n.doubleValue() < min || n.doubleValue() > max) {
+            throw ApiException.badRequest("invalid_measurements", key + " is outside the plausible range");
+        }
+        return n.doubleValue();
+    }
+
+    static String summary(Map<String, Object> m) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, Object> e : m.entrySet()) {
+            if (e.getValue() instanceof Number n) {
+                if (!sb.isEmpty()) {
+                    sb.append(", ");
+                }
+                sb.append(e.getKey()).append(' ').append(new java.math.BigDecimal(n.toString()).stripTrailingZeros().toPlainString());
+            }
+        }
+        String s = sb.isEmpty() ? "Recorded" : sb.toString();
+        return s.length() > 500 ? s.substring(0, 500) : s;
     }
 
     // ------------------------------------------------------------------ helpers

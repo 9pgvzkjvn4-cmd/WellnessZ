@@ -1,0 +1,141 @@
+{
+ "packageId": "da.lifeloc.fc20-serial",
+ "version": "1.0.0",
+ "family": "DRUG_ALCOHOL",
+ "models": [
+  "MD-097"
+ ],
+ "adapter": "SERIAL",
+ "options": [
+  "P1"
+ ],
+ "protocol": {
+  "baud": 9600,
+  "dataBits": 8,
+  "parity": "NONE",
+  "stopBits": 1,
+  "flowControl": "NONE",
+  "framing": {
+   "type": "LINE",
+   "terminator": "\r\n",
+   "endOfFrame": "^SN "
+  },
+  "mode": "PUSH"
+ },
+ "parse": {
+  "type": "REGEX_LINES",
+  "identity": {
+   "deviceSerial": "deviceSerial",
+   "effectiveTime": {
+    "selector": "RECEIVED_AT"
+   }
+  },
+  "fields": [
+   {
+    "key": "testNumber",
+    "selector": "^TEST#(?<v>\\d+)",
+    "type": "STRING"
+   },
+   {
+    "key": "brac",
+    "selector": "^RESULT (?<v>\\d\\.\\d{3}) g/210L",
+    "type": "QUANTITY",
+    "unit": "g/(210.L)",
+    "required": true
+   },
+   {
+    "key": "sequence",
+    "selector": "^TYPE (?<v>SCREEN|CONFIRM)",
+    "type": "CODE"
+   },
+   {
+    "key": "lastCalibration",
+    "selector": "^CAL (?<v>\\d{4}-\\d{2}-\\d{2})",
+    "type": "STRING"
+   },
+   {
+    "key": "deviceSerial",
+    "selector": "^SN (?<v>\\S+)"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "testNumber",
+   "loinc": "LOCAL:BREATH_TEST_NUMBER",
+   "display": "Breath test number"
+  },
+  {
+   "key": "brac",
+   "loinc": "75367-0",
+   "display": "Alcohol [Mass/volume] in Breath",
+   "ucum": "g/(210.L)",
+   "decimals": 3,
+   "plausible": {
+    "min": 0,
+    "max": 0.6
+   }
+  },
+  {
+   "key": "sequence",
+   "loinc": "LOCAL:BREATH_TEST_TYPE",
+   "display": "Breath test sequence"
+  },
+  {
+   "key": "lastCalibration",
+   "loinc": "LOCAL:LAST_CALIBRATION",
+   "display": "Last device calibration date"
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "QC_DAILY:BREATH_ACCURACY_CHECK",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E10.BREATH_ALCOHOL",
+   "formVersion": "1",
+   "category": "BREATH_ALCOHOL",
+   "target": "E10.BREATH_ALCOHOL",
+   "fields": {
+    "brac": "breathScreenResult",
+    "sequence": "sequence",
+    "testNumber": "testNumber",
+    "lastCalibration": "lastCalibration"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/drug-alcohol/fc20-serial/normal.json",
+   "expect": {
+    "brac": 0.0,
+    "sequence": "SCREEN",
+    "gates": {
+     "PLAUSIBILITY": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/drug-alcohol/fc20-serial/malformed.json",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge",
+   "input": "golden/drug-alcohol/fc20-serial/edge.json",
+   "expect": {
+    "brac": 0.042,
+    "sequence": "CONFIRM"
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

@@ -1,0 +1,13 @@
+{
+ "method": "MANUAL_ATTESTED",
+ "category": "VISION",
+ "employeeId": "E1001",
+ "values": {
+  "acuityRight": "6/18",
+  "acuityLeft": "6/24",
+  "binocular": "6/18",
+  "corrected": true
+ },
+ "capturedAt": "2026-10-30T10:20:00Z",
+ "operator": "nurse1"
+}

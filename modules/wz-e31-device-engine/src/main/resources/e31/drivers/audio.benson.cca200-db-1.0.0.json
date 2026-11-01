@@ -1,0 +1,414 @@
+{
+ "packageId": "audio.benson.cca200-db",
+ "version": "1.0.0",
+ "family": "AUDIOMETRY",
+ "models": [
+  "MD-015"
+ ],
+ "adapter": "FILE_CSV",
+ "options": [
+  "P2"
+ ],
+ "capabilities": {
+  "worklistPush": "VENDOR_IMPORT_FILE",
+  "startFromForm": false,
+  "historicRetrieval": true
+ },
+ "protocol": {
+  "source": "DB_QUERY",
+  "dialect": "SQLSERVER",
+  "query": "select * from v_wz_audiogram where modified_at > :watermark",
+  "watermarkColumn": "modified_at",
+  "credentialRef": "PARAMETER:dbCredentialRef",
+  "pollSeconds": 30,
+  "csvDelimiter": ",",
+  "software": "Benson CCA-200mini 4.2"
+ },
+ "parse": {
+  "type": "CSV_COLUMNS",
+  "identity": {
+   "employee": "EmployeeNo",
+   "deviceSerial": "AudiometerSerial",
+   "sex": "Sex",
+   "ageYears": "Age",
+   "operator": "Operator",
+   "effectiveTime": {
+    "selector": "TestDateTime",
+    "format": "yyyy-MM-dd'T'HH:mm:ss",
+    "timeZone": "Europe/London"
+   }
+  },
+  "fields": [
+   {
+    "key": "left.500",
+    "selector": "L500",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "left.1000",
+    "selector": "L1000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "left.2000",
+    "selector": "L2000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "left.3000",
+    "selector": "L3000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "left.4000",
+    "selector": "L4000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "left.6000",
+    "selector": "L6000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "left.8000",
+    "selector": "L8000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "right.500",
+    "selector": "R500",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "right.1000",
+    "selector": "R1000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "right.2000",
+    "selector": "R2000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "right.3000",
+    "selector": "R3000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "right.4000",
+    "selector": "R4000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "right.6000",
+    "selector": "R6000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "right.8000",
+    "selector": "R8000",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "retest1000Left",
+    "selector": "L1000Retest",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "retest1000Right",
+    "selector": "R1000Retest",
+    "type": "QUANTITY",
+    "unit": "dB[HL]"
+   },
+   {
+    "key": "ambientNoiseFlag",
+    "selector": "AmbientExceeded",
+    "type": "BOOLEAN"
+   },
+   {
+    "key": "transducer",
+    "selector": "Transducer",
+    "type": "CODE"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "left.500",
+   "loinc": "89016-0",
+   "display": "Hearing threshold 500 Hz left ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "LEFT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "left.1000",
+   "loinc": "89017-8",
+   "display": "Hearing threshold 1000 Hz left ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "LEFT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "left.2000",
+   "loinc": "89018-6",
+   "display": "Hearing threshold 2000 Hz left ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "LEFT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "left.3000",
+   "loinc": "89020-2",
+   "display": "Hearing threshold 3000 Hz left ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "LEFT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "left.4000",
+   "loinc": "89019-4",
+   "display": "Hearing threshold 4000 Hz left ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "LEFT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "left.6000",
+   "loinc": "89021-0",
+   "display": "Hearing threshold 6000 Hz left ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "LEFT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "left.8000",
+   "loinc": "89022-8",
+   "display": "Hearing threshold 8000 Hz left ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "LEFT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "right.500",
+   "loinc": "89023-6",
+   "display": "Hearing threshold 500 Hz right ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "RIGHT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "right.1000",
+   "loinc": "89024-4",
+   "display": "Hearing threshold 1000 Hz right ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "RIGHT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "right.2000",
+   "loinc": "89025-1",
+   "display": "Hearing threshold 2000 Hz right ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "RIGHT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "right.3000",
+   "loinc": "89026-9",
+   "display": "Hearing threshold 3000 Hz right ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "RIGHT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "right.4000",
+   "loinc": "89027-7",
+   "display": "Hearing threshold 4000 Hz right ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "RIGHT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "right.6000",
+   "loinc": "89028-5",
+   "display": "Hearing threshold 6000 Hz right ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "RIGHT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "right.8000",
+   "loinc": "89029-3",
+   "display": "Hearing threshold 8000 Hz right ear (air)",
+   "ucum": "dB[HL]",
+   "bodySite": "RIGHT_EAR",
+   "method": "AIR_CONDUCTION",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "retest1000Left",
+   "loinc": "LOCAL:AUDIO_RETEST_1000_L",
+   "display": "Hearing threshold 1000 Hz left ear re-test",
+   "ucum": "dB[HL]",
+   "bodySite": "LEFT_EAR"
+  },
+  {
+   "key": "retest1000Right",
+   "loinc": "LOCAL:AUDIO_RETEST_1000_R",
+   "display": "Hearing threshold 1000 Hz right ear re-test",
+   "ucum": "dB[HL]",
+   "bodySite": "RIGHT_EAR"
+  },
+  {
+   "key": "ambientNoiseFlag",
+   "loinc": "LOCAL:AMBIENT_NOISE_FLAG",
+   "display": "Ambient noise exceeded during audiometry"
+  },
+  {
+   "key": "transducer",
+   "loinc": "LOCAL:TRANSDUCER",
+   "display": "Audiometric transducer"
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "QC_DAILY:AUDIO_DAILY_BIOLOGICAL",
+  "AUDIO_TEST_RETEST:TOLERANCE_DB=5",
+  "AUDIO_AMBIENT_NOISE",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.AUDIOMETRY",
+   "formVersion": "1",
+   "category": "AUDIOMETRY",
+   "target": "E03.RESULT",
+   "fields": {
+    "left.500": "measurements.left.500",
+    "left.1000": "measurements.left.1000",
+    "left.2000": "measurements.left.2000",
+    "left.3000": "measurements.left.3000",
+    "left.4000": "measurements.left.4000",
+    "left.6000": "measurements.left.6000",
+    "left.8000": "measurements.left.8000",
+    "right.500": "measurements.right.500",
+    "right.1000": "measurements.right.1000",
+    "right.2000": "measurements.right.2000",
+    "right.3000": "measurements.right.3000",
+    "right.4000": "measurements.right.4000",
+    "right.6000": "measurements.right.6000",
+    "right.8000": "measurements.right.8000",
+    "transducer": "measurements.transducer",
+    "ageYears": "measurements.ageYears",
+    "sex": "measurements.sex",
+    "ageCorrection": "measurements.ageCorrection"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/audiometry/cca200-db/normal.csv",
+   "expect": {
+    "left.4000": 20,
+    "right.4000": 15,
+    "gates": {
+     "AUDIO_TEST_RETEST": "PASS",
+     "AUDIO_AMBIENT_NOISE": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/audiometry/cca200-db/malformed.csv",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge",
+   "input": "golden/audiometry/cca200-db/edge.csv",
+   "expect": {
+    "gates": {
+     "AUDIO_TEST_RETEST": "WARN",
+     "AUDIO_AMBIENT_NOISE": "WARN"
+    }
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

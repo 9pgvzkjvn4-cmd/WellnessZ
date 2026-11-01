@@ -1,0 +1,115 @@
+{
+ "packageId": "wear.aggregator.fhir-pcha",
+ "version": "1.0.0",
+ "family": "WEARABLE",
+ "models": [
+  "MD-121"
+ ],
+ "adapter": "FHIR",
+ "options": [
+  "P8"
+ ],
+ "protocol": {
+  "resources": [
+   "Observation",
+   "Bundle"
+  ],
+  "profiles": [
+   "http://hl7.org/fhir/StructureDefinition/vitalsigns",
+   "PCHA"
+  ],
+  "consentPurpose": "WEARABLE_DATA"
+ },
+ "parse": {
+  "type": "FHIR_PATH",
+  "identity": {
+   "employee": "Observation.subject.identifier.value",
+   "effectiveTime": {
+    "selector": "Observation.effectivePeriod.end",
+    "format": "ISO"
+   }
+  },
+  "fields": [
+   {
+    "key": "steps",
+    "selector": "Observation.where(code.coding.code='55423-8').valueQuantity.value",
+    "type": "QUANTITY",
+    "unit": "{steps}"
+   },
+   {
+    "key": "sleepMinutes",
+    "selector": "Observation.where(code.coding.code='93832-4').valueQuantity.value",
+    "type": "QUANTITY",
+    "unit": "min"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "steps",
+   "loinc": "55423-8",
+   "display": "Number of steps",
+   "ucum": "{steps}",
+   "plausible": {
+    "min": 0,
+    "max": 100000
+   }
+  },
+  {
+   "key": "sleepMinutes",
+   "loinc": "93832-4",
+   "display": "Sleep duration",
+   "ucum": "min",
+   "plausible": {
+    "min": 0,
+    "max": 1440
+   }
+  }
+ ],
+ "qualityGates": [
+  "CONSENT",
+  "PLAUSIBILITY"
+ ],
+ "bindings": [
+  {
+   "formCode": "E12.WEARABLE_DAILY",
+   "formVersion": "1",
+   "category": "WEARABLE",
+   "target": "E12.WEARABLE",
+   "fields": {
+    "steps": "STEPS",
+    "sleepMinutes": "SLEEP_MINUTES"
+   },
+   "verifyBeforePost": false
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/wearable/fhir-pcha/normal.json",
+   "expect": {
+    "steps": 8432,
+    "sleepMinutes": 412,
+    "gates": {
+     "PLAUSIBILITY": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/wearable/fhir-pcha/malformed.json",
+   "expect": {
+    "error": "profile_violation"
+   }
+  },
+  {
+   "name": "edge-zero",
+   "input": "golden/wearable/fhir-pcha/edge.json",
+   "expect": {
+    "steps": 0
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

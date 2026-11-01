@@ -12,6 +12,8 @@ public interface ResultRepository extends JpaRepository<Result, UUID> {
 
     List<Result> findByOrderId(UUID orderId);
 
+    java.util.Optional<Result> findByDeviceObservationId(UUID deviceObservationId);
+
     List<Result> findByEmployeeIdAndCategoryAndBaselineTrue(String employeeId, String category);
 
     @Query("select r from Result r where r.acknowledgedAt is null and r.flag <> 'NORMAL' order by r.receivedAt asc")

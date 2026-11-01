@@ -16,6 +16,8 @@ public interface E12ScreeningResultRepository extends JpaRepository<ScreeningRes
 
     boolean existsByEventIdAndEmployeeId(UUID eventId, String employeeId);
 
+    java.util.Optional<ScreeningResult> findFirstByEventIdAndEmployeeId(UUID eventId, String employeeId);
+
     List<ScreeningResult> findByRecordedAtGreaterThanEqual(Instant since);
 
     @Query("select r from E12ScreeningResult r where r.outcome = 'ABNORMAL' and r.caseId is null order by r.recordedAt")

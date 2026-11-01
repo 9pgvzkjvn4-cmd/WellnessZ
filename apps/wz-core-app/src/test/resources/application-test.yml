@@ -20,3 +20,9 @@ wellnessz:
   triage:
     sla:
       poll-interval: PT1H
+  device:
+    worker:
+      poll-interval-ms: 3600000
+      initial-delay-ms: 3600000
+    housekeeping-interval-ms: 3600000
+    alert-interval-ms: 3600000

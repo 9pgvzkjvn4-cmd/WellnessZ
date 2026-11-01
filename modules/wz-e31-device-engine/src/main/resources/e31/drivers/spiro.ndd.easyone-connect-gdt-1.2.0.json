@@ -1,0 +1,249 @@
+{
+ "packageId": "spiro.ndd.easyone-connect-gdt",
+ "version": "1.2.0",
+ "family": "SPIROMETRY",
+ "models": [
+  "MD-001",
+  "MD-002"
+ ],
+ "adapter": "FILE_GDT",
+ "options": [
+  "P2"
+ ],
+ "capabilities": {
+  "worklistPush": "GDT_6302",
+  "startFromForm": true,
+  "historicRetrieval": false
+ },
+ "protocol": {
+  "encoding": "ISO-8859-1",
+  "pattern": "*.gdt",
+  "pollSeconds": 10,
+  "attachmentRule": {
+   "pairBy": "STEM",
+   "extensions": [
+    "pdf"
+   ]
+  },
+  "deleteAfterRead": false,
+  "software": "EasyOne Connect 3.9",
+  "worklistFields": [
+   "dateOfBirth",
+   "sex"
+  ]
+ },
+ "parse": {
+  "type": "GDT_FIELDS",
+  "identity": {
+   "employee": "3000",
+   "name": "3102+3101",
+   "dateOfBirth": "3103",
+   "sex": "3110",
+   "heightCm": "3622",
+   "effectiveTime": {
+    "selector": "6200+6201",
+    "format": "ddMMyyyyHHmmss",
+    "timeZone": "Europe/London"
+   }
+  },
+  "records": "8410",
+  "fields": [
+   {
+    "key": "fev1L",
+    "selector": "8410=FEV1/8420",
+    "type": "QUANTITY",
+    "unit": "L",
+    "required": true
+   },
+   {
+    "key": "fvcL",
+    "selector": "8410=FVC/8420",
+    "type": "QUANTITY",
+    "unit": "L",
+    "required": true
+   },
+   {
+    "key": "ratio",
+    "selector": "8410=FEV1%FVC/8420",
+    "type": "QUANTITY",
+    "unit": "%"
+   },
+   {
+    "key": "pefLs",
+    "selector": "8410=PEF/8420",
+    "type": "QUANTITY",
+    "unit": "L/s"
+   },
+   {
+    "key": "fef2575Ls",
+    "selector": "8410=FEF2575/8420",
+    "type": "QUANTITY",
+    "unit": "L/s"
+   },
+   {
+    "key": "sessionGrade",
+    "selector": "8410=QUALITY/8420",
+    "type": "CODE"
+   },
+   {
+    "key": "acceptableTrials",
+    "selector": "8410=NACCEPT/8420",
+    "type": "QUANTITY",
+    "unit": "1"
+   },
+   {
+    "key": "fev1Trials",
+    "selector": "8410=FEV1TRIALS/8420",
+    "type": "STRING"
+   },
+   {
+    "key": "fvcTrials",
+    "selector": "8410=FVCTRIALS/8420",
+    "type": "STRING"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "fev1L",
+   "mdc": "MDC_VOL_AWAY_EXP_FORCED_1S",
+   "loinc": "20150-9",
+   "display": "FEV1",
+   "ucum": "L",
+   "decimals": 2,
+   "plausible": {
+    "min": 0.3,
+    "max": 8
+   }
+  },
+  {
+   "key": "fvcL",
+   "mdc": "MDC_VOL_AWAY_EXP_FORCED_CAPACITY",
+   "loinc": "19870-5",
+   "display": "FVC",
+   "ucum": "L",
+   "decimals": 2,
+   "plausible": {
+    "min": 0.5,
+    "max": 10
+   }
+  },
+  {
+   "key": "ratio",
+   "loinc": "19926-5",
+   "display": "FEV1/FVC",
+   "ucum": "%",
+   "decimals": 1
+  },
+  {
+   "key": "pefLs",
+   "mdc": "MDC_FLOW_AWAY_EXP_FORCED_PEAK",
+   "loinc": "33452-4",
+   "display": "Peak expiratory flow",
+   "ucum": "L/s"
+  },
+  {
+   "key": "fef2575Ls",
+   "loinc": "19927-3",
+   "display": "FEF 25-75%",
+   "ucum": "L/s"
+  },
+  {
+   "key": "sessionGrade",
+   "loinc": "LOCAL:ATS_GRADE",
+   "display": "ATS/ERS session grade"
+  },
+  {
+   "key": "acceptableTrials",
+   "loinc": "LOCAL:N_ACCEPTABLE",
+   "display": "Acceptable manoeuvres",
+   "ucum": "1"
+  },
+  {
+   "key": "fev1Trials",
+   "loinc": "LOCAL:FEV1_TRIALS",
+   "display": "FEV1 of the acceptable manoeuvres"
+  },
+  {
+   "key": "fvcTrials",
+   "loinc": "LOCAL:FVC_TRIALS",
+   "display": "FVC of the acceptable manoeuvres"
+  }
+ ],
+ "predicted": {
+  "equation": "GLI_2012",
+  "keys": {
+   "fev1L": "FEV1",
+   "fvcL": "FVC",
+   "ratio": "FEV1FVC"
+  }
+ },
+ "qualityGates": [
+  "CALIBRATION",
+  "QC_DAILY:SPIRO_SYRINGE_3L",
+  "ATS_ERS_GRADE:MIN=C",
+  "PREDICTED_VALUES",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.SPIROMETRY",
+   "formVersion": "1",
+   "category": "SPIROMETRY",
+   "target": "E03.RESULT",
+   "fields": {
+    "fev1L": "measurements.fev1L",
+    "fvcL": "measurements.fvcL",
+    "pefLs": "measurements.pefLs",
+    "fef2575Ls": "measurements.fef2575Ls",
+    "sessionGrade": "measurements.atsGrade",
+    "fev1PredictedL": "measurements.fev1PredictedL",
+    "fvcPredictedL": "measurements.fvcPredictedL"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/spirometry/easyone-gdt/normal.gdt",
+   "expect": {
+    "fev1L": 3.85,
+    "fvcL": 4.92,
+    "sessionGrade": "A",
+    "gates": {
+     "ATS_ERS_GRADE": "PASS",
+     "PREDICTED_VALUES": "INFO"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/spirometry/easyone-gdt/malformed.gdt",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge-grade-d",
+   "input": "golden/spirometry/easyone-gdt/edge.gdt",
+   "expect": {
+    "gates": {
+     "ATS_ERS_GRADE": "WARN"
+    }
+   }
+  },
+  {
+   "name": "edge-grade-f",
+   "input": "golden/spirometry/easyone-gdt/grade-f.gdt",
+   "expect": {
+    "gates": {
+     "ATS_ERS_GRADE": "BLOCK"
+    }
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

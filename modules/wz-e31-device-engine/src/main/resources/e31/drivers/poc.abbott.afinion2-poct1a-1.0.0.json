@@ -1,0 +1,124 @@
+{
+ "packageId": "poc.abbott.afinion2-poct1a",
+ "version": "1.0.0",
+ "family": "POC",
+ "models": [
+  "MD-081"
+ ],
+ "adapter": "POCT1A",
+ "options": [
+  "P5"
+ ],
+ "protocol": {
+  "messages": [
+   "OBS.R01",
+   "EVS.R01",
+   "QCN.R01"
+  ],
+  "ack": "ACK.R01",
+  "dmsVendor": "INFO_HQ"
+ },
+ "parse": {
+  "type": "POCT1A_XPATH",
+  "namespaces": {},
+  "identity": {
+   "employee": "/OBS.R01/PT/PT.patient_id/@V",
+   "deviceSerial": "/OBS.R01/HDR/HDR.device_id/@V",
+   "operator": "/OBS.R01/OPR/OPR.operator_id/@V",
+   "effectiveTime": {
+    "selector": "/OBS.R01/PT/OBS/OBS.observation_dttm/@V",
+    "format": "ISO_OFFSET"
+   }
+  },
+  "records": "/OBS.R01/PT/OBS",
+  "fields": [
+   {
+    "key": "hba1c",
+    "selector": "OBS.observation_id[@V='HbA1c']/../OBS.value/@V",
+    "type": "QUANTITY",
+    "unit": "%",
+    "required": true
+   },
+   {
+    "key": "qcLot",
+    "selector": "/OBS.R01/PT/OBS/REG/REG.reagent_lot_number/@V",
+    "type": "STRING"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "hba1c",
+   "loinc": "4548-4",
+   "display": "Hemoglobin A1c/Hemoglobin.total in Blood",
+   "ucum": "%",
+   "decimals": 1,
+   "plausible": {
+    "min": 3,
+    "max": 20
+   }
+  },
+  {
+   "key": "qcLot",
+   "loinc": "LOCAL:QC_LOT",
+   "display": "Reagent / QC lot number"
+  }
+ ],
+ "referenceRanges": [
+  {
+   "key": "hba1c",
+   "sex": "*",
+   "ageMin": 18,
+   "ageMax": 120,
+   "high": 6.0
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "QC_LOT",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.POC",
+   "formVersion": "1",
+   "category": "POC",
+   "target": "E03.RESULT",
+   "fields": {
+    "hba1c": "measurements.hba1c",
+    "qcLot": "measurements.qcLot"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/poc/afinion2-poct1a/normal.xml",
+   "expect": {
+    "hba1c": 5.4,
+    "qcLot": "AF-LOT-2026-10",
+    "gates": {
+     "QC_LOT": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/poc/afinion2-poct1a/malformed.xml",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge-high",
+   "input": "golden/poc/afinion2-poct1a/edge.xml",
+   "expect": {
+    "hba1c": 6.8
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

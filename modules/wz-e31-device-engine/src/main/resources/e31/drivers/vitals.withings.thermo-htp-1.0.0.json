@@ -1,0 +1,110 @@
+{
+ "packageId": "vitals.withings.thermo-htp",
+ "version": "1.0.0",
+ "family": "VITALS",
+ "models": [
+  "MD-038"
+ ],
+ "adapter": "BLE_GATT",
+ "options": [
+  "P3"
+ ],
+ "protocol": {
+  "service": "0x1809",
+  "characteristic": "0x2A1C",
+  "pairing": "LE_SECURE_CONNECTIONS_JUST_WORKS",
+  "bonding": "REQUIRED",
+  "indications": true
+ },
+ "parse": {
+  "type": "GATT_STRUCT",
+  "identity": {
+   "effectiveTime": {
+    "selector": "timestamp",
+    "format": "GATT_DATETIME"
+   }
+  },
+  "fields": [
+   {
+    "key": "flags",
+    "selector": "UINT8"
+   },
+   {
+    "key": "temperatureC",
+    "selector": "FLOAT:unitFlagBit=0:altUnit=[degF]",
+    "type": "QUANTITY",
+    "unit": "Cel"
+   },
+   {
+    "key": "timestamp",
+    "selector": "DATETIME:flagBit=1"
+   },
+   {
+    "key": "site",
+    "selector": "UINT8:flagBit=2",
+    "type": "CODE"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "temperatureC",
+   "mdc": "MDC_TEMP_BODY",
+   "loinc": "8310-5",
+   "display": "Body temperature",
+   "ucum": "Cel",
+   "decimals": 1,
+   "plausible": {
+    "min": 30,
+    "max": 43
+   }
+  },
+  {
+   "key": "site",
+   "loinc": "LOCAL:TEMP_SITE",
+   "display": "Temperature measurement site"
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.VITALS",
+   "formVersion": "1",
+   "category": "VITALS",
+   "target": "E03.RESULT",
+   "fields": {
+    "temperatureC": "measurements.temperatureC"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/vitals/thermo-htp/normal.json",
+   "expect": {
+    "temperatureC": 36.8
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/vitals/thermo-htp/malformed.json",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge-fahrenheit",
+   "input": "golden/vitals/thermo-htp/edge.json",
+   "expect": {
+    "temperatureC": 37.0
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

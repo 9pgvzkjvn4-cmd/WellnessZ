@@ -1,0 +1,111 @@
+{
+ "packageId": "poc.magellan.leadcare2-ocr",
+ "version": "1.0.0",
+ "family": "POC",
+ "models": [
+  "MD-089"
+ ],
+ "adapter": "OCR",
+ "options": [
+  "P9"
+ ],
+ "protocol": {
+  "template": "LEADCARE_II_DISPLAY",
+  "regions": [
+   {
+    "key": "bll",
+    "box": [
+     0.18,
+     0.32,
+     0.62,
+     0.55
+    ],
+    "pattern": "\\d{1,2}\\.\\d"
+   }
+  ],
+  "minConfidence": 0.9
+ },
+ "parse": {
+  "type": "FORM",
+  "fields": [
+   {
+    "key": "bll",
+    "selector": "bll",
+    "type": "QUANTITY",
+    "unit": "ug/dL",
+    "required": true
+   },
+   {
+    "key": "qcLot",
+    "selector": "qcLot",
+    "type": "STRING"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "bll",
+   "loinc": "5671-3",
+   "display": "Lead [Mass/volume] in Blood",
+   "ucum": "ug/dL",
+   "decimals": 1,
+   "plausible": {
+    "min": 0,
+    "max": 65
+   }
+  },
+  {
+   "key": "qcLot",
+   "loinc": "LOCAL:QC_LOT",
+   "display": "Reagent / QC lot number"
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "QC_LOT",
+  "OCR_CONFIDENCE",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.POC",
+   "formVersion": "1",
+   "category": "POC",
+   "target": "E03.RESULT",
+   "fields": {
+    "bll": "measurements.bll",
+    "qcLot": "measurements.qcLot"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/poc/leadcare2-ocr/normal.json",
+   "expect": {
+    "bll": 3.2,
+    "gates": {
+     "OCR_CONFIDENCE": "INFO"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/poc/leadcare2-ocr/malformed.json",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge",
+   "input": "golden/poc/leadcare2-ocr/edge.json",
+   "expect": {
+    "bll": 12.4
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

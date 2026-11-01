@@ -1,0 +1,186 @@
+{
+ "packageId": "vitals.and.ua651ble-blp",
+ "version": "1.0.0",
+ "family": "VITALS",
+ "models": [
+  "MD-037"
+ ],
+ "adapter": "BLE_GATT",
+ "options": [
+  "P3"
+ ],
+ "protocol": {
+  "service": "0x1810",
+  "characteristic": "0x2A35",
+  "pairing": "LE_SECURE_CONNECTIONS_PASSKEY",
+  "bonding": "REQUIRED",
+  "indications": true,
+  "validationListed": true
+ },
+ "parse": {
+  "type": "GATT_STRUCT",
+  "identity": {
+   "effectiveTime": {
+    "selector": "timestamp",
+    "format": "GATT_DATETIME"
+   }
+  },
+  "fields": [
+   {
+    "key": "flags",
+    "selector": "UINT8"
+   },
+   {
+    "key": "systolic",
+    "selector": "SFLOAT:unitFlagBit=0:altUnit=kPa",
+    "type": "QUANTITY",
+    "unit": "mm[Hg]"
+   },
+   {
+    "key": "diastolic",
+    "selector": "SFLOAT:unitFlagBit=0:altUnit=kPa",
+    "type": "QUANTITY",
+    "unit": "mm[Hg]"
+   },
+   {
+    "key": "map",
+    "selector": "SFLOAT:unitFlagBit=0:altUnit=kPa",
+    "type": "QUANTITY",
+    "unit": "mm[Hg]"
+   },
+   {
+    "key": "timestamp",
+    "selector": "DATETIME:flagBit=1"
+   },
+   {
+    "key": "pulse",
+    "selector": "SFLOAT:flagBit=2",
+    "type": "QUANTITY",
+    "unit": "/min"
+   },
+   {
+    "key": "unitKpa",
+    "selector": "FLAG:bit=0"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "systolic",
+   "mdc": "MDC_PRESS_BLD_NONINV_SYS",
+   "loinc": "8480-6",
+   "display": "Systolic blood pressure",
+   "ucum": "mm[Hg]",
+   "decimals": 0,
+   "convert": {
+    "fromUnit": "kPa",
+    "factor": 7.50062
+   },
+   "plausible": {
+    "min": 60,
+    "max": 260
+   }
+  },
+  {
+   "key": "diastolic",
+   "mdc": "MDC_PRESS_BLD_NONINV_DIA",
+   "loinc": "8462-4",
+   "display": "Diastolic blood pressure",
+   "ucum": "mm[Hg]",
+   "decimals": 0,
+   "convert": {
+    "fromUnit": "kPa",
+    "factor": 7.50062
+   },
+   "plausible": {
+    "min": 30,
+    "max": 160
+   }
+  },
+  {
+   "key": "map",
+   "mdc": "MDC_PRESS_BLD_NONINV_MEAN",
+   "loinc": "8478-0",
+   "display": "Mean blood pressure",
+   "ucum": "mm[Hg]",
+   "decimals": 0,
+   "convert": {
+    "fromUnit": "kPa",
+    "factor": 7.50062
+   }
+  },
+  {
+   "key": "pulse",
+   "mdc": "MDC_PULS_RATE_NON_INV",
+   "loinc": "8867-4",
+   "display": "Heart rate",
+   "ucum": "/min",
+   "plausible": {
+    "min": 25,
+    "max": 240
+   }
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "BP_CUFF_VALIDATION",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.VITALS",
+   "formVersion": "1",
+   "category": "VITALS",
+   "target": "E03.RESULT",
+   "fields": {
+    "systolic": "measurements.systolic",
+    "diastolic": "measurements.diastolic",
+    "pulse": "measurements.pulse"
+   },
+   "verifyBeforePost": true
+  },
+  {
+   "formCode": "E12.SCREENING_RESULT",
+   "formVersion": "1",
+   "category": "VITALS",
+   "target": "E12.SCREENING",
+   "fields": {
+    "systolic": "measures.systolic",
+    "diastolic": "measures.diastolic"
+   },
+   "verifyBeforePost": false
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/vitals/ua651ble-blp/normal.json",
+   "expect": {
+    "systolic": 122,
+    "diastolic": 76,
+    "pulse": 64,
+    "gates": {
+     "PLAUSIBILITY": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/vitals/ua651ble-blp/malformed.json",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge-kpa",
+   "input": "golden/vitals/ua651ble-blp/edge.json",
+   "expect": {
+    "systolic": 122,
+    "diastolic": 76
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

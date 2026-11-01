@@ -1,0 +1,10 @@
+{
+ "records": [
+  {
+   "port": "COM3",
+   "receivedAt": "2026-10-30T09:50:00Z",
+   "encoding": "TEXT",
+   "data": "TEST#0043\r\nRESULT 0.042 g/210L\r\nTYPE CONFIRM\r\nCAL 2026-10-01\r\nSN FC20-30112\r\n"
+  }
+ ]
+}

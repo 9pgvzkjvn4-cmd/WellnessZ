@@ -1,0 +1,185 @@
+{
+ "schema": "wellnessz.device-driver/1",
+ "packageId": "ecg.ge.mac-hl7",
+ "version": "1.0.0",
+ "family": "CARDIOLOGY",
+ "models": [
+  "MD-045"
+ ],
+ "adapter": "HL7V2",
+ "options": [
+  "P4"
+ ],
+ "engineCompatibility": ">=1.0 <2.0",
+ "vendorSoftware": {
+  "name": "MUSE",
+  "versions": [
+   "9",
+   "NX"
+  ]
+ },
+ "capabilities": {
+  "worklistPush": "HL7_ORM",
+  "startFromForm": true,
+  "historicRetrieval": false
+ },
+ "protocol": {
+  "hl7Version": "2.5",
+  "messageTypes": [
+   "ORU^R01"
+  ],
+  "profile": "VENDOR",
+  "ackMode": "ORIGINAL",
+  "mllpPort": 2576,
+  "tls": "REQUIRED"
+ },
+ "parse": {
+  "type": "HL7_SEGMENTS",
+  "identity": {
+   "employee": "PID-3.1",
+   "orderRef": "OBR-2.1",
+   "deviceSerial": "OBX[OBX-3.1=DEVICE_SERIAL]/OBX-5",
+   "effectiveTime": {
+    "selector": "OBR-7",
+    "format": "yyyyMMddHHmmss",
+    "timeZone": "Europe/London"
+   }
+  },
+  "fields": [
+   {
+    "key": "heartRate",
+    "selector": "OBX[OBX-3.1=8867-4]/OBX-5",
+    "type": "QUANTITY",
+    "unit": "/min"
+   },
+   {
+    "key": "prMs",
+    "selector": "OBX[OBX-3.1=8625-6]/OBX-5",
+    "type": "QUANTITY",
+    "unit": "ms"
+   },
+   {
+    "key": "qrsMs",
+    "selector": "OBX[OBX-3.1=8633-0]/OBX-5",
+    "type": "QUANTITY",
+    "unit": "ms"
+   },
+   {
+    "key": "qtcMs",
+    "selector": "OBX[OBX-3.1=8636-3]/OBX-5",
+    "type": "QUANTITY",
+    "unit": "ms"
+   },
+   {
+    "key": "interpretation",
+    "selector": "OBX[OBX-3.1=18844-1]/OBX-5",
+    "type": "STRING"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "heartRate",
+   "mdc": "MDC_ECG_HEART_RATE",
+   "loinc": "8867-4",
+   "display": "Heart rate",
+   "ucum": "/min",
+   "plausible": {
+    "min": 25,
+    "max": 240
+   }
+  },
+  {
+   "key": "prMs",
+   "mdc": "MDC_ECG_TIME_PD_PR",
+   "loinc": "8625-6",
+   "display": "PR interval",
+   "ucum": "ms",
+   "plausible": {
+    "min": 60,
+    "max": 400
+   }
+  },
+  {
+   "key": "qrsMs",
+   "mdc": "MDC_ECG_TIME_PD_QRS",
+   "loinc": "8633-0",
+   "display": "QRS duration",
+   "ucum": "ms",
+   "plausible": {
+    "min": 40,
+    "max": 250
+   }
+  },
+  {
+   "key": "qtcMs",
+   "mdc": "MDC_ECG_TIME_PD_QTc",
+   "loinc": "8636-3",
+   "display": "QTc interval",
+   "ucum": "ms",
+   "plausible": {
+    "min": 250,
+    "max": 700
+   }
+  },
+  {
+   "key": "interpretation",
+   "loinc": "18844-1",
+   "display": "ECG interpretation (device, unverified)"
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.ECG",
+   "formVersion": "1",
+   "category": "ECG",
+   "target": "E03.RESULT",
+   "fields": {
+    "heartRate": "measurements.heartRate",
+    "prMs": "measurements.prMs",
+    "qrsMs": "measurements.qrsMs",
+    "qtcMs": "measurements.qtcMs",
+    "interpretation": "measurements.interpretation"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/cardiology/ecg.ge.mac-hl7/normal.hl7",
+   "expect": {
+    "heartRate": 72,
+    "prMs": 160,
+    "qrsMs": 92,
+    "qtcMs": 410,
+    "interpretation": "Sinus rhythm (device, unverified)",
+    "gates": {
+     "PLAUSIBILITY": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/cardiology/ecg.ge.mac-hl7/malformed.hl7",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge-long-qtc",
+   "input": "golden/cardiology/ecg.ge.mac-hl7/edge-long-qtc.hl7",
+   "expect": {
+    "qtcMs": 520,
+    "gates": {
+     "PLAUSIBILITY": "PASS"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+{
+ "records": [
+  {
+   "peripheral": {
+    "addressHash": "a3f1c9e0b2d4a3f1c9e0b2d4a3f1c9e0b2d4a3f1c9e0b2d4a3f1c9e0b2d4a3f1",
+    "name": "BLE-DEVICE",
+    "bondId": "bond-01"
+   },
+   "service": "0x181D",
+   "characteristic": "0x2A9D",
+   "encoding": "HEX",
+   "value": "0A403DEA070A1E092300F2000807",
+   "receivedAt": "2026-10-30T09:20:00Z"
+  }
+ ]
+}

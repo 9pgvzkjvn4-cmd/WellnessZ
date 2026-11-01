@@ -81,6 +81,58 @@ public class Result {
     private UUID letterDocumentId;
     @Column(name = "recorded_by")
     private String recordedBy;
+    @Column(name = "device_observation_id")
+    private UUID deviceObservationId;
+    @Column(name = "capture_method")
+    private String captureMethod;
+    @Column(name = "driver_version")
+    private String driverVersion;
+    @Column(name = "verified_by")
+    private String verifiedBy;
+    @Column(name = "verified_at")
+    private Instant verifiedAt;
+
+    /** Increment 6: E31 canonical observation id – the idempotency key of the engine's E03.RESULT sink. */
+    public UUID getDeviceObservationId() {
+        return deviceObservationId;
+    }
+
+    public void setDeviceObservationId(UUID deviceObservationId) {
+        this.deviceObservationId = deviceObservationId;
+    }
+
+    /** DEVICE | OCR_VERIFIED | MANUAL_ATTESTED; {@code null} when typed in the form. */
+    public String getCaptureMethod() {
+        return captureMethod;
+    }
+
+    public void setCaptureMethod(String captureMethod) {
+        this.captureMethod = captureMethod;
+    }
+
+    public String getDriverVersion() {
+        return driverVersion;
+    }
+
+    public void setDriverVersion(String driverVersion) {
+        this.driverVersion = driverVersion;
+    }
+
+    public String getVerifiedBy() {
+        return verifiedBy;
+    }
+
+    public void setVerifiedBy(String verifiedBy) {
+        this.verifiedBy = verifiedBy;
+    }
+
+    public Instant getVerifiedAt() {
+        return verifiedAt;
+    }
+
+    public void setVerifiedAt(Instant verifiedAt) {
+        this.verifiedAt = verifiedAt;
+    }
 
     public Result() {
         // JPA; fields are populated through setters by the owning service

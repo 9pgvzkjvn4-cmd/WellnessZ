@@ -1,0 +1,213 @@
+{
+ "packageId": "vitals.withings.bodycomp-bcs",
+ "version": "1.0.0",
+ "family": "VITALS",
+ "models": [
+  "MD-038"
+ ],
+ "adapter": "BLE_GATT",
+ "options": [
+  "P3"
+ ],
+ "protocol": {
+  "service": "0x181B",
+  "characteristic": "0x2A9C",
+  "pairing": "LE_SECURE_CONNECTIONS_JUST_WORKS",
+  "bonding": "REQUIRED",
+  "indications": true
+ },
+ "parse": {
+  "type": "GATT_STRUCT",
+  "identity": {
+   "effectiveTime": {
+    "selector": "timestamp",
+    "format": "GATT_DATETIME"
+   }
+  },
+  "fields": [
+   {
+    "key": "flags",
+    "selector": "UINT16"
+   },
+   {
+    "key": "bodyFatPct",
+    "selector": "UINT16:scale=0.1",
+    "type": "QUANTITY",
+    "unit": "%",
+    "required": true
+   },
+   {
+    "key": "timestamp",
+    "selector": "DATETIME:flagBit=1"
+   },
+   {
+    "key": "userId",
+    "selector": "UINT8:flagBit=2"
+   },
+   {
+    "key": "basalMetabolismKj",
+    "selector": "UINT16:flagBit=3",
+    "type": "QUANTITY",
+    "unit": "kJ"
+   },
+   {
+    "key": "musclePct",
+    "selector": "UINT16:scale=0.1:flagBit=4",
+    "type": "QUANTITY",
+    "unit": "%"
+   },
+   {
+    "key": "muscleMassKg",
+    "selector": "UINT16:scale=0.005:flagBit=5"
+   },
+   {
+    "key": "fatFreeMassKg",
+    "selector": "UINT16:scale=0.005:flagBit=6"
+   },
+   {
+    "key": "softLeanMassKg",
+    "selector": "UINT16:scale=0.005:flagBit=7",
+    "type": "QUANTITY",
+    "unit": "kg"
+   },
+   {
+    "key": "bodyWaterMassKg",
+    "selector": "UINT16:scale=0.005:flagBit=8",
+    "type": "QUANTITY",
+    "unit": "kg"
+   },
+   {
+    "key": "impedanceOhm",
+    "selector": "UINT16:scale=0.1:flagBit=9",
+    "type": "QUANTITY",
+    "unit": "Ohm"
+   },
+   {
+    "key": "weightKg",
+    "selector": "UINT16:scale=0.005:flagBit=10",
+    "type": "QUANTITY",
+    "unit": "kg"
+   },
+   {
+    "key": "heightCm",
+    "selector": "UINT16:scale=0.001:flagBit=11",
+    "type": "QUANTITY",
+    "unit": "m"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "bodyFatPct",
+   "mdc": "MDC_BODY_FAT",
+   "loinc": "41982-0",
+   "display": "Percentage of body fat",
+   "ucum": "%",
+   "decimals": 1,
+   "plausible": {
+    "min": 2,
+    "max": 75
+   }
+  },
+  {
+   "key": "basalMetabolismKj",
+   "loinc": "LOCAL:BASAL_METABOLISM",
+   "display": "Basal metabolism",
+   "ucum": "kJ"
+  },
+  {
+   "key": "musclePct",
+   "loinc": "LOCAL:MUSCLE_PCT",
+   "display": "Muscle percentage",
+   "ucum": "%"
+  },
+  {
+   "key": "softLeanMassKg",
+   "loinc": "LOCAL:SOFT_LEAN_MASS",
+   "display": "Soft lean mass",
+   "ucum": "kg"
+  },
+  {
+   "key": "bodyWaterMassKg",
+   "loinc": "LOCAL:BODY_WATER_MASS",
+   "display": "Body water mass",
+   "ucum": "kg"
+  },
+  {
+   "key": "impedanceOhm",
+   "loinc": "LOCAL:IMPEDANCE",
+   "display": "Body impedance",
+   "ucum": "Ohm"
+  },
+  {
+   "key": "weightKg",
+   "mdc": "MDC_MASS_BODY_ACTUAL",
+   "loinc": "29463-7",
+   "display": "Body weight",
+   "ucum": "kg",
+   "decimals": 1,
+   "plausible": {
+    "min": 20,
+    "max": 300
+   }
+  },
+  {
+   "key": "heightCm",
+   "mdc": "MDC_LEN_BODY_ACTUAL",
+   "loinc": "8302-2",
+   "display": "Body height",
+   "ucum": "cm",
+   "decimals": 0,
+   "plausible": {
+    "min": 100,
+    "max": 230
+   }
+  }
+ ],
+ "qualityGates": [
+  "CALIBRATION",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.BODY_COMPOSITION",
+   "formVersion": "1",
+   "category": "BODY_COMPOSITION",
+   "target": "E03.RESULT",
+   "fields": {
+    "bodyFatPct": "measurements.bodyFatPct",
+    "weightKg": "measurements.weightKg",
+    "heightCm": "measurements.heightCm"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/vitals/withings-bcs/normal.json",
+   "expect": {
+    "bodyFatPct": 22.5,
+    "weightKg": 78.4,
+    "bmi": 24.2
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/vitals/withings-bcs/malformed.json",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge",
+   "input": "golden/vitals/withings-bcs/edge.json",
+   "expect": {
+    "bodyFatPct": 5.0
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

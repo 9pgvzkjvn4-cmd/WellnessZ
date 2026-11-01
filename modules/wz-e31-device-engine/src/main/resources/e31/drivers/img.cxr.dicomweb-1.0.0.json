@@ -1,0 +1,110 @@
+{
+ "packageId": "img.cxr.dicomweb",
+ "version": "1.0.0",
+ "family": "IMAGING",
+ "models": [
+  "MD-125"
+ ],
+ "adapter": "DICOMWEB",
+ "options": [
+  "P7"
+ ],
+ "protocol": {
+  "sopClasses": [
+   "1.2.840.10008.5.1.4.1.1.1.1"
+  ],
+  "mwl": false,
+  "maxInstanceBytes": 52428800
+ },
+ "parse": {
+  "type": "DICOM_JSON",
+  "identity": {
+   "employee": "00100020",
+   "name": "00100010",
+   "orderRef": "00080050",
+   "effectiveTime": {
+    "selector": "00080020+00080030",
+    "format": "yyyyMMddHHmmss",
+    "timeZone": "Europe/London"
+   }
+  },
+  "fields": [
+   {
+    "key": "studyUid",
+    "selector": "0020000D",
+    "type": "STRING",
+    "required": true
+   },
+   {
+    "key": "modality",
+    "selector": "00080060",
+    "type": "CODE"
+   },
+   {
+    "key": "bodyPart",
+    "selector": "00180015",
+    "type": "CODE"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "studyUid",
+   "loinc": "LOCAL:DICOM_STUDY_UID",
+   "display": "Imaging study"
+  },
+  {
+   "key": "modality",
+   "loinc": "LOCAL:DICOM_MODALITY",
+   "display": "Modality"
+  },
+  {
+   "key": "bodyPart",
+   "loinc": "LOCAL:DICOM_BODY_PART",
+   "display": "Body part examined"
+  }
+ ],
+ "qualityGates": [
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.IMAGING",
+   "formVersion": "1",
+   "category": "IMAGING",
+   "target": "E03.RESULT",
+   "fields": {
+    "studyUid": "measurements.studyUid",
+    "modality": "measurements.modality",
+    "bodyPart": "measurements.bodyPart"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/imaging/cxr-dicomweb/normal.json",
+   "expect": {
+    "modality": "DX",
+    "bodyPart": "CHEST"
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/imaging/cxr-dicomweb/malformed.json",
+   "expect": {
+    "error": "profile_violation"
+   }
+  },
+  {
+   "name": "edge",
+   "input": "golden/imaging/cxr-dicomweb/edge.json",
+   "expect": {
+    "modality": "CR"
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

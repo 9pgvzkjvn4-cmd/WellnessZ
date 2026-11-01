@@ -1,0 +1,110 @@
+{
+ "packageId": "vision.manual.snellen",
+ "version": "1.0.0",
+ "family": "VISION",
+ "models": [
+  "MD-133"
+ ],
+ "adapter": "MANUAL",
+ "options": [
+  "P10"
+ ],
+ "protocol": {
+  "attestation": "DEVICE_AND_CALIBRATION_ATTESTED",
+  "csvTemplate": "employeeId,acuityRight,acuityLeft,binocular,corrected"
+ },
+ "parse": {
+  "type": "FORM",
+  "fields": [
+   {
+    "key": "acuityRight",
+    "type": "STRING"
+   },
+   {
+    "key": "acuityLeft",
+    "type": "STRING"
+   },
+   {
+    "key": "binocular",
+    "type": "STRING",
+    "required": true
+   },
+   {
+    "key": "corrected",
+    "type": "BOOLEAN"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "acuityRight",
+   "loinc": "79880-1",
+   "display": "Visual acuity right eye",
+   "bodySite": "RIGHT_EYE"
+  },
+  {
+   "key": "acuityLeft",
+   "loinc": "79881-9",
+   "display": "Visual acuity left eye",
+   "bodySite": "LEFT_EYE"
+  },
+  {
+   "key": "binocular",
+   "loinc": "98498-9",
+   "display": "Visual acuity both eyes"
+  },
+  {
+   "key": "corrected",
+   "loinc": "LOCAL:CORRECTED",
+   "display": "Vision tested with correction"
+  }
+ ],
+ "qualityGates": [
+  "ATTESTATION",
+  "PLAUSIBILITY",
+  "VERIFY_BEFORE_POST"
+ ],
+ "bindings": [
+  {
+   "formCode": "E03.DEVICE_RESULT.VISION",
+   "formVersion": "1",
+   "category": "VISION",
+   "target": "E03.RESULT",
+   "fields": {
+    "binocular": "measurements.binocular",
+    "acuityLeft": "measurements.acuityLeft",
+    "acuityRight": "measurements.acuityRight",
+    "corrected": "measurements.corrected"
+   },
+   "verifyBeforePost": true
+  }
+ ],
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/vision/manual-snellen/normal.json",
+   "expect": {
+    "binocular": "6/6",
+    "gates": {
+     "ATTESTATION": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/vision/manual-snellen/malformed.json",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge",
+   "input": "golden/vision/manual-snellen/edge.json",
+   "expect": {
+    "binocular": "6/18"
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}
