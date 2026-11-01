@@ -53,8 +53,7 @@ function BatchSetup({ client, onSessionExpired }: ScreenProps) {
   const devices = useAsync(() => (station ? api.devices(formCode, station.siteCode, station.stationCode) : Promise.resolve([])), onSessionExpired, [formCode, station?.siteCode, station?.stationCode]);
   const action = useAction(onSessionExpired);
 
-  async function create(e: FormEvent) {
-    e.preventDefault();
+  async function create() {
     const badgeIds = badges.split(/[\s,;]+/).map((b) => b.trim()).filter(Boolean);
     if (!station) return setError('Choose the capture station first.');
     if (picked.length === 0) return setError('Select at least one device.');
@@ -76,7 +75,7 @@ function BatchSetup({ client, onSessionExpired }: ScreenProps) {
       <PageTitle sub="Prepare a queue for a screening day. Each employee gets a capture session; take the readings one after another and accept clean readings in one go.">Screening batch mode</PageTitle>
       {!online && <OfflineBanner />}
       <StationPicker client={client} onSessionExpired={onSessionExpired} idPrefix="batch-station" />
-      <form className="form" onSubmit={create}>
+      <div className="form">
         <div className="form-grid">
           <Field label="Measurement form">
             {(id) => (
@@ -103,6 +102,7 @@ function BatchSetup({ client, onSessionExpired }: ScreenProps) {
           ))}
         </fieldset>
         <fieldset>
+          {/* the employee search is its own form: this block deliberately is not a <form> */}
           <legend>Employees ({people.length})</legend>
           <EmployeeSearch client={client} onSessionExpired={onSessionExpired} label="Add employee" onPick={(p) => setPeople(people.some((x) => x.employeeId === p.employeeId) ? people : [...people, p])} />
           {people.length > 0 && (
@@ -118,8 +118,8 @@ function BatchSetup({ client, onSessionExpired }: ScreenProps) {
           <Field label="Or badge ids (scan one per line)">{(id) => <textarea id={id} rows={3} value={badges} onChange={(e) => setBadges(e.target.value)} />}</Field>
         </fieldset>
         {error && <p className="field-error-text" role="alert">{error}</p>}
-        <button type="submit" disabled={action.busy || !online}>Create queue</button>
-      </form>
+        <button type="button" disabled={action.busy || !online} onClick={() => void create()}>Create queue</button>
+      </div>
       <ActionFeedback error={action.error} />
     </section>
   );

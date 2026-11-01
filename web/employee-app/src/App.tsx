@@ -20,6 +20,8 @@ import { Privacy } from './screens/Privacy';
 import { Profile } from './screens/Profile';
 import { SelfReferral } from './screens/SelfReferral';
 import { Campaigns } from './screens/Campaigns';
+import { DeviceConsents, MyDeviceResults } from './screens/DeviceScreens';
+import { Kiosk } from './screens/Kiosk';
 import { CheckIns } from './screens/CheckIns';
 import { PeerSupport } from './screens/PeerSupport';
 import { Support } from './screens/Support';
@@ -31,7 +33,8 @@ import { portalStrings, type PortalStrings } from './i18n/portal';
 import { ohStrings, type OhStrings } from './i18n/occupational';
 import { careStrings, type CareStrings } from './i18n/care';
 import { wellbeingStrings, type WellbeingStrings } from './i18n/wellbeing';
-import { navFor, resolveRoute } from './routing/navigation';
+import { KIOSK_ROUTE, navFor, resolveRoute } from './routing/navigation';
+import { deviceStrings, type DeviceStrings } from './i18n/devices';
 import { DEFAULT_LANGUAGES, dirFor, initialLanguage } from './i18n/strings';
 
 type Notice = 'idle' | 'expired' | 'login-failed' | undefined;
@@ -45,6 +48,7 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
   const oh = ohStrings(lang);
   const care = careStrings(lang);
   const wb = wellbeingStrings(lang);
+  const dev = deviceStrings(lang);
   const hashRoute = useHashRoute();
 
   useEffect(() => {
@@ -80,6 +84,9 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
       setNotice('login-failed');
     }
   };
+
+  // The health kiosk is a shared screen: no personal sign-in; the employee identifies with the badge (contract §14.6).
+  if (hashRoute === KIOSK_ROUTE) return <Kiosk lang={lang} />;
 
   if (!session) {
     return (
@@ -147,6 +154,12 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
       break;
     case '/surveillance':
       screen = <MySurveillance {...screenProps} />;
+      break;
+    case '/health-checks':
+      screen = <MyDeviceResults {...screenProps} />;
+      break;
+    case '/device-consents':
+      screen = <DeviceConsents {...screenProps} />;
       break;
     case '/pre-employment':
       screen = <PreEmployment {...screenProps} />;
@@ -222,7 +235,9 @@ export function App({ client, config }: { client: AuthClient; config: RuntimeCon
                     ? care.nav[n.key as keyof CareStrings['nav']]
                     : n.source === 'wellbeing'
                       ? wb.nav[n.key as keyof WellbeingStrings['nav']]
-                      : t.nav[n.key as keyof PortalStrings['nav']]}
+                      : n.source === 'devices'
+                        ? dev.nav[n.key as keyof DeviceStrings['nav']]
+                        : t.nav[n.key as keyof PortalStrings['nav']]}
               </a>
             </li>
           ))}

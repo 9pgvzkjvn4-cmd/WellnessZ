@@ -211,12 +211,14 @@ export const CONSENT_PURPOSES = [
   'RESEARCH_DEIDENTIFIED',
   'AI_DOCUMENTATION',
   'TELEHEALTH_CONSULTATION',
+  'KIOSK_SELF_MEASUREMENT',
 ] as const;
 export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number];
 
 /**
  * Purposes the employee can grant in general (consent screen, self-referral). `AI_DOCUMENTATION` is captured per
- * encounter by the clinician and `TELEHEALTH_CONSULTATION` per session on the telehealth screen – both are listed
+ * encounter by the clinician, `TELEHEALTH_CONSULTATION` per session on the telehealth screen and `KIOSK_SELF_MEASUREMENT`
+ * per visit at the kiosk – all are listed
  * (and can be withdrawn) on the consent screen but not offered there for a blanket grant.
  */
 export const SELF_GRANTABLE_PURPOSES = [
@@ -238,6 +240,7 @@ export const CONSENT_PURPOSE_LABELS: Record<ConsentPurpose, string> = {
   RESEARCH_DEIDENTIFIED: 'Use of de-identified data for research',
   AI_DOCUMENTATION: 'AI-assisted documentation of a consultation',
   TELEHEALTH_CONSULTATION: 'Video or secure-chat consultation (telehealth)',
+  KIOSK_SELF_MEASUREMENT: 'Self-measurement at a health kiosk (blood pressure, weight)',
 };
 
 export interface Consent {

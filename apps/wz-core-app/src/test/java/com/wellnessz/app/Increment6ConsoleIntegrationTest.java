@@ -282,12 +282,27 @@ class Increment6ConsoleIntegrationTest extends IntegrationTestBase {
         assertThat(cfg.path("steps").get(5).path("errors").toString()).contains("live_test_required", "nurse_review_required");
         ok(post("/api/v1/device-configurations/" + id + "/steps/6/tests"), ADMIN, Map.of("mode", "LIVE"));
         problem(post("/api/v1/device-configurations/" + id + "/steps/6/nurse-review"), ADMIN, Map.of("outcome", "ACCEPTED"), 403);
+        // the reviewing nurse reads a secret-free review view (no configuration read access, no connectivity parameters / endpoint)
+        problem(get("/api/v1/device-configurations/" + id), NURSE, null, 403);
+        JsonNode review = ok(get("/api/v1/device-configurations/" + id + "/review"), NURSE, null);
+        assertThat(review.path("reviewOpen").asBoolean()).isTrue();
+        assertThat(review.path("formCodes").toString()).contains("E03.DEVICE_RESULT.VITALS");
+        assertThat(review.path("tests")).hasSize(2);
+        assertThat(review.path("manufacturer").asText()).isNotBlank();
+        assertThat(review.toString()).doesNotContain("parameters").doesNotContain("EP-LHR-GW-01").doesNotContain("10.20.30.77")
+                .doesNotContain("devsec:").doesNotContain("endpointId");
+        problem(get("/api/v1/device-configurations/" + id + "/review"), EMPLOYEE, null, 403);
+        problem(get("/api/v1/device-configurations/" + id + "/review"), MANAGER, null, 403);
         cfg = ok(post("/api/v1/device-configurations/" + id + "/steps/6/nurse-review"), NURSE, Map.of("outcome", "ACCEPTED", "note", "Values match display"));
         assertThat(stepStatus(cfg, 6)).isEqualTo("VALID");
 
         // step 7: submit, four-eyes refusal, approval with certification PDF
         cfg = ok(post("/api/v1/device-configurations/" + id + "/submit"), ADMIN, null);
         assertThat(cfg.path("status").asText()).isEqualTo("AWAITING_APPROVAL");
+        // who changed steps 4–6 (the UI disables approve for them; the server enforces four-eyes regardless)
+        assertThat(cfg.path("stepEditors").toString()).contains("deviceadmin1");
+        assertThat(cfg.path("stepEditorsByStep").path("4").asText()).isEqualTo("deviceadmin1");
+        assertThat(cfg.path("stepEditorsByStep").path("6").asText()).isNotBlank();
         problem(put("/api/v1/device-configurations/" + id + "/steps/4"), ADMIN, Map.of("parameters", params), 409);
         JsonNode fourEyes = problem(post("/api/v1/device-configurations/" + id + "/approve"), ADMIN, Map.of("note", "self"), 409);
         assertThat(fourEyes.path("code").asText()).isEqualTo("four_eyes_violation");
@@ -340,7 +355,14 @@ class Increment6ConsoleIntegrationTest extends IntegrationTestBase {
         List<String> actions = new java.util.ArrayList<>();
         history.forEach(h -> actions.add(h.path("action").asText()));
         assertThat(actions).contains("CREATE", "STEP", "TEST", "NURSE_REVIEW", "SUBMIT", "APPROVE", "PUBLISH");
-        assertThat(ok(get("/api/v1/device-configurations/" + id + "/data-flow"), ADMIN, null).path("gates").toString()).contains("CLOCK_SKEW");
+        JsonNode flow = ok(get("/api/v1/device-configurations/" + id + "/data-flow"), ADMIN, null);
+        assertThat(flow.path("gates").toString()).contains("CLOCK_SKEW");
+        // the endpoint hop shows the gateway's zone as E34 holds it; the device VLAN is the device's segment behind it
+        assertThat(flow.path("endpoint").path("endpointId").asText()).isEqualTo("EP-LHR-GW-01");
+        assertThat(flow.path("endpoint").path("zone").asText()).isEqualTo("GATEWAY_ZONE");
+        assertThat(flow.path("endpoint").path("zoneSource").asText()).isEqualTo("E34");
+        assertThat(flow.path("endpoint").path("deviceZone").asText()).isEqualTo("DEVICE_VLAN");
+        assertThat(cert.path("dataFlow").path("endpoint").path("zone").asText()).isEqualTo("GATEWAY_ZONE");
         JsonNode fleet = ok(get("/api/v1/device-fleet?siteCode=LHR"), ADMIN, null);
         assertThat(fleet.toString()).contains(dev).contains("HEALTHY");
 
@@ -380,6 +402,8 @@ class Increment6ConsoleIntegrationTest extends IntegrationTestBase {
                 "siteCode", "LHR", "stationCode", "LHR-OH-ROOM-2"));
         ok(post("/api/v1/device-configurations/CFG-000009/steps/6/tests"), ADMIN, Map.of("mode", "SIMULATOR"));
         ok(post("/api/v1/device-configurations/CFG-000009/steps/6/tests"), ADMIN, Map.of("mode", "LIVE"));
+        JsonNode review = ok(get("/api/v1/device-configurations/CFG-000009/review"), user("nursinghead1", "NH1", null, "NURSING_HEAD"), null);
+        assertThat(review.toString()).doesNotContain("s3cr3t-hmac-value").doesNotContain("devsec:").doesNotContain("webhookSecretRef");
         ok(post("/api/v1/device-configurations/CFG-000009/steps/6/nurse-review"), user("nursinghead1", "NH1", null, "NURSING_HEAD"),
                 Map.of("outcome", "ACCEPTED"));
         ok(post("/api/v1/device-configurations/CFG-000009/submit"), ADMIN, null);

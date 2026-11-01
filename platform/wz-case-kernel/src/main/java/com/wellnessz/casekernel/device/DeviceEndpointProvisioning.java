@@ -36,6 +36,15 @@ public interface DeviceEndpointProvisioning {
         }
     }
 
-    record EndpointState(String endpointId, DeviceCodes.EndpointStatus status, Instant since, boolean recertificationRequired) {
+    /**
+     * @param kind endpoint kind ({@code null} when the implementation does not say)
+     * @param zone network zone of the endpoint identity (E34-HLR-02) – not the device's segment behind it
+     */
+    record EndpointState(String endpointId, DeviceCodes.EndpointStatus status, Instant since, boolean recertificationRequired,
+                         DeviceCodes.EndpointKind kind, String zone) {
+
+        public EndpointState(String endpointId, DeviceCodes.EndpointStatus status, Instant since, boolean recertificationRequired) {
+            this(endpointId, status, since, recertificationRequired, null, null);
+        }
     }
 }

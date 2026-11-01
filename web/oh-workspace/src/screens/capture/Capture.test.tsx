@@ -26,6 +26,20 @@ const panel = (api: ReturnType<typeof mockApi>, roles: string[] = ['OH_CLINICIAN
   <CaptureFromDevice client={api.client} session={sessionFor(...roles)} onSessionExpired={noop} employeeId="E1001" employeeName="Erin Example" formCode="E03.DEVICE_RESULT.VITALS" live={{ eventSource: null, pollMs: 15 }} {...over} />
 );
 
+/** Server-side session state: GET returns the current state; actions change it (polling never rolls back). */
+function server(initial: ReturnType<typeof baseSession>, after?: { reads: number; next: ReturnType<typeof baseSession> }) {
+  let cur = initial;
+  let reads = 0;
+  return {
+    get: () => {
+      reads++;
+      if (after && reads > after.reads && cur === initial) cur = after.next;
+      return cur;
+    },
+    to: (next: ReturnType<typeof baseSession>) => () => (cur = next),
+  };
+}
+
 beforeEach(() => setStation({ siteCode: 'LHR', stationCode: 'LHR-OH-ROOM-1' }));
 afterEach(() => {
   cleanup();
@@ -75,10 +89,14 @@ describe('Capture from device – session state transitions', () => {
     const inPreview = baseSession({ state: 'PREVIEW', actions: ['ACCEPT', 'REJECT', 'RETEST', 'CANCEL', 'CHOOSE_DEVICE', 'CHOOSE_ENTRY'], observationId: 'obs-1', preview: warn, flags: warn.flags });
     const accepted = baseSession({ state: 'ACCEPTED', actions: [], routedRecordType: 'RESULT', routedRecordId: 'R-77', preview: { ...warn, acceptEnabled: false } });
     const onAccepted = vi.fn();
+    const srv = server(baseSession(), { reads: 2, next: inPreview });
     const api = mockApi(routes({
       'POST /device-capture/sessions': baseSession(),
-      [`GET ${S}`]: sequence(baseSession(), baseSession(), inPreview, inPreview, accepted),
-      [`POST ${S}/accept`]: { sessionId: SID, state: 'ACCEPTED', routedRecordType: 'RESULT', routedRecordId: 'R-77', routed: [{ observationId: 'obs-1', recordType: 'RESULT', recordId: 'R-77' }] },
+      [`GET ${S}`]: srv.get,
+      [`POST ${S}/accept`]: () => {
+        srv.to(accepted)();
+        return { sessionId: SID, state: 'ACCEPTED', routedRecordType: 'RESULT', routedRecordId: 'R-77', routed: [{ observationId: 'obs-1', recordType: 'RESULT', recordId: 'R-77' }] };
+      },
     }));
     render(panel(api, ['OH_CLINICIAN'], { onAccepted }));
     await user.click(await screen.findByRole('button', { name: 'Start capture' }));
@@ -106,10 +124,11 @@ describe('Capture from device – session state transitions', () => {
   it('re-test returns to LISTENING; reject needs a reason', async () => {
     const user = userEvent.setup();
     const inPreview = baseSession({ state: 'PREVIEW', actions: ['ACCEPT', 'REJECT', 'RETEST', 'CANCEL'], preview: vitalsPreview() });
+    const srv = server(inPreview);
     const api = mockApi(routes({
       'POST /device-capture/sessions': inPreview,
-      [`GET ${S}`]: inPreview,
-      [`POST ${S}/reject`]: (b: { reasonCode: string }) => (b.reasonCode === 'RETEST' ? baseSession({ retestCount: 1 }) : baseSession({ state: 'REJECTED', actions: [], rejectReason: b.reasonCode })),
+      [`GET ${S}`]: srv.get,
+      [`POST ${S}/reject`]: (b: { reasonCode: string }) => srv.to(b.reasonCode === 'RETEST' ? baseSession({ retestCount: 1 }) : baseSession({ state: 'REJECTED', actions: [], rejectReason: b.reasonCode }))(),
     }));
     render(panel(api));
     await user.click(await screen.findByRole('button', { name: 'Start capture' }));
@@ -126,7 +145,8 @@ describe('Capture from device – session state transitions', () => {
       state: 'PREVIEW', actions: ['REJECT', 'RETEST', 'CANCEL', 'CHOOSE_DEVICE', 'CHOOSE_ENTRY'], preview: blocked, flags: blocked.flags,
       fallbackOptions: [{ rank: 1, path: 'ALTERNATE_DEVICE', deviceInstanceId: 'DEV-000004', label: 'BP cuff – Room 1' }, { rank: 2, path: 'OCR_VERIFIED', label: 'Photo' }, { rank: 3, path: 'MANUAL_ATTESTED', label: 'Manual' }],
     });
-    const api = mockApi(routes({ 'POST /device-capture/sessions': s, [`GET ${S}`]: s, [`POST ${S}/fallback`]: baseSession({ path: 'ALTERNATE_DEVICE', deviceInstanceId: 'DEV-000004', deviceName: 'BP cuff – Room 1' }) }));
+    const srv = server(s);
+    const api = mockApi(routes({ 'POST /device-capture/sessions': s, [`GET ${S}`]: srv.get, [`POST ${S}/fallback`]: srv.to(baseSession({ path: 'ALTERNATE_DEVICE', deviceInstanceId: 'DEV-000004', deviceName: 'BP cuff – Room 1' })) }));
     render(panel(api));
     await user.click(await screen.findByRole('button', { name: 'Start capture' }));
     expect(await screen.findByText(/Posting is blocked\./)).toBeTruthy();
@@ -139,18 +159,20 @@ describe('Capture from device – session state transitions', () => {
     await user.click(screen.getByRole('button', { name: 'Use BP cuff – Room 1' }));
     await waitFor(() => expect(api.find('POST', `${S}/fallback`)).toHaveLength(1));
     expect(api.find('POST', `${S}/fallback`)[0]!.body).toEqual({ path: 'ALTERNATE_DEVICE', reasonCode: 'DEVICE_LOCKED', deviceInstanceId: 'DEV-000004' });
-    expect(await screen.findByText(/BP cuff – Room 1 · Updating every 2 seconds/)).toBeTruthy();
+    expect(await screen.findByText('Waiting for the device…')).toBeTruthy();
+    expect(screen.getByText(/BP cuff – Room 1 · Updating every 2 seconds/)).toBeTruthy();
   });
 
   it('OCR path: photo upload is mandatory, values are verified, then the preview is marked "photo verified"', async () => {
     const user = userEvent.setup();
     const offered = baseSession({ state: 'FALLBACK_OFFERED', fallbackReason: 'DEVICE_UNAVAILABLE', actions: ['CANCEL', 'CHOOSE_DEVICE', 'CHOOSE_ENTRY'], fallbackOptions: [{ rank: 1, path: 'ALTERNATE_DEVICE', deviceInstanceId: 'DEV-000004', label: 'BP cuff – Room 1' }, { rank: 2, path: 'OCR_VERIFIED', label: 'Photo' }, { rank: 3, path: 'MANUAL_ATTESTED', label: 'Manual' }] });
     const ocrPreview = baseSession({ state: 'PREVIEW', path: 'OCR_VERIFIED', actions: ['ACCEPT', 'REJECT', 'CANCEL'], preview: vitalsPreview({ captureMethod: 'OCR_VERIFIED', marking: 'photo verified' }) });
+    const srv = server(offered);
     const api = mockApi(routes({
       'POST /device-capture/sessions': offered,
-      [`GET ${S}`]: offered,
+      [`GET ${S}`]: srv.get,
       'POST /device-capture/ocr': { imageArchiveId: '22222222-2222-4222-8222-222222222222', sha256: 'b'.repeat(64), ocrEngine: true, fields: [{ key: 'systolic', value: 131, confidence: 0.95 }, { key: 'diastolic', value: 86, confidence: 0.4 }] },
-      [`POST ${S}/fallback`]: ocrPreview,
+      [`POST ${S}/fallback`]: srv.to(ocrPreview),
     }));
     render(panel(api));
     await user.click((await screen.findAllByRole('button', { name: /Start/ }))[0]!);
@@ -179,7 +201,8 @@ describe('Capture from device – session state transitions', () => {
   it('manual path needs the full attestation and records it', async () => {
     const user = userEvent.setup();
     const offered = baseSession({ state: 'FALLBACK_OFFERED', fallbackReason: 'DEVICE_LOCKED', actions: ['CANCEL', 'CHOOSE_DEVICE', 'CHOOSE_ENTRY'], fallbackOptions: [{ rank: 1, path: 'MANUAL_ATTESTED', label: 'Manual' }] });
-    const api = mockApi(routes({ 'POST /device-capture/sessions': offered, [`GET ${S}`]: offered, [`POST ${S}/fallback`]: baseSession({ state: 'PREVIEW', path: 'MANUAL_ATTESTED', actions: ['ACCEPT', 'REJECT', 'CANCEL'], preview: vitalsPreview({ captureMethod: 'MANUAL_ATTESTED', marking: 'entered manually – attested' }) }) }));
+    const srv = server(offered);
+    const api = mockApi(routes({ 'POST /device-capture/sessions': offered, [`GET ${S}`]: srv.get, [`POST ${S}/fallback`]: srv.to(baseSession({ state: 'PREVIEW', path: 'MANUAL_ATTESTED', actions: ['ACCEPT', 'REJECT', 'CANCEL'], preview: vitalsPreview({ captureMethod: 'MANUAL_ATTESTED', marking: 'entered manually – attested' }) })) }));
     render(panel(api));
     await user.click((await screen.findAllByRole('button', { name: /Start/ }))[0]!);
     expect(await screen.findByText(/No other device of this type is available/)).toBeTruthy();
@@ -218,7 +241,11 @@ describe('Capture from device – session state transitions', () => {
       listeners: Record<string, ((e: MessageEvent) => void)[]> = {};
       onerror: (() => void) | null = null;
       closed = false;
-      constructor(public url: string) { FakeSource.last = this; }
+      url: string;
+      constructor(url: string) {
+        this.url = url;
+        FakeSource.last = this;
+      }
       addEventListener(k: string, f: (e: MessageEvent) => void) { (this.listeners[k] ??= []).push(f); }
       close() { this.closed = true; }
       emit(k: string, data: unknown) { for (const f of this.listeners[k] ?? []) f(new MessageEvent(k, { data: JSON.stringify(data) })); }
@@ -238,11 +265,12 @@ describe('Capture from device – session state transitions', () => {
 
   it('cancel ends the session and offers a new capture', async () => {
     const user = userEvent.setup();
-    const api = mockApi(routes({ 'POST /device-capture/sessions': baseSession(), [`GET ${S}`]: baseSession(), [`POST ${S}/cancel`]: baseSession({ state: 'CANCELLED', actions: [] }) }));
+    const srv = server(baseSession());
+    const api = mockApi(routes({ 'POST /device-capture/sessions': baseSession(), [`GET ${S}`]: srv.get, [`POST ${S}/cancel`]: srv.to(baseSession({ state: 'CANCELLED', actions: [] })) }));
     render(panel(api));
     await user.click(await screen.findByRole('button', { name: 'Start capture' }));
     await user.click(await screen.findByRole('button', { name: 'Cancel capture' }));
-    expect(await screen.findByText('Cancelled')).toBeTruthy();
+    expect(await screen.findByText('Capture cancelled – nothing was filed')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Start a new capture' }));
     expect(await screen.findByRole('list', { name: 'Devices at this station' })).toBeTruthy();
   });

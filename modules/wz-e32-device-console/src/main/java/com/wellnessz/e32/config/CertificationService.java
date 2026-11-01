@@ -8,10 +8,12 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
+import com.wellnessz.casekernel.device.DeviceEndpointProvisioning;
 import com.wellnessz.common.error.ApiException;
 import com.wellnessz.documents.PdfRenderer;
 import com.wellnessz.e32.catalogue.ModelStore;
 import com.wellnessz.e32.driver.DriverStore;
+import com.wellnessz.e32.option.OptionRules;
 import com.wellnessz.e32.support.CanonicalJson;
 import com.wellnessz.e32.support.Docs;
 import com.wellnessz.e32.support.E32Support;
@@ -66,12 +68,61 @@ public class CertificationService {
         return s;
     }
 
+    /**
+     * The endpoint hop of the data flow: its zone as E34 holds it (provisioning SPI) – the step-3 zone is the <i>device's</i>
+     * segment behind the endpoint and is shown as {@code deviceZone}. Before publication (or without E34) the endpoint zone is
+     * the E34 policy default for the kind, labelled as such.
+     */
+    Map<String, Object> endpoint(Configuration c) {
+        String deviceZone = c.zone() == null ? "DEVICE_VLAN" : c.zone();
+        String kind = c.endpointKind();
+        String zone = null;
+        String zoneSource = "E34_POLICY_DEFAULT";
+        String status = null;
+        String host = c.endpointId() != null ? c.endpointId() : c.option() == null ? null : OptionRules.hostEndpoint(c.option(), c.parameters());
+        if (host != null) {
+            try {
+                DeviceEndpointProvisioning.EndpointState st = support.spis().provisioning().state(host);
+                if (st != null) {
+                    zone = st.zone();
+                    zoneSource = zone == null ? zoneSource : "E34";
+                    status = st.status() == null ? null : st.status().name();
+                    kind = st.kind() != null ? st.kind().name() : kind;
+                }
+            } catch (RuntimeException unavailable) {
+                // E34 not deployed or endpoint unknown: fall back to the policy default below
+            }
+        }
+        if (zone == null) {
+            zone = defaultZone(kind);
+            zoneSource = "E34_POLICY_DEFAULT";
+        }
+        Map<String, Object> ep = Docs.of("endpointId", host, "kind", kind, "zone", zone, "zoneSource", zoneSource, "status", status,
+                "deviceZone", deviceZone);
+        ep.values().removeIf(java.util.Objects::isNull);
+        return ep;
+    }
+
+    /** Contract §15.4 default zone of an endpoint kind (mirrors the E34 policy; shown only until E34 reports the actual zone). */
+    static String defaultZone(String kind) {
+        if (kind == null) {
+            return null;
+        }
+        return switch (kind) {
+            case "GATEWAY", "DEVICE_HOST_AGENT", "DATA_MANAGER" -> "GATEWAY_ZONE";
+            case "MOBILE_APP", "KIOSK" -> "CLINIC_LAN";
+            case "VENDOR_CLOUD" -> "VENDOR_CLOUD";
+            case "DEVICE" -> "DEVICE_VLAN";
+            default -> null;
+        };
+    }
+
     public Map<String, Object> dataFlow(Configuration c, List<String> gates) {
         Map<String, Object> flow = new LinkedHashMap<>();
         var model = models.find(c.modelCode());
         flow.put("device", Docs.of("deviceInstanceId", c.deviceInstanceId(), "modelCode", c.modelCode(),
                 "model", model.map(m -> m.manufacturer() + " " + m.model()).orElse(null), "siteCode", c.siteCode(), "stationCode", c.stationCode()));
-        flow.put("endpoint", Docs.of("endpointId", c.endpointId(), "kind", c.endpointKind(), "zone", c.zone() == null ? "DEVICE_VLAN" : c.zone()));
+        flow.put("endpoint", endpoint(c));
         var driver = c.driverPackageId() == null ? null : drivers.find(c.driverPackageId(), c.driverVersion()).orElse(null);
         flow.put("adapter", driver == null ? null : driver.adapter());
         flow.put("option", c.option());
@@ -180,7 +231,7 @@ public class CertificationService {
         StringBuilder f = new StringBuilder();
         Map<String, Object> ep = Docs.map(flow.get("endpoint"));
         f.append("Endpoint ").append(ep.get("endpointId") == null ? "(assigned at publication)" : ep.get("endpointId")).append(" - zone ")
-                .append(ep.get("zone")).append('\n');
+                .append(ep.get("zone")).append(ep.get("deviceZone") == null ? "" : " (device in " + ep.get("deviceZone") + ")").append('\n');
         f.append("Quality gates: ").append(Docs.strings(flow.get("gates"))).append('\n');
         f.append("Association: ").append(Docs.strings(flow.get("associationMethods"))).append('\n');
         for (Object o : Docs.list(flow.get("bindings"))) {

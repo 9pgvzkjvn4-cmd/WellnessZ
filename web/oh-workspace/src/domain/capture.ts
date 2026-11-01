@@ -195,7 +195,7 @@ export const STATE_TEXT: Record<CaptureState, string> = {
   ACCEPTED: 'Accepted and filed',
   REJECTED: 'Rejected – values not filed',
   EXPIRED: 'Session expired – open a new one',
-  CANCELLED: 'Cancelled',
+  CANCELLED: 'Capture cancelled – nothing was filed',
 };
 
 /** Bound forms of the E03 device-result capture (contract §11 / §14.2) in the order shown to clinicians. */

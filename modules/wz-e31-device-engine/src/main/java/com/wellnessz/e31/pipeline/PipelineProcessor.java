@@ -604,7 +604,32 @@ public class PipelineProcessor {
     }
 
     /** Must run after commit; listener failures are logged and ignored (contract: must be fast and must not throw). */
+    /**
+     * Notifies the observation listeners (E33) – after the commit of the surrounding transaction when there is one (contract
+     * section 14: "called after commit"). A command such as {@code accept} or {@code submitFallback} runs inside the caller's
+     * transaction (E33 holds its capture session there); notifying before that commit let the listener update the same session
+     * in its own transaction, and the caller's commit then failed with an optimistic-locking conflict (500 on accept).
+     */
     public void notify(List<DeviceObservationListener.ObservationNotice> notices) {
+        if (notices == null || notices.isEmpty()) {
+            return;
+        }
+        List<DeviceObservationListener.ObservationNotice> copy = List.copyOf(notices);
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()
+                && org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            dispatch(copy);
+                        }
+                    });
+            return;
+        }
+        dispatch(copy);
+    }
+
+    private void dispatch(List<DeviceObservationListener.ObservationNotice> notices) {
         for (DeviceObservationListener.ObservationNotice n : notices) {
             for (DeviceObservationListener l : spis.observationListeners()) {
                 try {

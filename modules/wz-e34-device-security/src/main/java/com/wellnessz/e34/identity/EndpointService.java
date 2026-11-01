@@ -373,7 +373,7 @@ public class EndpointService implements DeviceEndpointProvisioning {
             case ISOLATED -> ep.isolatedAt();
             case REVOKED -> ep.revokedAt();
         };
-        return new EndpointState(ep.endpointId(), ep.status(), since, ep.recertificationRequired());
+        return new EndpointState(ep.endpointId(), ep.status(), since, ep.recertificationRequired(), ep.kind(), ep.zone());
     }
 
     // ------------------------------------------------------------------ helpers

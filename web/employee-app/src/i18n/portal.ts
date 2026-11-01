@@ -337,6 +337,7 @@ const en: PortalStrings = {
     LEGAL_OBLIGATION: 'Required by law',
     AI_DOCUMENTATION: 'AI-assisted documentation of a consultation',
     TELEHEALTH_CONSULTATION: 'Video or secure-chat consultation (telehealth)',
+    KIOSK_SELF_MEASUREMENT: 'Self-measurement at a health kiosk (blood pressure, weight)',
     CLAIM: 'Insurance or compensation claim',
   },
 
@@ -531,6 +532,7 @@ const fr: PortalStrings = {
     LEGAL_OBLIGATION: 'Obligation légale',
     AI_DOCUMENTATION: "Documentation d'une consultation assistée par IA",
     TELEHEALTH_CONSULTATION: 'Consultation vidéo ou par messagerie sécurisée (télésanté)',
+    KIOSK_SELF_MEASUREMENT: 'Auto-mesure sur une borne santé (tension artérielle, poids)',
     CLAIM: "Demande d'indemnisation ou d'assurance",
   },
 
@@ -724,6 +726,7 @@ const ar: PortalStrings = {
     LEGAL_OBLIGATION: 'مطلوب بموجب القانون',
     AI_DOCUMENTATION: 'توثيق الاستشارة بمساعدة الذكاء الاصطناعي',
     TELEHEALTH_CONSULTATION: 'استشارة بالفيديو أو بالمحادثة الآمنة (الرعاية الصحية عن بُعد)',
+    KIOSK_SELF_MEASUREMENT: 'القياس الذاتي في كشك الصحة (ضغط الدم، الوزن)',
     CLAIM: 'مطالبة تأمين أو تعويض',
   },
 

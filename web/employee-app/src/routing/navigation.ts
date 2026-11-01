@@ -3,10 +3,10 @@
  * no employee features see only the pre-employment section – every route resolves there.
  */
 
-export type NavSource = 'portal' | 'oh' | 'care' | 'wellbeing';
+export type NavSource = 'portal' | 'oh' | 'care' | 'wellbeing' | 'devices';
 export interface NavItem {
   path: string;
-  /** Key in `PortalStrings['nav']` (portal), `OhStrings['nav']` (oh), `CareStrings['nav']` (care) or `WellbeingStrings['nav']` (wellbeing). */
+  /** Key in `PortalStrings['nav']` (portal), `OhStrings['nav']` (oh), `CareStrings['nav']` (care), `WellbeingStrings['nav']` (wellbeing) or `DeviceStrings['nav']` (devices). */
   key: string;
   source: NavSource;
 }
@@ -15,6 +15,8 @@ const norm = (r: string) => r.trim().toUpperCase().replace(/^ROLE_/, '');
 const has = (roles: readonly string[] | undefined, role: string) => !!roles?.some((r) => norm(r) === role);
 
 export const PRE_EMPLOYMENT_ROUTE = '/pre-employment';
+/** Shared health-kiosk screen: runs without a personal sign-in (the employee identifies with the badge at the kiosk). */
+export const KIOSK_ROUTE = '/kiosk';
 
 /** CANDIDATE without EMPLOYEE: only the pre-employment section. */
 export function isCandidateOnly(roles: readonly string[] | undefined): boolean {
@@ -36,12 +38,14 @@ const EMPLOYEE_NAV: readonly NavItem[] = [
   { path: '/advice', key: 'advice', source: 'portal' },
   { path: '/absence', key: 'absence', source: 'oh' },
   { path: '/surveillance', key: 'surveillance', source: 'oh' },
+  { path: '/health-checks', key: 'healthChecks', source: 'devices' },
   { path: '/documents', key: 'documents', source: 'portal' },
   { path: '/rtw', key: 'rtw', source: 'portal' },
   { path: '/job-offers', key: 'offers', source: 'portal' },
   { path: '/fitness-declaration', key: 'declaration', source: 'portal' },
   { path: '/privacy', key: 'privacy', source: 'portal' },
   { path: '/consents', key: 'consents', source: 'portal' },
+  { path: '/device-consents', key: 'deviceConsents', source: 'devices' },
   { path: '/profile', key: 'profile', source: 'portal' },
 ];
 
