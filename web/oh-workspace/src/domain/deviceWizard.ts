@@ -244,7 +244,10 @@ export function validateSchemaForm(fields: SchemaField[], st: FormState, idFor: 
     }
     if (f.kind === 'list' && typeof raw === 'string') {
       const items = splitList(raw);
-      if (s.maxItems !== undefined && items.length > s.maxItems) errors.push({ field: id, message: `${f.label}: at most ${s.maxItems} entries` });
+      if (s.maxItems !== undefined && items.length > s.maxItems) {
+        errors.push({ field: id, message: `${f.label}: at most ${s.maxItems} entries` });
+        continue;
+      }
       const pat = s.items?.pattern;
       if (pat && items.some((i) => !safeRegex(pat).test(i))) errors.push({ field: id, message: `${f.label}: an entry is not in the expected format` });
       continue;

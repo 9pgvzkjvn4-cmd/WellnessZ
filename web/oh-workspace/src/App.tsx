@@ -130,6 +130,27 @@ const PromotionCampaigns = lazy(() => import('./screens/promotion/Campaigns').th
 const ScreeningEvents = lazy(() => import('./screens/promotion/Screening').then((m) => ({ default: m.ScreeningEvents })));
 const Ergonomics = lazy(() => import('./screens/promotion/Ergonomics').then((m) => ({ default: m.Ergonomics })));
 const PromotionReports = lazy(() => import('./screens/promotion/Reports').then((m) => ({ default: m.PromotionReports })));
+// Increment 6 – E32 device console & E34 endpoint security (one chunk per screen file).
+const DeviceCatalogue = lazy(() => import('./screens/devices/Catalogue').then((m) => ({ default: m.DeviceCatalogue })));
+const DeviceModelDetail = lazy(() => import('./screens/devices/Catalogue').then((m) => ({ default: m.DeviceModelDetail })));
+const DeviceWizardList = lazy(() => import('./screens/devices/Wizard').then((m) => ({ default: m.DeviceWizardList })));
+const DeviceWizard = lazy(() => import('./screens/devices/Wizard').then((m) => ({ default: m.DeviceWizard })));
+const DeviceApprovals = lazy(() => import('./screens/devices/Approvals').then((m) => ({ default: m.DeviceApprovals })));
+const DeviceTestReview = lazy(() => import('./screens/devices/Approvals').then((m) => ({ default: m.DeviceTestReview })));
+const DriverRegistry = lazy(() => import('./screens/devices/Registry').then((m) => ({ default: m.DriverRegistry })));
+const ModelRequests = lazy(() => import('./screens/devices/Registry').then((m) => ({ default: m.ModelRequests })));
+const DeviceGovernance = lazy(() => import('./screens/devices/Registry').then((m) => ({ default: m.DeviceGovernance })));
+const DeviceCalibration = lazy(() => import('./screens/devices/Operations').then((m) => ({ default: m.DeviceCalibration })));
+const DeviceFleet = lazy(() => import('./screens/devices/Operations').then((m) => ({ default: m.DeviceFleet })));
+const DeviceInstance = lazy(() => import('./screens/devices/Operations').then((m) => ({ default: m.DeviceInstance })));
+const SecurityEndpoints = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.SecurityEndpoints })));
+const SecurityEndpointDetail = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.SecurityEndpointDetail })));
+const SecurityAlerts = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.SecurityAlerts })));
+const SecurityEvents = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.SecurityEvents })));
+const SecurityZones = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.SecurityZones })));
+const SigningKeys = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.SigningKeys })));
+const ConnectorSecrets = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.ConnectorSecrets })));
+const SecurityAssurance = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.SecurityAssurance })));
 
 /** Fixed second segments that are screens, not ids (`/claims/reports` is not claim "reports"). */
 const CLAIM_SCREENS = new Set(['reports', 'costs', 'nurse-assignment', 'disclosures', 'preauthorisations']);
@@ -168,7 +189,31 @@ function renderRoute(route: string, props: ScreenProps): ReactNode {
   if (cdMatch?.[1]) return <CommunicableCase key={cdMatch[1]} {...props} caseId={decodeURIComponent(cdMatch[1])} />;
   const exposureMatch = /^\/exposures\/([^/]+)$/.exec(route);
   if (exposureMatch?.[1]) return <ExposureDetail key={exposureMatch[1]} {...props} exposureId={decodeURIComponent(exposureMatch[1])} />;
+  const modelMatch = /^\/devices\/catalogue\/([^/]+)$/.exec(route);
+  if (modelMatch?.[1]) return <DeviceModelDetail key={modelMatch[1]} {...props} modelCode={decodeURIComponent(modelMatch[1])} />;
+  const wizardMatch = /^\/devices\/wizard\/([^/]+)$/.exec(route);
+  if (wizardMatch?.[1]) return <DeviceWizard key={wizardMatch[1]} {...props} configurationId={decodeURIComponent(wizardMatch[1])} />;
+  const instanceMatch = /^\/devices\/(?:fleet|diagnostics)\/([^/]+)$/.exec(route);
+  if (instanceMatch?.[1]) return <DeviceInstance key={instanceMatch[1]} {...props} deviceInstanceId={decodeURIComponent(instanceMatch[1])} />;
+  const endpointMatch = /^\/security\/devices\/endpoints\/([^/]+)$/.exec(route);
+  if (endpointMatch?.[1]) return <SecurityEndpointDetail key={endpointMatch[1]} {...props} endpointId={decodeURIComponent(endpointMatch[1])} />;
   switch (route) {
+    case '/devices/catalogue': return <DeviceCatalogue {...props} />;
+    case '/devices/wizard': return <DeviceWizardList {...props} />;
+    case '/devices/approvals': return <DeviceApprovals {...props} />;
+    case '/devices/test-review': return <DeviceTestReview {...props} />;
+    case '/devices/drivers': return <DriverRegistry {...props} />;
+    case '/devices/model-requests': return <ModelRequests {...props} />;
+    case '/devices/governance': return <DeviceGovernance {...props} />;
+    case '/devices/calibration': return <DeviceCalibration {...props} />;
+    case '/devices/fleet': return <DeviceFleet {...props} />;
+    case '/security/devices': return <SecurityEndpoints {...props} />;
+    case '/security/devices/alerts': return <SecurityAlerts {...props} />;
+    case '/security/devices/events': return <SecurityEvents {...props} />;
+    case '/security/devices/zones': return <SecurityZones {...props} />;
+    case '/security/devices/keys': return <SigningKeys {...props} />;
+    case '/security/devices/secrets': return <ConnectorSecrets {...props} />;
+    case '/security/devices/assurance': return <SecurityAssurance {...props} />;
     case '/queues': return <Queues {...props} />;
     case '/escalations': return <Escalations {...props} />;
     case '/handovers': return <Handovers {...props} />;
@@ -362,7 +407,7 @@ export function App({ client }: { client: AuthClient }) {
         ? route
         : /^\/(claims|referrals|providers)\/./.test(route)
           ? `/${route.split('/')[1]}`
-          : route.replace(/^(\/intake\/incidents)\/.*$/, '$1').replace(/^(\/scheduling\/campaigns)\/.*$/, '$1').replace(/^(\/absence\/lta|\/surveillance\/programmes)\/.*$/, '$1').replace(/^(\/support\/cases|\/cism)\/.*$/, '$1').replace(/^(\/communicable|\/exposures)\/.*$/, '$1');
+          : route.replace(/^(\/intake\/incidents)\/.*$/, '$1').replace(/^(\/scheduling\/campaigns)\/.*$/, '$1').replace(/^(\/absence\/lta|\/surveillance\/programmes)\/.*$/, '$1').replace(/^(\/support\/cases|\/cism)\/.*$/, '$1').replace(/^(\/communicable|\/exposures)\/.*$/, '$1').replace(/^\/devices\/diagnostics\/.*$/, '/devices/fleet').replace(/^(\/devices\/(?:catalogue|wizard|fleet))\/.*$/, '$1').replace(/^\/security\/devices\/endpoints\/.*$/, '/security/devices');
 
   return (
     <div className="shell">

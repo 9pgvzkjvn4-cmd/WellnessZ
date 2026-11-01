@@ -145,6 +145,7 @@ export function DeviceWizard(props: ScreenProps & { configurationId: string }) {
     setLocal(next);
     setNotice(next.warnings ?? []);
     if (to) goTo(to);
+    else setStep(current); // stay on this step even if the server moved currentStep on
   }
   function reload() {
     setLocal(undefined);
@@ -205,11 +206,11 @@ export function DeviceWizard(props: ScreenProps & { configurationId: string }) {
         {!editable && current <= 6 && (
           <p className="small muted">{cfg.paused ? 'The configuration is paused – resume it to make changes.' : `Read-only: the configuration is ${humanise(cfg.status).toLowerCase()}.${isLive(cfg.status) ? ' Revise it to change settings.' : ''}`}</p>
         )}
-        {current === 1 && <Step1 key={`1-${cfg.version}-${st.updatedAt ?? ''}`} {...stepProps} />}
-        {current === 2 && <Step2 key={`2-${cfg.version}-${st.updatedAt ?? ''}`} {...stepProps} />}
-        {current === 3 && <Step3 key={`3-${cfg.version}-${st.updatedAt ?? ''}`} {...stepProps} />}
-        {current === 4 && <Step4 key={`4-${cfg.version}-${st.updatedAt ?? ''}`} {...stepProps} />}
-        {current === 5 && <Step5 key={`5-${cfg.version}-${st.updatedAt ?? ''}`} {...stepProps} />}
+        {current === 1 && <Step1 key={`1-${cfg.version}-${st.status}-${st.updatedAt ?? ''}`} {...stepProps} />}
+        {current === 2 && <Step2 key={`2-${cfg.version}-${st.status}-${st.updatedAt ?? ''}`} {...stepProps} />}
+        {current === 3 && <Step3 key={`3-${cfg.version}-${st.status}-${st.updatedAt ?? ''}`} {...stepProps} />}
+        {current === 4 && <Step4 key={`4-${cfg.version}-${st.status}-${st.updatedAt ?? ''}`} {...stepProps} />}
+        {current === 5 && <Step5 key={`5-${cfg.version}-${st.status}-${st.updatedAt ?? ''}`} {...stepProps} />}
         {current === 6 && <Step6 key={`6-${cfg.version}`} {...stepProps} />}
         {current === 7 && <Step7 key={`7-${cfg.version}-${cfg.status}`} {...stepProps} />}
         {current === 8 && <Step8 key={`8-${cfg.version}-${cfg.status}`} {...stepProps} />}

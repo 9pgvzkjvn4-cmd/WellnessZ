@@ -204,9 +204,9 @@ describe('increment 3 – E14 scheduling & clinic operations gating (API-Contrac
     expect(paths(['FIRST_AIDER'])).toEqual(['/reception']);
   });
 
-  it('BIOMEDICAL: equipment only (register, calibration, status)', () => {
+  it('BIOMEDICAL: equipment (register, calibration, status) plus the increment-6 device catalogue and QC screens', () => {
     expect(hasWorkspaceAccess(['BIOMEDICAL'])).toBe(true);
-    expect(paths(['BIOMEDICAL'])).toEqual(['/scheduling/equipment']);
+    expect(paths(['BIOMEDICAL'])).toEqual(['/scheduling/equipment', '/devices/catalogue', '/devices/calibration']);
     expect(homeRoute(['BIOMEDICAL'])).toBe('/scheduling/equipment');
     for (const f of ['equipmentWrite', 'calibrationWrite', 'calibrationDue', 'coldChain'] as const) expect(can(['BIOMEDICAL'], f)).toBe(true);
     expect(can(['BIOMEDICAL'], 'excursionAcknowledge')).toBe(false);
@@ -306,8 +306,8 @@ describe('increment 3 – E06 absence & E07 surveillance gating (API-Contract-E0
     for (const r of PERSON_ROUTES) expect(can(['HSE_OFFICER'], featureForRoute(r)!)).toBe(false);
   });
 
-  it('AUDITOR: compliance & audit packs only', () => {
-    expect(paths(['AUDITOR'])).toEqual(['/surveillance/compliance']);
+  it('AUDITOR: compliance & audit packs, plus the read-only device security event log and assurance records (increment 6)', () => {
+    expect(paths(['AUDITOR'])).toEqual(['/surveillance/compliance', '/security/devices/events', '/security/devices/assurance']);
     expect(homeRoute(['AUDITOR'])).toBe('/surveillance/compliance');
     expect(can(['AUDITOR'], 'auditPacks')).toBe(true);
     expect(can(['AUDITOR'], 'complianceOverdue')).toBe(false);

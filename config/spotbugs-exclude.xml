@@ -44,15 +44,6 @@
     <Class name="com.wellnessz.documents.TesseractOcrProvider"/>
     <Bug pattern="COMMAND_INJECTION"/>
   </Match>
-  <!-- Same exclusions as on the integration branch (device ingest chain: stateless, mTLS + endpoint token, fixed problem bodies). -->
-  <Match>
-    <Class name="com.wellnessz.casekernel.device.ingest.DeviceIngestSecurityConfig"/>
-    <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED,XSS_SERVLET"/>
-  </Match>
-  <Match>
-    <Class name="com.wellnessz.casekernel.device.ingest.DeviceEndpointAuthenticationFilter"/>
-    <Bug pattern="XSS_SERVLET"/>
-  </Match>
   <!-- E31: XPath selectors come only from Ed25519-signed, validated driver packages (never from request input); the
        documents are parsed by SafeXml (secure processing, no DTD / external entities). -->
   <Match>

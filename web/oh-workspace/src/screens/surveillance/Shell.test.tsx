@@ -12,7 +12,7 @@ afterEach(() => {
 const navLinks = () => within(screen.getByRole('navigation', { name: 'Main' })).getAllByRole('link').map((a) => a.textContent);
 
 describe('App shell – increment 3 absence / surveillance', () => {
-  it('AUDITOR lands on compliance and sees nothing else', async () => {
+  it('AUDITOR lands on compliance; besides it only the read-only device security records', async () => {
     window.location.hash = '#/';
     const api = mockApi({
       'GET /bff/session': { authenticated: true, roles: ['AUDITOR'] },
@@ -24,7 +24,7 @@ describe('App shell – increment 3 absence / surveillance', () => {
     render(<App client={api.client} />);
     await waitFor(() => expect(window.location.hash).toBe('#/surveillance/compliance'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Surveillance compliance' })).toBeTruthy();
-    expect(navLinks()).toEqual(['Compliance & audit']);
+    expect(navLinks()).toEqual(['Compliance & audit', 'Security event log', 'Assurance & go-live']);
   });
 
   it('CREW_LICENSING opening an absence URL is restricted and no request is made', async () => {
