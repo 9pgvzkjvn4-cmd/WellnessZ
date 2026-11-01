@@ -1,0 +1,306 @@
+{
+ "manifest": {
+  "packageId": "monitor.philips.intellivue-pcd01",
+  "version": "1.0.0",
+  "name": "Philips IntelliVue via PIIC iX / IntelliBridge (IHE PCD-01)",
+  "family": "Acute-care monitoring & telemetry",
+  "models": [
+   "IMD-201"
+  ],
+  "options": [
+   "P4"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/monitor.philips.intellivue-pcd01-1.0.0.cdx.json",
+  "captureMode": "CONTINUOUS",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P4": {
+   "parameters": {
+    "host": "intimed.local",
+    "port": 2575,
+    "tls": "MTLS",
+    "tlsMin": "1.2",
+    "sendingApplication": "PIIC_IX",
+    "sendingFacility": "ICU",
+    "ackMode": "ORIGINAL",
+    "profile": "IHE_PCD_01",
+    "timeZone": "UTC",
+    "maxMessagesPerSecond": 50
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "HL7V2",
+  "messageTypes": [
+   "ORU^R01"
+  ],
+  "identity": {
+   "subject": "PID-3.1",
+   "serial": "OBX-18.1",
+   "time": "OBR-7",
+   "timeFormat": "yyyyMMddHHmmss"
+  },
+  "alarmSel": "OBX[OBX-3.1=196616]/OBX-5",
+  "fields": [
+   {
+    "key": "hr",
+    "sel": "OBX[OBX-3.1=147842]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=147842]/OBX-6.2"
+   },
+   {
+    "key": "spo2",
+    "sel": "OBX[OBX-3.1=150456]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=150456]/OBX-6.2"
+   },
+   {
+    "key": "nibp_sys",
+    "sel": "OBX[OBX-3.1=150021]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=150021]/OBX-6.2"
+   },
+   {
+    "key": "nibp_dia",
+    "sel": "OBX[OBX-3.1=150022]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=150022]/OBX-6.2"
+   },
+   {
+    "key": "nibp_mean",
+    "sel": "OBX[OBX-3.1=150023]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=150023]/OBX-6.2"
+   },
+   {
+    "key": "rr",
+    "sel": "OBX[OBX-3.1=151562]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=151562]/OBX-6.2"
+   },
+   {
+    "key": "etco2",
+    "sel": "OBX[OBX-3.1=151708]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=151708]/OBX-6.2"
+   },
+   {
+    "key": "temp",
+    "sel": "OBX[OBX-3.1=150364]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=150364]/OBX-6.2"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "hr",
+   "display": "Heart rate",
+   "loinc": "8867-4",
+   "ucum": "/min",
+   "plausible": {
+    "min": 20,
+    "max": 250
+   },
+   "artefactJumpPct": 40
+  },
+  {
+   "key": "spo2",
+   "display": "SpO2 (pulse oximetry)",
+   "loinc": "59408-5",
+   "ucum": "%",
+   "plausible": {
+    "min": 50,
+    "max": 100
+   },
+   "artefactJumpPct": 15
+  },
+  {
+   "key": "nibp_sys",
+   "display": "Systolic blood pressure",
+   "loinc": "8480-6",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 50,
+    "max": 260
+   }
+  },
+  {
+   "key": "nibp_dia",
+   "display": "Diastolic blood pressure",
+   "loinc": "8462-4",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 25,
+    "max": 160
+   }
+  },
+  {
+   "key": "nibp_mean",
+   "display": "Mean arterial pressure",
+   "loinc": "8478-0",
+   "ucum": "mm[Hg]"
+  },
+  {
+   "key": "rr",
+   "display": "Respiratory rate",
+   "loinc": "9279-1",
+   "ucum": "/min",
+   "plausible": {
+    "min": 4,
+    "max": 70
+   }
+  },
+  {
+   "key": "etco2",
+   "display": "End-tidal CO2",
+   "mdc": "MDC_AWAY_CO2_ET",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 0,
+    "max": 100
+   }
+  },
+  {
+   "key": "temp",
+   "display": "Body temperature",
+   "loinc": "8310-5",
+   "ucum": "Cel",
+   "plausible": {
+    "min": 30,
+    "max": 43
+   }
+  }
+ ],
+ "bindings": {
+  "TPL-01": {
+   "fields": {
+    "hr": "hr",
+    "spo2": "spo2",
+    "nibp_sys": "nibp_sys",
+    "nibp_dia": "nibp_dia",
+    "nibp_mean": "nibp_mean",
+    "rr": "rr",
+    "etco2": "etco2",
+    "temp": "temp"
+   }
+  },
+  "TPL-02": {
+   "fields": {
+    "hr": "hr",
+    "spo2": "spo2",
+    "nibp_sys": "nibp_sys",
+    "nibp_dia": "nibp_dia",
+    "rr": "rr",
+    "temp": "temp"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "ENCOUNTER_BED",
+   "why": "Setting rule for TPL-01 templates"
+  },
+  "captureMode": {
+   "value": "CONTINUOUS",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "grading": "SPO2_PERFUSION",
+    "blockImplausible": true
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "host": {
+   "value": "intimed.local",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "port": {
+   "value": 2575,
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "tls": {
+   "value": "MTLS",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "tlsMin": {
+   "value": "1.2",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "sendingApplication": {
+   "value": "PIIC_IX",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "sendingFacility": {
+   "value": "ICU",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "ackMode": {
+   "value": "ORIGINAL",
+   "why": "PIIC iX expects original-mode ACK per message"
+  },
+  "profile": {
+   "value": "IHE_PCD_01",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "timeZone": {
+   "value": "UTC",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "maxMessagesPerSecond": {
+   "value": 50,
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "intervalMinutes": {
+   "value": 5,
+   "why": "ICU flowsheet policy: validated values every 5 min (RR-07 allows 1–15)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "MSH|^~\\&|PIIC_IX|ICU|INTIMED|INTIMED|{TS}||ORU^R01^ORU_R01|{CTRL}|P|2.6|||NE|AL||UNICODE UTF-8|||IHE_PCD_001^IHE PCD^1.3.6.1.4.1.19376.1.6.1.1.1^ISO\rPID|||{{SUBJECT}}^^^HOSP^MR||TESTPATIENT^ALPHA\rPV1||I|ICU^^BED-07\rOBR|1|{{CTRL}}^INTIMED||182777000^monitoring of patient^SCT|||{{TS}}\rOBX|1|NM|147842^MDC_ECG_HEART_RATE^MDC|1.1.1.147842|{{V:hr}}|264864^MDC_DIM_BEAT_PER_MIN^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|2|NM|150456^MDC_PULS_OXIM_SAT_O2^MDC|1.1.1.150456|{{V:spo2}}|262688^MDC_DIM_PERCENT^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|3|NM|150021^MDC_PRESS_BLD_NONINV_SYS^MDC|1.1.1.150021|{{V:nibp_sys}}|266016^MDC_DIM_MMHG^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|4|NM|150022^MDC_PRESS_BLD_NONINV_DIA^MDC|1.1.1.150022|{{V:nibp_dia}}|266016^MDC_DIM_MMHG^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|5|NM|150023^MDC_PRESS_BLD_NONINV_MEAN^MDC|1.1.1.150023|{{V:nibp_mean}}|266016^MDC_DIM_MMHG^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|6|NM|151562^MDC_RESP_RATE^MDC|1.1.1.151562|{{V:rr}}|264928^MDC_DIM_RESP_PER_MIN^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|7|NM|151708^MDC_AWAY_CO2_ET^MDC|1.1.1.151708|{{V:etco2}}|266016^MDC_DIM_MMHG^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|8|NM|150364^MDC_TEMP_BODY^MDC|1.1.1.150364|{{V:temp}}|268192^MDC_DIM_DEGC^MDC|||||F|||{{TS}}||||{{SERIAL}}\r"
+   }
+  ],
+  "values": {
+   "hr": 78,
+   "spo2": 97,
+   "nibp_sys": 118,
+   "nibp_dia": 72,
+   "nibp_mean": 87,
+   "rr": 16,
+   "etco2": 36,
+   "temp": 37.1
+  },
+  "serial": "PIIC-0042-MX750",
+  "timeFormat": "yyyyMMddHHmmss",
+  "outOfRange": {
+   "key": "spo2",
+   "value": "38"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Philips IntelliVue via PIIC iX / IntelliBridge (IHE PCD-01) with option P4. Device or vendor gateway sends ORU^R01 (and receives ADT/ORM) over MLLP with TLS and client certificates.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

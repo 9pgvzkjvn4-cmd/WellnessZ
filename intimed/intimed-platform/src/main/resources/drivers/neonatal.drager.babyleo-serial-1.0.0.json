@@ -1,0 +1,225 @@
+{
+ "manifest": {
+  "packageId": "neonatal.drager.babyleo-serial",
+  "version": "1.0.0",
+  "name": "Dräger Babyleo TN500 – serial data export (MEDIBUS-style frames) via gateway",
+  "family": "Neonatal & maternal",
+  "models": [
+   "IMD-322"
+  ],
+  "options": [
+   "P1"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/neonatal.drager.babyleo-serial-1.0.0.cdx.json",
+  "captureMode": "CONTINUOUS",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P1": {
+   "parameters": {
+    "port": "/dev/ttyUSB0",
+    "baud": 19200,
+    "parity": "EVEN",
+    "dataBits": 8,
+    "stopBits": 1,
+    "flowControl": "NONE",
+    "terminator": "\\r",
+    "mode": "POLL",
+    "pollSeconds": 60,
+    "usbAllowList": ""
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "SERIAL",
+  "terminator": "\r",
+  "checksum": "xor-hex",
+  "frame": "^\\$INC,(?<serial>[A-Z0-9-]+),(?<time>\\d{14}),AT=(?<air>[0-9.]+),ST=(?<skin>[0-9.]+),RH=(?<rh>[0-9.]+),O2=(?<o2>[0-9.]+),MODE=(?<mode>AIR|SKIN)\\*[0-9A-F]{2}$",
+  "identity": {
+   "serial": "serial",
+   "time": "time",
+   "timeFormat": "yyyyMMddHHmmss"
+  },
+  "fields": [
+   {
+    "key": "air_temp",
+    "group": "air",
+    "unit": "Cel"
+   },
+   {
+    "key": "skin_temp",
+    "group": "skin",
+    "unit": "Cel"
+   },
+   {
+    "key": "humidity",
+    "group": "rh",
+    "unit": "%"
+   },
+   {
+    "key": "o2",
+    "group": "o2",
+    "unit": "%"
+   },
+   {
+    "key": "mode",
+    "group": "mode"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "air_temp",
+   "display": "Incubator air temperature",
+   "local": "INTIMED-NEO-AIRT",
+   "ucum": "Cel",
+   "plausible": {
+    "min": 20,
+    "max": 40
+   }
+  },
+  {
+   "key": "skin_temp",
+   "display": "Skin temperature",
+   "local": "INTIMED-NEO-SKINT",
+   "ucum": "Cel",
+   "plausible": {
+    "min": 30,
+    "max": 42
+   }
+  },
+  {
+   "key": "humidity",
+   "display": "Relative humidity",
+   "local": "INTIMED-NEO-RH",
+   "ucum": "%",
+   "plausible": {
+    "min": 0,
+    "max": 100
+   }
+  },
+  {
+   "key": "o2",
+   "display": "Incubator O2",
+   "local": "INTIMED-NEO-O2",
+   "ucum": "%"
+  },
+  {
+   "key": "mode",
+   "display": "Servo mode",
+   "local": "INTIMED-NEO-MODE",
+   "type": "text"
+  }
+ ],
+ "bindings": {
+  "TPL-11": {
+   "fields": {
+    "air_temp": "air_temp",
+    "skin_temp": "skin_temp",
+    "humidity": "humidity",
+    "o2": "o2",
+    "mode": "mode"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "ENCOUNTER_BED",
+   "why": "Setting rule for TPL-11 templates"
+  },
+  "captureMode": {
+   "value": "CONTINUOUS",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "port": {
+   "value": "/dev/ttyUSB0",
+   "why": "Certified driver default for Dräger (P1)"
+  },
+  "baud": {
+   "value": 19200,
+   "why": "Certified driver default for Dräger (P1)"
+  },
+  "parity": {
+   "value": "EVEN",
+   "why": "Driver default framing 19200 8E1 (RR-05) – warn if changed"
+  },
+  "dataBits": {
+   "value": 8,
+   "why": "Certified driver default for Dräger (P1)"
+  },
+  "stopBits": {
+   "value": 1,
+   "why": "Certified driver default for Dräger (P1)"
+  },
+  "flowControl": {
+   "value": "NONE",
+   "why": "Certified driver default for Dräger (P1)"
+  },
+  "terminator": {
+   "value": "\\r",
+   "why": "Certified driver default for Dräger (P1)"
+  },
+  "mode": {
+   "value": "POLL",
+   "why": "Certified driver default for Dräger (P1)"
+  },
+  "pollSeconds": {
+   "value": 60,
+   "why": "Certified driver default for Dräger (P1)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "$INC,{{SERIAL}},{{TS}},AT={{V:air_temp}},ST={{V:skin_temp}},RH={{V:humidity}},O2={{V:o2}},MODE={{V:mode}}*{{CS}}\r"
+   }
+  ],
+  "values": {
+   "air_temp": 34.2,
+   "skin_temp": 36.6,
+   "humidity": 65,
+   "o2": 30,
+   "mode": "SKIN"
+  },
+  "serial": "TN500-ARMB-0092",
+  "timeFormat": "yyyyMMddHHmmss",
+  "outOfRange": {
+   "key": "skin_temp",
+   "value": "45.0"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Dräger Babyleo TN500 – serial data export (MEDIBUS-style frames) via gateway with option P1. RS-232, USB-CDC (virtual COM) or USB-HID keyboard wedge read by the Device Host agent or gateway at the station.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

@@ -1,0 +1,80 @@
+{
+ "option": "P6",
+ "name": "Vendor cloud API / webhook",
+ "how": "OAuth2-secured REST APIs or HMAC-signed webhooks from vendor clouds and consumer platforms; consent-scoped for home and wearable devices.",
+ "security": "MEDIUM",
+ "reliability": "MEDIUM",
+ "effort": "MEDIUM",
+ "latency": "seconds to minutes",
+ "via": "HTTPS webhook receiver (HMAC, replay window) or poller",
+ "prerequisites": [
+  "Vendor contract / BAA",
+  "Client credentials or webhook secret in the vault",
+  "Residency of the vendor cloud checked",
+  "Consent model for home devices"
+ ],
+ "tests": [
+  "XT-01 webhook signature / token",
+  "XT-03 sample acquired",
+  "XT-13 scopes minimal, replay refused",
+  "XT-11 stale timestamp"
+ ],
+ "parameters": [
+  {
+   "name": "mode",
+   "required": true,
+   "default": "WEBHOOK",
+   "type": "enum",
+   "values": [
+    "WEBHOOK",
+    "POLL"
+   ]
+  },
+  {
+   "name": "webhookSecret",
+   "required": false,
+   "default": "",
+   "type": "secret"
+  },
+  {
+   "name": "clientId",
+   "required": false,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "clientSecret",
+   "required": false,
+   "default": "",
+   "type": "secret"
+  },
+  {
+   "name": "scopes",
+   "required": true,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "pollSeconds",
+   "required": false,
+   "default": 300,
+   "type": "int",
+   "min": 30,
+   "max": 86400
+  },
+  {
+   "name": "rateLimitPerMinute",
+   "required": false,
+   "default": 60,
+   "type": "int",
+   "min": 1,
+   "max": 6000
+  },
+  {
+   "name": "residencyCheck",
+   "required": false,
+   "default": true,
+   "type": "bool"
+  }
+ ]
+}

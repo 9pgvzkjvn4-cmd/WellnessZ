@@ -1,0 +1,100 @@
+{
+ "id": "TPL-12",
+ "name": "Partogram / perinatal record",
+ "settings": [
+  "SPEC"
+ ],
+ "captureMode": "CONTINUOUS",
+ "association": "ENCOUNTER_BED",
+ "adapters": [
+  "FHIR",
+  "HL7V2"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "fetal",
+   "label": "Fetal & maternal",
+   "fields": [
+    {
+     "id": "fhr",
+     "label": "Fetal heart rate",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "55283-6"
+     },
+     "unit": "/min",
+     "range": {
+      "min": 50,
+      "max": 240
+     },
+     "decimals": 0
+    },
+    {
+     "id": "uc_freq",
+     "label": "Contractions per 10 min",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-UC-FREQ"
+     },
+     "unit": "1",
+     "decimals": 0
+    },
+    {
+     "id": "uc_intensity",
+     "label": "Contraction intensity (IUP)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-UC-INT"
+     },
+     "unit": "mm[Hg]",
+     "decimals": 0
+    },
+    {
+     "id": "mhr",
+     "label": "Maternal heart rate",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8867-4"
+     },
+     "unit": "/min",
+     "decimals": 0
+    },
+    {
+     "id": "m_sys",
+     "label": "Systolic blood pressure",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8480-6"
+     },
+     "unit": "mm[Hg]",
+     "range": {
+      "min": 50,
+      "max": 260
+     },
+     "decimals": 0
+    },
+    {
+     "id": "m_dia",
+     "label": "Diastolic blood pressure",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8462-4"
+     },
+     "unit": "mm[Hg]",
+     "range": {
+      "min": 25,
+      "max": 160
+     },
+     "decimals": 0
+    }
+   ]
+  }
+ ]
+}

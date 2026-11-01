@@ -1,0 +1,120 @@
+{
+ "id": "TPL-08",
+ "name": "Echo / ECG structured report",
+ "settings": [
+  "IMG",
+  "ACUTE",
+  "OPD"
+ ],
+ "captureMode": "SPOT",
+ "association": "WORKLIST",
+ "adapters": [
+  "FHIR",
+  "PDF"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "ecg",
+   "label": "12-lead ECG measurements (interpretation unverified)",
+   "fields": [
+    {
+     "id": "hr",
+     "label": "Ventricular rate",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "8867-4"
+     },
+     "unit": "/min",
+     "range": {
+      "min": 20,
+      "max": 300
+     },
+     "decimals": 0
+    },
+    {
+     "id": "pr",
+     "label": "PR interval",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8625-6"
+     },
+     "unit": "ms",
+     "range": {
+      "min": 50,
+      "max": 500
+     },
+     "decimals": 0
+    },
+    {
+     "id": "qrs",
+     "label": "QRS duration",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "8633-0"
+     },
+     "unit": "ms",
+     "range": {
+      "min": 40,
+      "max": 300
+     },
+     "decimals": 0
+    },
+    {
+     "id": "qt",
+     "label": "QT interval",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8634-8"
+     },
+     "unit": "ms",
+     "range": {
+      "min": 200,
+      "max": 700
+     },
+     "decimals": 0
+    },
+    {
+     "id": "qtc",
+     "label": "QTc interval",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "8636-3"
+     },
+     "unit": "ms",
+     "range": {
+      "min": 200,
+      "max": 700
+     },
+     "decimals": 0
+    },
+    {
+     "id": "axis",
+     "label": "QRS axis",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8632-2"
+     },
+     "unit": "deg",
+     "decimals": 0
+    },
+    {
+     "id": "interpretation",
+     "label": "Device interpretation (unverified – physician sign-off)",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-ECG-INTERP"
+     },
+     "verify": true
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,180 @@
+{
+ "manifest": {
+  "packageId": "bp.and.ua651-ble",
+  "version": "1.0.0",
+  "name": "A&D UA-651BLE – Bluetooth LE Blood Pressure Profile (0x2A35)",
+  "family": "Vital signs & body composition",
+  "models": [
+   "IMD-037"
+  ],
+  "options": [
+   "P3"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/bp.and.ua651-ble-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P3": {
+   "parameters": {
+    "pairing": "LE_SECURE_CONNECTIONS_PASSKEY",
+    "bondingOwner": "GATEWAY",
+    "service": "1810",
+    "characteristic": "2A35",
+    "reconnect": "AUTO",
+    "passkey": ""
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true,
+    "pairing": "LE_SECURE_CONNECTIONS"
+   }
+  }
+ },
+ "grammar": {
+  "type": "BLE_GATT",
+  "characteristic": "2A35",
+  "fields": [
+   {
+    "key": "sys",
+    "decoded": "systolic"
+   },
+   {
+    "key": "dia",
+    "decoded": "diastolic"
+   },
+   {
+    "key": "pulse",
+    "decoded": "pulse"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "sys",
+   "display": "Systolic blood pressure",
+   "loinc": "8480-6",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 50,
+    "max": 260
+   }
+  },
+  {
+   "key": "dia",
+   "display": "Diastolic blood pressure",
+   "loinc": "8462-4",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 25,
+    "max": 160
+   }
+  },
+  {
+   "key": "pulse",
+   "display": "Pulse rate",
+   "loinc": "8867-4",
+   "ucum": "/min"
+  }
+ ],
+ "bindings": {
+  "TPL-13": {
+   "fields": {
+    "sys": "sys",
+    "dia": "dia",
+    "pulse": "pulse"
+   }
+  },
+  "TPL-02": {
+   "fields": {
+    "nibp_sys": "sys",
+    "nibp_dia": "dia",
+    "hr": "pulse"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "CONSENT",
+   "why": "Setting rule for TPL-13 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "grading": "BP_VALIDATION"
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "pairing": {
+   "value": "LE_SECURE_CONNECTIONS_PASSKEY",
+   "why": "Device supports passkey entry – Just-Works is blocked by tenant policy (RR-03)"
+  },
+  "bondingOwner": {
+   "value": "GATEWAY",
+   "why": "Certified driver default for A&D (P3)"
+  },
+  "service": {
+   "value": "1810",
+   "why": "Certified driver default for A&D (P3)"
+  },
+  "characteristic": {
+   "value": "2A35",
+   "why": "Certified driver default for A&D (P3)"
+  },
+  "reconnect": {
+   "value": "AUTO",
+   "why": "Certified driver default for A&D (P3)"
+  },
+  "connectVia": {
+   "value": "GATEWAY",
+   "why": "Fixed station: bond to the clinic gateway, not a tablet (RR-02)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "gatt": "2A35"
+   }
+  ],
+  "values": {
+   "sys": 128,
+   "dia": 82,
+   "pulse": 71
+  },
+  "serial": "UA651-5110274",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "sys",
+   "value": "300"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure A&D UA-651BLE – Bluetooth LE Blood Pressure Profile (0x2A35) with option P3. Standard GATT health profiles (BLP, HTP, PLX, WSS, GLS, BCS) or vendor services via gateway, tablet or kiosk; Classic SPP for older devices.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

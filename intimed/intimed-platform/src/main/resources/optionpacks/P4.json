@@ -1,0 +1,109 @@
+{
+ "option": "P4",
+ "name": "LAN / Wi-Fi – HL7 v2 MLLP (IHE DEV PCD-01) or vendor TCP",
+ "how": "Device or vendor gateway sends ORU^R01 (and receives ADT/ORM) over MLLP with TLS and client certificates.",
+ "security": "HIGH",
+ "reliability": "HIGH",
+ "effort": "MEDIUM",
+ "latency": "< 1 s",
+ "via": "MLLP-TLS listener :2575 (mTLS required)",
+ "prerequisites": [
+  "Vendor gateway / device enrolled with an endpoint certificate",
+  "Firewall conduit device zone → engine :2575",
+  "Time synchronised (NTP)"
+ ],
+ "tests": [
+  "XT-01 TLS 1.2+/mTLS handshake",
+  "XT-02 certificate ↔ endpoint",
+  "XT-03 ORU acquired",
+  "XT-04 OBX mapping",
+  "XT-11 malformed / duplicate / skew",
+  "XT-13 plaintext refused"
+ ],
+ "parameters": [
+  {
+   "name": "host",
+   "required": true,
+   "default": "intimed.local",
+   "type": "string"
+  },
+  {
+   "name": "port",
+   "required": true,
+   "default": 2575,
+   "type": "int",
+   "min": 1,
+   "max": 65535
+  },
+  {
+   "name": "tls",
+   "required": true,
+   "default": "MTLS",
+   "type": "enum",
+   "values": [
+    "MTLS",
+    "TLS",
+    "PLAINTEXT"
+   ]
+  },
+  {
+   "name": "tlsMin",
+   "required": true,
+   "default": "1.2",
+   "type": "enum",
+   "values": [
+    "1.3",
+    "1.2",
+    "1.1"
+   ]
+  },
+  {
+   "name": "sendingApplication",
+   "required": true,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "sendingFacility",
+   "required": true,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "ackMode",
+   "required": true,
+   "default": "ORIGINAL",
+   "type": "enum",
+   "values": [
+    "ORIGINAL",
+    "ENHANCED"
+   ]
+  },
+  {
+   "name": "profile",
+   "required": true,
+   "default": "IHE_PCD_01",
+   "type": "enum",
+   "values": [
+    "IHE_PCD_01",
+    "IHE_PCD_IPEC",
+    "IHE_IDCO",
+    "NONE"
+   ]
+  },
+  {
+   "name": "timeZone",
+   "required": false,
+   "default": "UTC",
+   "type": "string"
+  },
+  {
+   "name": "maxMessagesPerSecond",
+   "required": false,
+   "default": 50,
+   "type": "int",
+   "min": 1,
+   "max": 1000
+  }
+ ]
+}

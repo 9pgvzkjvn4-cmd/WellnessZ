@@ -1,0 +1,87 @@
+{
+ "id": "TPL-18",
+ "name": "OH spirometry (respirator clearance / surveillance)",
+ "settings": [
+  "OH",
+  "OPD"
+ ],
+ "captureMode": "SPOT",
+ "association": "WORKLIST",
+ "adapters": [
+  "FHIR",
+  "REST",
+  "PDF"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "spiro",
+   "label": "Spirometry (best of session)",
+   "fields": [
+    {
+     "id": "fev1",
+     "label": "FEV1",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "20150-9"
+     },
+     "unit": "L",
+     "range": {
+      "min": 0.2,
+      "max": 8
+     },
+     "decimals": 2
+    },
+    {
+     "id": "fvc",
+     "label": "FVC",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "19870-5"
+     },
+     "unit": "L",
+     "range": {
+      "min": 0.2,
+      "max": 10
+     },
+     "decimals": 2
+    },
+    {
+     "id": "ratio",
+     "label": "FEV1/FVC",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "19926-5"
+     },
+     "unit": "%",
+     "decimals": 0
+    },
+    {
+     "id": "pef",
+     "label": "Peak expiratory flow",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "19935-6"
+     },
+     "unit": "L/s",
+     "decimals": 2
+    },
+    {
+     "id": "repeatability",
+     "label": "FVC repeatability",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-SPIRO-REP"
+     },
+     "unit": "mL",
+     "decimals": 0
+    }
+   ]
+  }
+ ]
+}

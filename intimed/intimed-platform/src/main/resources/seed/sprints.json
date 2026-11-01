@@ -1,0 +1,189 @@
+[
+ {
+  "sprint": "IM-S0",
+  "theme": "Product inception & architecture",
+  "phase": "P1",
+  "timing": "Weeks 1–2",
+  "scope": "Product charter; ADRs (canonical model, pipeline, intelligence boundaries, harness); IEC 62304 classification and MDDS scope record; stack register; threat model v1; MacBook kit skeleton; Azure Dev subscription; device lab order",
+  "devices": "—",
+  "exit": "ADRs and stack approved; classification record signed; lab ordered",
+  "backlogCount": "3",
+  "sp": "26"
+ },
+ {
+  "sprint": "IM-S1",
+  "theme": "Core pipeline, simulators, MacBook kit, Azure Dev & security baseline",
+  "phase": "P1",
+  "timing": "Weeks 3–6",
+  "scope": "Pipeline services with DLQ; simulator framework and golden datasets; MacBook developer kit (arm64 images, kind/k3d, step-ca, Vault dev, mdi-sdk); Azure Dev cluster from Terraform/Helm; PKI enrolment, mTLS, vault interface; hardened gateway image; CI with SBOM/signing; middleware HL7 source adapter",
+  "devices": "IMD-213, IMD-272, IMD-289 (sources)",
+  "exit": "500 msg/s p95 ≤ 3 s on simulators; MacBook bootstrap < 30 min; mTLS enforced; images pass hardening",
+  "backlogCount": "17",
+  "sp": "225"
+ },
+ {
+  "sprint": "IM-S2",
+  "theme": "Universal catalogue, seed inventory & register feeds",
+  "phase": "P1",
+  "timing": "Weeks 7–10",
+  "scope": "Catalogue model/APIs/console; seed inventory (≈225 devices, 132 FDA codes) loaded; openFDA/AccessGUDID/EUDAMED feed connectors with change review; connectivity matrix with verification states; request-a-model workflow",
+  "devices": "All (catalogue rows)",
+  "exit": "Catalogue searchable by brand/model/UDI/code; feeds refresh weekly with reviewer approval",
+  "backlogCount": "6",
+  "sp": "65"
+ },
+ {
+  "sprint": "IM-S3",
+  "theme": "Guided provisioning console & option packs",
+  "phase": "P1",
+  "timing": "Weeks 11–14",
+  "scope": "Eight-step wizard with pause/resume/clone/site templates; option packs P1–P11; governance (roles, four-eyes, change history, Dev → UAT → Prod promotion); vendor posture gate; certification record; fleet dashboard",
+  "devices": "—",
+  "exit": "Three administrators provision simulated devices in ≤ 45 min with zero technical support",
+  "backlogCount": "9",
+  "sp": "102"
+ },
+ {
+  "sprint": "IM-S4",
+  "theme": "Configuration intelligence & exchange harness v1",
+  "phase": "P1",
+  "timing": "Weeks 15–18",
+  "scope": "Recommendation rule engine (driver defaults + tenant context) with 'why' and confidence; conflict/risk detection with block/warn/justify policies; test-plan generator; exchange executor with sandbox templates; security checks; publish gate; evidence packs; harness API for CI",
+  "devices": "Simulated devices of 5 families",
+  "exit": "≥ 90% of parameters pre-filled correctly on golden configurations; publish blocked without passing run",
+  "backlogCount": "14",
+  "sp": "170"
+ },
+ {
+  "sprint": "IM-S5",
+  "theme": "Acute-care monitoring & telemetry + flowsheet templates",
+  "phase": "P1",
+  "timing": "Weeks 19–22",
+  "scope": "MLLP PCD-01/02 adapters via Philips, GE, Mindray, Dräger, Nihon Kohden, Spacelabs gateways; Masimo/Capsule/iBus as sources; encounter–bed–device association with ADT; continuous-feed interval validation; TPL-01/02 reference bindings; RTLS association (MEMLS)",
+  "devices": "IMD-201…213, IMD-352",
+  "exit": "Interval vitals from two vendor gateways filed into a sandbox flowsheet with artefact flags; bed transfers handled",
+  "backlogCount": "11",
+  "sp": "168"
+ },
+ {
+  "sprint": "IM-S6",
+  "theme": "Infusion, ventilation & anaesthesia; bidirectional workflows",
+  "phase": "P2",
+  "timing": "Weeks 23–26",
+  "scope": "IPEC/PIV with Alaris, Plum/MedNet, Spectrum/Dose IQ, B. Braun Space, Agilia, PharmGuard; ventilator and anaesthesia feeds (Hamilton, Dräger, Getinge, PB, GE, Mindray); capnography/BIS/haemodynamics; TPL-03/04 bindings; SDC adapter stub",
+  "devices": "IMD-209, 210, 221…227, 241…251",
+  "exit": "Auto-programming confirmation round trip in sandbox; ventilator settings/measurements filed per interval",
+  "backlogCount": "2",
+  "sp": "21"
+ },
+ {
+  "sprint": "IM-S7",
+  "theme": "Outpatient & occupational-health instruments (OHCM reference integration)",
+  "phase": "P2",
+  "timing": "Weeks 27–30",
+  "scope": "Serial/USB, vendor-DB/file, BLE adapters for spirometry, audiometry, vision, vitals, ECG, drug & alcohol, fit testing, ergonomics, exposure feeds; OHCM reference integration via EP-1/EP-2 with TPL-17…21; guideline grading libraries; OCR fallback",
+  "devices": "IMD-001…IMD-133 (OH inventory)",
+  "exit": "OHCM forms capture from three vendors per family through IntiMed; harness evidence attached; parity with the OHCM MDI pack scope",
+  "backlogCount": "12",
+  "sp": "172"
+ },
+ {
+  "sprint": "IM-S8",
+  "theme": "Remote patient monitoring, wearables, home devices & cloud APIs",
+  "phase": "P2",
+  "timing": "Weeks 31–34",
+  "scope": "Cloud API/webhook adapter framework with consent scopes; RPM kits, CGM/insulin clouds, CPAP, hospital-at-home platforms, aggregators (Validic/Human API/HealthKit/Health Connect), telehealth kits; TPL-13/14/22; patient summaries",
+  "devices": "IMD-228…231, 246, 251, 331…335",
+  "exit": "Consented readings flow daily into the RPM dashboard template; weekly reconciliation report; DPIA approved",
+  "backlogCount": "7",
+  "sp": "84"
+ },
+ {
+  "sprint": "IM-S9",
+  "theme": "Laboratory analysers, POCT & middleware",
+  "phase": "P2",
+  "timing": "Weeks 35–38",
+  "scope": "POCT1-A2, LIS2/ASTM, IHE LAW adapters; middleware bridges (Instrument Manager, cobas infinity, AlinIQ, Atellica DM, REMISOL, WAM); blood gas data managers (AQURE, GEMweb); molecular connectivity; TPL-05/06; QC lot handling",
+  "devices": "IMD-261…273; OH POC family",
+  "exit": "Results with lots and flags from two middleware products and two POC data managers filed into lab/POC templates",
+  "backlogCount": "2",
+  "sp": "26"
+ },
+ {
+  "sprint": "IM-S10",
+  "theme": "Cardiology diagnostics & implant remote monitoring",
+  "phase": "P2",
+  "timing": "Weeks 39–42",
+  "scope": "IHE IDCO ingestion from CareLink/Paceart, LATITUDE, Merlin.net, BIOTRONIK; ambulatory ECG patch portals; echo DICOM SR; ECG management systems; TPL-08/09; physician sign-off",
+  "devices": "IMD-301…307; OH cardiology family",
+  "exit": "IDCO transmissions from two vendors into the device-clinic template; echo SR measurements mapped",
+  "backlogCount": "2",
+  "sp": "21"
+ },
+ {
+  "sprint": "IM-S11",
+  "theme": "Imaging & PACS",
+  "phase": "P2",
+  "timing": "Weeks 43–46",
+  "scope": "DICOM adapter (MWL/MPPS/C-STORE/Q-R/SR/RDSR/DICOMweb); PACS/VNA integration; dose records; ophthalmic, dental and endoscopy exports; AI-triage outputs as flags; TPL-07",
+  "devices": "IMD-281…291, 371",
+  "exit": "Studies linked to orders with dose records; MWL from the host template",
+  "backlogCount": "2",
+  "sp": "21"
+ },
+ {
+  "sprint": "IM-S12",
+  "theme": "Specialist units – dialysis, neonatal, OR, neuro/sleep, beds",
+  "phase": "P2",
+  "timing": "Weeks 47–50",
+  "scope": "Dialysis therapy data systems and home dialysis clouds; ECMO/MCS consoles; incubators/warmers, bilirubinometers, newborn hearing, fetal monitors; OR integration, energy devices, sterilisation, perfusion; EEG/PSG exports; smart beds and nurse call; TPL-10/11/12/15/16",
+  "devices": "IMD-211, 212, 311…325, 341…344, 351, 353, 361…363, 372",
+  "exit": "Session/observation templates filled from at least one vendor per sub-family; remaining models queued with verification states",
+  "backlogCount": "2",
+  "sp": "26"
+ },
+ {
+  "sprint": "IM-S13",
+  "theme": "GCP & private-cloud blueprints, HA/DR, UAT/Prod pipelines, hosting TCO",
+  "phase": "P2",
+  "timing": "Weeks 51–54",
+  "scope": "Terraform/Helm for GCP and private cloud (OpenShift/Rancher, Patroni, Strimzi/NATS, MinIO, Vault, Keycloak); UAT and Prod HA on all three; failover automation and DR drills (RPO ≤ 15 min, RTO ≤ 2 h); SLO catalogue, runbooks, FinOps; hosting TCO model validated with quotes",
+  "devices": "—",
+  "exit": "Identical conformance results on Azure, GCP and private cloud; DR drill passed; TCO signed off by Finance",
+  "backlogCount": "11",
+  "sp": "112"
+ },
+ {
+  "sprint": "IM-S14",
+  "theme": "Security hardening, test kit on all clouds, pen test, assurance & regulatory files",
+  "phase": "P2",
+  "timing": "Weeks 55–58",
+  "scope": "Security test kit (01–19) in UAT on all clouds; anomaly detection and isolation drill; cloud posture and tenant isolation; recommendation guardrails and publish-gate tests; independent penetration test; SOC 2 Type II readiness, ISO 27001 scope; IEC 62304/ISO 14971 files; usability file; labelling and IFU",
+  "devices": "All",
+  "exit": "No open critical/high findings; evidence pack complete; regulatory files reviewed",
+  "backlogCount": "6",
+  "sp": "55"
+ },
+ {
+  "sprint": "IM-S15",
+  "theme": "Pilot, hypercare & general availability",
+  "phase": "P2",
+  "timing": "Weeks 59–66",
+  "scope": "Pilots: the airline group's OHCM (OH clinics), one hospital ward (monitors + pumps), one RPM programme; shadow-mode runs and clinical sign-off; time-and-motion study; support tiers; training; GA decision",
+  "devices": "Pilot sites' devices",
+  "exit": "≥ 1 min saved per reading (acute) / ≥ 3 min per OH test; capture adoption ≥ 80%; GA approved",
+  "backlogCount": "4",
+  "sp": "31"
+ },
+ {
+  "sprint": "IM-S16+",
+  "theme": "Scale – marketplace, partner certification, OEM, analytics",
+  "phase": "P3",
+  "timing": "Months 16–18+",
+  "scope": "Driver marketplace and vendor portal; partner certification programme with harness suites; OEM/white-label packaging; licensing/metering and marketplace listings; client and product analytics; knowledge-base learning loop; remaining models",
+  "devices": "Remaining models",
+  "exit": "First OEM partner live; marketplace listings; knowledge base improving recommendation acceptance quarter on quarter",
+  "backlogCount": "7",
+  "sp": "70"
+ }
+]

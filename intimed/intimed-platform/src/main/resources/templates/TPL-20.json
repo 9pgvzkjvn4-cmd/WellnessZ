@@ -1,0 +1,65 @@
+{
+ "id": "TPL-20",
+ "name": "OH drug & alcohol record (chain of custody)",
+ "settings": [
+  "OH"
+ ],
+ "captureMode": "SPOT",
+ "association": "SESSION",
+ "restricted": true,
+ "adapters": [
+  "FHIR",
+  "PDF"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "brac",
+   "label": "Breath alcohol (evidential)",
+   "fields": [
+    {
+     "id": "brac",
+     "label": "Breath alcohol concentration",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-BRAC"
+     },
+     "unit": "g/210L",
+     "range": {
+      "min": 0,
+      "max": 0.5
+     },
+     "decimals": 3
+    },
+    {
+     "id": "result",
+     "label": "Screening outcome",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-BRAC-RESULT"
+     }
+    },
+    {
+     "id": "device_serial",
+     "label": "Device serial",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-DEVSERIAL"
+     }
+    },
+    {
+     "id": "custody_id",
+     "label": "Chain-of-custody form",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-CCF"
+     }
+    }
+   ]
+  }
+ ]
+}

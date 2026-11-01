@@ -1,0 +1,235 @@
+{
+ "manifest": {
+  "packageId": "sleep.natus.embla-csv",
+  "version": "1.0.0",
+  "name": "Natus Embla / Nox – PSG summary CSV export",
+  "family": "Rehabilitation, neurophysiology & sleep",
+  "models": [
+   "IMD-362"
+  ],
+  "options": [
+   "P2"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/sleep.natus.embla-csv-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P2": {
+   "parameters": {
+    "source": "FOLDER",
+    "path": "/mnt/psg/export",
+    "pattern": "*_summary.csv",
+    "pollSeconds": 300,
+    "stabilitySeconds": 30,
+    "archive": "MOVE_TO_DONE",
+    "serviceAccount": "",
+    "encoding": "UTF-8",
+    "dedupKey": "sha256(file)"
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "CSV",
+  "delimiter": ",",
+  "identity": {
+   "subject": "PatientID",
+   "serial": "Recorder",
+   "time": "StudyStart"
+  },
+  "fields": [
+   {
+    "key": "ahi",
+    "column": "AHI",
+    "unit": "/h"
+   },
+   {
+    "key": "odi",
+    "column": "ODI",
+    "unit": "/h"
+   },
+   {
+    "key": "min_spo2",
+    "column": "MinSpO2",
+    "unit": "%"
+   },
+   {
+    "key": "tst",
+    "column": "TST_min",
+    "unit": "min"
+   },
+   {
+    "key": "efficiency",
+    "column": "SleepEfficiency",
+    "unit": "%"
+   },
+   {
+    "key": "edf_ref",
+    "column": "EDF"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "ahi",
+   "display": "Apnoea-hypopnoea index",
+   "local": "INTIMED-PSG-AHI",
+   "ucum": "/h",
+   "plausible": {
+    "min": 0,
+    "max": 150
+   }
+  },
+  {
+   "key": "odi",
+   "display": "Oxygen desaturation index",
+   "local": "INTIMED-PSG-ODI",
+   "ucum": "/h",
+   "plausible": {
+    "min": 0,
+    "max": 150
+   }
+  },
+  {
+   "key": "min_spo2",
+   "display": "Minimum SpO2",
+   "local": "INTIMED-PSG-MINSPO2",
+   "ucum": "%",
+   "plausible": {
+    "min": 40,
+    "max": 100
+   }
+  },
+  {
+   "key": "tst",
+   "display": "Total sleep time",
+   "local": "INTIMED-PSG-TST",
+   "ucum": "min",
+   "plausible": {
+    "min": 0,
+    "max": 1000
+   }
+  },
+  {
+   "key": "efficiency",
+   "display": "Sleep efficiency",
+   "local": "INTIMED-PSG-EFF",
+   "ucum": "%"
+  },
+  {
+   "key": "edf_ref",
+   "display": "EDF recording reference",
+   "local": "INTIMED-PSG-EDF",
+   "type": "text"
+  }
+ ],
+ "bindings": {
+  "TPL-15": {
+   "fields": {
+    "ahi": "ahi",
+    "odi": "odi",
+    "min_spo2": "min_spo2",
+    "tst": "tst",
+    "efficiency": "efficiency",
+    "edf_ref": "edf_ref"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "WORKLIST",
+   "why": "Setting rule for TPL-15 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "source": {
+   "value": "FOLDER",
+   "why": "Certified driver default for Natus (P2)"
+  },
+  "path": {
+   "value": "/mnt/psg/export",
+   "why": "Certified driver default for Natus (P2)"
+  },
+  "pattern": {
+   "value": "*_summary.csv",
+   "why": "Certified driver default for Natus (P2)"
+  },
+  "pollSeconds": {
+   "value": 300,
+   "why": "Certified driver default for Natus (P2)"
+  },
+  "stabilitySeconds": {
+   "value": 30,
+   "why": "Certified driver default for Natus (P2)"
+  },
+  "archive": {
+   "value": "MOVE_TO_DONE",
+   "why": "Certified driver default for Natus (P2)"
+  },
+  "encoding": {
+   "value": "UTF-8",
+   "why": "Certified driver default for Natus (P2)"
+  },
+  "dedupKey": {
+   "value": "sha256(file)",
+   "why": "Certified driver default for Natus (P2)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "PatientID,Recorder,StudyStart,AHI,ODI,MinSpO2,TST_min,SleepEfficiency,EDF\r\n{{SUBJECT}},{{SERIAL}},{{TSISO}},{{V:ahi}},{{V:odi}},{{V:min_spo2}},{{V:tst}},{{V:efficiency}},{{V:edf_ref}}\r\n"
+   }
+  ],
+  "values": {
+   "ahi": 14.2,
+   "odi": 11.8,
+   "min_spo2": 84,
+   "tst": 402,
+   "efficiency": 87,
+   "edf_ref": "PSG-2611-0042.edf"
+  },
+  "serial": "EMBLA-NDX-3301",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "ahi",
+   "value": "250"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Natus Embla / Nox – PSG summary CSV export with option P2. Read-only access to the vendor application's export folder (XML, GDT, CSV, PDF, JSON) or database; the vendor software stays the regulated measurement application.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

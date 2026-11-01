@@ -1,0 +1,102 @@
+[
+ {
+  "epic": "IM-E01",
+  "name": "IntiMed Core Integration Engine – canonical pipeline, protocol adapters, normalisation and routing for any healthcare setting",
+  "goal": "Provide a generic, vendor-neutral device integration engine that connects any device by brand and model through ten connectivity options (serial/USB, vendor software DB/file export, Bluetooth, LAN/Wi-Fi HL7 MLLP / IHE DEV PCD-01, POCT1-A and LIS data managers, vendor cloud APIs, DICOM, FHIR, image/OCR, manual with attestation), runs one canonical pipeline (acquire → parse → normalise → associate → validate → route → persist → acknowledge) with IEEE 11073/LOINC/UCUM normalisation, patient/subject association, quality gates and provenance, and routes every measurement into the right associated template of the host product – an EHR flowsheet, a clinic form, an occupational-health record, a laboratory result, an imaging report link or a remote-monitoring dashboard – following the step-by-step methodology of market-leading device integration engines so that each new device is configuration, not code.",
+  "phase": "P1",
+  "hlr": "14",
+  "features": "13",
+  "backlog": "30",
+  "sp": "410"
+ },
+ {
+  "epic": "IM-E02",
+  "name": "Universal Device Catalogue & Worldwide Inventory – any device by brand and model with regulatory status and certified drivers",
+  "goal": "Maintain a governed, continuously updated catalogue of medical devices in use worldwide – families, brands, models, variants, UDI/GUDID/EUDAMED references, regulatory status per market (FDA product code and clearance, CE/UKCA, Health Canada, TGA, PMDA, NMPA, CDSCO, GCC), performance standards, supported connectivity options, certified driver versions, vendor software requirements, security posture (MDS2/SBOM) and lifecycle state – seeded with the product's starting inventory and grown through automated register feeds, partner submissions and the request-a-model workflow, so that administrators always choose from a list that already knows how a device connects and whether it is accepted where they operate.",
+  "phase": "P1",
+  "hlr": "8",
+  "features": "6",
+  "backlog": "7",
+  "sp": "62"
+ },
+ {
+  "epic": "IM-E03",
+  "name": "Guided Provisioning Console with Configuration Intelligence – recommended configuration at every step",
+  "goal": "Give device administrators a console and an eight-step wizard that, at every selection – device model, site, connectivity option, parameters, association method, template bindings, quality gates, security settings – suggests the recommended configuration with an explanation and a confidence level, derived from the certified driver package, the tenant's site and security profile, the target template's requirements and a privacy-preserving knowledge base of configurations that were certified and performed well elsewhere; detects risky or inconsistent choices before they are saved; and hands the resulting configuration to the configuration-time test harness (IM-E04) – so that provisioning is guided, consistent and auditable rather than expert-dependent.",
+  "phase": "P1",
+  "hlr": "10",
+  "features": "9",
+  "backlog": "15",
+  "sp": "188"
+ },
+ {
+  "epic": "IM-E04",
+  "name": "Configuration-Time Exchange Testing & Template Binding Verification – prove the data flows into the right template before publish",
+  "goal": "Provide a built-in test harness that, during provisioning and after any change, exercises the complete exchange between the device (live, or its simulator) and the associated template(s) – connection, handshake, sample acquisition, parsing, normalisation, association to a test subject, binding into a sandbox copy of the template, field-coverage and unit/range/code checks, round-trip read-back, latency, security posture and negative cases – produces a pass/fail report with evidence, supports shadow-mode parallel runs against manual entry before go-live, and blocks publication until the expected exchange is demonstrated.",
+  "phase": "P1",
+  "hlr": "8",
+  "features": "8",
+  "backlog": "9",
+  "sp": "86"
+ },
+ {
+  "epic": "IM-E05",
+  "name": "Template Binding & Clinical Capture Experience – seamless 'capture from device' in any healthcare product's templates",
+  "goal": "Define templates generically – an EHR flowsheet, a clinic form, an occupational-health record, a laboratory result, an anaesthesia or dialysis record, an RPM dashboard – as versioned Template Definitions with field semantics (codes, units, ranges, required flags), bind device observations to them through a visual binding editor with recommended bindings from the driver, and give clinicians an embeddable 'capture from device' experience (web components, SMART app, native SDKs) with device lists filtered by station/bed, previews with quality flags, accept/reject/re-test, batch and kiosk modes, and fallback paths – so that end users never touch technical settings and host products integrate device capture in days.",
+  "phase": "P2",
+  "hlr": "9",
+  "features": "9",
+  "backlog": "14",
+  "sp": "172"
+ },
+ {
+  "epic": "IM-E06",
+  "name": "Endpoint & Integration Security as a core feature – identity, zero-trust connectivity, secure lifecycle, security test kit",
+  "goal": "Make endpoint security a built-in property of IntiMed in every environment setting: per-endpoint identities and mutual TLS for gateways, device hosts, mobile apps and vendor connections; medical-device network zoning templates; hardened gateway and device-host images; vault-managed secrets; a secure development life-cycle with SBOM and vulnerability management (IEC 81001-5-1, FDA §524B expectations); vendor posture gating (MDS2); tamper-evident audit to the client's SIEM; anomaly detection with 15-minute isolation; privacy by design; and a maintained security test kit (scripts, plan, evidence template, control matrix) that clients' Cyber teams run before go-live and quarterly.",
+  "phase": "P1",
+  "hlr": "11",
+  "features": "11",
+  "backlog": "11",
+  "sp": "118"
+ },
+ {
+  "epic": "IM-E07",
+  "name": "Interoperability APIs, SDKs & Medical-Product Integration – embed IntiMed in any healthcare product",
+  "goal": "Expose IntiMed as a platform that medical products and healthcare systems integrate in days: FHIR R4/R5 APIs with Subscriptions and SMART on FHIR, HL7 v2 and IHE DEV interfaces, event webhooks, GraphQL for the console, SDKs (TypeScript, Java/Kotlin, .NET, Swift, Kotlin/Android, Python) and web components, template adapters, a partner certification programme and a published Integration Guide for embedding IntiMed in products that run in the same environment settings (MacBook development; Dev/UAT/Prod with high availability on Azure, GCP or client private cloud) – with reference integrations for an EHR, an occupational-health platform (OHCM), an RPM app and a laboratory system.",
+  "phase": "P2",
+  "hlr": "8",
+  "features": "7",
+  "backlog": "8",
+  "sp": "108"
+ },
+ {
+  "epic": "IM-E08",
+  "name": "Deployment, Environments & Operations – MacBook development; Dev, UAT and Prod with high availability on Azure, GCP or client private cloud",
+  "goal": "Deliver IntiMed as reproducible infrastructure for four environment settings: a developer workstation on a MacBook (Apple silicon) that runs the whole platform with simulators; a shared Dev cluster; a production-like UAT with real devices and the security test kit; and a highly available Prod – each deployable on Microsoft Azure, Google Cloud or a client's private cloud (VMware/OpenShift/Rancher) from the same container images with cloud-specific infrastructure-as-code modules – together with a documented technology stack, CI/CD, observability, SRE runbooks, HA/DR, capacity and cost models, and a feasible cost comparison of the hosting choices.",
+  "phase": "P1",
+  "hlr": "8",
+  "features": "7",
+  "backlog": "10",
+  "sp": "136"
+ },
+ {
+  "epic": "IM-E09",
+  "name": "Multi-Tenancy, Commercial Operations & Analytics – licensing, metering, onboarding, usage and outcome analytics",
+  "goal": "Run IntiMed as a business: tenant onboarding and lifecycle, licensing models (per facility, per connected device, per tenant bands, OEM/embedded), metering and billing feeds, entitlement enforcement, customer success tooling, usage and outcome analytics (capture rates, time saved, data quality, device fleet health) for clients and for the product, benchmarking across tenants with privacy safeguards, and marketplace transactions.",
+  "phase": "P3",
+  "hlr": "6",
+  "features": "6",
+  "backlog": "6",
+  "sp": "55"
+ },
+ {
+  "epic": "IM-E10",
+  "name": "Product Regulatory, Quality & Clinical Safety – IEC 62304, ISO 13485-aligned QMS, risk management and clinical safety cases",
+  "goal": "Establish IntiMed as a quality-managed health software product: software safety classification and IEC 62304 life-cycle, ISO 14971 risk management, ISO 13485-aligned QMS processes, MDDS/SaMD regulatory analysis per market, clinical safety case templates for deployments (e.g., DCB0129/0160-style), usability engineering (IEC 62366) for the capture and console experiences, labelling and instructions for use, post-market surveillance and complaint handling, and the documentation set that regulators, clients and auditors expect.",
+  "phase": "P1",
+  "hlr": "7",
+  "features": "7",
+  "backlog": "7",
+  "sp": "60"
+ }
+]

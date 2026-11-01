@@ -1,0 +1,100 @@
+{
+ "id": "TPL-13",
+ "name": "RPM daily readings & chronic-care dashboard",
+ "settings": [
+  "RPM"
+ ],
+ "captureMode": "SPOT",
+ "association": "CONSENT",
+ "adapters": [
+  "FHIR",
+  "REST"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "daily",
+   "label": "Daily readings",
+   "fields": [
+    {
+     "id": "sys",
+     "label": "Systolic blood pressure",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8480-6"
+     },
+     "unit": "mm[Hg]",
+     "range": {
+      "min": 50,
+      "max": 260
+     },
+     "decimals": 0
+    },
+    {
+     "id": "dia",
+     "label": "Diastolic blood pressure",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8462-4"
+     },
+     "unit": "mm[Hg]",
+     "range": {
+      "min": 25,
+      "max": 160
+     },
+     "decimals": 0
+    },
+    {
+     "id": "pulse",
+     "label": "Pulse rate",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8867-4"
+     },
+     "unit": "/min",
+     "decimals": 0
+    },
+    {
+     "id": "weight",
+     "label": "Body weight",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "29463-7"
+     },
+     "unit": "kg",
+     "decimals": 1
+    },
+    {
+     "id": "spo2",
+     "label": "SpO2 (pulse oximetry)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "59408-5"
+     },
+     "unit": "%",
+     "range": {
+      "min": 50,
+      "max": 100
+     },
+     "decimals": 0
+    },
+    {
+     "id": "glucose",
+     "label": "Glucose (capillary)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "15074-8"
+     },
+     "unit": "mmol/L",
+     "decimals": 1
+    }
+   ]
+  }
+ ]
+}

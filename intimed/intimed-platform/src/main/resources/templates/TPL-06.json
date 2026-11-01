@@ -1,0 +1,115 @@
+{
+ "id": "TPL-06",
+ "name": "Laboratory result report",
+ "settings": [
+  "LAB"
+ ],
+ "captureMode": "SPOT",
+ "association": "WORKLIST",
+ "adapters": [
+  "FHIR",
+  "HL7V2",
+  "PDF"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "chem",
+   "label": "Chemistry & haematology",
+   "fields": [
+    {
+     "id": "glucose",
+     "label": "Glucose (serum)",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "14749-6"
+     },
+     "unit": "mmol/L",
+     "range": {
+      "min": 0.5,
+      "max": 50
+     },
+     "decimals": 1
+    },
+    {
+     "id": "creatinine",
+     "label": "Creatinine (serum)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "14682-9"
+     },
+     "unit": "umol/L",
+     "range": {
+      "min": 10,
+      "max": 3000
+     },
+     "decimals": 0
+    },
+    {
+     "id": "hba1c",
+     "label": "HbA1c",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "4548-4"
+     },
+     "unit": "%",
+     "decimals": 1
+    },
+    {
+     "id": "chol",
+     "label": "Cholesterol (serum)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "14647-2"
+     },
+     "unit": "mmol/L",
+     "decimals": 1
+    },
+    {
+     "id": "alt",
+     "label": "ALT",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "1742-6"
+     },
+     "unit": "U/L",
+     "decimals": 0
+    },
+    {
+     "id": "wbc",
+     "label": "Leukocytes",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "6690-2"
+     },
+     "unit": "10*9/L",
+     "decimals": 1
+    },
+    {
+     "id": "specimen",
+     "label": "Specimen",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-SPECIMEN"
+     }
+    },
+    {
+     "id": "analyser",
+     "label": "Analyser",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-ANALYSER"
+     }
+    }
+   ]
+  }
+ ]
+}

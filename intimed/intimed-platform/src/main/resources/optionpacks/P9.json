@@ -1,0 +1,42 @@
+{
+ "option": "P9",
+ "name": "Image capture & OCR / barcode (fallback)",
+ "how": "The nurse photographs the display or printout; OCR proposes values; verification is mandatory before posting.",
+ "security": "MEDIUM",
+ "reliability": "LOW",
+ "effort": "LOW",
+ "latency": "manual",
+ "via": "Capture component (camera) → OCR proposal → verification",
+ "prerequisites": [
+  "OCR template for the device",
+  "Image retention policy"
+ ],
+ "tests": [
+  "XT-04 OCR proposal parsed",
+  "XT-14 verify-before-post enforced"
+ ],
+ "parameters": [
+  {
+   "name": "ocrTemplate",
+   "required": true,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "confidenceThreshold",
+   "required": true,
+   "default": 0.85,
+   "type": "number",
+   "min": 0.5,
+   "max": 1.0
+  },
+  {
+   "name": "imageRetentionDays",
+   "required": true,
+   "default": 30,
+   "type": "int",
+   "min": 0,
+   "max": 3650
+  }
+ ]
+}

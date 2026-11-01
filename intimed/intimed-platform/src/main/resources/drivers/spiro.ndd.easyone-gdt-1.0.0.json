@@ -1,0 +1,298 @@
+{
+ "manifest": {
+  "packageId": "spiro.ndd.easyone-gdt",
+  "version": "1.0.0",
+  "name": "ndd EasyOne Air via EasyOne Connect – GDT 3.0 export",
+  "family": "Spirometry & lung function",
+  "models": [
+   "IMD-001"
+  ],
+  "options": [
+   "P2"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/spiro.ndd.easyone-gdt-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P2": {
+   "parameters": {
+    "source": "FOLDER",
+    "path": "C:\\\\ProgramData\\\\ndd\\\\GDT\\\\out",
+    "pattern": "*.gdt",
+    "pollSeconds": 10,
+    "stabilitySeconds": 2,
+    "archive": "MOVE_TO_DONE",
+    "serviceAccount": "",
+    "encoding": "ISO-8859-15",
+    "dedupKey": "sha256(file)"
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "GDT",
+  "identity": {
+   "subject": "3000",
+   "serial": "8402",
+   "time": "6200"
+  },
+  "fields": [
+   {
+    "key": "fev1",
+    "test": "8410=FEV1",
+    "unit": "L"
+   },
+   {
+    "key": "fvc",
+    "test": "8410=FVC",
+    "unit": "L"
+   },
+   {
+    "key": "ratio",
+    "test": "8410=FEV1FVC",
+    "unit": "%"
+   },
+   {
+    "key": "pef",
+    "test": "8410=PEF",
+    "unit": "L/s"
+   },
+   {
+    "key": "repeatability",
+    "test": "8410=FVCREP",
+    "unit": "mL"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "fev1",
+   "display": "FEV1",
+   "loinc": "20150-9",
+   "ucum": "L",
+   "plausible": {
+    "min": 0.2,
+    "max": 8
+   }
+  },
+  {
+   "key": "fvc",
+   "display": "FVC",
+   "loinc": "19870-5",
+   "ucum": "L",
+   "plausible": {
+    "min": 0.2,
+    "max": 10
+   }
+  },
+  {
+   "key": "ratio",
+   "display": "FEV1/FVC",
+   "loinc": "19926-5",
+   "ucum": "%"
+  },
+  {
+   "key": "pef",
+   "display": "Peak expiratory flow",
+   "loinc": "19935-6",
+   "ucum": "L/s"
+  },
+  {
+   "key": "repeatability",
+   "display": "FVC repeatability",
+   "local": "INTIMED-SPIRO-REP",
+   "ucum": "mL"
+  }
+ ],
+ "bindings": {
+  "TPL-18": {
+   "fields": {
+    "fev1": "fev1",
+    "fvc": "fvc",
+    "ratio": "ratio",
+    "pef": "pef",
+    "repeatability": "repeatability"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "WORKLIST",
+   "why": "Setting rule for TPL-18 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "grading": "ATS_ERS_2019",
+    "calibrationLockout": true
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "source": {
+   "value": "FOLDER",
+   "why": "Certified driver default for ndd (P2)"
+  },
+  "path": {
+   "value": "C:\\\\ProgramData\\\\ndd\\\\GDT\\\\out",
+   "why": "Certified driver default for ndd (P2)"
+  },
+  "pattern": {
+   "value": "*.gdt",
+   "why": "Certified driver default for ndd (P2)"
+  },
+  "pollSeconds": {
+   "value": 10,
+   "why": "Certified driver default for ndd (P2)"
+  },
+  "stabilitySeconds": {
+   "value": 2,
+   "why": "Certified driver default for ndd (P2)"
+  },
+  "archive": {
+   "value": "MOVE_TO_DONE",
+   "why": "Certified driver default for ndd (P2)"
+  },
+  "encoding": {
+   "value": "ISO-8859-15",
+   "why": "Certified driver default for ndd (P2)"
+  },
+  "dedupKey": {
+   "value": "sha256(file)",
+   "why": "Certified driver default for ndd (P2)"
+  },
+  "grading": {
+   "value": "ATS_ERS_2019",
+   "why": "Spirometry family: ATS/ERS 2019 repeatability grading and calibration lockout (RR-11)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "gdtLines": [
+     [
+      "8000",
+      "6310"
+     ],
+     [
+      "3000",
+      "{{SUBJECT}}"
+     ],
+     [
+      "8402",
+      "{{SERIAL}}"
+     ],
+     [
+      "6200",
+      "{{TSISO}}"
+     ],
+     [
+      "8410",
+      "FEV1"
+     ],
+     [
+      "8420",
+      "{{V:fev1}}"
+     ],
+     [
+      "8421",
+      "L"
+     ],
+     [
+      "8410",
+      "FVC"
+     ],
+     [
+      "8420",
+      "{{V:fvc}}"
+     ],
+     [
+      "8421",
+      "L"
+     ],
+     [
+      "8410",
+      "FEV1FVC"
+     ],
+     [
+      "8420",
+      "{{V:ratio}}"
+     ],
+     [
+      "8421",
+      "%"
+     ],
+     [
+      "8410",
+      "PEF"
+     ],
+     [
+      "8420",
+      "{{V:pef}}"
+     ],
+     [
+      "8421",
+      "L/s"
+     ],
+     [
+      "8410",
+      "FVCREP"
+     ],
+     [
+      "8420",
+      "{{V:repeatability}}"
+     ],
+     [
+      "8421",
+      "mL"
+     ]
+    ]
+   }
+  ],
+  "values": {
+   "fev1": 3.42,
+   "fvc": 4.31,
+   "ratio": 79,
+   "pef": 8.95,
+   "repeatability": 120
+  },
+  "serial": "EASYONE-AIR-200381",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "fev1",
+   "value": "14"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure ndd EasyOne Air via EasyOne Connect – GDT 3.0 export with option P2. Read-only access to the vendor application's export folder (XML, GDT, CSV, PDF, JSON) or database; the vendor software stays the regulated measurement application.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

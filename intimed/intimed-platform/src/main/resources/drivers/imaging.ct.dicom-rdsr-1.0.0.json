@@ -1,0 +1,208 @@
+{
+ "manifest": {
+  "packageId": "imaging.ct.dicom-rdsr",
+  "version": "1.0.0",
+  "name": "CT scanner – DICOM RDSR & study attributes via DICOM router (DICOMweb JSON)",
+  "family": "Imaging & PACS",
+  "models": [
+   "IMD-281"
+  ],
+  "options": [
+   "P7"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/imaging.ct.dicom-rdsr-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P7": {
+   "parameters": {
+    "aeTitle": "INTIMED_SCP",
+    "callingAeTitles": "CT01",
+    "port": 11112,
+    "tls": "DICOM_TLS",
+    "storageClasses": "1.2.840.10008.5.1.4.1.1.88.67",
+    "mwlFilter": ""
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "DICOM_JSON",
+  "identity": {
+   "subject": "00100020",
+   "serial": "00181000",
+   "time": "00080020"
+  },
+  "fields": [
+   {
+    "key": "accession",
+    "tag": "00080050"
+   },
+   {
+    "key": "study_uid",
+    "tag": "0020000D"
+   },
+   {
+    "key": "modality",
+    "tag": "00080060"
+   },
+   {
+    "key": "body_part",
+    "tag": "00180015"
+   },
+   {
+    "key": "dlp",
+    "tag": "SR:113813",
+    "unit": "mGy.cm"
+   },
+   {
+    "key": "ctdivol",
+    "tag": "SR:113830",
+    "unit": "mGy"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "accession",
+   "display": "Accession number",
+   "local": "INTIMED-ACCESSION",
+   "type": "text"
+  },
+  {
+   "key": "study_uid",
+   "display": "Study Instance UID",
+   "local": "INTIMED-STUDY-UID",
+   "type": "text"
+  },
+  {
+   "key": "modality",
+   "display": "Modality",
+   "local": "INTIMED-MODALITY",
+   "type": "text"
+  },
+  {
+   "key": "body_part",
+   "display": "Body part",
+   "local": "INTIMED-BODY-PART",
+   "type": "text"
+  },
+  {
+   "key": "dlp",
+   "display": "CT dose-length product (total)",
+   "local": "DCM-113813",
+   "ucum": "mGy.cm",
+   "plausible": {
+    "min": 0,
+    "max": 20000
+   }
+  },
+  {
+   "key": "ctdivol",
+   "display": "Mean CTDIvol",
+   "local": "DCM-113830",
+   "ucum": "mGy",
+   "plausible": {
+    "min": 0,
+    "max": 500
+   }
+  }
+ ],
+ "bindings": {
+  "TPL-07": {
+   "fields": {
+    "accession": "accession",
+    "study_uid": "study_uid",
+    "modality": "modality",
+    "body_part": "body_part",
+    "dlp": "dlp",
+    "ctdivol": "ctdivol"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "WORKLIST",
+   "why": "Setting rule for TPL-07 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "aeTitle": {
+   "value": "INTIMED_SCP",
+   "why": "Certified driver default for CT (P7)"
+  },
+  "callingAeTitles": {
+   "value": "CT01",
+   "why": "Certified driver default for CT (P7)"
+  },
+  "port": {
+   "value": 11112,
+   "why": "Certified driver default for CT (P7)"
+  },
+  "tls": {
+   "value": "DICOM_TLS",
+   "why": "DICOM TLS (PS3.15 BCP 195) between modality and router; plaintext DICOM blocked outside the imaging VLAN"
+  },
+  "storageClasses": {
+   "value": "1.2.840.10008.5.1.4.1.1.88.67",
+   "why": "Certified driver default for CT (P7)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "{\"00080020\": {\"vr\": \"DA\", \"Value\": [\"{{TSISO}}\"]}, \"00080050\": {\"vr\": \"SH\", \"Value\": [\"{{V:accession}}\"]}, \"00080060\": {\"vr\": \"CS\", \"Value\": [\"{{V:modality}}\"]}, \"00100020\": {\"vr\": \"LO\", \"Value\": [\"{{SUBJECT}}\"]}, \"00180015\": {\"vr\": \"CS\", \"Value\": [\"{{V:body_part}}\"]}, \"00181000\": {\"vr\": \"LO\", \"Value\": [\"{{SERIAL}}\"]}, \"0020000D\": {\"vr\": \"UI\", \"Value\": [\"{{V:study_uid}}\"]}, \"0040A730\": {\"vr\": \"SQ\", \"Value\": [{\"0040A043\": {\"vr\": \"SQ\", \"Value\": [{\"00080100\": {\"vr\": \"SH\", \"Value\": [\"113813\"]}, \"00080104\": {\"vr\": \"LO\", \"Value\": [\"CT Dose Length Product Total\"]}}]}, \"0040A300\": {\"vr\": \"SQ\", \"Value\": [{\"0040A30A\": {\"vr\": \"DS\", \"Value\": [\"{{V:dlp}}\"]}, \"004008EA\": {\"vr\": \"SQ\", \"Value\": [{\"00080100\": {\"vr\": \"SH\", \"Value\": [\"mGy.cm\"]}}]}}]}}, {\"0040A043\": {\"vr\": \"SQ\", \"Value\": [{\"00080100\": {\"vr\": \"SH\", \"Value\": [\"113830\"]}}]}, \"0040A300\": {\"vr\": \"SQ\", \"Value\": [{\"0040A30A\": {\"vr\": \"DS\", \"Value\": [\"{{V:ctdivol}}\"]}, \"004008EA\": {\"vr\": \"SQ\", \"Value\": [{\"00080100\": {\"vr\": \"SH\", \"Value\": [\"mGy\"]}}]}}]}}]}}"
+   }
+  ],
+  "values": {
+   "accession": "ACC-260117",
+   "study_uid": "1.2.826.0.1.3680043.10.543.7.1001",
+   "modality": "CT",
+   "body_part": "CHEST",
+   "dlp": 412.6,
+   "ctdivol": 9.85
+  },
+  "serial": "SOMATOM-X-1077",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "dlp",
+   "value": "99999"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure CT scanner – DICOM RDSR & study attributes via DICOM router (DICOMweb JSON) with option P7. C-STORE SCP, Modality Worklist, Query/Retrieve, MPPS, SR/RDSR via the DICOM router; DICOMweb to PACS/VNA.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

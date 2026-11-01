@@ -1,0 +1,412 @@
+{
+ "manifest": {
+  "packageId": "audio.benson.cca200-xml",
+  "version": "1.0.0",
+  "name": "Benson CCA-200mini via vendor software – audiogram XML export",
+  "family": "Audiometry & hearing",
+  "models": [
+   "IMD-015"
+  ],
+  "options": [
+   "P2"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/audio.benson.cca200-xml-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P2": {
+   "parameters": {
+    "source": "FOLDER",
+    "path": "C:\\\\Benson\\\\Export",
+    "pattern": "*.xml",
+    "pollSeconds": 20,
+    "stabilitySeconds": 3,
+    "archive": "MOVE_TO_DONE",
+    "serviceAccount": "secret://benson-share",
+    "encoding": "UTF-8",
+    "dedupKey": "sha256(file)"
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "XML",
+  "root": "Audiogram",
+  "identity": {
+   "subject": "/Audiogram/Patient/@id",
+   "serial": "/Audiogram/Device/@serial",
+   "time": "/Audiogram/@tested"
+  },
+  "fields": [
+   {
+    "key": "r500",
+    "xpath": "/Audiogram/Ear[@side='Right']/Threshold[@hz='500']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "r1000",
+    "xpath": "/Audiogram/Ear[@side='Right']/Threshold[@hz='1000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "r2000",
+    "xpath": "/Audiogram/Ear[@side='Right']/Threshold[@hz='2000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "r3000",
+    "xpath": "/Audiogram/Ear[@side='Right']/Threshold[@hz='3000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "r4000",
+    "xpath": "/Audiogram/Ear[@side='Right']/Threshold[@hz='4000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "r6000",
+    "xpath": "/Audiogram/Ear[@side='Right']/Threshold[@hz='6000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "r8000",
+    "xpath": "/Audiogram/Ear[@side='Right']/Threshold[@hz='8000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "l500",
+    "xpath": "/Audiogram/Ear[@side='Left']/Threshold[@hz='500']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "l1000",
+    "xpath": "/Audiogram/Ear[@side='Left']/Threshold[@hz='1000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "l2000",
+    "xpath": "/Audiogram/Ear[@side='Left']/Threshold[@hz='2000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "l3000",
+    "xpath": "/Audiogram/Ear[@side='Left']/Threshold[@hz='3000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "l4000",
+    "xpath": "/Audiogram/Ear[@side='Left']/Threshold[@hz='4000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "l6000",
+    "xpath": "/Audiogram/Ear[@side='Left']/Threshold[@hz='6000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "l8000",
+    "xpath": "/Audiogram/Ear[@side='Left']/Threshold[@hz='8000']/@db",
+    "unit": "dB"
+   },
+   {
+    "key": "reliability",
+    "xpath": "/Audiogram/Quality/@reliable",
+    "unit": "1"
+   },
+   {
+    "key": "booth_noise",
+    "xpath": "/Audiogram/Quality/@boothNoise",
+    "unit": "dB"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "r500",
+   "display": "Right 500 Hz",
+   "local": "INTIMED-AUD-R500",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "r1000",
+   "display": "Right 1000 Hz",
+   "local": "INTIMED-AUD-R1000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "r2000",
+   "display": "Right 2000 Hz",
+   "local": "INTIMED-AUD-R2000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "r3000",
+   "display": "Right 3000 Hz",
+   "local": "INTIMED-AUD-R3000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "r4000",
+   "display": "Right 4000 Hz",
+   "local": "INTIMED-AUD-R4000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "r6000",
+   "display": "Right 6000 Hz",
+   "local": "INTIMED-AUD-R6000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "r8000",
+   "display": "Right 8000 Hz",
+   "local": "INTIMED-AUD-R8000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "l500",
+   "display": "Left 500 Hz",
+   "local": "INTIMED-AUD-L500",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "l1000",
+   "display": "Left 1000 Hz",
+   "local": "INTIMED-AUD-L1000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "l2000",
+   "display": "Left 2000 Hz",
+   "local": "INTIMED-AUD-L2000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "l3000",
+   "display": "Left 3000 Hz",
+   "local": "INTIMED-AUD-L3000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "l4000",
+   "display": "Left 4000 Hz",
+   "local": "INTIMED-AUD-L4000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "l6000",
+   "display": "Left 6000 Hz",
+   "local": "INTIMED-AUD-L6000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "l8000",
+   "display": "Left 8000 Hz",
+   "local": "INTIMED-AUD-L8000",
+   "ucum": "dB",
+   "plausible": {
+    "min": -10,
+    "max": 120
+   }
+  },
+  {
+   "key": "reliability",
+   "display": "Response reliability (1 = reliable)",
+   "local": "INTIMED-AUD-REL",
+   "ucum": "1"
+  },
+  {
+   "key": "booth_noise",
+   "display": "Booth ambient noise",
+   "local": "INTIMED-AUD-NOISE",
+   "ucum": "dB"
+  }
+ ],
+ "bindings": {
+  "TPL-17": {
+   "fields": {
+    "r500": "r500",
+    "r1000": "r1000",
+    "r2000": "r2000",
+    "r3000": "r3000",
+    "r4000": "r4000",
+    "r6000": "r6000",
+    "r8000": "r8000",
+    "l500": "l500",
+    "l1000": "l1000",
+    "l2000": "l2000",
+    "l3000": "l3000",
+    "l4000": "l4000",
+    "l6000": "l6000",
+    "l8000": "l8000",
+    "reliability": "reliability",
+    "booth_noise": "booth_noise"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "WORKLIST",
+   "why": "Setting rule for TPL-17 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "grading": "AUDIOMETRIC_VALIDITY"
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "source": {
+   "value": "FOLDER",
+   "why": "Certified driver default for Benson (P2)"
+  },
+  "path": {
+   "value": "C:\\\\Benson\\\\Export",
+   "why": "Certified driver default for Benson (P2)"
+  },
+  "pattern": {
+   "value": "*.xml",
+   "why": "Certified driver default for Benson (P2)"
+  },
+  "pollSeconds": {
+   "value": 20,
+   "why": "Certified driver default for Benson (P2)"
+  },
+  "stabilitySeconds": {
+   "value": 3,
+   "why": "Certified driver default for Benson (P2)"
+  },
+  "archive": {
+   "value": "MOVE_TO_DONE",
+   "why": "Certified driver default for Benson (P2)"
+  },
+  "serviceAccount": {
+   "value": "secret://benson-share",
+   "why": "Read-only service account held in the vault – never typed into the configuration (SC-05)"
+  },
+  "encoding": {
+   "value": "UTF-8",
+   "why": "Certified driver default for Benson (P2)"
+  },
+  "dedupKey": {
+   "value": "sha256(file)",
+   "why": "Certified driver default for Benson (P2)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "<Audiogram tested=\"{{TSISO}}\"><Patient id=\"{{SUBJECT}}\"/><Device serial=\"{{SERIAL}}\" model=\"CCA-200mini\" calibrated=\"2026-06-01\"/><Ear side=\"Right\"><Threshold hz=\"500\" db=\"{{V:r500}}\"/><Threshold hz=\"1000\" db=\"{{V:r1000}}\"/><Threshold hz=\"2000\" db=\"{{V:r2000}}\"/><Threshold hz=\"3000\" db=\"{{V:r3000}}\"/><Threshold hz=\"4000\" db=\"{{V:r4000}}\"/><Threshold hz=\"6000\" db=\"{{V:r6000}}\"/><Threshold hz=\"8000\" db=\"{{V:r8000}}\"/></Ear><Ear side=\"Left\"><Threshold hz=\"500\" db=\"{{V:l500}}\"/><Threshold hz=\"1000\" db=\"{{V:l1000}}\"/><Threshold hz=\"2000\" db=\"{{V:l2000}}\"/><Threshold hz=\"3000\" db=\"{{V:l3000}}\"/><Threshold hz=\"4000\" db=\"{{V:l4000}}\"/><Threshold hz=\"6000\" db=\"{{V:l6000}}\"/><Threshold hz=\"8000\" db=\"{{V:l8000}}\"/></Ear><Quality reliable=\"{{V:reliability}}\" boothNoise=\"{{V:booth_noise}}\"/></Audiogram>"
+   }
+  ],
+  "values": {
+   "r500": 10,
+   "r1000": 10,
+   "r2000": 15,
+   "r3000": 20,
+   "r4000": 30,
+   "r6000": 35,
+   "r8000": 25,
+   "l500": 5,
+   "l1000": 10,
+   "l2000": 10,
+   "l3000": 20,
+   "l4000": 25,
+   "l6000": 30,
+   "l8000": 20,
+   "reliability": 1,
+   "booth_noise": 28
+  },
+  "serial": "CCA200-61742",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "r4000",
+   "value": "160"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Benson CCA-200mini via vendor software – audiogram XML export with option P2. Read-only access to the vendor application's export folder (XML, GDT, CSV, PDF, JSON) or database; the vendor software stays the regulated measurement application.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

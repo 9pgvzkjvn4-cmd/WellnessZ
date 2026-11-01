@@ -1,0 +1,154 @@
+{
+ "id": "TPL-03",
+ "name": "Anaesthesia record (AIMS)",
+ "settings": [
+  "ACUTE"
+ ],
+ "captureMode": "CONTINUOUS",
+ "association": "SESSION",
+ "adapters": [
+  "FHIR",
+  "HL7V2"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "gas",
+   "label": "Gases & ventilation",
+   "fields": [
+    {
+     "id": "etco2",
+     "label": "End-tidal CO2",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "mdc": "MDC_AWAY_CO2_ET"
+     },
+     "unit": "mm[Hg]",
+     "range": {
+      "min": 0,
+      "max": 100
+     },
+     "decimals": 0
+    },
+    {
+     "id": "fio2",
+     "label": "Inspired O2 fraction",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "3150-0"
+     },
+     "unit": "%",
+     "decimals": 0
+    },
+    {
+     "id": "et_sevo",
+     "label": "End-tidal sevoflurane",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "mdc": "MDC_CONC_AWAY_SEVOFL_ET"
+     },
+     "unit": "%",
+     "decimals": 1
+    },
+    {
+     "id": "mac",
+     "label": "MAC",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-MAC"
+     },
+     "unit": "1",
+     "decimals": 2
+    },
+    {
+     "id": "tv",
+     "label": "Tidal volume (expired)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "mdc": "MDC_VOL_AWAY_TIDAL_EXP"
+     },
+     "unit": "mL",
+     "decimals": 0
+    },
+    {
+     "id": "peep",
+     "label": "PEEP",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "mdc": "MDC_VENT_PRESS_AWAY_END_EXP_POS"
+     },
+     "unit": "cm[H2O]",
+     "decimals": 0
+    }
+   ]
+  },
+  {
+   "id": "haemo",
+   "label": "Haemodynamics & depth",
+   "fields": [
+    {
+     "id": "hr",
+     "label": "Heart rate",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "8867-4"
+     },
+     "unit": "/min",
+     "range": {
+      "min": 20,
+      "max": 250
+     },
+     "decimals": 0
+    },
+    {
+     "id": "nibp_sys",
+     "label": "Systolic blood pressure",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8480-6"
+     },
+     "unit": "mm[Hg]",
+     "range": {
+      "min": 50,
+      "max": 260
+     },
+     "decimals": 0
+    },
+    {
+     "id": "nibp_dia",
+     "label": "Diastolic blood pressure",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "8462-4"
+     },
+     "unit": "mm[Hg]",
+     "range": {
+      "min": 25,
+      "max": 160
+     },
+     "decimals": 0
+    },
+    {
+     "id": "bis",
+     "label": "Bispectral index",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "mdc": "MDC_EEG_BISPECTRAL_INDEX"
+     },
+     "unit": "1",
+     "decimals": 0
+    }
+   ]
+  }
+ ]
+}

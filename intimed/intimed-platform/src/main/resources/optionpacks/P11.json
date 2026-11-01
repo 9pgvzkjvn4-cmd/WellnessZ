@@ -1,0 +1,42 @@
+{
+ "option": "P11",
+ "name": "IEEE 11073 SDC (service-oriented device connectivity)",
+ "how": "Discovery and subscription to OR/ICU devices publishing SDC services (BICEPS/MDPWS) – prepared adapter; local kit consumes BICEPS JSON reports.",
+ "security": "HIGH",
+ "reliability": "MEDIUM",
+ "effort": "HIGH",
+ "latency": "< 1 s",
+ "via": "SDC consumer (stub) → pipeline",
+ "prerequisites": [
+  "SDC participant keys",
+  "Discovery scope per room"
+ ],
+ "tests": [
+  "XT-03 metric report acquired",
+  "XT-04 handle mapping"
+ ],
+ "parameters": [
+  {
+   "name": "discoveryScope",
+   "required": true,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "metricSubscription",
+   "required": true,
+   "default": "EpisodicMetricReport",
+   "type": "enum",
+   "values": [
+    "EpisodicMetricReport",
+    "WaveformStream"
+   ]
+  },
+  {
+   "name": "participantKey",
+   "required": false,
+   "default": "",
+   "type": "secret"
+  }
+ ]
+}

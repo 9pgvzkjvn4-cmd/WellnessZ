@@ -1,0 +1,218 @@
+{
+ "manifest": {
+  "packageId": "hah.masimo.safetynet-cloud",
+  "version": "1.0.0",
+  "name": "Masimo SafetyNet hospital-at-home platform – cloud API (continuous)",
+  "family": "Remote patient monitoring & home",
+  "models": [
+   "IMD-332"
+  ],
+  "options": [
+   "P6"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/hah.masimo.safetynet-cloud-1.0.0.cdx.json",
+  "captureMode": "CONTINUOUS",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P6": {
+   "parameters": {
+    "mode": "POLL",
+    "webhookSecret": "",
+    "clientId": "intimed-local",
+    "clientSecret": "secret://safetynet-client",
+    "scopes": "vitals.read alerts.read",
+    "pollSeconds": 60,
+    "rateLimitPerMinute": 120,
+    "residencyCheck": true
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": false,
+    "hmac": "SHA-256",
+    "replayWindowSeconds": 300
+   }
+  }
+ },
+ "grammar": {
+  "type": "JSON",
+  "identity": {
+   "serial": "/sensor/serial",
+   "time": "/sample/t"
+  },
+  "fields": [
+   {
+    "key": "hr",
+    "path": "/sample/pr",
+    "unit": "/min"
+   },
+   {
+    "key": "spo2",
+    "path": "/sample/spo2",
+    "unit": "%"
+   },
+   {
+    "key": "rr",
+    "path": "/sample/rrp",
+    "unit": "/min"
+   },
+   {
+    "key": "temp",
+    "path": "/sample/temp",
+    "unit": "Cel"
+   },
+   {
+    "key": "alert",
+    "path": "/sample/alert"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "hr",
+   "display": "Heart rate",
+   "loinc": "8867-4",
+   "ucum": "/min",
+   "plausible": {
+    "min": 20,
+    "max": 250
+   },
+   "artefactJumpPct": 45
+  },
+  {
+   "key": "spo2",
+   "display": "SpO2 (pulse oximetry)",
+   "loinc": "59408-5",
+   "ucum": "%",
+   "plausible": {
+    "min": 50,
+    "max": 100
+   }
+  },
+  {
+   "key": "rr",
+   "display": "Respiratory rate",
+   "loinc": "9279-1",
+   "ucum": "/min",
+   "plausible": {
+    "min": 4,
+    "max": 70
+   }
+  },
+  {
+   "key": "temp",
+   "display": "Body temperature",
+   "loinc": "8310-5",
+   "ucum": "Cel",
+   "plausible": {
+    "min": 30,
+    "max": 43
+   }
+  },
+  {
+   "key": "alert",
+   "display": "Platform alert (flag only)",
+   "local": "INTIMED-HAH-ALERT",
+   "type": "text"
+  }
+ ],
+ "bindings": {
+  "TPL-14": {
+   "fields": {
+    "hr": "hr",
+    "spo2": "spo2",
+    "rr": "rr",
+    "temp": "temp",
+    "alert": "alert"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "CONSENT",
+   "why": "Setting rule for TPL-14 templates"
+  },
+  "captureMode": {
+   "value": "CONTINUOUS",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "mode": {
+   "value": "POLL",
+   "why": "Certified driver default for Masimo (P6)"
+  },
+  "clientId": {
+   "value": "intimed-local",
+   "why": "Certified driver default for Masimo (P6)"
+  },
+  "clientSecret": {
+   "value": "secret://safetynet-client",
+   "why": "Certified driver default for Masimo (P6)"
+  },
+  "scopes": {
+   "value": "vitals.read alerts.read",
+   "why": "Certified driver default for Masimo (P6)"
+  },
+  "pollSeconds": {
+   "value": 60,
+   "why": "Hospital-at-home flowsheet interval 1 min; rate limit respected (RR-13)"
+  },
+  "rateLimitPerMinute": {
+   "value": 120,
+   "why": "Certified driver default for Masimo (P6)"
+  },
+  "residencyCheck": {
+   "value": true,
+   "why": "Certified driver default for Masimo (P6)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "{\"sensor\": {\"serial\": \"{{SERIAL}}\", \"model\": \"Radius PPG\"}, \"sample\": {\"t\": \"{{TSISO}}\", \"pr\": {{V:hr}}, \"spo2\": {{V:spo2}}, \"rrp\": {{V:rr}}, \"temp\": {{V:temp}}, \"alert\": \"{{V:alert}}\"}}"
+   }
+  ],
+  "values": {
+   "hr": 82,
+   "spo2": 95,
+   "rr": 17,
+   "temp": 37.4,
+   "alert": "none"
+  },
+  "serial": "RADIUS-PPG-88031",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "spo2",
+   "value": "41"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Masimo SafetyNet hospital-at-home platform – cloud API (continuous) with option P6. OAuth2-secured REST APIs or HMAC-signed webhooks from vendor clouds and consumer platforms; consent-scoped for home and wearable devices.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

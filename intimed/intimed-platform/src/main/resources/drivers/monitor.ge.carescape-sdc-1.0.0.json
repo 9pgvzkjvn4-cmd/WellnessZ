@@ -1,0 +1,222 @@
+{
+ "manifest": {
+  "packageId": "monitor.ge.carescape-sdc",
+  "version": "1.0.0",
+  "name": "GE CARESCAPE monitor – IEEE 11073 SDC (BICEPS metric report, SDC-ready stub)",
+  "family": "Acute-care monitoring & telemetry",
+  "models": [
+   "IMD-202"
+  ],
+  "options": [
+   "P11"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/monitor.ge.carescape-sdc-1.0.0.cdx.json",
+  "captureMode": "CONTINUOUS",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P11": {
+   "parameters": {
+    "discoveryScope": "sdc.ctxt.loc:/sdc.ctxt.loc.detail/OR3",
+    "metricSubscription": "EpisodicMetricReport",
+    "participantKey": ""
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "SDC",
+  "requireField": "/MdibVersion",
+  "identity": {
+   "subject": "/PatientContext/Identification",
+   "serial": "/Mds/SerialNumber",
+   "time": "/Timestamp"
+  },
+  "fields": [
+   {
+    "key": "hr",
+    "path": "/MetricState[Handle=hr.ecg]/Value",
+    "unitPath": "/MetricState[Handle=hr.ecg]/Unit"
+   },
+   {
+    "key": "etco2",
+    "path": "/MetricState[Handle=co2.et]/Value",
+    "unitPath": "/MetricState[Handle=co2.et]/Unit"
+   },
+   {
+    "key": "fio2",
+    "path": "/MetricState[Handle=o2.insp]/Value",
+    "unit": "%"
+   },
+   {
+    "key": "nibp_sys",
+    "path": "/MetricState[Handle=nibp.sys]/Value",
+    "unit": "mm[Hg]"
+   },
+   {
+    "key": "nibp_dia",
+    "path": "/MetricState[Handle=nibp.dia]/Value",
+    "unit": "mm[Hg]"
+   },
+   {
+    "key": "spo2",
+    "path": "/MetricState[Handle=spo2]/Value",
+    "unit": "%"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "hr",
+   "display": "Heart rate",
+   "loinc": "8867-4",
+   "ucum": "/min",
+   "plausible": {
+    "min": 20,
+    "max": 250
+   }
+  },
+  {
+   "key": "etco2",
+   "display": "End-tidal CO2",
+   "mdc": "MDC_AWAY_CO2_ET",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 0,
+    "max": 100
+   }
+  },
+  {
+   "key": "fio2",
+   "display": "Inspired O2 fraction",
+   "loinc": "3150-0",
+   "ucum": "%"
+  },
+  {
+   "key": "nibp_sys",
+   "display": "Systolic blood pressure",
+   "loinc": "8480-6",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 50,
+    "max": 260
+   }
+  },
+  {
+   "key": "nibp_dia",
+   "display": "Diastolic blood pressure",
+   "loinc": "8462-4",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 25,
+    "max": 160
+   }
+  },
+  {
+   "key": "spo2",
+   "display": "SpO2 (pulse oximetry)",
+   "loinc": "59408-5",
+   "ucum": "%",
+   "plausible": {
+    "min": 50,
+    "max": 100
+   }
+  }
+ ],
+ "bindings": {
+  "TPL-03": {
+   "fields": {
+    "etco2": "etco2",
+    "fio2": "fio2",
+    "hr": "hr",
+    "nibp_sys": "nibp_sys",
+    "nibp_dia": "nibp_dia"
+   }
+  },
+  "TPL-01": {
+   "fields": {
+    "hr": "hr",
+    "spo2": "spo2",
+    "nibp_sys": "nibp_sys",
+    "nibp_dia": "nibp_dia",
+    "etco2": "etco2"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "SESSION",
+   "why": "Setting rule for TPL-03 templates"
+  },
+  "captureMode": {
+   "value": "CONTINUOUS",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "discoveryScope": {
+   "value": "sdc.ctxt.loc:/sdc.ctxt.loc.detail/OR3",
+   "why": "Certified driver default for GE (P11)"
+  },
+  "metricSubscription": {
+   "value": "EpisodicMetricReport",
+   "why": "Certified driver default for GE (P11)"
+  },
+  "note": {
+   "value": "SDC-ready",
+   "why": "MDPWS discovery / BICEPS subscription replaced by the BICEPS JSON rendering until devices ship SDC (P11 prepared adapter)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "{\"MdibVersion\": 1042, \"Timestamp\": \"{{TSISO}}\", \"Mds\": {\"Handle\": \"mds0\", \"SerialNumber\": \"{{SERIAL}}\", \"Manufacturer\": \"GE HealthCare\"}, \"PatientContext\": {\"Identification\": \"{{SUBJECT}}\"}, \"MetricState\": [{\"Handle\": \"hr.ecg\", \"Value\": \"{{V:hr}}\", \"Unit\": \"/min\"}, {\"Handle\": \"co2.et\", \"Value\": \"{{V:etco2}}\", \"Unit\": \"kPa\"}, {\"Handle\": \"o2.insp\", \"Value\": \"{{V:fio2}}\"}, {\"Handle\": \"nibp.sys\", \"Value\": \"{{V:nibp_sys}}\"}, {\"Handle\": \"nibp.dia\", \"Value\": \"{{V:nibp_dia}}\"}, {\"Handle\": \"spo2\", \"Value\": \"{{V:spo2}}\"}]}"
+   }
+  ],
+  "values": {
+   "hr": 71,
+   "etco2": 4.8,
+   "fio2": 50,
+   "nibp_sys": 112,
+   "nibp_dia": 64,
+   "spo2": 99
+  },
+  "serial": "CARESCAPE-B850-55012",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "hr",
+   "value": "320"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure GE CARESCAPE monitor – IEEE 11073 SDC (BICEPS metric report, SDC-ready stub) with option P11. Discovery and subscription to OR/ICU devices publishing SDC services (BICEPS/MDPWS) – prepared adapter; local kit consumes BICEPS JSON reports.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "id": "TPL-22",
+ "name": "Wellness / wearable summary",
+ "settings": [
+  "OH",
+  "RPM"
+ ],
+ "captureMode": "SPOT",
+ "association": "CONSENT",
+ "adapters": [
+  "FHIR",
+  "REST"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "daily",
+   "label": "Daily summary (consented)",
+   "fields": [
+    {
+     "id": "steps",
+     "label": "Steps",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "55423-8"
+     },
+     "unit": "{steps}",
+     "decimals": 0
+    },
+    {
+     "id": "resting_hr",
+     "label": "Resting heart rate",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "40443-4"
+     },
+     "unit": "/min",
+     "decimals": 0
+    },
+    {
+     "id": "hrv",
+     "label": "HRV (SDNN)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-HRV-SDNN"
+     },
+     "unit": "ms",
+     "decimals": 0
+    },
+    {
+     "id": "sleep",
+     "label": "Sleep duration",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-SLEEP-DUR"
+     },
+     "unit": "min",
+     "decimals": 0
+    }
+   ]
+  }
+ ]
+}

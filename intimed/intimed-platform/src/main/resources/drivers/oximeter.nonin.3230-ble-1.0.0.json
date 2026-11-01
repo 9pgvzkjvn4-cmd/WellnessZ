@@ -1,0 +1,159 @@
+{
+ "manifest": {
+  "packageId": "oximeter.nonin.3230-ble",
+  "version": "1.0.0",
+  "name": "Nonin 3230 – Bluetooth LE Pulse Oximeter Profile (0x2A5E spot-check)",
+  "family": "Vital signs & body composition",
+  "models": [
+   "IMD-033"
+  ],
+  "options": [
+   "P3"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/oximeter.nonin.3230-ble-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P3": {
+   "parameters": {
+    "pairing": "LE_SECURE_CONNECTIONS_PASSKEY",
+    "bondingOwner": "GATEWAY",
+    "service": "1822",
+    "characteristic": "2A5E",
+    "reconnect": "AUTO",
+    "passkey": ""
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true,
+    "pairing": "LE_SECURE_CONNECTIONS"
+   }
+  }
+ },
+ "grammar": {
+  "type": "BLE_GATT",
+  "characteristic": "2A5E",
+  "fields": [
+   {
+    "key": "spo2",
+    "decoded": "spo2"
+   },
+   {
+    "key": "pulse",
+    "decoded": "pulse"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "spo2",
+   "display": "SpO2 (pulse oximetry)",
+   "loinc": "59408-5",
+   "ucum": "%",
+   "plausible": {
+    "min": 50,
+    "max": 100
+   }
+  },
+  {
+   "key": "pulse",
+   "display": "Pulse rate",
+   "loinc": "8867-4",
+   "ucum": "/min"
+  }
+ ],
+ "bindings": {
+  "TPL-13": {
+   "fields": {
+    "pulse": "pulse",
+    "spo2": "spo2"
+   }
+  },
+  "TPL-02": {
+   "fields": {
+    "spo2": "spo2",
+    "hr": "pulse"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "CONSENT",
+   "why": "Setting rule for TPL-13 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "grading": "SPO2_PERFUSION"
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "pairing": {
+   "value": "LE_SECURE_CONNECTIONS_PASSKEY",
+   "why": "Passkey supported – RR-03"
+  },
+  "bondingOwner": {
+   "value": "GATEWAY",
+   "why": "Certified driver default for Nonin (P3)"
+  },
+  "service": {
+   "value": "1822",
+   "why": "Certified driver default for Nonin (P3)"
+  },
+  "characteristic": {
+   "value": "2A5E",
+   "why": "Certified driver default for Nonin (P3)"
+  },
+  "reconnect": {
+   "value": "AUTO",
+   "why": "Certified driver default for Nonin (P3)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "gatt": "2A5E"
+   }
+  ],
+  "values": {
+   "spo2": 96,
+   "pulse": 74
+  },
+  "serial": "N3230-77109",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "spo2",
+   "value": "40"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Nonin 3230 – Bluetooth LE Pulse Oximeter Profile (0x2A5E spot-check) with option P3. Standard GATT health profiles (BLP, HTP, PLX, WSS, GLS, BCS) or vendor services via gateway, tablet or kiosk; Classic SPP for older devices.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

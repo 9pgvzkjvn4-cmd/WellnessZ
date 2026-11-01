@@ -1,0 +1,65 @@
+{
+ "option": "P7",
+ "name": "DICOM",
+ "how": "C-STORE SCP, Modality Worklist, Query/Retrieve, MPPS, SR/RDSR via the DICOM router; DICOMweb to PACS/VNA.",
+ "security": "HIGH",
+ "reliability": "HIGH",
+ "effort": "MEDIUM",
+ "latency": "seconds",
+ "via": "DICOM router (TLS) → HTTPS ingress (DICOMweb JSON)",
+ "prerequisites": [
+  "AE titles agreed",
+  "DICOM TLS certificates",
+  "MWL filter rules"
+ ],
+ "tests": [
+  "XT-01 association",
+  "XT-03 SR/RDSR acquired",
+  "XT-04 tag mapping",
+  "XT-11 missing Study UID"
+ ],
+ "parameters": [
+  {
+   "name": "aeTitle",
+   "required": true,
+   "default": "INTIMED_SCP",
+   "type": "string"
+  },
+  {
+   "name": "callingAeTitles",
+   "required": true,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "port",
+   "required": false,
+   "default": 11112,
+   "type": "int",
+   "min": 1,
+   "max": 65535
+  },
+  {
+   "name": "tls",
+   "required": true,
+   "default": "DICOM_TLS",
+   "type": "enum",
+   "values": [
+    "DICOM_TLS",
+    "NONE"
+   ]
+  },
+  {
+   "name": "storageClasses",
+   "required": false,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "mwlFilter",
+   "required": false,
+   "default": "",
+   "type": "string"
+  }
+ ]
+}

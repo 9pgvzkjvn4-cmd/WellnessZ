@@ -1,0 +1,254 @@
+{
+ "manifest": {
+  "packageId": "ecg.ge.muse-xml",
+  "version": "1.0.0",
+  "name": "GE MUSE / MAC 5500 – resting ECG XML export (vendor software)",
+  "family": "Cardiology",
+  "models": [
+   "IMD-307"
+  ],
+  "options": [
+   "P2"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/ecg.ge.muse-xml-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P2": {
+   "parameters": {
+    "source": "FOLDER",
+    "path": "\\\\muse01\\export\\intimed",
+    "pattern": "*.xml",
+    "pollSeconds": 30,
+    "stabilitySeconds": 5,
+    "archive": "MOVE_TO_DONE",
+    "serviceAccount": "",
+    "encoding": "UTF-8",
+    "dedupKey": "sha256(file)"
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "XML",
+  "root": "RestingECG",
+  "identity": {
+   "subject": "/RestingECG/PatientDemographics/PatientID",
+   "serial": "/RestingECG/TestDemographics/DeviceSerial",
+   "time": "/RestingECG/TestDemographics/AcquisitionDateTime"
+  },
+  "fields": [
+   {
+    "key": "hr",
+    "xpath": "/RestingECG/RestingECGMeasurements/VentricularRate",
+    "unit": "/min"
+   },
+   {
+    "key": "pr",
+    "xpath": "/RestingECG/RestingECGMeasurements/PRInterval",
+    "unit": "ms"
+   },
+   {
+    "key": "qrs",
+    "xpath": "/RestingECG/RestingECGMeasurements/QRSDuration",
+    "unit": "ms"
+   },
+   {
+    "key": "qt",
+    "xpath": "/RestingECG/RestingECGMeasurements/QTInterval",
+    "unit": "ms"
+   },
+   {
+    "key": "qtc",
+    "xpath": "/RestingECG/RestingECGMeasurements/QTCorrected",
+    "unit": "ms"
+   },
+   {
+    "key": "axis",
+    "xpath": "/RestingECG/RestingECGMeasurements/RAxis",
+    "unit": "deg"
+   },
+   {
+    "key": "interpretation",
+    "xpath": "/RestingECG/Diagnosis/DiagnosisStatement[1]/StmtText"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "hr",
+   "display": "Ventricular rate",
+   "loinc": "8867-4",
+   "ucum": "/min",
+   "plausible": {
+    "min": 20,
+    "max": 300
+   }
+  },
+  {
+   "key": "pr",
+   "display": "PR interval",
+   "loinc": "8625-6",
+   "ucum": "ms",
+   "plausible": {
+    "min": 50,
+    "max": 500
+   }
+  },
+  {
+   "key": "qrs",
+   "display": "QRS duration",
+   "loinc": "8633-0",
+   "ucum": "ms",
+   "plausible": {
+    "min": 40,
+    "max": 300
+   }
+  },
+  {
+   "key": "qt",
+   "display": "QT interval",
+   "loinc": "8634-8",
+   "ucum": "ms",
+   "plausible": {
+    "min": 200,
+    "max": 700
+   }
+  },
+  {
+   "key": "qtc",
+   "display": "QTc interval",
+   "loinc": "8636-3",
+   "ucum": "ms",
+   "plausible": {
+    "min": 200,
+    "max": 700
+   }
+  },
+  {
+   "key": "axis",
+   "display": "QRS axis",
+   "loinc": "8632-2",
+   "ucum": "deg"
+  },
+  {
+   "key": "interpretation",
+   "display": "Device interpretation (unverified – physician sign-off)",
+   "local": "INTIMED-ECG-INTERP",
+   "type": "text"
+  }
+ ],
+ "bindings": {
+  "TPL-08": {
+   "fields": {
+    "hr": "hr",
+    "pr": "pr",
+    "qrs": "qrs",
+    "qt": "qt",
+    "qtc": "qtc",
+    "axis": "axis",
+    "interpretation": "interpretation"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "WORKLIST",
+   "why": "Setting rule for TPL-08 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "verifyBeforePost": false
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "source": {
+   "value": "FOLDER",
+   "why": "Certified driver default for GE (P2)"
+  },
+  "path": {
+   "value": "\\\\muse01\\export\\intimed",
+   "why": "Certified driver default for GE (P2)"
+  },
+  "pattern": {
+   "value": "*.xml",
+   "why": "Certified driver default for GE (P2)"
+  },
+  "pollSeconds": {
+   "value": 30,
+   "why": "Certified MUSE configurations poll every 30 s with a 5 s file-stability wait (RR-13)"
+  },
+  "stabilitySeconds": {
+   "value": 5,
+   "why": "Certified driver default for GE (P2)"
+  },
+  "archive": {
+   "value": "MOVE_TO_DONE",
+   "why": "Certified driver default for GE (P2)"
+  },
+  "encoding": {
+   "value": "UTF-8",
+   "why": "Certified driver default for GE (P2)"
+  },
+  "dedupKey": {
+   "value": "sha256(file)",
+   "why": "Certified driver default for GE (P2)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "<RestingECG><PatientDemographics><PatientID>{{SUBJECT}}</PatientID></PatientDemographics><TestDemographics><AcquisitionDevice>MAC5500</AcquisitionDevice><DeviceSerial>{{SERIAL}}</DeviceSerial><AcquisitionDateTime>{{TSISO}}</AcquisitionDateTime></TestDemographics><RestingECGMeasurements><VentricularRate>{{V:hr}}</VentricularRate><PRInterval>{{V:pr}}</PRInterval><QRSDuration>{{V:qrs}}</QRSDuration><QTInterval>{{V:qt}}</QTInterval><QTCorrected>{{V:qtc}}</QTCorrected><RAxis>{{V:axis}}</RAxis></RestingECGMeasurements><Diagnosis><DiagnosisStatement><StmtText>{{V:interpretation}}</StmtText></DiagnosisStatement></Diagnosis></RestingECG>"
+   }
+  ],
+  "values": {
+   "hr": 68,
+   "pr": 158,
+   "qrs": 92,
+   "qt": 384,
+   "qtc": 407,
+   "axis": 41,
+   "interpretation": "Normal sinus rhythm. Normal ECG (unconfirmed)"
+  },
+  "serial": "MAC5500-SFH09231",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "qtc",
+   "value": "980"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure GE MUSE / MAC 5500 – resting ECG XML export (vendor software) with option P2. Read-only access to the vendor application's export folder (XML, GDT, CSV, PDF, JSON) or database; the vendor software stays the regulated measurement application.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

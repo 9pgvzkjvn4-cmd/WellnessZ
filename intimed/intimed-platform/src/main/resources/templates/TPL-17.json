@@ -1,0 +1,267 @@
+{
+ "id": "TPL-17",
+ "name": "OH audiogram (hearing conservation)",
+ "settings": [
+  "OH"
+ ],
+ "captureMode": "SPOT",
+ "association": "WORKLIST",
+ "adapters": [
+  "FHIR",
+  "REST",
+  "PDF"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "right",
+   "label": "Right ear (dB HL)",
+   "fields": [
+    {
+     "id": "r500",
+     "label": "Right 500 Hz",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-AUD-R500"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "r1000",
+     "label": "Right 1000 Hz",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-AUD-R1000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "r2000",
+     "label": "Right 2000 Hz",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-AUD-R2000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "r3000",
+     "label": "Right 3000 Hz",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-AUD-R3000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "r4000",
+     "label": "Right 4000 Hz",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-AUD-R4000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "r6000",
+     "label": "Right 6000 Hz",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-AUD-R6000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "r8000",
+     "label": "Right 8000 Hz",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-AUD-R8000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    }
+   ]
+  },
+  {
+   "id": "left",
+   "label": "Left ear (dB HL)",
+   "fields": [
+    {
+     "id": "l500",
+     "label": "Left 500 Hz",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-AUD-L500"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "l1000",
+     "label": "Left 1000 Hz",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-AUD-L1000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "l2000",
+     "label": "Left 2000 Hz",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-AUD-L2000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "l3000",
+     "label": "Left 3000 Hz",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-AUD-L3000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "l4000",
+     "label": "Left 4000 Hz",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-AUD-L4000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "l6000",
+     "label": "Left 6000 Hz",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-AUD-L6000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    },
+    {
+     "id": "l8000",
+     "label": "Left 8000 Hz",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-AUD-L8000"
+     },
+     "unit": "dB",
+     "range": {
+      "min": -10,
+      "max": 120
+     },
+     "decimals": 0
+    }
+   ]
+  },
+  {
+   "id": "qa",
+   "label": "Test quality",
+   "fields": [
+    {
+     "id": "reliability",
+     "label": "Response reliability (1 = reliable)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-AUD-REL"
+     },
+     "unit": "1",
+     "decimals": 0
+    },
+    {
+     "id": "booth_noise",
+     "label": "Booth ambient noise",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-AUD-NOISE"
+     },
+     "unit": "dB",
+     "decimals": 0
+    }
+   ]
+  }
+ ]
+}

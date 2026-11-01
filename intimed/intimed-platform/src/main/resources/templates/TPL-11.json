@@ -1,0 +1,87 @@
+{
+ "id": "TPL-11",
+ "name": "Neonatal observation chart",
+ "settings": [
+  "SPEC"
+ ],
+ "captureMode": "CONTINUOUS",
+ "association": "ENCOUNTER_BED",
+ "adapters": [
+  "FHIR",
+  "HL7V2"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "incubator",
+   "label": "Incubator & baby",
+   "fields": [
+    {
+     "id": "air_temp",
+     "label": "Incubator air temperature",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-NEO-AIRT"
+     },
+     "unit": "Cel",
+     "range": {
+      "min": 20,
+      "max": 40
+     },
+     "decimals": 1
+    },
+    {
+     "id": "skin_temp",
+     "label": "Skin temperature",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-NEO-SKINT"
+     },
+     "unit": "Cel",
+     "range": {
+      "min": 30,
+      "max": 42
+     },
+     "decimals": 1
+    },
+    {
+     "id": "humidity",
+     "label": "Relative humidity",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-NEO-RH"
+     },
+     "unit": "%",
+     "range": {
+      "min": 0,
+      "max": 100
+     },
+     "decimals": 0
+    },
+    {
+     "id": "o2",
+     "label": "Incubator O2",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-NEO-O2"
+     },
+     "unit": "%",
+     "decimals": 0
+    },
+    {
+     "id": "mode",
+     "label": "Servo mode",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-NEO-MODE"
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,170 @@
+[
+ {
+  "family": "Spirometry & lung function",
+  "entries": "14",
+  "settings": "OH; OPD",
+  "connectivity": ", P1, P3",
+  "sprints": "IM-S7, IM-S9"
+ },
+ {
+  "family": "Audiometry & hearing",
+  "entries": "12",
+  "settings": "OH; OPD",
+  "connectivity": ", P1, P2, P6",
+  "sprints": "IM-S7"
+ },
+ {
+  "family": "Vital signs & body composition",
+  "entries": "18",
+  "settings": "ACUTE; OH; OPD; RPM",
+  "connectivity": ", P1, P3, P4, P6",
+  "sprints": "IM-S8"
+ },
+ {
+  "family": "Cardiology",
+  "entries": "19",
+  "settings": "IMG; OH; OPD",
+  "connectivity": ", P1, P2, P3, P4, P6",
+  "sprints": "IM-S8, IM-S10, IM-S11"
+ },
+ {
+  "family": "Vision & ophthalmic",
+  "entries": "14",
+  "settings": "OH; OPD",
+  "connectivity": ", P1, P10, P2, P4, P7, P9",
+  "sprints": "IM-S7, IM-S11"
+ },
+ {
+  "family": "Point-of-care laboratory",
+  "entries": "16",
+  "settings": "ACUTE; LAB; OH; OPD",
+  "connectivity": ", P1, P4, P4/P5, P5, P9",
+  "sprints": "IM-S9"
+ },
+ {
+  "family": "Drug & alcohol testing",
+  "entries": "11",
+  "settings": "OH",
+  "connectivity": ", P1, P3, P6, P9, P9/P10",
+  "sprints": "IM-S7"
+ },
+ {
+  "family": "Respiratory protection & ergonomics",
+  "entries": "9",
+  "settings": "OH",
+  "connectivity": ", P1, P10, P2, P3, P6",
+  "sprints": "IM-S7, IM-S8"
+ },
+ {
+  "family": "Exposure & environment feeds",
+  "entries": "6",
+  "settings": "OH",
+  "connectivity": ", P2, P3, P4, P6",
+  "sprints": "IM-S8"
+ },
+ {
+  "family": "Wearables & personal health",
+  "entries": "5",
+  "settings": "OH; RPM",
+  "connectivity": ", P6",
+  "sprints": "IM-S8"
+ },
+ {
+  "family": "Occupational-health imaging & other instruments",
+  "entries": "9",
+  "settings": "IMG; OH; OPD",
+  "connectivity": ", P1, P10, P2, P4, P6, P7, P9",
+  "sprints": "n/a, IM-S1, IM-S8, IM-S11"
+ },
+ {
+  "family": "Acute-care monitoring & telemetry",
+  "entries": "13",
+  "settings": "ACUTE; OPD",
+  "connectivity": ", P1, P4",
+  "sprints": "IM-S1, IM-S5, IM-S6, IM-S12"
+ },
+ {
+  "family": "Infusion & medication delivery",
+  "entries": "10",
+  "settings": "ACUTE; OPD; RPM",
+  "connectivity": ", P1, P4, P6",
+  "sprints": "IM-S6, IM-S8"
+ },
+ {
+  "family": "Respiratory & anaesthesia",
+  "entries": "11",
+  "settings": "ACUTE; OPD; RPM; SPEC",
+  "connectivity": ", P1, P4, P6",
+  "sprints": "IM-S6, IM-S8"
+ },
+ {
+  "family": "Laboratory analysers & middleware",
+  "entries": "13",
+  "settings": "ACUTE; LAB",
+  "connectivity": ", P4, P4/P5, P5",
+  "sprints": "IM-S9"
+ },
+ {
+  "family": "Imaging & PACS",
+  "entries": "11",
+  "settings": "ACUTE; IMG; OH; OPD",
+  "connectivity": ", P7",
+  "sprints": "IM-S11"
+ },
+ {
+  "family": "Cardiology diagnostics & implant remote monitoring",
+  "entries": "7",
+  "settings": "ACUTE; IMG; OPD; RPM",
+  "connectivity": ", P4, P6, P7",
+  "sprints": "IM-S10"
+ },
+ {
+  "family": "Dialysis & extracorporeal",
+  "entries": "5",
+  "settings": "ACUTE; RPM; SPEC",
+  "connectivity": ", P1, P4, P6",
+  "sprints": "IM-S12"
+ },
+ {
+  "family": "Neonatal & maternal",
+  "entries": "5",
+  "settings": "OPD; SPEC",
+  "connectivity": ", P1, P2, P4",
+  "sprints": "IM-S12"
+ },
+ {
+  "family": "Remote patient monitoring & home",
+  "entries": "5",
+  "settings": "ACUTE; OPD; RPM",
+  "connectivity": ", P6",
+  "sprints": "IM-S8"
+ },
+ {
+  "family": "Operating room & surgical",
+  "entries": "4",
+  "settings": "ACUTE",
+  "connectivity": ", P1, P4, P7",
+  "sprints": "IM-S12"
+ },
+ {
+  "family": "Beds, location & environment",
+  "entries": "3",
+  "settings": "ACUTE",
+  "connectivity": ", P4",
+  "sprints": "IM-S5, IM-S12"
+ },
+ {
+  "family": "Rehabilitation, neurophysiology & sleep",
+  "entries": "3",
+  "settings": "OPD; RPM; SPEC",
+  "connectivity": ", P2, P7",
+  "sprints": "IM-S12"
+ },
+ {
+  "family": "Specialist outpatient (dental, ophthalmic, ENT)",
+  "entries": "2",
+  "settings": "IMG; OPD; SPEC",
+  "connectivity": ", P2, P7",
+  "sprints": "IM-S11, IM-S12"
+ }
+]

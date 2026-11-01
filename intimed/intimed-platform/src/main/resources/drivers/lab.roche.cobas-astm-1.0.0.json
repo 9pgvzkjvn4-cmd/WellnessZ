@@ -1,0 +1,236 @@
+{
+ "manifest": {
+  "packageId": "lab.roche.cobas-astm",
+  "version": "1.0.0",
+  "name": "Roche cobas 8000 via cobas infinity / middleware (ASTM E1394 / LIS2-A2)",
+  "family": "Laboratory analysers & middleware",
+  "models": [
+   "IMD-261"
+  ],
+  "options": [
+   "P5"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/lab.roche.cobas-astm-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P5": {
+   "parameters": {
+    "dataManager": "cobas infinity",
+    "framing": "ASTM_E1381",
+    "qcLotPolicy": "WARN",
+    "operatorList": "SYNC_FROM_IDP",
+    "deviceIds": ""
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "ASTM",
+  "identity": {
+   "subject": "P-3",
+   "serial": "H-5.3",
+   "time": "H-14",
+   "timeFormat": "yyyyMMddHHmmss"
+  },
+  "fields": [
+   {
+    "key": "glucose",
+    "sel": "R[R-3.4=GLU]/R-4",
+    "unitSel": "R[R-3.4=GLU]/R-5"
+   },
+   {
+    "key": "creatinine",
+    "sel": "R[R-3.4=CREA]/R-4",
+    "unitSel": "R[R-3.4=CREA]/R-5"
+   },
+   {
+    "key": "hba1c",
+    "sel": "R[R-3.4=HBA1C]/R-4",
+    "unitSel": "R[R-3.4=HBA1C]/R-5"
+   },
+   {
+    "key": "chol",
+    "sel": "R[R-3.4=CHOL]/R-4",
+    "unitSel": "R[R-3.4=CHOL]/R-5"
+   },
+   {
+    "key": "alt",
+    "sel": "R[R-3.4=ALT]/R-4",
+    "unitSel": "R[R-3.4=ALT]/R-5"
+   },
+   {
+    "key": "wbc",
+    "sel": "R[R-3.4=WBC]/R-4",
+    "unitSel": "R[R-3.4=WBC]/R-5"
+   },
+   {
+    "key": "specimen",
+    "sel": "O-16"
+   },
+   {
+    "key": "analyser",
+    "sel": "H-5.1"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "glucose",
+   "display": "Glucose (serum)",
+   "loinc": "14749-6",
+   "ucum": "mmol/L",
+   "plausible": {
+    "min": 0.5,
+    "max": 50
+   },
+   "factors": {
+    "mg/dL>mmol/L": 0.0555,
+    "mmol/L>mg/dL": 18.016
+   }
+  },
+  {
+   "key": "creatinine",
+   "display": "Creatinine (serum)",
+   "loinc": "14682-9",
+   "ucum": "umol/L",
+   "plausible": {
+    "min": 10,
+    "max": 3000
+   }
+  },
+  {
+   "key": "hba1c",
+   "display": "HbA1c",
+   "loinc": "4548-4",
+   "ucum": "%"
+  },
+  {
+   "key": "chol",
+   "display": "Cholesterol (serum)",
+   "loinc": "14647-2",
+   "ucum": "mmol/L"
+  },
+  {
+   "key": "alt",
+   "display": "ALT",
+   "loinc": "1742-6",
+   "ucum": "U/L"
+  },
+  {
+   "key": "wbc",
+   "display": "Leukocytes",
+   "loinc": "6690-2",
+   "ucum": "10*9/L"
+  },
+  {
+   "key": "specimen",
+   "display": "Specimen",
+   "local": "INTIMED-SPECIMEN",
+   "type": "text"
+  },
+  {
+   "key": "analyser",
+   "display": "Analyser",
+   "local": "INTIMED-ANALYSER",
+   "type": "text"
+  }
+ ],
+ "bindings": {
+  "TPL-06": {
+   "fields": {
+    "glucose": "glucose",
+    "creatinine": "creatinine",
+    "hba1c": "hba1c",
+    "chol": "chol",
+    "alt": "alt",
+    "wbc": "wbc",
+    "specimen": "specimen",
+    "analyser": "analyser"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "WORKLIST",
+   "why": "Setting rule for TPL-06 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "dataManager": {
+   "value": "cobas infinity",
+   "why": "Certified driver default for Roche (P5)"
+  },
+  "framing": {
+   "value": "ASTM_E1381",
+   "why": "Certified driver default for Roche (P5)"
+  },
+  "qcLotPolicy": {
+   "value": "WARN",
+   "why": "Certified driver default for Roche (P5)"
+  },
+  "operatorList": {
+   "value": "SYNC_FROM_IDP",
+   "why": "Certified driver default for Roche (P5)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "H|\\^&|||{{V:analyser}}^8000^{{SERIAL}}|||||||P|1|{{TS}}\rP|1||{{SUBJECT}}\rO|1|SPEC-{{CTRL}}||^^^GLU|R||||||||||{{V:specimen}}\rR|1|^^^GLU|{{V:glucose}}|mmol/L||N||F||||{{TS}}\rR|2|^^^CREA|{{V:creatinine}}|umol/L||N||F||||{{TS}}\rR|3|^^^HBA1C|{{V:hba1c}}|%||N||F||||{{TS}}\rR|4|^^^CHOL|{{V:chol}}|mmol/L||N||F||||{{TS}}\rR|5|^^^ALT|{{V:alt}}|U/L||N||F||||{{TS}}\rR|6|^^^WBC|{{V:wbc}}|10*9/L||N||F||||{{TS}}\rL|1|N\r"
+   }
+  ],
+  "values": {
+   "glucose": 5.4,
+   "creatinine": 82,
+   "hba1c": 5.6,
+   "chol": 4.9,
+   "alt": 23,
+   "wbc": 6.8,
+   "specimen": "Serum",
+   "analyser": "cobas"
+  },
+  "serial": "SN80041",
+  "timeFormat": "yyyyMMddHHmmss",
+  "outOfRange": {
+   "key": "glucose",
+   "value": "95"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Roche cobas 8000 via cobas infinity / middleware (ASTM E1394 / LIS2-A2) with option P5. Point-of-care analysers talk POCT1-A to the vendor data manager, analysers talk ASTM/LIS2 to middleware, which forwards results with QC/lot data.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

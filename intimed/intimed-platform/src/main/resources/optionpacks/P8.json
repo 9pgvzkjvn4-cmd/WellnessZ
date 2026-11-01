@@ -1,0 +1,44 @@
+{
+ "option": "P8",
+ "name": "HL7 FHIR R4 API",
+ "how": "Devices, gateways and apps post FHIR Observation/Device per PoCD IG or PCHA with SMART backend scopes.",
+ "security": "HIGH",
+ "reliability": "HIGH",
+ "effort": "LOW",
+ "latency": "< 1 s",
+ "via": "FHIR endpoint /fhir/r4 (OAuth2 client credentials, ES256 JWT)",
+ "prerequisites": [
+  "API client registered with write scope",
+  "Profile agreed (PoCD / PCHA)"
+ ],
+ "tests": [
+  "XT-01 OAuth2 token",
+  "XT-04 profile validation",
+  "XT-13 scope least privilege"
+ ],
+ "parameters": [
+  {
+   "name": "endpoint",
+   "required": true,
+   "default": "/fhir/r4/Observation",
+   "type": "string"
+  },
+  {
+   "name": "scopes",
+   "required": true,
+   "default": "system/Observation.write",
+   "type": "string"
+  },
+  {
+   "name": "profileValidation",
+   "required": true,
+   "default": "POCD",
+   "type": "enum",
+   "values": [
+    "POCD",
+    "PCHA_LITE",
+    "NONE"
+   ]
+  }
+ ]
+}

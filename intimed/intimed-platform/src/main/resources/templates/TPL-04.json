@@ -1,0 +1,87 @@
+{
+ "id": "TPL-04",
+ "name": "Infusion / medication administration record",
+ "settings": [
+  "ACUTE"
+ ],
+ "captureMode": "SPOT",
+ "association": "ENCOUNTER_BED",
+ "adapters": [
+  "FHIR",
+  "HL7V2"
+ ],
+ "bidirectional": true,
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "infusion",
+   "label": "Infusion",
+   "fields": [
+    {
+     "id": "drug",
+     "label": "Drug",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-DRUG"
+     }
+    },
+    {
+     "id": "rate",
+     "label": "Infusion rate",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "mdc": "MDC_FLOW_FLUID_PUMP"
+     },
+     "unit": "mL/h",
+     "range": {
+      "min": 0,
+      "max": 1200
+     },
+     "decimals": 1
+    },
+    {
+     "id": "vtbi",
+     "label": "Volume to be infused",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "mdc": "MDC_VOL_FLUID_TBI"
+     },
+     "unit": "mL",
+     "decimals": 0
+    },
+    {
+     "id": "infused",
+     "label": "Volume infused",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "mdc": "MDC_VOL_FLUID_DELIV"
+     },
+     "unit": "mL",
+     "decimals": 0
+    },
+    {
+     "id": "pump_state",
+     "label": "Pump state",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-PUMP-STATE"
+     }
+    },
+    {
+     "id": "program_confirmed",
+     "label": "Auto-programming confirmed",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-AUTOPROG"
+     }
+    }
+   ]
+  }
+ ]
+}

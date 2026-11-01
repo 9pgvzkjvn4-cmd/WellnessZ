@@ -1,0 +1,243 @@
+{
+ "manifest": {
+  "packageId": "idco.medtronic.carelink-hl7",
+  "version": "1.0.0",
+  "name": "Medtronic CareLink / Paceart – IHE IDCO (HL7 v2 ORU)",
+  "family": "Cardiology diagnostics & implant remote monitoring",
+  "models": [
+   "IMD-301"
+  ],
+  "options": [
+   "P4"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/idco.medtronic.carelink-hl7-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P4": {
+   "parameters": {
+    "host": "intimed.local",
+    "port": 2575,
+    "tls": "MTLS",
+    "tlsMin": "1.2",
+    "sendingApplication": "CARELINK",
+    "sendingFacility": "DEVICE_CLINIC",
+    "ackMode": "ORIGINAL",
+    "profile": "IHE_IDCO",
+    "timeZone": "UTC",
+    "maxMessagesPerSecond": 50
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "HL7V2",
+  "messageTypes": [
+   "ORU^R01"
+  ],
+  "identity": {
+   "subject": "PID-3.1",
+   "serial": "OBX[OBX-3.1=MDC_IDC_DEV_SERIAL]/OBX-5",
+   "time": "OBR-7",
+   "timeFormat": "yyyyMMddHHmmss"
+  },
+  "fields": [
+   {
+    "key": "battery_v",
+    "sel": "OBX[OBX-3.1=MDC_IDC_MSMT_BATTERY_VOLTAGE]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=MDC_IDC_MSMT_BATTERY_VOLTAGE]/OBX-6.1"
+   },
+   {
+    "key": "battery_status",
+    "sel": "OBX[OBX-3.1=MDC_IDC_MSMT_BATTERY_STATUS]/OBX-5"
+   },
+   {
+    "key": "rv_impedance",
+    "sel": "OBX[OBX-3.1=MDC_IDC_MSMT_LEADCHNL_RV_IMPEDANCE_VALUE]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=MDC_IDC_MSMT_LEADCHNL_RV_IMPEDANCE_VALUE]/OBX-6.1"
+   },
+   {
+    "key": "ra_impedance",
+    "sel": "OBX[OBX-3.1=MDC_IDC_MSMT_LEADCHNL_RA_IMPEDANCE_VALUE]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=MDC_IDC_MSMT_LEADCHNL_RA_IMPEDANCE_VALUE]/OBX-6.1"
+   },
+   {
+    "key": "af_burden",
+    "sel": "OBX[OBX-3.1=MDC_IDC_STAT_AT_BURDEN_PERCENT]/OBX-5",
+    "unit": "%"
+   },
+   {
+    "key": "episodes",
+    "sel": "OBX[OBX-3.1=MDC_IDC_STAT_EPISODE_TOTAL_COUNT]/OBX-5",
+    "unit": "1"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "battery_v",
+   "display": "Battery voltage",
+   "mdc": "MDC_IDC_MSMT_BATTERY_VOLTAGE",
+   "ucum": "V",
+   "plausible": {
+    "min": 1.5,
+    "max": 3.6
+   }
+  },
+  {
+   "key": "battery_status",
+   "display": "Battery status",
+   "mdc": "MDC_IDC_MSMT_BATTERY_STATUS",
+   "type": "text"
+  },
+  {
+   "key": "rv_impedance",
+   "display": "RV lead impedance",
+   "mdc": "MDC_IDC_MSMT_LEADCHNL_RV_IMPEDANCE_VALUE",
+   "ucum": "Ohm",
+   "plausible": {
+    "min": 100,
+    "max": 3000
+   }
+  },
+  {
+   "key": "ra_impedance",
+   "display": "RA lead impedance",
+   "mdc": "MDC_IDC_MSMT_LEADCHNL_RA_IMPEDANCE_VALUE",
+   "ucum": "Ohm",
+   "plausible": {
+    "min": 100,
+    "max": 3000
+   }
+  },
+  {
+   "key": "af_burden",
+   "display": "AT/AF burden",
+   "mdc": "MDC_IDC_STAT_AT_BURDEN_PERCENT",
+   "ucum": "%"
+  },
+  {
+   "key": "episodes",
+   "display": "Treated episodes since last session",
+   "mdc": "MDC_IDC_STAT_EPISODE_TOTAL_COUNT",
+   "ucum": "1"
+  }
+ ],
+ "bindings": {
+  "TPL-09": {
+   "fields": {
+    "battery_v": "battery_v",
+    "battery_status": "battery_status",
+    "rv_impedance": "rv_impedance",
+    "ra_impedance": "ra_impedance",
+    "af_burden": "af_burden",
+    "episodes": "episodes"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "MATCH",
+   "why": "Transmissions carry the clinic patient id; vendor id matching with suggestion queue (RR-08 variant for device clinics)"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "host": {
+   "value": "intimed.local",
+   "why": "Certified driver default for Medtronic (P4)"
+  },
+  "port": {
+   "value": 2575,
+   "why": "Certified driver default for Medtronic (P4)"
+  },
+  "tls": {
+   "value": "MTLS",
+   "why": "Certified driver default for Medtronic (P4)"
+  },
+  "tlsMin": {
+   "value": "1.2",
+   "why": "Certified driver default for Medtronic (P4)"
+  },
+  "sendingApplication": {
+   "value": "CARELINK",
+   "why": "Certified driver default for Medtronic (P4)"
+  },
+  "sendingFacility": {
+   "value": "DEVICE_CLINIC",
+   "why": "Certified driver default for Medtronic (P4)"
+  },
+  "ackMode": {
+   "value": "ORIGINAL",
+   "why": "Certified driver default for Medtronic (P4)"
+  },
+  "profile": {
+   "value": "IHE_IDCO",
+   "why": "Certified driver default for Medtronic (P4)"
+  },
+  "timeZone": {
+   "value": "UTC",
+   "why": "Certified driver default for Medtronic (P4)"
+  },
+  "maxMessagesPerSecond": {
+   "value": 50,
+   "why": "Certified driver default for Medtronic (P4)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "MSH|^~\\&|CARELINK|DEVICE_CLINIC|INTIMED|INTIMED|{{TS}}||ORU^R01^ORU_R01|{{CTRL}}|P|2.6|||NE|AL||UNICODE UTF-8|||IHE_IDCO^IHE IDCO^1.3.6.1.4.1.19376.1.4.1.6.4.4^ISO\rPID|||{{SUBJECT}}^^^CLINIC^MR\rOBR|1|{{CTRL}}||Remote^Remote interrogation^IDCO|||{{TS}}\rOBX|1|ST|MDC_IDC_DEV_SERIAL^Device serial^MDC||{{SERIAL}}||||||F\rOBX|2|NM|MDC_IDC_MSMT_BATTERY_VOLTAGE^Battery voltage^MDC||{{V:battery_v}}|V^volt^UCUM|||||F\rOBX|3|ST|MDC_IDC_MSMT_BATTERY_STATUS^Battery status^MDC||{{V:battery_status}}||||||F\rOBX|4|NM|MDC_IDC_MSMT_LEADCHNL_RV_IMPEDANCE_VALUE^RV impedance^MDC||{{V:rv_impedance}}|Ohm^ohm^UCUM|||||F\rOBX|5|NM|MDC_IDC_MSMT_LEADCHNL_RA_IMPEDANCE_VALUE^RA impedance^MDC||{{V:ra_impedance}}|Ohm^ohm^UCUM|||||F\rOBX|6|NM|MDC_IDC_STAT_AT_BURDEN_PERCENT^AT/AF burden^MDC||{{V:af_burden}}|%^percent^UCUM|||||F\rOBX|7|NM|MDC_IDC_STAT_EPISODE_TOTAL_COUNT^Episodes^MDC||{{V:episodes}}|1^count^UCUM|||||F\r"
+   }
+  ],
+  "values": {
+   "battery_v": 2.97,
+   "battery_status": "BOS (beginning of service)",
+   "rv_impedance": 512,
+   "ra_impedance": 448,
+   "af_burden": 1.8,
+   "episodes": 0
+  },
+  "serial": "PZK603221S",
+  "timeFormat": "yyyyMMddHHmmss",
+  "outOfRange": {
+   "key": "rv_impedance",
+   "value": "4200"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Medtronic CareLink / Paceart – IHE IDCO (HL7 v2 ORU) with option P4. Device or vendor gateway sends ORU^R01 (and receives ADT/ORM) over MLLP with TLS and client certificates.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

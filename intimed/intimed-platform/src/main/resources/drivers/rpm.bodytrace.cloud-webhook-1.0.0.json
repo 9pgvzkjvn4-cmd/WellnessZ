@@ -1,0 +1,195 @@
+{
+ "manifest": {
+  "packageId": "rpm.bodytrace.cloud-webhook",
+  "version": "1.0.0",
+  "name": "BodyTrace cellular RPM kit – vendor cloud webhook (HMAC)",
+  "family": "Remote patient monitoring & home",
+  "models": [
+   "IMD-331"
+  ],
+  "options": [
+   "P6"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/rpm.bodytrace.cloud-webhook-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P6": {
+   "parameters": {
+    "mode": "WEBHOOK",
+    "webhookSecret": "secret://bodytrace-webhook",
+    "clientId": "",
+    "clientSecret": "",
+    "scopes": "measurements.read",
+    "pollSeconds": 300,
+    "rateLimitPerMinute": 60,
+    "residencyCheck": true
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": false,
+    "hmac": "SHA-256",
+    "replayWindowSeconds": 300
+   }
+  }
+ },
+ "grammar": {
+  "type": "JSON",
+  "identity": {
+   "serial": "/deviceId",
+   "time": "/ts"
+  },
+  "fields": [
+   {
+    "key": "sys",
+    "path": "/values[type=systolic]/v",
+    "unit": "mm[Hg]"
+   },
+   {
+    "key": "dia",
+    "path": "/values[type=diastolic]/v",
+    "unit": "mm[Hg]"
+   },
+   {
+    "key": "pulse",
+    "path": "/values[type=pulse]/v",
+    "unit": "/min"
+   },
+   {
+    "key": "weight",
+    "path": "/values[type=weight]/v",
+    "unitPath": "/values[type=weight]/u"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "sys",
+   "display": "Systolic blood pressure",
+   "loinc": "8480-6",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 50,
+    "max": 260
+   }
+  },
+  {
+   "key": "dia",
+   "display": "Diastolic blood pressure",
+   "loinc": "8462-4",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 25,
+    "max": 160
+   }
+  },
+  {
+   "key": "pulse",
+   "display": "Pulse rate",
+   "loinc": "8867-4",
+   "ucum": "/min"
+  },
+  {
+   "key": "weight",
+   "display": "Body weight",
+   "loinc": "29463-7",
+   "ucum": "kg"
+  }
+ ],
+ "bindings": {
+  "TPL-13": {
+   "fields": {
+    "sys": "sys",
+    "dia": "dia",
+    "pulse": "pulse",
+    "weight": "weight"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "CONSENT",
+   "why": "Home device: consent-bound enrolment by device serial (RR-09)"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "grading": "BP_VALIDATION"
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "mode": {
+   "value": "WEBHOOK",
+   "why": "Certified driver default for BodyTrace (P6)"
+  },
+  "webhookSecret": {
+   "value": "secret://bodytrace-webhook",
+   "why": "Certified driver default for BodyTrace (P6)"
+  },
+  "scopes": {
+   "value": "measurements.read",
+   "why": "Minimum scope for TPL-13 bindings; consent required for home devices (RR-15)"
+  },
+  "pollSeconds": {
+   "value": 300,
+   "why": "Certified driver default for BodyTrace (P6)"
+  },
+  "rateLimitPerMinute": {
+   "value": 60,
+   "why": "Certified driver default for BodyTrace (P6)"
+  },
+  "residencyCheck": {
+   "value": true,
+   "why": "Certified driver default for BodyTrace (P6)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "{\"deviceId\": \"{{SERIAL}}\", \"ts\": \"{{TSISO}}\", \"values\": [{\"type\": \"systolic\", \"v\": {{V:sys}}}, {\"type\": \"diastolic\", \"v\": {{V:dia}}}, {\"type\": \"pulse\", \"v\": {{V:pulse}}}, {\"type\": \"weight\", \"v\": {{V:weight}}, \"u\": \"lb\"}]}"
+   }
+  ],
+  "values": {
+   "sys": 136,
+   "dia": 86,
+   "pulse": 77,
+   "weight": 182.4
+  },
+  "serial": "BT-353081090123456",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "sys",
+   "value": "310"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure BodyTrace cellular RPM kit – vendor cloud webhook (HMAC) with option P6. OAuth2-secured REST APIs or HMAC-signed webhooks from vendor clouds and consumer platforms; consent-scoped for home and wearable devices.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

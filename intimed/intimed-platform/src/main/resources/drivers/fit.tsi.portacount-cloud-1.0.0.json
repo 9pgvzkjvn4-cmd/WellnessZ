@@ -1,0 +1,179 @@
+{
+ "manifest": {
+  "packageId": "fit.tsi.portacount-cloud",
+  "version": "1.0.0",
+  "name": "TSI PortaCount Pro+ via TSI Link – fit-test results (cloud API)",
+  "family": "Respiratory protection & ergonomics",
+  "models": [
+   "IMD-105"
+  ],
+  "options": [
+   "P6"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/fit.tsi.portacount-cloud-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P6": {
+   "parameters": {
+    "mode": "WEBHOOK",
+    "webhookSecret": "secret://tsi-link-webhook",
+    "clientId": "",
+    "clientSecret": "",
+    "scopes": "fittests.read",
+    "pollSeconds": 300,
+    "rateLimitPerMinute": 60,
+    "residencyCheck": true
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": false,
+    "hmac": "SHA-256",
+    "replayWindowSeconds": 300
+   }
+  }
+ },
+ "grammar": {
+  "type": "JSON",
+  "identity": {
+   "subject": "/person/employeeId",
+   "serial": "/instrument/serial",
+   "time": "/completedAt"
+  },
+  "fields": [
+   {
+    "key": "fit_factor",
+    "path": "/overallFitFactor",
+    "unit": "1"
+   },
+   {
+    "key": "respirator",
+    "path": "/respirator/model"
+   },
+   {
+    "key": "fit_result",
+    "path": "/result"
+   },
+   {
+    "key": "protocol",
+    "path": "/protocol"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "fit_factor",
+   "display": "Overall fit factor",
+   "local": "INTIMED-FIT-FF",
+   "ucum": "1"
+  },
+  {
+   "key": "respirator",
+   "display": "Respirator model",
+   "local": "INTIMED-FIT-MODEL",
+   "type": "text"
+  },
+  {
+   "key": "fit_result",
+   "display": "Pass / fail",
+   "local": "INTIMED-FIT-RESULT",
+   "type": "text"
+  },
+  {
+   "key": "protocol",
+   "display": "Protocol",
+   "local": "INTIMED-FIT-PROTOCOL",
+   "type": "text"
+  }
+ ],
+ "bindings": {
+  "TPL-21": {
+   "fields": {
+    "fit_factor": "fit_factor",
+    "respirator": "respirator",
+    "fit_result": "fit_result",
+    "protocol": "protocol"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "WORKLIST",
+   "why": "Setting rule for TPL-21 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "mode": {
+   "value": "WEBHOOK",
+   "why": "Certified driver default for TSI (P6)"
+  },
+  "webhookSecret": {
+   "value": "secret://tsi-link-webhook",
+   "why": "Certified driver default for TSI (P6)"
+  },
+  "scopes": {
+   "value": "fittests.read",
+   "why": "Certified driver default for TSI (P6)"
+  },
+  "pollSeconds": {
+   "value": 300,
+   "why": "Certified driver default for TSI (P6)"
+  },
+  "rateLimitPerMinute": {
+   "value": 60,
+   "why": "Certified driver default for TSI (P6)"
+  },
+  "residencyCheck": {
+   "value": true,
+   "why": "Certified driver default for TSI (P6)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "{\"person\": {\"employeeId\": \"{{SUBJECT}}\"}, \"instrument\": {\"serial\": \"{{SERIAL}}\", \"model\": \"PortaCount Pro+ 8048\"}, \"completedAt\": \"{{TSISO}}\", \"overallFitFactor\": {{V:fit_factor}}, \"respirator\": {\"model\": \"{{V:respirator}}\"}, \"result\": \"{{V:fit_result}}\", \"protocol\": \"{{V:protocol}}\"}"
+   }
+  ],
+  "values": {
+   "fit_factor": 186,
+   "respirator": "3M 1860 N95 (M)",
+   "fit_result": "PASS",
+   "protocol": "OSHA 29 CFR 1910.134 App A – fast"
+  },
+  "serial": "8048-PCP-301455",
+  "timeFormat": "ISO",
+  "outOfRange": null,
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT"
+  ]
+ },
+ "docs": {
+  "guide": "Configure TSI PortaCount Pro+ via TSI Link – fit-test results (cloud API) with option P6. OAuth2-secured REST APIs or HMAC-signed webhooks from vendor clouds and consumer platforms; consent-scoped for home and wearable devices.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

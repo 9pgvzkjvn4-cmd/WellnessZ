@@ -1,0 +1,67 @@
+{
+ "option": "P5",
+ "name": "POCT1-A2 data manager / LIS middleware",
+ "how": "Point-of-care analysers talk POCT1-A to the vendor data manager, analysers talk ASTM/LIS2 to middleware, which forwards results with QC/lot data.",
+ "security": "HIGH",
+ "reliability": "HIGH",
+ "effort": "MEDIUM",
+ "latency": "1–5 s",
+ "via": "Data manager → HTTPS ingress or MLLP-TLS (mTLS)",
+ "prerequisites": [
+  "Data manager / middleware enrolled",
+  "Operator list synchronised",
+  "QC lot policy agreed with the lab"
+ ],
+ "tests": [
+  "XT-03 result acquired",
+  "XT-04 analyte mapping",
+  "XT-14 QC lot gate",
+  "XT-11 unknown analyte"
+ ],
+ "parameters": [
+  {
+   "name": "dataManager",
+   "required": true,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "framing",
+   "required": true,
+   "default": "POCT1A_XML",
+   "type": "enum",
+   "values": [
+    "POCT1A_XML",
+    "ASTM_E1381",
+    "HL7"
+   ]
+  },
+  {
+   "name": "qcLotPolicy",
+   "required": true,
+   "default": "BLOCK_UNTIL_QC",
+   "type": "enum",
+   "values": [
+    "BLOCK_UNTIL_QC",
+    "WARN",
+    "OFF"
+   ]
+  },
+  {
+   "name": "operatorList",
+   "required": false,
+   "default": "SYNC_FROM_IDP",
+   "type": "enum",
+   "values": [
+    "SYNC_FROM_IDP",
+    "MANUAL"
+   ]
+  },
+  {
+   "name": "deviceIds",
+   "required": false,
+   "default": "",
+   "type": "string"
+  }
+ ]
+}

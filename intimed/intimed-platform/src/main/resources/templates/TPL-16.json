@@ -1,0 +1,96 @@
+{
+ "id": "TPL-16",
+ "name": "Operative / perfusion record",
+ "settings": [
+  "ACUTE"
+ ],
+ "captureMode": "SPOT",
+ "association": "SESSION",
+ "adapters": [
+  "FHIR",
+  "REST"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "cpb",
+   "label": "Cardiopulmonary bypass",
+   "fields": [
+    {
+     "id": "pump_flow",
+     "label": "Arterial pump flow",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-CPB-FLOW"
+     },
+     "unit": "L/min",
+     "range": {
+      "min": 0,
+      "max": 8
+     },
+     "decimals": 2
+    },
+    {
+     "id": "line_pressure",
+     "label": "Arterial line pressure",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-CPB-LINEP"
+     },
+     "unit": "mm[Hg]",
+     "decimals": 0
+    },
+    {
+     "id": "svo2",
+     "label": "Venous saturation (SvO2)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-CPB-SVO2"
+     },
+     "unit": "%",
+     "decimals": 0
+    },
+    {
+     "id": "blood_temp",
+     "label": "Arterial blood temperature",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-CPB-TEMP"
+     },
+     "unit": "Cel",
+     "range": {
+      "min": 10,
+      "max": 42
+     },
+     "decimals": 1
+    },
+    {
+     "id": "cardioplegia",
+     "label": "Cardioplegia volume",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-CPB-CPLG"
+     },
+     "unit": "mL",
+     "decimals": 0
+    },
+    {
+     "id": "cell_saver",
+     "label": "Cell-saver return volume",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-CPB-CS"
+     },
+     "unit": "mL",
+     "decimals": 0
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,102 @@
+{
+ "id": "TPL-15",
+ "name": "Sleep / neurophysiology report",
+ "settings": [
+  "SPEC"
+ ],
+ "captureMode": "SPOT",
+ "association": "WORKLIST",
+ "adapters": [
+  "FHIR",
+  "PDF"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "psg",
+   "label": "PSG summary",
+   "fields": [
+    {
+     "id": "ahi",
+     "label": "Apnoea-hypopnoea index",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-PSG-AHI"
+     },
+     "unit": "/h",
+     "range": {
+      "min": 0,
+      "max": 150
+     },
+     "decimals": 1
+    },
+    {
+     "id": "odi",
+     "label": "Oxygen desaturation index",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-PSG-ODI"
+     },
+     "unit": "/h",
+     "range": {
+      "min": 0,
+      "max": 150
+     },
+     "decimals": 1
+    },
+    {
+     "id": "min_spo2",
+     "label": "Minimum SpO2",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-PSG-MINSPO2"
+     },
+     "unit": "%",
+     "range": {
+      "min": 40,
+      "max": 100
+     },
+     "decimals": 0
+    },
+    {
+     "id": "tst",
+     "label": "Total sleep time",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-PSG-TST"
+     },
+     "unit": "min",
+     "range": {
+      "min": 0,
+      "max": 1000
+     },
+     "decimals": 0
+    },
+    {
+     "id": "efficiency",
+     "label": "Sleep efficiency",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-PSG-EFF"
+     },
+     "unit": "%",
+     "decimals": 0
+    },
+    {
+     "id": "edf_ref",
+     "label": "EDF recording reference",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-PSG-EDF"
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,129 @@
+{
+ "id": "TPL-02",
+ "name": "ED triage / vital signs set",
+ "settings": [
+  "ACUTE",
+  "OPD"
+ ],
+ "captureMode": "SPOT",
+ "association": "WORKLIST",
+ "adapters": [
+  "FHIR",
+  "HL7V2",
+  "REST"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "triage",
+   "label": "Triage vital signs",
+   "fields": [
+    {
+     "id": "hr",
+     "label": "Heart rate",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "8867-4"
+     },
+     "unit": "/min",
+     "range": {
+      "min": 20,
+      "max": 250
+     },
+     "decimals": 0
+    },
+    {
+     "id": "spo2",
+     "label": "SpO2 (pulse oximetry)",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "59408-5"
+     },
+     "unit": "%",
+     "range": {
+      "min": 50,
+      "max": 100
+     },
+     "decimals": 0
+    },
+    {
+     "id": "nibp_sys",
+     "label": "Systolic blood pressure",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "8480-6"
+     },
+     "unit": "mm[Hg]",
+     "range": {
+      "min": 50,
+      "max": 260
+     },
+     "decimals": 0
+    },
+    {
+     "id": "nibp_dia",
+     "label": "Diastolic blood pressure",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "8462-4"
+     },
+     "unit": "mm[Hg]",
+     "range": {
+      "min": 25,
+      "max": 160
+     },
+     "decimals": 0
+    },
+    {
+     "id": "rr",
+     "label": "Respiratory rate",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "9279-1"
+     },
+     "unit": "/min",
+     "range": {
+      "min": 4,
+      "max": 70
+     },
+     "decimals": 0
+    },
+    {
+     "id": "temp",
+     "label": "Body temperature",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "8310-5"
+     },
+     "unit": "Cel",
+     "range": {
+      "min": 30,
+      "max": 43
+     },
+     "decimals": 1
+    },
+    {
+     "id": "weight",
+     "label": "Body weight",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "29463-7"
+     },
+     "unit": "kg",
+     "range": {
+      "min": 0.5,
+      "max": 350
+     },
+     "decimals": 1
+    }
+   ]
+  }
+ ]
+}

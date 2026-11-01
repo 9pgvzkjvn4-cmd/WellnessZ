@@ -1,0 +1,97 @@
+{
+ "option": "P2",
+ "name": "Vendor PC software – database / file export watcher",
+ "how": "Read-only access to the vendor application's export folder (XML, GDT, CSV, PDF, JSON) or database; the vendor software stays the regulated measurement application.",
+ "security": "MEDIUM",
+ "reliability": "MEDIUM",
+ "effort": "MEDIUM",
+ "latency": "poll interval + stability wait",
+ "via": "Device Host agent on the vendor PC (outbound only) → HTTPS ingress (mTLS)",
+ "prerequisites": [
+  "Vendor software version recorded",
+  "Read-only service account in the vault",
+  "Vendor PC isolated in the device zone (SC-07)",
+  "Export format enabled in vendor software"
+ ],
+ "tests": [
+  "XT-01 folder / DB readable with service account",
+  "XT-03 export file acquired",
+  "XT-04 schema parse",
+  "XT-11 partial file (stability) and duplicate file"
+ ],
+ "parameters": [
+  {
+   "name": "source",
+   "required": true,
+   "default": "FOLDER",
+   "type": "enum",
+   "values": [
+    "FOLDER",
+    "DATABASE"
+   ]
+  },
+  {
+   "name": "path",
+   "required": true,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "pattern",
+   "required": true,
+   "default": "*.*",
+   "type": "string"
+  },
+  {
+   "name": "pollSeconds",
+   "required": true,
+   "default": 30,
+   "type": "int",
+   "min": 5,
+   "max": 3600
+  },
+  {
+   "name": "stabilitySeconds",
+   "required": true,
+   "default": 5,
+   "type": "int",
+   "min": 0,
+   "max": 300
+  },
+  {
+   "name": "archive",
+   "required": true,
+   "default": "MOVE_TO_DONE",
+   "type": "enum",
+   "values": [
+    "MOVE_TO_DONE",
+    "DELETE",
+    "LEAVE"
+   ]
+  },
+  {
+   "name": "serviceAccount",
+   "required": false,
+   "default": "",
+   "type": "secret"
+  },
+  {
+   "name": "encoding",
+   "required": false,
+   "default": "UTF-8",
+   "type": "enum",
+   "values": [
+    "UTF-8",
+    "ISO-8859-1",
+    "ISO-8859-15",
+    "WINDOWS-1252"
+   ]
+  },
+  {
+   "name": "dedupKey",
+   "required": false,
+   "default": "sha256(file)",
+   "type": "string"
+  }
+ ]
+}

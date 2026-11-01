@@ -1,0 +1,7 @@
+target/
+intimed-data/
+*.log
+security-test-kit/results/
+dist/
+demo-pack/build/
+.DS_Store

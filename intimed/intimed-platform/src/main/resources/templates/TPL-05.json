@@ -1,0 +1,124 @@
+{
+ "id": "TPL-05",
+ "name": "Blood gas & POC result",
+ "settings": [
+  "ACUTE",
+  "LAB"
+ ],
+ "captureMode": "SPOT",
+ "association": "WORKLIST",
+ "adapters": [
+  "FHIR",
+  "HL7V2"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "bg",
+   "label": "Blood gas",
+   "fields": [
+    {
+     "id": "ph",
+     "label": "pH (arterial)",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "2744-1"
+     },
+     "unit": "[pH]",
+     "range": {
+      "min": 6.5,
+      "max": 8
+     },
+     "decimals": 2
+    },
+    {
+     "id": "pco2",
+     "label": "pCO2 (arterial)",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "2019-8"
+     },
+     "unit": "mm[Hg]",
+     "decimals": 1
+    },
+    {
+     "id": "po2",
+     "label": "pO2 (arterial)",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "loinc": "2703-7"
+     },
+     "unit": "mm[Hg]",
+     "decimals": 1
+    },
+    {
+     "id": "na",
+     "label": "Sodium (blood)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "2947-0"
+     },
+     "unit": "mmol/L",
+     "decimals": 0
+    },
+    {
+     "id": "k",
+     "label": "Potassium (blood)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "6298-4"
+     },
+     "unit": "mmol/L",
+     "decimals": 1
+    },
+    {
+     "id": "lactate",
+     "label": "Lactate (arterial)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "2518-9"
+     },
+     "unit": "mmol/L",
+     "decimals": 1
+    },
+    {
+     "id": "glucose",
+     "label": "Glucose (blood)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "15074-8"
+     },
+     "unit": "mmol/L",
+     "decimals": 1
+    },
+    {
+     "id": "hb",
+     "label": "Haemoglobin",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "718-7"
+     },
+     "unit": "g/dL",
+     "decimals": 1
+    },
+    {
+     "id": "lot",
+     "label": "Cartridge / reagent lot",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-LOT"
+     }
+    }
+   ]
+  }
+ ]
+}

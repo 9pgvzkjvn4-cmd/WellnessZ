@@ -1,0 +1,99 @@
+{
+ "id": "TPL-09",
+ "name": "Device clinic remote-monitoring report (IDCO)",
+ "settings": [
+  "OPD",
+  "RPM"
+ ],
+ "captureMode": "SPOT",
+ "association": "MATCH",
+ "adapters": [
+  "FHIR",
+  "HL7V2"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "idco",
+   "label": "Implant interrogation",
+   "fields": [
+    {
+     "id": "battery_v",
+     "label": "Battery voltage",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "mdc": "MDC_IDC_MSMT_BATTERY_VOLTAGE"
+     },
+     "unit": "V",
+     "range": {
+      "min": 1.5,
+      "max": 3.6
+     },
+     "decimals": 2
+    },
+    {
+     "id": "battery_status",
+     "label": "Battery status",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "mdc": "MDC_IDC_MSMT_BATTERY_STATUS"
+     }
+    },
+    {
+     "id": "rv_impedance",
+     "label": "RV lead impedance",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "mdc": "MDC_IDC_MSMT_LEADCHNL_RV_IMPEDANCE_VALUE"
+     },
+     "unit": "Ohm",
+     "range": {
+      "min": 100,
+      "max": 3000
+     },
+     "decimals": 0
+    },
+    {
+     "id": "ra_impedance",
+     "label": "RA lead impedance",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "mdc": "MDC_IDC_MSMT_LEADCHNL_RA_IMPEDANCE_VALUE"
+     },
+     "unit": "Ohm",
+     "range": {
+      "min": 100,
+      "max": 3000
+     },
+     "decimals": 0
+    },
+    {
+     "id": "af_burden",
+     "label": "AT/AF burden",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "mdc": "MDC_IDC_STAT_AT_BURDEN_PERCENT"
+     },
+     "unit": "%",
+     "decimals": 1
+    },
+    {
+     "id": "episodes",
+     "label": "Treated episodes since last session",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "mdc": "MDC_IDC_STAT_EPISODE_TOTAL_COUNT"
+     },
+     "unit": "1",
+     "decimals": 0
+    }
+   ]
+  }
+ ]
+}

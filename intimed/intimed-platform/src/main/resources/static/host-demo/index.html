@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Host product – OH spirometry form (reference host)</title>
+  <link rel="stylesheet" href="/host-demo/host.css">
+  <script type="module" src="/host-demo/host.js"></script>
+</head>
+<body>
+  <header><b>CarePoint EHR</b> <span>(reference host product – not IntiMed)</span></header>
+  <main>
+    <h1>Occupational health – respirator clearance spirometry</h1>
+    <p class="muted">The host keeps its own form and UI. IntiMed only contributes the embedded <code>&lt;intimed-capture&gt;</code> component (integration pattern EP-1).
+      Sign in to the IntiMed console in this browser first (same origin session).</p>
+    <form class="hostform" aria-label="Host form">
+      <label>Employee <input value="EMP-700102" disabled></label>
+      <label>Encounter <input value="OH-ENC-2026-1102" disabled></label>
+    </form>
+    <div id="slot"></div>
+  </main>
+</body>
+</html>

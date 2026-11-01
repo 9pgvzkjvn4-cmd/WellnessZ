@@ -1,0 +1,714 @@
+[
+ {
+  "id": "IM-E01-HLR-01",
+  "requirement": "The engine shall implement one canonical observation pipeline (acquire → parse → normalise → associate → validate → route → persist → acknowledge) for episodic and continuous device data, independent of vendor and protocol, with at-least-once delivery, idempotent processing, ordering and late-arrival rules, replay and dead-letter queues.",
+  "rationale": "A single generic pipeline is what lets one product serve every family and every care setting.",
+  "priority": "Must",
+  "standards": "IHE-DEV-DEC; IEEE-11073; FHIR-POCD",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-02",
+  "requirement": "The engine shall provide a protocol adapter library covering: serial/USB (RS-232, USB-CDC, HID), Bluetooth LE/Classic (standard GATT health profiles and vendor services), HL7 v2 over MLLP-TLS (IHE DEV PCD-01/DEV-01 periodic and spot, PCD-02 subscriptions, ACM alarm observations, IPEC infusion events, ORM/OML, ADT), POCT1-A2 and LIS/analyser interfaces (ASTM/LIS2, IHE LAW), vendor database/file watchers (SQL, XML, GDT, CSV, PDF), REST/GraphQL cloud APIs and webhooks (incl. implantable-device remote-monitoring portals, RPM and wearable platforms), DICOM (C-STORE/MWL/Q-R/MPPS, DICOMweb, structured reports, waveform), FHIR R4/R5 (PoCD IG, Subscriptions), image capture with OCR/barcode, and manual entry with attestation – each configurable without code.",
+  "rationale": "Ten connectivity options cover every way a healthcare device connects today; IEEE 11073 SDC is prepared as the eleventh.",
+  "priority": "Must",
+  "standards": "HL7-V2-MLLP; POCT1-A2; BLE-GATT; DICOM; FHIR-POCD; GDT-XML",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-03",
+  "requirement": "A driver SDK shall allow new device models to be added as declarative, signed driver packages (protocol settings per option, grammar/schema, MDC/LOINC/UCUM mappings, unit conversions, reference ranges, quality rules, default template bindings, test vectors, administrator notes) that are versioned, conformance-tested on simulators and published to a registry with candidate and certified channels, without a platform release.",
+  "rationale": "Driver libraries are the core asset of leading engines (>1,000 models at Philips Capsule); packages keep vendor variety out of the platform code.",
+  "priority": "Must",
+  "standards": "IEEE-11073; IHE-DEV-DEC; IEC-81001-5-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-04",
+  "requirement": "Every measurement shall be normalised to a canonical observation: code (MDC and LOINC, SNOMED where applicable), value/unit (UCUM), method, body site, device identity (UDI, serial, firmware, software), driver version, calibration/QC status, operator, subject, encounter/order/location, effective time with time-zone and clock-skew correction, acquisition mode and quality flags – stored as FHIR Observation/Device/DeviceMetric/DiagnosticReport with Provenance, raw payload/waveform/image hash-linked.",
+  "rationale": "Comparable, defensible data across brands, sites and products.",
+  "priority": "Must",
+  "standards": "FHIR-POCD; IEEE-11073",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-05",
+  "requirement": "Subject association shall use, in configurable priority: worklist/order push (ADT/ORM/MWL/vendor demographics), encounter–bed–device binding for continuous monitors (with ADT transfer/discharge handling), session binding at the station, barcode/NFC/RFID scan, vendor ID matching with confidence; results below threshold land in an unmatched queue and are never auto-filed; continuous feeds pause on discharge until re-bound.",
+  "rationale": "Wrong-patient filing is the classic integration failure; association is managed at the point of care with explicit fall-backs.",
+  "priority": "Must",
+  "standards": "IHE-DEV-DEC; DICOM; HL7-V2-MLLP",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-06",
+  "requirement": "Configurable quality gates shall run before posting: calibration/QC validity, guideline grading (e.g., ATS/ERS, audiometric validity, BP validation), physiologic plausibility and artefact rules, duplicate and late-arrival handling, and per-template clinician verification before the value becomes part of the record; alarm-state observations shall be flagged, never interpreted.",
+  "rationale": "Guidelines define validity; IntiMed enforces them without becoming an alarm system.",
+  "priority": "Must",
+  "standards": "ISO-81060; ATS-ERS-2019; ANSI-S3.6; CLSI-EP; FDA-MDDS",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-07",
+  "requirement": "Observations shall be routed to the exact fields of the associated template(s) through Template Bindings (IM-E05) configured per device model × template version, with the host product performing clinical logic; one measurement may feed several templates (e.g., ICU flowsheet and sepsis bundle form) with provenance preserved.",
+  "rationale": "The template, not the device, is the unit of configuration; many-to-many binding is normal in hospitals.",
+  "priority": "Must",
+  "standards": "FHIR-POCD; HL7-V2-MLLP",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-08",
+  "requirement": "Bidirectional device workflows shall be supported where devices accept input: demographics/order push, start/stop acquisition from the template, retrieval of historic results, and acknowledgement of data receipt to data managers.",
+  "rationale": "Removes double entry on the device side; expected by vendor data managers.",
+  "priority": "Should",
+  "standards": "HL7-V2-MLLP; DICOM; POCT1-A2",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-09",
+  "requirement": "Edge store-and-forward shall queue encrypted results on gateways, device hosts and mobile apps during network loss (≥ 48 h) and reconcile with ordering and duplicate suppression; continuous feeds shall buffer at configurable resolution.",
+  "rationale": "Clinics, home care and ambulances are routinely offline.",
+  "priority": "Must",
+  "standards": "IEC-62443; ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-10",
+  "requirement": "A simulator suite and golden datasets shall exist per family (recorded sessions, synthetic edge cases, malformed messages, time-skew, duplicates, streaming bursts) and shall be used in CI for driver conformance, regression and performance, and by the configuration-time test harness (IM-E04).",
+  "rationale": "Repeatable testing is the difference between an engine and a script.",
+  "priority": "Must",
+  "standards": "IEC-81001-5-1; IHE-DEV-DEC",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-11",
+  "requirement": "Observability shall cover each connector and device: heartbeat, message volumes and latency percentiles, parse/validation/association error rates, unmatched and dead-letter queue sizes, calibration-due counts, streaming gaps and SLA breaches – as dashboards, alerts and an operations API; metrics shall be tenant-scoped.",
+  "rationale": "Device fleets fail silently; monitoring is contractual in a product.",
+  "priority": "Must",
+  "standards": "NIST-CSF; ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-12",
+  "requirement": "Performance: spot results ≤ 3 s end-to-end at p95; streaming summary intervals ≤ 1 s; 500 messages/s per tenant with horizontal scaling; waveform/image payloads streamed to object storage; capacity model per environment.",
+  "rationale": "Acute care volumes are an order of magnitude above clinics.",
+  "priority": "Must",
+  "standards": "IEC-80001-1",
+  "settings": "ACUTE, ALL"
+ },
+ {
+  "id": "IM-E01-HLR-13",
+  "requirement": "Multi-tenancy shall isolate catalogues, drivers, keys, queues, templates and data per tenant with quotas, residency pinning and per-tenant observability.",
+  "rationale": "IntiMed is sold to many organisations and embedded by vendors.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E01-HLR-14",
+  "requirement": "The product scope shall remain Medical Device Data System-type functionality (transfer, store, convert, display) plus configuration intelligence; any function that would constitute active monitoring, alarm management or diagnosis shall be excluded or separately classified under IEC 62304/FDA policy.",
+  "rationale": "Regulatory classification determines what IntiMed may do and how it is released.",
+  "priority": "Must",
+  "standards": "FDA-MDDS; IEC-62304",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E02-HLR-01",
+  "requirement": "The catalogue shall model families, brands, models, variants and vendor software with UDI/GUDID/EUDAMED references, regulatory status per market, performance standards, supported connectivity options, certified drivers, security posture and lifecycle state, exposed through APIs and the console.",
+  "rationale": "The list administrators choose from must already know connectivity and acceptance.",
+  "priority": "Must",
+  "standards": "UDI; FDA-510K; EU-MDR",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E02-HLR-02",
+  "requirement": "Automated feeds shall refresh regulatory data from openFDA (classification, 510(k), registration & listing, recalls), AccessGUDID and EUDAMED public extracts at least monthly, with change detection and reviewer approval before publication.",
+  "rationale": "Regulatory data changes continuously; manual upkeep does not scale.",
+  "priority": "Must",
+  "standards": "FDA-510K; EU-MDR; UDI",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E02-HLR-03",
+  "requirement": "Recalls and safety communications shall be linked to catalogue models and surfaced to tenants that have the model connected, with acknowledgement tracking.",
+  "rationale": "Connected-device fleets must react to vendor and regulator advisories.",
+  "priority": "Must",
+  "standards": "EU-MDR; FDA-510K",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E02-HLR-04",
+  "requirement": "Tenants shall configure an acceptance policy per jurisdiction (e.g., FDA or CE plus local registration) that gates which models can be certified for their sites.",
+  "rationale": "Acceptance is national; the product must express it.",
+  "priority": "Must",
+  "standards": "EU-MDR; FDA-510K",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E02-HLR-05",
+  "requirement": "A vendor/partner portal shall allow manufacturers and integrators to submit models, interface specifications, MDS2/SBOM and driver packages for certification, with status tracking and community verification of connectivity details.",
+  "rationale": "The catalogue grows faster with the ecosystem than with one team.",
+  "priority": "Should",
+  "standards": "MDS2; IEC-81001-5-1",
+  "settings": "VENDOR, ALL"
+ },
+ {
+  "id": "IM-E02-HLR-06",
+  "requirement": "Connectivity details per model shall carry a confidence/verification state (vendor-specified, lab-verified, field-verified, unverified) and interface-specification references; the console shall warn when provisioning relies on unverified details.",
+  "rationale": "Honesty about what is known prevents failed provisioning.",
+  "priority": "Must",
+  "standards": "IEC-80001-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E02-HLR-07",
+  "requirement": "The seed inventory shall cover the main healthcare device families – acute care monitoring, infusion, respiratory and anaesthesia, cardiology diagnostics and implant remote monitoring, laboratory and point-of-care analysers, imaging, dialysis, neonatal, occupational health instruments, remote-monitoring and wearables, specialist units – with representative market models and openFDA approval counts per product code.",
+  "rationale": "A credible starting point for any care setting.",
+  "priority": "Must",
+  "standards": "FDA-510K; EU-MDR",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E02-HLR-08",
+  "requirement": "Catalogue analytics shall report coverage by family and setting, most-requested models, certification backlog and verification status, per tenant and globally.",
+  "rationale": "Steers certification capacity.",
+  "priority": "Should",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E03-HLR-01",
+  "requirement": "The console shall provide an eight-step provisioning wizard (select device; choose connectivity option; prerequisites; parameters; associate & bind templates; test; certify & approve; publish & monitor) with pause/resume, cloning and site templates, exposing only the options the selected model supports.",
+  "rationale": "The step-by-step method of market leaders, made executable.",
+  "priority": "Must",
+  "standards": "IEC-80001-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E03-HLR-02",
+  "requirement": "At every step the wizard shall present a recommended configuration with an explanation ('why') and a confidence level, derived in priority from: the certified driver package's validated defaults; tenant context rules (site network profile, vendor software presence, security policy, jurisdiction units and standards); the target template's field requirements; and knowledge-base statistics from de-identified certified configurations of the same model/option elsewhere (success rate, latency, incidents) when the tenant opts in to sharing.",
+  "rationale": "Recommendation quality comes from combining validated defaults with context and experience; explanations keep humans in control.",
+  "priority": "Must",
+  "standards": "IEC-80001-1; NIST-CSF",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E03-HLR-03",
+  "requirement": "The intelligence layer shall detect conflicts and risks before save – e.g., Just-Works pairing where passkey is supported, plaintext MLLP, TLS below policy, unit or code mismatch with the template, missing required template fields, time-zone inconsistency, unverified connectivity details, vendor software version outside the compatibility matrix – and shall block, warn or require justification according to tenant policy.",
+  "rationale": "Most integration defects are configuration defects; catching them before testing saves days.",
+  "priority": "Must",
+  "standards": "NIST-CSF; IEC-62443; FHIR-POCD",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E03-HLR-04",
+  "requirement": "Recommendations shall never be applied automatically in UAT or production: administrators accept, adjust or override with a reason; every recommendation, acceptance and override shall be audited and fed back to the knowledge base together with test and production outcomes (learning loop).",
+  "rationale": "Human accountability and continuous improvement.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701; IEC-80001-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E03-HLR-05",
+  "requirement": "A documentation assistant shall retrieve relevant passages from uploaded vendor interface specifications and IFUs (per tenant, access-controlled) to suggest parameter values with citations; suggestions shall be marked as unverified until confirmed by test; no clinical content shall be generated.",
+  "rationale": "Vendor manuals hold the answers; retrieval with citations is safe and useful.",
+  "priority": "Should",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E03-HLR-06",
+  "requirement": "Parameter configuration shall follow internationally accepted practice per option (serial framing; USB allow-lists; BLE pairing/bonding/UUIDs; MLLP address/port/TLS/mTLS/MSH identifiers/ACK mode/profile; POCT1-A and LIS identifiers; vendor DB/path with vault credentials; OAuth2 clients/scopes/webhooks; DICOM AE titles/MWL/MPPS; FHIR endpoints/SMART scopes) plus common items (time source, units, locale, mapping template, reference ranges, calibration/QC schedule and lockout, verification rule, retention), with validated defaults pre-filled.",
+  "rationale": "Configuration vocabulary must match the standards administrators and vendors use.",
+  "priority": "Must",
+  "standards": "HL7-V2-MLLP; BLE-GATT; POCT1-A2; DICOM; FHIR-POCD",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E03-HLR-07",
+  "requirement": "Fleet operations shall provide inventory by site/room/station/bed, calibration and QC logs with automatic lockout and release, firmware/driver versions and update campaigns, consumables and lots, health dashboards, alerts routed to on-duty administrators, diagnostics with PHI masking and a re-send action, and decommissioning with key revocation.",
+  "rationale": "Running hundreds of devices needs fleet tooling, not spreadsheets.",
+  "priority": "Must",
+  "standards": "ANSI-S3.6; ATS-ERS-2019; ISO-81060; IEC-62443",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E03-HLR-08",
+  "requirement": "Configuration governance shall enforce roles, four-eyes approval for UAT/production, complete change history, export/import and promotion of configuration sets Dev → UAT → Prod with diffs, and batch provisioning from site and family templates.",
+  "rationale": "Change control is required by ISO 27001/80001 and by clients' IT.",
+  "priority": "Must",
+  "standards": "IEC-80001-1; ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E03-HLR-09",
+  "requirement": "Vendor security onboarding (MDS2/SBOM intake, support/EOL dates, posture policy, compensating-control exceptions) shall gate certification; certification records (configuration snapshot, test evidence, approvals, recommendations accepted/overridden) shall be generated as PDF/JSON for audits.",
+  "rationale": "Procurement is the cheapest security control point; auditors ask for the evidence.",
+  "priority": "Must",
+  "standards": "MDS2; IEC-81001-5-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E03-HLR-10",
+  "requirement": "The console shall be multilingual and WCAG 2.2 AA, embeddable in host products (web components / SMART app) and fully API-driven for automation.",
+  "rationale": "Clients and vendors embed IntiMed in their own administration tools.",
+  "priority": "Should",
+  "standards": "WCAG-LANG; FHIR-POCD",
+  "settings": "ALL, VENDOR"
+ },
+ {
+  "id": "IM-E04-HLR-01",
+  "requirement": "The harness shall generate an exchange test plan automatically from the device model, connectivity option, parameters, association method, template bindings and tenant policy, selecting live-device or simulator mode and the test subjects to use.",
+  "rationale": "Test content must follow configuration, not be hand-written per site.",
+  "priority": "Must",
+  "standards": "IEC-81001-5-1; IEC-80001-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E04-HLR-02",
+  "requirement": "The harness shall execute and report, as a minimum: connection and handshake; sample acquisition; parse and normalise results; association to the test subject; binding dry-run into a sandbox instance of each associated template; required-field coverage; unit, code and range conformance; derived values; round-trip read-back from the template store; latency; and negative cases (malformed, duplicate, late, disconnect, calibration expired).",
+  "rationale": "These are the failure modes seen in production; each must be demonstrated absent before publish.",
+  "priority": "Must",
+  "standards": "IHE-DEV-DEC; FHIR-POCD; AAMI-CONN",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E04-HLR-03",
+  "requirement": "Security checks shall be part of every exchange test: TLS/mTLS policy, plaintext refusal, pairing policy, certificate validity and identity binding, with results mapped to the security control matrix.",
+  "rationale": "Security must be verified at the same time as function, not later.",
+  "priority": "Must",
+  "standards": "IEC-62443; NIST-CSF",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E04-HLR-04",
+  "requirement": "Publication of a device configuration to UAT or production shall be blocked until the exchange test passes (or a documented, approved exception exists); any change to driver, template version, firmware or key parameters shall trigger re-test automatically.",
+  "rationale": "The test is a gate, not a report.",
+  "priority": "Must",
+  "standards": "IEC-80001-1; IEC-62304",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E04-HLR-05",
+  "requirement": "Shadow mode shall route live device data into a shadow copy of the template for a configurable period, compare with manually entered values where present, report discrepancies by field and device, and support parallel-run sign-off by the template owner.",
+  "rationale": "Clinical go-live is safest with a measured parallel run.",
+  "priority": "Must",
+  "standards": "IEC-80001-1; FHIR-POCD",
+  "settings": "ACUTE, OPD, OH, LAB, RPM"
+ },
+ {
+  "id": "IM-E04-HLR-06",
+  "requirement": "The harness shall produce an evidence pack per run (machine-readable results, sandbox template screenshots, PHI-masked traces, timings, security results) attached to the certification record and retrievable by auditors.",
+  "rationale": "Evidence is what regulators and clients ask for.",
+  "priority": "Must",
+  "standards": "IEC-62304; ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E04-HLR-07",
+  "requirement": "Site regression suites shall re-run exchange tests for all devices at a site on schedule and after platform releases, with trend reporting.",
+  "rationale": "Configurations drift; regression keeps them honest.",
+  "priority": "Should",
+  "standards": "IEC-81001-5-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E04-HLR-08",
+  "requirement": "The same harness shall be callable from driver CI (IM-E01) and from host-product integration tests (IM-E07) through an API, with simulators and golden datasets shared.",
+  "rationale": "One harness for developers, administrators and partners.",
+  "priority": "Must",
+  "standards": "IEC-81001-5-1",
+  "settings": "ALL, VENDOR"
+ },
+ {
+  "id": "IM-E05-HLR-01",
+  "requirement": "Templates shall be defined generically as versioned Template Definitions with field semantics (code systems, units, ranges, required flags, verification rules, display rules), imported from FHIR Questionnaire/StructureDefinition or host schemas, and organised in a catalogue by care setting (acute flowsheets, OPD forms, OH records, laboratory results, anaesthesia/dialysis/neonatal records, RPM dashboards).",
+  "rationale": "The template is the unit of integration across products.",
+  "priority": "Must",
+  "standards": "FHIR-POCD; ONC-CERT",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E05-HLR-02",
+  "requirement": "A binding editor shall map device observations to template fields per model × template version, pre-filled with recommended bindings from the driver package and template semantics, supporting many-to-many bindings, transformations, previews and regression tests when either side changes.",
+  "rationale": "Bindings make routing explicit and testable.",
+  "priority": "Must",
+  "standards": "FHIR-POCD",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E05-HLR-03",
+  "requirement": "Template adapters shall deliver bound values to host products via FHIR (Observation, QuestionnaireResponse, DiagnosticReport), HL7 v2 ORU to flowsheets, host REST APIs, embedded components posting back to the host, and PDF/file attachment – with acknowledgement and error handling.",
+  "rationale": "Hosts differ; adapters keep the core generic.",
+  "priority": "Must",
+  "standards": "FHIR-POCD; HL7-V2-MLLP; ONC-CERT",
+  "settings": "ALL, VENDOR"
+ },
+ {
+  "id": "IM-E05-HLR-04",
+  "requirement": "Clinicians shall capture through an embeddable 'capture from device' control (web components, SMART on FHIR app, iOS/Android SDKs) that lists only certified, in-calibration devices at the station or bed or paired to the user's device, pushes context, shows progress and a preview with quality flags and the raw report, and files on acceptance with provenance marks – with no technical parameters exposed.",
+  "rationale": "One-tap capture, embedded wherever clinicians work.",
+  "priority": "Must",
+  "standards": "WCAG-LANG; FHIR-POCD",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E05-HLR-05",
+  "requirement": "Fallback paths (another device, image/OCR with mandatory verification, manual entry with device attestation) shall be offered when a device is unavailable, with the path recorded in provenance.",
+  "rationale": "Care continues; the record stays honest.",
+  "priority": "Must",
+  "standards": "FHIR-POCD",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E05-HLR-06",
+  "requirement": "Batch screening mode (queue of subjects, one tap per measurement, offline), kiosk self-measurement with identification and consent, and mobile capture shall be supported.",
+  "rationale": "Screening days, outpatient queues and home use need these modes.",
+  "priority": "Must",
+  "standards": "BLE-GATT; WCAG-LANG",
+  "settings": "OPD, OH, RPM, ALL"
+ },
+ {
+  "id": "IM-E05-HLR-07",
+  "requirement": "For continuous feeds the capture experience shall present validated spot values at configurable intervals with trend sparklines and artefact flags for display only, leaving monitoring and alarms to the host and the device.",
+  "rationale": "Acute-care flowsheets need interval values; IntiMed is not a monitor.",
+  "priority": "Must",
+  "standards": "FDA-MDDS; IHE-DEV-DEC",
+  "settings": "ACUTE"
+ },
+ {
+  "id": "IM-E05-HLR-08",
+  "requirement": "Patient/employee-facing summaries with plain-language meaning, language preference and consent management for home and wearable devices shall be provided as embeddable components.",
+  "rationale": "Transparency and consent sustain participation.",
+  "priority": "Should",
+  "standards": "WCAG-LANG; ISO-27001-27701",
+  "settings": "RPM, OH, OPD"
+ },
+ {
+  "id": "IM-E05-HLR-09",
+  "requirement": "A library of reference templates and bindings shall ship for common forms across settings (ward vitals flowsheet, ED triage, ICU interval flowsheet, anaesthesia record, OPD visit vitals, OH audiogram/spirometry/vision/vitals/ECG/D&A/POC/fit-test forms, dialysis session, neonatal observation, RPM daily readings, POC glucose log, lab result report).",
+  "rationale": "Clients start from working templates, not from scratch.",
+  "priority": "Must",
+  "standards": "FHIR-POCD; ANSI-S3.6; ATS-ERS-2019; ISO-81060",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-01",
+  "requirement": "Every gateway, device host, mobile app instance, embedded component and vendor connection shall have a unique cryptographic identity (X.509 from the client's CA or an IntiMed-managed per-tenant CA, or OAuth2 clients with rotated secrets); all engine-facing traffic shall use TLS 1.2+/1.3 with mutual authentication; plaintext MLLP/HTTP shall be refused by default.",
+  "rationale": "Zero trust baseline.",
+  "priority": "Must",
+  "standards": "NIST-CSF; IEC-62443; HL7-V2-MLLP",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-02",
+  "requirement": "Reference network designs shall be provided for hospital, clinic, home/RPM and cloud topologies: medical-device zones, gateway zones, conduits, deny-by-default policies, no device-to-internet by default, brokered vendor remote access; validated by the test kit.",
+  "rationale": "Flat networks are the main attack path to unpatchable devices.",
+  "priority": "Must",
+  "standards": "IEC-62443; IEC-80001-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-03",
+  "requirement": "Gateways and device hosts shall run hardened images (CIS baselines, disk encryption, secure boot where available, EDR hooks, central logging, time sync) with zero-touch enrolment, hardware-backed identity where available, drift detection and patch campaigns.",
+  "rationale": "The edge is the product's endpoint.",
+  "priority": "Must",
+  "standards": "NIST-CSF; IEC-62443",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-04",
+  "requirement": "Secrets shall live in the environment's vault/KMS (Azure Key Vault, GCP Secret Manager/Cloud KMS, HashiCorp Vault on private cloud; HSM-backed in production), injected at runtime, rotated and audited; never in configuration exports or driver packages.",
+  "rationale": "Vendor credentials are the classic leak.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701; NIST-CSF",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-05",
+  "requirement": "IntiMed shall be developed under IEC 81001-5-1 with threat models per adapter and environment, SAST/DAST/SCA gates, signed releases with SBOM (CycloneDX), advisory monitoring, coordinated disclosure and remediation SLAs (critical 7 days, high 30 days).",
+  "rationale": "Expected by FDA guidance, clients and auditors.",
+  "priority": "Must",
+  "standards": "IEC-81001-5-1; FDA-CYBER",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-06",
+  "requirement": "Vendor posture gating (MDS2/SBOM, support/EOL) shall apply to connected device models; unsupported models shall be isolated behind gateways with compensating controls or rejected per tenant policy.",
+  "rationale": "Procurement is the cheapest control point.",
+  "priority": "Must",
+  "standards": "MDS2; IEC-80001-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-07",
+  "requirement": "Audit events (provisioning, identity, configuration, data access, connections, authentication failures) shall be tamper-evident (hash-chained), forwarded to the client SIEM, with PHI masking in diagnostics.",
+  "rationale": "Evidence for clients and regulators.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701; NIST-CSF",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-08",
+  "requirement": "Anomaly detection (new identity, unexpected port/protocol, rate spikes, authentication bursts, certificate anomalies) shall alert the SOC; a compromise playbook shall isolate the endpoint within 15 minutes, preserve evidence and require re-certification before reconnection.",
+  "rationale": "Assume breach.",
+  "priority": "Must",
+  "standards": "NIST-CSF; IEC-62443",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-09",
+  "requirement": "Privacy by design: data minimisation, purpose binding, consent for home/wearable devices, retention classes, pseudonymised telemetry, de-identified non-production data, DPIA templates per deployment setting; residency per tenant.",
+  "rationale": "Special-category data in every jurisdiction.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-10",
+  "requirement": "A security test kit (scripts for TLS/mTLS, segmentation, MLLP/FHIR authentication and robustness, gateway/device-host hardening, BLE policy, SBOM/vulnerability scan, secrets/config audit, audit integrity, encryption at rest, API baseline, rate limits/anomaly, time/certificates; report builder; test plan; evidence template; control matrix) shall be delivered and maintained with each release, with cloud-specific checks for Azure, GCP and private cloud.",
+  "rationale": "Clients verify rather than trust.",
+  "priority": "Must",
+  "standards": "IEC-62443; NIST-CSF; FDA-CYBER",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E06-HLR-11",
+  "requirement": "The SaaS offering shall pursue SOC 2 Type II and ISO 27001 certification with control evidence generated by the platform; penetration tests shall be performed before GA and annually; an IEC 80001-1 responsibility agreement template shall be provided to clients.",
+  "rationale": "Market access requires third-party assurance.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701; IEC-80001-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E07-HLR-01",
+  "requirement": "IntiMed shall expose a FHIR R4 (R5-ready) API for device data and templates with Subscriptions, SMART on FHIR launch for capture and console components, OAuth2 scopes and tenant isolation, documented with OpenAPI and conformance statements.",
+  "rationale": "FHIR is how modern products integrate.",
+  "priority": "Must",
+  "standards": "FHIR-POCD; ONC-CERT",
+  "settings": "ALL, VENDOR"
+ },
+ {
+  "id": "IM-E07-HLR-02",
+  "requirement": "HL7 v2 (ORU/ORM/ADT) and IHE DEV (PCD-01/02, ACM observations, IPEC) endpoints shall be available inbound and outbound for EHRs, gateways and data managers, with message profiles and conformance testing.",
+  "rationale": "Most hospital integration is still HL7 v2.",
+  "priority": "Must",
+  "standards": "HL7-V2-MLLP; IHE-DEV-DEC",
+  "settings": "ACUTE, LAB, ALL"
+ },
+ {
+  "id": "IM-E07-HLR-03",
+  "requirement": "Event webhooks and message-bus topics shall notify host products of observations posted, device alerts, certifications and exchange-test results, with retries, signatures and replay.",
+  "rationale": "Event-driven hosts need push, not polling.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL, VENDOR"
+ },
+ {
+  "id": "IM-E07-HLR-04",
+  "requirement": "SDKs (TypeScript, Java/Kotlin, .NET, Swift, Android, Python), web components and sample apps shall be published with sandbox tenants and simulators so a developer can run an end-to-end capture on a MacBook in under an hour.",
+  "rationale": "Developer experience drives adoption.",
+  "priority": "Must",
+  "standards": "FHIR-POCD",
+  "settings": "VENDOR, ALL"
+ },
+ {
+  "id": "IM-E07-HLR-05",
+  "requirement": "A partner certification programme shall define integration levels, automated test suites (via the exchange harness API), security requirements and badges; certified integrations shall be listed in the catalogue and marketplaces.",
+  "rationale": "Trust at scale.",
+  "priority": "Should",
+  "standards": "IEC-62304; ISO-27001-27701",
+  "settings": "VENDOR"
+ },
+ {
+  "id": "IM-E07-HLR-06",
+  "requirement": "An Integration Guide for medical products shall document, per environment setting (MacBook development; Dev, UAT and Prod with HA on Azure, GCP or client private cloud): embedding patterns (SaaS API, sidecar module in the product's cluster, embedded components), network and identity onboarding, template binding, exchange testing, go-live and operations – with checklists and reference architectures.",
+  "rationale": "Vendors need an executable recipe, not a brochure.",
+  "priority": "Must",
+  "standards": "IEC-80001-1; NIST-CSF",
+  "settings": "VENDOR"
+ },
+ {
+  "id": "IM-E07-HLR-07",
+  "requirement": "Reference integrations shall be maintained for an EHR flowsheet (FHIR and HL7 v2 paths), the OHCM occupational-health platform (first client), an RPM application and a laboratory system, each with automated regression using the harness.",
+  "rationale": "Proof that the generic model works across settings.",
+  "priority": "Must",
+  "standards": "FHIR-POCD; HL7-V2-MLLP; POCT1-A2",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E07-HLR-08",
+  "requirement": "API versioning shall guarantee no breaking changes within a major version, deprecation windows of ≥ 12 months and contract tests published to partners.",
+  "rationale": "Products depend on stability.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701",
+  "settings": "VENDOR, ALL"
+ },
+ {
+  "id": "IM-E08-HLR-01",
+  "requirement": "A MacBook developer kit shall run the full platform locally on Apple silicon (arm64 images with amd64 parity) with one-command bootstrap, simulators, local PKI/Vault and sample templates, in ≤ 30 minutes.",
+  "rationale": "Developers and partners must start without cloud accounts.",
+  "priority": "Must",
+  "standards": "IEC-62304",
+  "settings": "VENDOR, ALL"
+ },
+ {
+  "id": "IM-E08-HLR-02",
+  "requirement": "Dev, UAT and Prod environments shall be deployable from infrastructure-as-code on Microsoft Azure, Google Cloud and client private cloud with identical application images and environment-specific modules (compute, database HA, messaging, object storage, KMS/secrets, identity, ingress/WAF, logging/SIEM).",
+  "rationale": "Same product, client's choice of cloud.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701; NIST-CSF",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E08-HLR-03",
+  "requirement": "Prod shall be highly available across zones with RPO ≤ 15 minutes and RTO ≤ 2 hours, documented and drilled twice a year; UAT shall be production-like with real devices and the security test kit as release gate.",
+  "rationale": "Clinical dependency on device data.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E08-HLR-04",
+  "requirement": "CI/CD shall build signed images with SBOM, run unit/contract/simulator/performance/security stages, and promote through Dev → UAT → Prod with GitOps and approval gates; driver packages and configuration sets shall promote independently.",
+  "rationale": "Release safety and cadence.",
+  "priority": "Must",
+  "standards": "IEC-81001-5-1",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E08-HLR-05",
+  "requirement": "Operations shall include an SLO catalogue, observability stack per cloud, runbooks for the top failure modes, on-call, patch windows, capacity management and a FinOps cost model with cost per connected device per cloud.",
+  "rationale": "Operability and cost transparency are product features.",
+  "priority": "Must",
+  "standards": "NIST-CSF",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E08-HLR-06",
+  "requirement": "Edge components (gateway images, Windows device host, mobile SDKs) shall be packaged and fleet-managed consistently regardless of the central cloud.",
+  "rationale": "Edge does not care where the cloud is.",
+  "priority": "Must",
+  "standards": "IEC-62443",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E08-HLR-07",
+  "requirement": "Both operating models shall be supported with the same runbooks: IntiMed-hosted multi-tenant SaaS (Azure or GCP) and single-tenant client-hosted (client cloud subscription or private cloud), including residency pinning.",
+  "rationale": "Clients and regulators differ.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E08-HLR-08",
+  "requirement": "A cost comparison model shall estimate 5-year hosting TCO for Dev/UAT/Prod on Azure, GCP and private cloud (compute, managed data services, storage, networking/egress, security services, operations staff, licences) with editable inputs.",
+  "rationale": "Shareholders asked for a feasible comparison.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E09-HLR-01",
+  "requirement": "Tenant lifecycle shall be automated: trial creation with sandbox devices, onboarding with templates and identity federation, scaling, renewal and offboarding with complete data export and deletion evidence.",
+  "rationale": "Operational scalability and data-protection obligations.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E09-HLR-02",
+  "requirement": "Licensing shall support per-facility, per-connected-device, tenant bands and OEM/embedded models with entitlement enforcement and grace periods; metering shall count devices, messages, templates and users with ≥ 99.9% accuracy and feed billing/marketplaces.",
+  "rationale": "Revenue model and compliance.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL, VENDOR"
+ },
+ {
+  "id": "IM-E09-HLR-03",
+  "requirement": "Client analytics shall report capture rates, time saved estimates, unmatched and error rates, calibration compliance and fleet health per site, exportable and embeddable.",
+  "rationale": "Proving value sustains renewals.",
+  "priority": "Must",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E09-HLR-04",
+  "requirement": "Product analytics and cross-tenant benchmarking shall be privacy-preserving (aggregation thresholds, opt-in) and shall feed the configuration knowledge base.",
+  "rationale": "Intelligence improves with scale, lawfully.",
+  "priority": "Should",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E09-HLR-05",
+  "requirement": "Customer success tooling shall provide health scores, adoption dashboards and support-case integration.",
+  "rationale": "Retention is operational.",
+  "priority": "Should",
+  "standards": "ISO-27001-27701",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E09-HLR-06",
+  "requirement": "White-labelling and OEM configuration shall allow vendors to embed IntiMed under their brand with their support channels.",
+  "rationale": "Vendor channel.",
+  "priority": "Should",
+  "standards": "WCAG-LANG",
+  "settings": "VENDOR"
+ },
+ {
+  "id": "IM-E10-HLR-01",
+  "requirement": "A regulatory analysis and classification record shall define IntiMed's status per target market (MDDS-type functionality; exclusions; conditions under which modules would become regulated) and shall be maintained with each release.",
+  "rationale": "Scope discipline protects clients and the company.",
+  "priority": "Must",
+  "standards": "FDA-MDDS; EU-MDR; IEC-62304",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E10-HLR-02",
+  "requirement": "Software life-cycle processes per IEC 62304 (with safety classification) shall be implemented within the agile model with traceability from epics and HLRs to design, tests and releases.",
+  "rationale": "Expected by clients, partners and regulators.",
+  "priority": "Must",
+  "standards": "IEC-62304",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E10-HLR-03",
+  "requirement": "A risk management file per ISO 14971 shall analyse hazards (wrong-subject data, unit/code errors, delayed or missing data, misleading display, security breaches) with risk controls traced to features and verified by tests.",
+  "rationale": "Safety by design and evidence.",
+  "priority": "Must",
+  "standards": "IEC-62304; AAMI-CONN",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E10-HLR-04",
+  "requirement": "Usability engineering (IEC 62366) shall cover the capture component, console and wizard, with formative and summative evaluations in representative settings.",
+  "rationale": "Use errors are safety issues.",
+  "priority": "Should",
+  "standards": "IEC-62304",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E10-HLR-05",
+  "requirement": "Clinical safety case templates and hazard logs shall be provided for client deployments, together with labelling, IFU, release notes and known-anomaly lists.",
+  "rationale": "Clients must discharge their own clinical safety duties.",
+  "priority": "Must",
+  "standards": "IEC-80001-1; IEC-62304",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E10-HLR-06",
+  "requirement": "Post-market surveillance, complaint handling and vigilance interfaces shall be operated with defined timelines, feeding the risk file and the backlog.",
+  "rationale": "Closing the loop in the field.",
+  "priority": "Must",
+  "standards": "EU-MDR; IEC-62304",
+  "settings": "ALL"
+ },
+ {
+  "id": "IM-E10-HLR-07",
+  "requirement": "Supplier management shall cover open-source components (SBOM, licences), cloud providers (shared-responsibility evidence) and device vendors (MDS2).",
+  "rationale": "Quality extends to the supply chain.",
+  "priority": "Must",
+  "standards": "IEC-81001-5-1; ISO-27001-27701",
+  "settings": "ALL"
+ }
+]

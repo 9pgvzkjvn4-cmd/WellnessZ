@@ -1,0 +1,93 @@
+# IntiMed – LOCAL environment setting (MacBook). DEV/UAT/PROD values come from Helm/Terraform overlays (see deploy/).
+spring:
+  application:
+    name: intimed-platform
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    # H2 file database encrypted at rest with AES (CIPHER=AES); file password derived at startup – see DataSourceConfig.
+    url: jdbc:h2:file:${intimed.home:./intimed-data}/db/intimed;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;CIPHER=AES;AUTO_SERVER=FALSE
+    username: intimed
+  flyway:
+    locations: classpath:db/migration
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${INTIMED_PORT:9443}
+  address: ${INTIMED_BIND:127.0.0.1}
+  ssl:
+    enabled: true
+    enabled-protocols: TLSv1.3,TLSv1.2
+  http2:
+    enabled: true
+  error:
+    include-stacktrace: never
+    include-message: never
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        secure: true
+        http-only: true
+        same-site: strict
+        name: INTIMED_SESSION
+  max-http-request-header-size: 16KB
+  tomcat:
+    max-swallow-size: 2MB
+
+management:
+  server:
+    port: ${INTIMED_MGMT_PORT:9444}
+    address: 127.0.0.1
+    ssl:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+intimed:
+  home: ${INTIMED_HOME:./intimed-data}
+  environment: LOCAL
+  device:
+    mllp-port: ${INTIMED_MLLP_PORT:2575}
+    ingress-port: ${INTIMED_INGRESS_PORT:8443}
+  secrets:
+    provider: ${INTIMED_SECRETS_PROVIDER:local}
+  feeds:
+    openfda:
+      enabled: ${INTIMED_OPENFDA:false}
+  webhooks:
+    allowed-hosts: localhost,127.0.0.1
+  demo:
+    enabled: false
+    autoprovision: true
+
+logging:
+  level:
+    root: INFO
+    io.intimed: INFO
+    org.springframework.security: WARN
+---
+spring:
+  config:
+    activate:
+      on-profile: demo
+intimed:
+  demo:
+    enabled: true
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${INTIMED_DB_URL:jdbc:postgresql://localhost:5432/intimed?sslmode=prefer}
+    username: ${INTIMED_DB_USER:intimed}
+    password: ${INTIMED_DB_PASSWORD:}

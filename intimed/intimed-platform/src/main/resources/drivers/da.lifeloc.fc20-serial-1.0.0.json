@@ -1,0 +1,208 @@
+{
+ "manifest": {
+  "packageId": "da.lifeloc.fc20-serial",
+  "version": "1.0.0",
+  "name": "Lifeloc FC20 evidential breath tester – RS-232 via Device Host agent",
+  "family": "Drug & alcohol testing",
+  "models": [
+   "IMD-097"
+  ],
+  "options": [
+   "P1"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/da.lifeloc.fc20-serial-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": true,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P1": {
+   "parameters": {
+    "port": "COM3",
+    "baud": 9600,
+    "parity": "NONE",
+    "dataBits": 8,
+    "stopBits": 1,
+    "flowControl": "NONE",
+    "terminator": "\\r\\n",
+    "mode": "PUSH",
+    "pollSeconds": 30,
+    "usbAllowList": "0403:6001"
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "SERIAL",
+  "terminator": "\r\n",
+  "checksum": "xor-hex",
+  "frame": "^\\$BRAC,(?<serial>[A-Z0-9-]+),(?<time>\\d{14}),(?<brac>\\d\\.\\d{3}),(?<result>PASS|FAIL|REFUSAL),(?<custody>[A-Z0-9-]*)\\*[0-9A-F]{2}$",
+  "identity": {
+   "serial": "serial",
+   "time": "time",
+   "timeFormat": "yyyyMMddHHmmss"
+  },
+  "fields": [
+   {
+    "key": "brac",
+    "group": "brac",
+    "unit": "g/210L"
+   },
+   {
+    "key": "result",
+    "group": "result"
+   },
+   {
+    "key": "device_serial",
+    "group": "serial"
+   },
+   {
+    "key": "custody_id",
+    "group": "custody"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "brac",
+   "display": "Breath alcohol concentration",
+   "local": "INTIMED-BRAC",
+   "ucum": "g/210L",
+   "plausible": {
+    "min": 0,
+    "max": 0.5
+   }
+  },
+  {
+   "key": "result",
+   "display": "Screening outcome",
+   "local": "INTIMED-BRAC-RESULT",
+   "type": "text"
+  },
+  {
+   "key": "device_serial",
+   "display": "Device serial",
+   "local": "INTIMED-DEVSERIAL",
+   "type": "text"
+  },
+  {
+   "key": "custody_id",
+   "display": "Chain-of-custody form",
+   "local": "INTIMED-CCF",
+   "type": "text"
+  }
+ ],
+ "bindings": {
+  "TPL-20": {
+   "fields": {
+    "brac": "brac",
+    "result": "result",
+    "device_serial": "device_serial",
+    "custody_id": "custody_id"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "SESSION",
+   "why": "Restricted category: no identifier matching – collector session or worklist only (RR-08)"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "calibrationLockout": true
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "port": {
+   "value": "COM3",
+   "why": "Certified driver default for Lifeloc (P1)"
+  },
+  "baud": {
+   "value": 9600,
+   "why": "FC20 serial framing 9600 8N1, no flow control (RR-05)"
+  },
+  "parity": {
+   "value": "NONE",
+   "why": "Certified driver default for Lifeloc (P1)"
+  },
+  "dataBits": {
+   "value": 8,
+   "why": "Certified driver default for Lifeloc (P1)"
+  },
+  "stopBits": {
+   "value": 1,
+   "why": "Certified driver default for Lifeloc (P1)"
+  },
+  "flowControl": {
+   "value": "NONE",
+   "why": "Certified driver default for Lifeloc (P1)"
+  },
+  "terminator": {
+   "value": "\\r\\n",
+   "why": "Certified driver default for Lifeloc (P1)"
+  },
+  "mode": {
+   "value": "PUSH",
+   "why": "Certified driver default for Lifeloc (P1)"
+  },
+  "pollSeconds": {
+   "value": 30,
+   "why": "Certified driver default for Lifeloc (P1)"
+  },
+  "usbAllowList": {
+   "value": "0403:6001",
+   "why": "Certified driver default for Lifeloc (P1)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "$BRAC,{{SERIAL}},{{TS}},{{V:brac}},{{V:result}},{{V:custody_id}}*{{CS}}\r\n"
+   }
+  ],
+  "values": {
+   "brac": "0.000",
+   "result": "PASS",
+   "device_serial": "FC20-118842",
+   "custody_id": "CCF-7781234"
+  },
+  "serial": "FC20-118842",
+  "timeFormat": "yyyyMMddHHmmss",
+  "outOfRange": {
+   "key": "brac",
+   "value": "0.900"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Lifeloc FC20 evidential breath tester – RS-232 via Device Host agent with option P1. RS-232, USB-CDC (virtual COM) or USB-HID keyboard wedge read by the Device Host agent or gateway at the station.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

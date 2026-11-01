@@ -1,0 +1,252 @@
+{
+ "manifest": {
+  "packageId": "bloodgas.radiometer.abl90-poct1a",
+  "version": "1.0.0",
+  "name": "Radiometer ABL90 FLEX PLUS via AQURE (POCT1-A2 OBS)",
+  "family": "Laboratory analysers & middleware",
+  "models": [
+   "IMD-267"
+  ],
+  "options": [
+   "P5"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/bloodgas.radiometer.abl90-poct1a-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P5": {
+   "parameters": {
+    "dataManager": "AQURE",
+    "framing": "POCT1A_XML",
+    "qcLotPolicy": "BLOCK_UNTIL_QC",
+    "operatorList": "SYNC_FROM_IDP",
+    "deviceIds": ""
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "POCT1A",
+  "root": "OBS.R01",
+  "identity": {
+   "subject": "//PT.patient_id/@V",
+   "serial": "//DEV.device_id/@V",
+   "time": "//SVC.observation_dttm/@V"
+  },
+  "extras": {
+   "lot": "//RGT.lot_number/@V",
+   "operator": "//OPR.operator_id/@V"
+  },
+  "fields": [
+   {
+    "key": "ph",
+    "xpath": "//OBS[OBS.observation_id/@V='pH']/OBS.value/@V",
+    "unitXpath": "//OBS[OBS.observation_id/@V='pH']/OBS.value/@U"
+   },
+   {
+    "key": "pco2",
+    "xpath": "//OBS[OBS.observation_id/@V='pCO2']/OBS.value/@V",
+    "unitXpath": "//OBS[OBS.observation_id/@V='pCO2']/OBS.value/@U"
+   },
+   {
+    "key": "po2",
+    "xpath": "//OBS[OBS.observation_id/@V='pO2']/OBS.value/@V",
+    "unitXpath": "//OBS[OBS.observation_id/@V='pO2']/OBS.value/@U"
+   },
+   {
+    "key": "na",
+    "xpath": "//OBS[OBS.observation_id/@V='cNa+']/OBS.value/@V",
+    "unitXpath": "//OBS[OBS.observation_id/@V='cNa+']/OBS.value/@U"
+   },
+   {
+    "key": "k",
+    "xpath": "//OBS[OBS.observation_id/@V='cK+']/OBS.value/@V",
+    "unitXpath": "//OBS[OBS.observation_id/@V='cK+']/OBS.value/@U"
+   },
+   {
+    "key": "lactate",
+    "xpath": "//OBS[OBS.observation_id/@V='cLac']/OBS.value/@V",
+    "unitXpath": "//OBS[OBS.observation_id/@V='cLac']/OBS.value/@U"
+   },
+   {
+    "key": "glucose",
+    "xpath": "//OBS[OBS.observation_id/@V='cGlu']/OBS.value/@V",
+    "unitXpath": "//OBS[OBS.observation_id/@V='cGlu']/OBS.value/@U"
+   },
+   {
+    "key": "hb",
+    "xpath": "//OBS[OBS.observation_id/@V='ctHb']/OBS.value/@V",
+    "unitXpath": "//OBS[OBS.observation_id/@V='ctHb']/OBS.value/@U"
+   },
+   {
+    "key": "lot",
+    "xpath": "//RGT.lot_number/@V"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "ph",
+   "display": "pH (arterial)",
+   "loinc": "2744-1",
+   "ucum": "[pH]",
+   "plausible": {
+    "min": 6.5,
+    "max": 8
+   }
+  },
+  {
+   "key": "pco2",
+   "display": "pCO2 (arterial)",
+   "loinc": "2019-8",
+   "ucum": "mm[Hg]"
+  },
+  {
+   "key": "po2",
+   "display": "pO2 (arterial)",
+   "loinc": "2703-7",
+   "ucum": "mm[Hg]"
+  },
+  {
+   "key": "na",
+   "display": "Sodium (blood)",
+   "loinc": "2947-0",
+   "ucum": "mmol/L"
+  },
+  {
+   "key": "k",
+   "display": "Potassium (blood)",
+   "loinc": "6298-4",
+   "ucum": "mmol/L"
+  },
+  {
+   "key": "lactate",
+   "display": "Lactate (arterial)",
+   "loinc": "2518-9",
+   "ucum": "mmol/L"
+  },
+  {
+   "key": "glucose",
+   "display": "Glucose (blood)",
+   "loinc": "15074-8",
+   "ucum": "mmol/L",
+   "factors": {
+    "mg/dL>mmol/L": 0.0555,
+    "mmol/L>mg/dL": 18.016
+   }
+  },
+  {
+   "key": "hb",
+   "display": "Haemoglobin",
+   "loinc": "718-7",
+   "ucum": "g/dL"
+  },
+  {
+   "key": "lot",
+   "display": "Cartridge / reagent lot",
+   "local": "INTIMED-LOT",
+   "type": "text"
+  }
+ ],
+ "bindings": {
+  "TPL-05": {
+   "fields": {
+    "ph": "ph",
+    "pco2": "pco2",
+    "po2": "po2",
+    "na": "na",
+    "k": "k",
+    "lactate": "lactate",
+    "glucose": "glucose",
+    "hb": "hb",
+    "lot": "lot"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "WORKLIST",
+   "why": "Setting rule for TPL-05 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "qcLotGate": true
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "dataManager": {
+   "value": "AQURE",
+   "why": "Certified driver default for Radiometer (P5)"
+  },
+  "framing": {
+   "value": "POCT1A_XML",
+   "why": "Certified driver default for Radiometer (P5)"
+  },
+  "qcLotPolicy": {
+   "value": "BLOCK_UNTIL_QC",
+   "why": "Results from a new reagent/cartridge lot are held until QC for the lot is recorded (RR-11)"
+  },
+  "operatorList": {
+   "value": "SYNC_FROM_IDP",
+   "why": "Certified driver default for Radiometer (P5)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "<OBS.R01><HDR><HDR.message_type V=\"OBS.R01\"/><HDR.control_id V=\"{{CTRL}}\"/><HDR.version_id V=\"POCT1\"/><HDR.creation_dttm V=\"{{TSISO}}\"/></HDR><SVC><SVC.role V=\"OBS\"/><SVC.observation_dttm V=\"{{TSISO}}\"/><PT><PT.patient_id V=\"{{SUBJECT}}\"/><OBS><OBS.observation_id V=\"pH\"/><OBS.value V=\"{{V:ph}}\" U=\"pH\"/></OBS><OBS><OBS.observation_id V=\"pCO2\"/><OBS.value V=\"{{V:pco2}}\" U=\"kPa\"/></OBS><OBS><OBS.observation_id V=\"pO2\"/><OBS.value V=\"{{V:po2}}\" U=\"kPa\"/></OBS><OBS><OBS.observation_id V=\"cNa+\"/><OBS.value V=\"{{V:na}}\" U=\"mmol/L\"/></OBS><OBS><OBS.observation_id V=\"cK+\"/><OBS.value V=\"{{V:k}}\" U=\"mmol/L\"/></OBS><OBS><OBS.observation_id V=\"cLac\"/><OBS.value V=\"{{V:lactate}}\" U=\"mmol/L\"/></OBS><OBS><OBS.observation_id V=\"cGlu\"/><OBS.value V=\"{{V:glucose}}\" U=\"mmol/L\"/></OBS><OBS><OBS.observation_id V=\"ctHb\"/><OBS.value V=\"{{V:hb}}\" U=\"g/dL\"/></OBS></PT><OPR><OPR.operator_id V=\"OP-117\"/></OPR><RGT><RGT.lot_number V=\"{{V:lot}}\"/></RGT></SVC><DEV><DEV.device_id V=\"{{SERIAL}}\"/><DEV.vendor_id V=\"Radiometer\"/></DEV></OBS.R01>"
+   }
+  ],
+  "values": {
+   "ph": 7.38,
+   "pco2": 5.6,
+   "po2": 11.9,
+   "na": 139,
+   "k": 4.1,
+   "lactate": 1.3,
+   "glucose": 6.2,
+   "hb": 13.8,
+   "lot": "L2610A"
+  },
+  "serial": "ABL90-1245R0331",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "ph",
+   "value": "8.9"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Radiometer ABL90 FLEX PLUS via AQURE (POCT1-A2 OBS) with option P5. Point-of-care analysers talk POCT1-A to the vendor data manager, analysers talk ASTM/LIS2 to middleware, which forwards results with QC/lot data.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

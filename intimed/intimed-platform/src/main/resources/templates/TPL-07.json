@@ -1,0 +1,88 @@
+{
+ "id": "TPL-07",
+ "name": "Imaging order / report link & dose record",
+ "settings": [
+  "IMG"
+ ],
+ "captureMode": "SPOT",
+ "association": "WORKLIST",
+ "adapters": [
+  "FHIR",
+  "REST"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "study",
+   "label": "Study & dose",
+   "fields": [
+    {
+     "id": "accession",
+     "label": "Accession number",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-ACCESSION"
+     }
+    },
+    {
+     "id": "study_uid",
+     "label": "Study Instance UID",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-STUDY-UID"
+     }
+    },
+    {
+     "id": "modality",
+     "label": "Modality",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-MODALITY"
+     }
+    },
+    {
+     "id": "body_part",
+     "label": "Body part",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-BODY-PART"
+     }
+    },
+    {
+     "id": "dlp",
+     "label": "CT dose-length product (total)",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "DCM-113813"
+     },
+     "unit": "mGy.cm",
+     "range": {
+      "min": 0,
+      "max": 20000
+     },
+     "decimals": 1
+    },
+    {
+     "id": "ctdivol",
+     "label": "Mean CTDIvol",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "DCM-113830"
+     },
+     "unit": "mGy",
+     "range": {
+      "min": 0,
+      "max": 500
+     },
+     "decimals": 2
+    }
+   ]
+  }
+ ]
+}

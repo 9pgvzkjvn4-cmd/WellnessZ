@@ -1,0 +1,118 @@
+{
+ "option": "P1",
+ "name": "Serial / USB direct",
+ "how": "RS-232, USB-CDC (virtual COM) or USB-HID keyboard wedge read by the Device Host agent or gateway at the station.",
+ "security": "MEDIUM",
+ "reliability": "HIGH",
+ "effort": "LOW",
+ "latency": "< 1 s",
+ "via": "Device Host agent / gateway → HTTPS ingress (mTLS)",
+ "prerequisites": [
+  "Device Host agent or gateway enrolled (mTLS identity)",
+  "USB VID/PID on the allow-list",
+  "Cable / adapter verified",
+  "Calibration evidence uploaded"
+ ],
+ "tests": [
+  "XT-01 port opened via agent",
+  "XT-03 frame acquired",
+  "XT-04 frame grammar + checksum",
+  "XT-11 truncated / bad checksum frame rejected"
+ ],
+ "parameters": [
+  {
+   "name": "port",
+   "required": true,
+   "default": "COM3",
+   "type": "string"
+  },
+  {
+   "name": "baud",
+   "required": true,
+   "default": 9600,
+   "type": "enum",
+   "values": [
+    "1200",
+    "2400",
+    "4800",
+    "9600",
+    "19200",
+    "38400",
+    "57600",
+    "115200"
+   ]
+  },
+  {
+   "name": "parity",
+   "required": true,
+   "default": "NONE",
+   "type": "enum",
+   "values": [
+    "NONE",
+    "EVEN",
+    "ODD"
+   ]
+  },
+  {
+   "name": "dataBits",
+   "required": true,
+   "default": 8,
+   "type": "enum",
+   "values": [
+    "7",
+    "8"
+   ]
+  },
+  {
+   "name": "stopBits",
+   "required": true,
+   "default": 1,
+   "type": "enum",
+   "values": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "name": "flowControl",
+   "required": true,
+   "default": "NONE",
+   "type": "enum",
+   "values": [
+    "NONE",
+    "RTS_CTS",
+    "XON_XOFF"
+   ]
+  },
+  {
+   "name": "terminator",
+   "required": true,
+   "default": "\\r\\n",
+   "type": "string"
+  },
+  {
+   "name": "mode",
+   "required": true,
+   "default": "PUSH",
+   "type": "enum",
+   "values": [
+    "PUSH",
+    "POLL"
+   ]
+  },
+  {
+   "name": "pollSeconds",
+   "required": false,
+   "default": 30,
+   "type": "int",
+   "min": 1,
+   "max": 3600
+  },
+  {
+   "name": "usbAllowList",
+   "required": false,
+   "default": "",
+   "type": "string"
+  }
+ ]
+}

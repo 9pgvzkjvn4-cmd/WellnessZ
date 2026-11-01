@@ -1,0 +1,287 @@
+{
+ "manifest": {
+  "packageId": "dialysis.fresenius.5008-tdms",
+  "version": "1.0.0",
+  "name": "Fresenius 5008/6008 via TDMS (HL7 session export)",
+  "family": "Dialysis & extracorporeal",
+  "models": [
+   "IMD-311"
+  ],
+  "options": [
+   "P4"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/dialysis.fresenius.5008-tdms-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P4": {
+   "parameters": {
+    "host": "intimed.local",
+    "port": 2575,
+    "tls": "MTLS",
+    "tlsMin": "1.2",
+    "sendingApplication": "TDMS",
+    "sendingFacility": "DIALYSIS",
+    "ackMode": "ORIGINAL",
+    "profile": "IHE_PCD_01",
+    "timeZone": "UTC",
+    "maxMessagesPerSecond": 50
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "HL7V2",
+  "messageTypes": [
+   "ORU^R01"
+  ],
+  "identity": {
+   "subject": "PID-3.1",
+   "serial": "OBX-18.1",
+   "time": "OBR-7",
+   "timeFormat": "yyyyMMddHHmmss"
+  },
+  "fields": [
+   {
+    "key": "qb",
+    "sel": "OBX[OBX-3.1=QB]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=QB]/OBX-6.1"
+   },
+   {
+    "key": "qd",
+    "sel": "OBX[OBX-3.1=QD]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=QD]/OBX-6.1"
+   },
+   {
+    "key": "uf_volume",
+    "sel": "OBX[OBX-3.1=UFV]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=UFV]/OBX-6.1"
+   },
+   {
+    "key": "uf_goal",
+    "sel": "OBX[OBX-3.1=UFG]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=UFG]/OBX-6.1"
+   },
+   {
+    "key": "ktv",
+    "sel": "OBX[OBX-3.1=KTV]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=KTV]/OBX-6.1"
+   },
+   {
+    "key": "vp",
+    "sel": "OBX[OBX-3.1=VP]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=VP]/OBX-6.1"
+   },
+   {
+    "key": "ap",
+    "sel": "OBX[OBX-3.1=AP]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=AP]/OBX-6.1"
+   },
+   {
+    "key": "weight_pre",
+    "sel": "OBX[OBX-3.1=WPRE]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=WPRE]/OBX-6.1"
+   },
+   {
+    "key": "duration",
+    "sel": "OBX[OBX-3.1=DUR]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=DUR]/OBX-6.1"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "qb",
+   "display": "Blood flow",
+   "local": "INTIMED-DIA-QB",
+   "ucum": "mL/min",
+   "plausible": {
+    "min": 0,
+    "max": 600
+   }
+  },
+  {
+   "key": "qd",
+   "display": "Dialysate flow",
+   "local": "INTIMED-DIA-QD",
+   "ucum": "mL/min",
+   "plausible": {
+    "min": 0,
+    "max": 1000
+   }
+  },
+  {
+   "key": "uf_volume",
+   "display": "UF volume removed",
+   "local": "INTIMED-DIA-UFV",
+   "ucum": "mL"
+  },
+  {
+   "key": "uf_goal",
+   "display": "UF goal",
+   "local": "INTIMED-DIA-UFG",
+   "ucum": "mL"
+  },
+  {
+   "key": "ktv",
+   "display": "Kt/V (online clearance)",
+   "local": "INTIMED-DIA-KTV",
+   "ucum": "1",
+   "plausible": {
+    "min": 0,
+    "max": 4
+   }
+  },
+  {
+   "key": "vp",
+   "display": "Venous pressure",
+   "local": "INTIMED-DIA-VP",
+   "ucum": "mm[Hg]"
+  },
+  {
+   "key": "ap",
+   "display": "Arterial pressure",
+   "local": "INTIMED-DIA-AP",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": -400,
+    "max": 0
+   }
+  },
+  {
+   "key": "weight_pre",
+   "display": "Pre-dialysis weight",
+   "loinc": "29463-7",
+   "ucum": "kg"
+  },
+  {
+   "key": "duration",
+   "display": "Treatment time",
+   "local": "INTIMED-DIA-DUR",
+   "ucum": "min"
+  }
+ ],
+ "bindings": {
+  "TPL-10": {
+   "fields": {
+    "qb": "qb",
+    "qd": "qd",
+    "uf_volume": "uf_volume",
+    "uf_goal": "uf_goal",
+    "ktv": "ktv",
+    "vp": "vp",
+    "ap": "ap",
+    "weight_pre": "weight_pre",
+    "duration": "duration"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "SESSION",
+   "why": "Setting rule for TPL-10 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "host": {
+   "value": "intimed.local",
+   "why": "Certified driver default for Fresenius (P4)"
+  },
+  "port": {
+   "value": 2575,
+   "why": "Certified driver default for Fresenius (P4)"
+  },
+  "tls": {
+   "value": "MTLS",
+   "why": "Certified driver default for Fresenius (P4)"
+  },
+  "tlsMin": {
+   "value": "1.2",
+   "why": "Certified driver default for Fresenius (P4)"
+  },
+  "sendingApplication": {
+   "value": "TDMS",
+   "why": "Certified driver default for Fresenius (P4)"
+  },
+  "sendingFacility": {
+   "value": "DIALYSIS",
+   "why": "Certified driver default for Fresenius (P4)"
+  },
+  "ackMode": {
+   "value": "ORIGINAL",
+   "why": "Certified driver default for Fresenius (P4)"
+  },
+  "profile": {
+   "value": "IHE_PCD_01",
+   "why": "Certified driver default for Fresenius (P4)"
+  },
+  "timeZone": {
+   "value": "UTC",
+   "why": "Certified driver default for Fresenius (P4)"
+  },
+  "maxMessagesPerSecond": {
+   "value": 50,
+   "why": "Certified driver default for Fresenius (P4)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "MSH|^~\\&|TDMS|DIALYSIS|INTIMED|INTIMED|{TS}||ORU^R01^ORU_R01|{CTRL}|P|2.6|||NE|AL||UNICODE UTF-8|||IHE_PCD_001^IHE PCD^1.3.6.1.4.1.19376.1.6.1.1.1^ISO\rPID|||{{SUBJECT}}^^^HOSP^MR\rOBR|1|{{CTRL}}||HD^Haemodialysis session^L|||{{TS}}\rOBX|1|NM|QB^QB^L||{{V:qb}}|mL/min|||||F|||{{TS}}||||{{SERIAL}}\rOBX|2|NM|QD^QD^L||{{V:qd}}|mL/min|||||F|||{{TS}}||||{{SERIAL}}\rOBX|3|NM|UFV^UFV^L||{{V:uf_volume}}|mL|||||F|||{{TS}}||||{{SERIAL}}\rOBX|4|NM|UFG^UFG^L||{{V:uf_goal}}|mL|||||F|||{{TS}}||||{{SERIAL}}\rOBX|5|NM|KTV^KTV^L||{{V:ktv}}|1|||||F|||{{TS}}||||{{SERIAL}}\rOBX|6|NM|VP^VP^L||{{V:vp}}|mm[Hg]|||||F|||{{TS}}||||{{SERIAL}}\rOBX|7|NM|AP^AP^L||{{V:ap}}|mm[Hg]|||||F|||{{TS}}||||{{SERIAL}}\rOBX|8|NM|WPRE^WPRE^L||{{V:weight_pre}}|kg|||||F|||{{TS}}||||{{SERIAL}}\rOBX|9|NM|DUR^DUR^L||{{V:duration}}|min|||||F|||{{TS}}||||{{SERIAL}}\r"
+   }
+  ],
+  "values": {
+   "qb": 300,
+   "qd": 500,
+   "uf_volume": 2150,
+   "uf_goal": 2200,
+   "ktv": 1.42,
+   "vp": 165,
+   "ap": -180,
+   "weight_pre": 74.6,
+   "duration": 240
+  },
+  "serial": "5008S-AB1123",
+  "timeFormat": "yyyyMMddHHmmss",
+  "outOfRange": {
+   "key": "qb",
+   "value": "900"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Fresenius 5008/6008 via TDMS (HL7 session export) with option P4. Device or vendor gateway sends ORU^R01 (and receives ADT/ORM) over MLLP with TLS and client certificates.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

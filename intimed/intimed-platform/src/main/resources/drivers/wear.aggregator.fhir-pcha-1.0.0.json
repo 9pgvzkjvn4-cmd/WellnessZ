@@ -1,0 +1,155 @@
+{
+ "manifest": {
+  "packageId": "wear.aggregator.fhir-pcha",
+  "version": "1.0.0",
+  "name": "Wearable aggregator (Garmin / Apple / Fitbit via aggregator) – FHIR R4 PCHA upload",
+  "family": "Wearables & personal health",
+  "models": [
+   "IMD-121"
+  ],
+  "options": [
+   "P8"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/wear.aggregator.fhir-pcha-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P8": {
+   "parameters": {
+    "endpoint": "/fhir/r4/Observation",
+    "scopes": "system/Observation.write",
+    "profileValidation": "PCHA_LITE"
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": false,
+    "oauth2": "client_credentials"
+   }
+  }
+ },
+ "grammar": {
+  "type": "FHIR",
+  "fields": [
+   {
+    "key": "steps",
+    "code": "http://loinc.org|55423-8"
+   },
+   {
+    "key": "resting_hr",
+    "code": "http://loinc.org|40443-4"
+   },
+   {
+    "key": "hrv",
+    "code": "urn:intimed:local|INTIMED-HRV-SDNN"
+   },
+   {
+    "key": "sleep",
+    "code": "urn:intimed:local|INTIMED-SLEEP-DUR"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "steps",
+   "display": "Steps",
+   "loinc": "55423-8",
+   "ucum": "{steps}"
+  },
+  {
+   "key": "resting_hr",
+   "display": "Resting heart rate",
+   "loinc": "40443-4",
+   "ucum": "/min"
+  },
+  {
+   "key": "hrv",
+   "display": "HRV (SDNN)",
+   "local": "INTIMED-HRV-SDNN",
+   "ucum": "ms"
+  },
+  {
+   "key": "sleep",
+   "display": "Sleep duration",
+   "local": "INTIMED-SLEEP-DUR",
+   "ucum": "min"
+  }
+ ],
+ "bindings": {
+  "TPL-22": {
+   "fields": {
+    "steps": "steps",
+    "resting_hr": "resting_hr",
+    "hrv": "hrv",
+    "sleep": "sleep"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "CONSENT",
+   "why": "Setting rule for TPL-22 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "endpoint": {
+   "value": "/fhir/r4/Observation",
+   "why": "Certified driver default for Wearable (P8)"
+  },
+  "scopes": {
+   "value": "system/Observation.write",
+   "why": "Write-only scope for the aggregator client (RR-15)"
+  },
+  "profileValidation": {
+   "value": "PCHA_LITE",
+   "why": "Certified driver default for Wearable (P8)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "{\"resourceType\": \"Bundle\", \"type\": \"collection\", \"entry\": [{\"resource\": {\"resourceType\": \"Observation\", \"status\": \"final\", \"code\": {\"coding\": [{\"system\": \"http://loinc.org\", \"code\": \"55423-8\"}]}, \"subject\": {\"identifier\": {\"value\": \"{{SUBJECT}}\"}}, \"device\": {\"identifier\": {\"value\": \"{{SERIAL}}\"}}, \"effectiveDateTime\": \"{{TSISO}}\", \"valueQuantity\": {\"value\": {{V:steps}}, \"unit\": \"{steps}\", \"system\": \"http://unitsofmeasure.org\", \"code\": \"{steps}\"}}},{\"resource\": {\"resourceType\": \"Observation\", \"status\": \"final\", \"code\": {\"coding\": [{\"system\": \"http://loinc.org\", \"code\": \"40443-4\"}]}, \"subject\": {\"identifier\": {\"value\": \"{{SUBJECT}}\"}}, \"device\": {\"identifier\": {\"value\": \"{{SERIAL}}\"}}, \"effectiveDateTime\": \"{{TSISO}}\", \"valueQuantity\": {\"value\": {{V:resting_hr}}, \"unit\": \"/min\", \"system\": \"http://unitsofmeasure.org\", \"code\": \"/min\"}}},{\"resource\": {\"resourceType\": \"Observation\", \"status\": \"final\", \"code\": {\"coding\": [{\"system\": \"urn:intimed:local\", \"code\": \"INTIMED-HRV-SDNN\"}]}, \"subject\": {\"identifier\": {\"value\": \"{{SUBJECT}}\"}}, \"device\": {\"identifier\": {\"value\": \"{{SERIAL}}\"}}, \"effectiveDateTime\": \"{{TSISO}}\", \"valueQuantity\": {\"value\": {{V:hrv}}, \"unit\": \"ms\", \"system\": \"http://unitsofmeasure.org\", \"code\": \"ms\"}}},{\"resource\": {\"resourceType\": \"Observation\", \"status\": \"final\", \"code\": {\"coding\": [{\"system\": \"urn:intimed:local\", \"code\": \"INTIMED-SLEEP-DUR\"}]}, \"subject\": {\"identifier\": {\"value\": \"{{SUBJECT}}\"}}, \"device\": {\"identifier\": {\"value\": \"{{SERIAL}}\"}}, \"effectiveDateTime\": \"{{TSISO}}\", \"valueQuantity\": {\"value\": {{V:sleep}}, \"unit\": \"min\", \"system\": \"http://unitsofmeasure.org\", \"code\": \"min\"}}}]}"
+   }
+  ],
+  "values": {
+   "steps": 9412,
+   "resting_hr": 58,
+   "hrv": 46,
+   "sleep": 431
+  },
+  "serial": "AGG-GARMIN-FR965-7712",
+  "timeFormat": "ISO",
+  "outOfRange": null,
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Wearable aggregator (Garmin / Apple / Fitbit via aggregator) – FHIR R4 PCHA upload with option P8. Devices, gateways and apps post FHIR Observation/Device per PoCD IG or PCHA with SMART backend scopes.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

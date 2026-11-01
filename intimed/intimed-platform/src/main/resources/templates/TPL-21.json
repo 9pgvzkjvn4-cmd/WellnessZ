@@ -1,0 +1,60 @@
+{
+ "id": "TPL-21",
+ "name": "Respirator fit test & ergonomics",
+ "settings": [
+  "OH"
+ ],
+ "captureMode": "SPOT",
+ "association": "WORKLIST",
+ "adapters": [
+  "FHIR",
+  "REST"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "fit",
+   "label": "Quantitative fit test",
+   "fields": [
+    {
+     "id": "fit_factor",
+     "label": "Overall fit factor",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-FIT-FF"
+     },
+     "unit": "1",
+     "decimals": 0
+    },
+    {
+     "id": "respirator",
+     "label": "Respirator model",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-FIT-MODEL"
+     }
+    },
+    {
+     "id": "fit_result",
+     "label": "Pass / fail",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-FIT-RESULT"
+     }
+    },
+    {
+     "id": "protocol",
+     "label": "Protocol",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-FIT-PROTOCOL"
+     }
+    }
+   ]
+  }
+ ]
+}

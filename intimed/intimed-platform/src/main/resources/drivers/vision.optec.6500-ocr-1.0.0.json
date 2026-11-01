@@ -1,0 +1,174 @@
+{
+ "manifest": {
+  "packageId": "vision.optec.6500-ocr",
+  "version": "1.0.0",
+  "name": "Stereo Optical Optec 6500 (display-only) – image capture & OCR with verification",
+  "family": "Vision & ophthalmic",
+  "models": [
+   "IMD-065"
+  ],
+  "options": [
+   "P9"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/vision.optec.6500-ocr-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P9": {
+   "parameters": {
+    "ocrTemplate": "optec-6500-result-card",
+    "confidenceThreshold": 0.85,
+    "imageRetentionDays": 30
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "OCR_TEXT",
+  "fields": [
+   {
+    "key": "acuity_r",
+    "regex": "RIGHT\\s*20/(\\d+)"
+   },
+   {
+    "key": "acuity_l",
+    "regex": "LEFT\\s*20/(\\d+)"
+   },
+   {
+    "key": "acuity_both",
+    "regex": "BOTH\\s*20/(\\d+)"
+   },
+   {
+    "key": "ishihara",
+    "regex": "COLOU?R\\s*(\\d+)/14",
+    "unit": "1"
+   },
+   {
+    "key": "stereo",
+    "regex": "STEREO\\s*(\\d+)",
+    "unit": "1"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "acuity_r",
+   "display": "Far acuity right (Snellen)",
+   "local": "INTIMED-VA-R",
+   "type": "text"
+  },
+  {
+   "key": "acuity_l",
+   "display": "Far acuity left (Snellen)",
+   "local": "INTIMED-VA-L",
+   "type": "text"
+  },
+  {
+   "key": "acuity_both",
+   "display": "Far acuity both",
+   "local": "INTIMED-VA-B",
+   "type": "text"
+  },
+  {
+   "key": "ishihara",
+   "display": "Ishihara plates correct (of 14)",
+   "local": "INTIMED-ISHIHARA",
+   "ucum": "1"
+  },
+  {
+   "key": "stereo",
+   "display": "Stereo depth (arcsec)",
+   "local": "INTIMED-STEREO",
+   "ucum": "1"
+  }
+ ],
+ "bindings": {
+  "TPL-19": {
+   "fields": {
+    "acuity_r": "acuity_r",
+    "acuity_l": "acuity_l",
+    "acuity_both": "acuity_both",
+    "ishihara": "ishihara",
+    "stereo": "stereo"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "WORKLIST",
+   "why": "Setting rule for TPL-19 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "verifyBeforePost": true
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "ocrTemplate": {
+   "value": "optec-6500-result-card",
+   "why": "Certified driver default for Stereo (P9)"
+  },
+  "confidenceThreshold": {
+   "value": 0.85,
+   "why": "Certified driver default for Stereo (P9)"
+  },
+  "imageRetentionDays": {
+   "value": 30,
+   "why": "Certified driver default for Stereo (P9)"
+  },
+  "verification": {
+   "value": "MANDATORY",
+   "why": "OCR values are proposals – posting requires clinician verification (P9)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "{\"serial\": \"{{SERIAL}}\", \"time\": \"{{TSISO}}\", \"ocrConfidence\": 0.93, \"text\": \"OPTEC 6500  RIGHT 20/{{V:acuity_r}}  LEFT 20/{{V:acuity_l}}  BOTH 20/{{V:acuity_both}}  COLOR {{V:ishihara}}/14  STEREO {{V:stereo}}\"}"
+   }
+  ],
+  "values": {
+   "acuity_r": "20",
+   "acuity_l": "25",
+   "acuity_both": "20",
+   "ishihara": 14,
+   "stereo": 40
+  },
+  "serial": "OPTEC6500-44120",
+  "timeFormat": "ISO",
+  "outOfRange": null,
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Stereo Optical Optec 6500 (display-only) – image capture & OCR with verification with option P9. The nurse photographs the display or printout; OCR proposes values; verification is mandatory before posting.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

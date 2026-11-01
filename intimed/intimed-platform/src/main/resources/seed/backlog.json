@@ -1,0 +1,1172 @@
+[
+ {
+  "id": "IM-E01-BL-001",
+  "feature": "IM-E01-F01",
+  "type": "Enabler",
+  "title": "Design the canonical observation model, pipeline stages, event contracts and streaming semantics; record ADRs",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S0"
+ },
+ {
+  "id": "IM-E01-BL-002",
+  "feature": "IM-E01-F01",
+  "type": "Enabler",
+  "title": "Implement pipeline services with DLQ triage UI, ordering/late-arrival rules and alarm-state flagging",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E01-BL-003",
+  "feature": "IM-E01-F02",
+  "type": "Enabler",
+  "title": "Serial/USB adapter for gateway and device host with port discovery and framing options",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Integration",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E01-BL-004",
+  "feature": "IM-E01-F02",
+  "type": "Enabler",
+  "title": "HL7 v2 MLLP-TLS adapter: PCD-01 periodic and spot, PCD-02, ACM, IPEC, ORM/OML, ADT; IHE DEV conformance tests",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Integration",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E01-BL-005",
+  "feature": "IM-E01-F02",
+  "type": "Enabler",
+  "title": "Vendor database/file watcher adapter (SQL Server/SQLite/Access/PostgreSQL read-only; XML/GDT/CSV/PDF folders)",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Integration",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E01-BL-006",
+  "feature": "IM-E01-F02",
+  "type": "Enabler",
+  "title": "BLE adapter (standard GATT health profiles and vendor services) for gateway, kiosk and mobile with LE Secure Connections",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Integration",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E01-BL-007",
+  "feature": "IM-E01-F02",
+  "type": "Enabler",
+  "title": "POCT1-A2 adapter, LIS2/ASTM and IHE LAW analyser interfaces and data-manager HL7 bridges",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S9"
+ },
+ {
+  "id": "IM-E01-BL-008",
+  "feature": "IM-E01-F02",
+  "type": "Enabler",
+  "title": "Cloud API/webhook adapter framework (OAuth2, polling, webhooks, rate limits, consent scopes) incl. CRM remote-monitoring portals, RPM and wearable platforms",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S8"
+ },
+ {
+  "id": "IM-E01-BL-009",
+  "feature": "IM-E01-F02",
+  "type": "Enabler",
+  "title": "DICOM adapter (C-STORE SCP, MWL, Q/R, MPPS, DICOMweb, SR, waveform) with PACS/VNA routing",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S11"
+ },
+ {
+  "id": "IM-E01-BL-010",
+  "feature": "IM-E01-F02",
+  "type": "Enabler",
+  "title": "FHIR R4/R5 inbound adapter (PoCD IG, Subscriptions), image/OCR + barcode fallback adapter, SDC adapter stub",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E01-BL-011",
+  "feature": "IM-E01-F03",
+  "type": "Enabler",
+  "title": "Driver package format, signing, compatibility rules; SDK CLI (scaffold/test/scan/sign/publish); registry with candidate/certified channels; partner submission workflow",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Integration",
+  "sprint": "IM-S2"
+ },
+ {
+  "id": "IM-E01-BL-012",
+  "feature": "IM-E01-F03",
+  "type": "Task",
+  "title": "Driver packages – acute-care monitoring & telemetry: Philips IntelliVue/PIIC iX, GE CARESCAPE Gateway, Mindray eGateway, Dräger Infinity Gateway, Nihon Kohden, Spacelabs, Masimo Root/Iris, Medtronic Capnostream/BIS, Edwards HemoSphere (PCD-01/02 periodic & spot, ACM observations, waveform snippets)",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Integration",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E01-BL-013",
+  "feature": "IM-E01-F03",
+  "type": "Task",
+  "title": "Driver packages – infusion, ventilation & anaesthesia: Alaris Systems Manager, ICU Medical MedNet, Baxter Dose IQ, B. Braun Space Online, Fresenius Vigilant, PharmGuard; Hamilton, Dräger Evita/Babylog, Getinge Servo, PB 980, Philips V60/Trilogy; Aisys, Perseus/Atlan, Mindray A7/A9 (IPEC/PIV, MEDIBUS.X, SDC stub)",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S6"
+ },
+ {
+  "id": "IM-E01-BL-014",
+  "feature": "IM-E01-F03",
+  "type": "Task",
+  "title": "Driver packages – outpatient & occupational-health instruments: spirometers, audiometers, vision testers, vitals monitors, ECG systems, breath-alcohol and drug testers, fit testers, ergonomics, exposure feeds (serial/USB, vendor DB/file, BLE, HL7) – parity with the OHCM MDI pack families",
+  "sp": 21,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E01-BL-015",
+  "feature": "IM-E01-F03",
+  "type": "Task",
+  "title": "Driver packages – RPM, wearables & home: RPM kits (BodyTrace, Smart Meter, Tenovi, Withings), CGM/insulin clouds (Dexcom, LibreView, CareLink, t:connect, Glooko), ResMed AirView, Care Orchestrator, hospital-at-home platforms, aggregators (Validic, Human API, HealthKit, Health Connect), telehealth kits",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S8"
+ },
+ {
+  "id": "IM-E01-BL-016",
+  "feature": "IM-E01-F03",
+  "type": "Task",
+  "title": "Driver packages – laboratory & POCT: middleware (Instrument Manager, cobas infinity, AlinIQ, Atellica DM, REMISOL, WAM), blood gas data managers (AQURE, GEMweb Plus, POCcelerator), molecular connectivity (C360, FilmArray Link), POC analysers via POCT1-A2 (i-STAT, Afinion, StatStrip, DCA, HemoCue)",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S9"
+ },
+ {
+  "id": "IM-E01-BL-017",
+  "feature": "IM-E01-F03",
+  "type": "Task",
+  "title": "Driver packages – cardiology diagnostics & implant remote monitoring: IHE IDCO from CareLink/Paceart, LATITUDE, Merlin.net, BIOTRONIK; Zio/MCOT portals; echo DICOM SR; MUSE/TraceMaster/IntelliSpace ECG; ABPM/Holter software",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S10"
+ },
+ {
+  "id": "IM-E01-BL-018",
+  "feature": "IM-E01-F03",
+  "type": "Task",
+  "title": "Driver packages – imaging & PACS: DICOM MWL/MPPS/C-STORE/RDSR/SR, DICOMweb to Sectra/Agfa/Philips/Fujifilm/GE PACS-VNA, dose management, ophthalmic (FORUM/HEYEX), dental and endoscopy exports, AI-triage flags",
+  "sp": 8,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S11"
+ },
+ {
+  "id": "IM-E01-BL-019",
+  "feature": "IM-E01-F03",
+  "type": "Task",
+  "title": "Driver packages – specialist units: dialysis (TDMS/Kinexus, Baxter, Nexadia, Sharesource/Nx2me), ECMO/MCS consoles, incubators/warmers, bilirubinometers, newborn hearing, fetal monitors, OR integration and energy devices, sterilisation tracking, perfusion, EEG/PSG exports, smart beds, nurse call",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S12"
+ },
+ {
+  "id": "IM-E01-BL-020",
+  "feature": "IM-E01-F04",
+  "type": "Enabler",
+  "title": "Terminology service with MDC/LOINC/SNOMED/UCUM maps, conversions, reference ranges, GLI, tenant locale/unit policy; FHIR writer and raw archive",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Data & Analytics",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E01-BL-021",
+  "feature": "IM-E01-F05",
+  "type": "Enabler",
+  "title": "Association engine with worklist, encounter–bed–device binding (ADT transfer/discharge), session, badge/NFC/RFID and vendor ID matching; unmatched queue UI",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E01-BL-022",
+  "feature": "IM-E01-F06",
+  "type": "Enabler",
+  "title": "Quality-gate rules engine with guideline grading library, plausibility/artefact rules, duplicates/late handling, verify-before-post per template",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E01-BL-023",
+  "feature": "IM-E01-F07",
+  "type": "Enabler",
+  "title": "Routing service with many-to-many template binding resolution and provenance fan-out",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E01-BL-024",
+  "feature": "IM-E01-F08",
+  "type": "Story",
+  "title": "As a clinician I want to push the patient to the device and start the acquisition from the template where the vendor supports it",
+  "sp": 8,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S6"
+ },
+ {
+  "id": "IM-E01-BL-025",
+  "feature": "IM-E01-F09",
+  "type": "Enabler",
+  "title": "Encrypted store-and-forward on gateway, device host and mobile with streaming buffer and reconciliation",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E01-BL-026",
+  "feature": "IM-E01-F10",
+  "type": "Enabler",
+  "title": "Simulator suite and golden datasets per family incl. streaming bursts; CI stages; harness integration",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "QA / Test",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E01-BL-027",
+  "feature": "IM-E01-F11",
+  "type": "Enabler",
+  "title": "OpenTelemetry instrumentation, tenant-scoped dashboards, alert rules, ops API, streaming-gap detection",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E01-BL-028",
+  "feature": "IM-E01-F12",
+  "type": "Enabler",
+  "title": "Tenant partitioning, quotas, residency pinning and automated tenant onboarding",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E01-BL-029",
+  "feature": "IM-E01-F13",
+  "type": "Task",
+  "title": "IEC 62304 classification and MDDS scope record; feature flags for excluded functions; release labelling",
+  "sp": 5,
+  "phase": "P1",
+  "owner": "Product Owner",
+  "sprint": "IM-S0"
+ },
+ {
+  "id": "IM-E01-BL-030",
+  "feature": "IM-E01-F01",
+  "type": "Task",
+  "title": "Performance and soak testing at 2× projected acute-care peak; capacity model per environment",
+  "sp": 8,
+  "phase": "P2",
+  "owner": "QA / Test",
+  "sprint": "IM-S13"
+ },
+ {
+  "id": "IM-E02-BL-001",
+  "feature": "IM-E02-F01",
+  "type": "Enabler",
+  "title": "Build the catalogue data model, APIs and console views with lifecycle states and tenant acceptance policies",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S2"
+ },
+ {
+  "id": "IM-E02-BL-002",
+  "feature": "IM-E02-F05",
+  "type": "Task",
+  "title": "Load the seed inventory (≈245 devices) with FDA codes, approval counts, connectivity options and verification states",
+  "sp": 5,
+  "phase": "P1",
+  "owner": "Data & Analytics",
+  "sprint": "IM-S2"
+ },
+ {
+  "id": "IM-E02-BL-003",
+  "feature": "IM-E02-F02",
+  "type": "Enabler",
+  "title": "Implement openFDA, AccessGUDID and EUDAMED feed connectors with change detection and reviewer approval",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S2"
+ },
+ {
+  "id": "IM-E02-BL-004",
+  "feature": "IM-E02-F02",
+  "type": "Story",
+  "title": "As a device administrator I want recalls and safety communications for my connected models surfaced with acknowledgement tracking",
+  "sp": 8,
+  "phase": "P2",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S2"
+ },
+ {
+  "id": "IM-E02-BL-005",
+  "feature": "IM-E02-F03",
+  "type": "Story",
+  "title": "As a device administrator I want to see how confident the catalogue is about each model's connectivity and the specification it is based on",
+  "sp": 5,
+  "phase": "P1",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S2"
+ },
+ {
+  "id": "IM-E02-BL-006",
+  "feature": "IM-E02-F04",
+  "type": "Story",
+  "title": "As a vendor I want to submit my model, interface specification, MDS2/SBOM and driver for certification and track status",
+  "sp": 13,
+  "phase": "P3",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S16+"
+ },
+ {
+  "id": "IM-E02-BL-007",
+  "feature": "IM-E02-F06",
+  "type": "Story",
+  "title": "As the product team I want catalogue coverage, request and backlog analytics per tenant and globally",
+  "sp": 5,
+  "phase": "P3",
+  "owner": "Data & Analytics",
+  "sprint": "IM-S16+"
+ },
+ {
+  "id": "IM-E03-BL-001",
+  "feature": "IM-E03-F01",
+  "type": "Story",
+  "title": "As a device administrator I want an eight-step wizard with pause/resume, clone and site templates that shows only options my model supports",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S3"
+ },
+ {
+  "id": "IM-E03-BL-002",
+  "feature": "IM-E03-F02",
+  "type": "Enabler",
+  "title": "Build the recommendation rule engine over driver defaults and tenant context (network profile, vendor software, security policy, jurisdiction, template requirements) with explanations and confidence",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E03-BL-003",
+  "feature": "IM-E03-F02",
+  "type": "Enabler",
+  "title": "Build the configuration knowledge base: de-identified configuration fingerprints from certified runs with outcome statistics, opt-in sharing, ranking and learning loop from test/production outcomes",
+  "sp": 21,
+  "phase": "P2",
+  "owner": "Data & Analytics",
+  "sprint": "IM-S8"
+ },
+ {
+  "id": "IM-E03-BL-004",
+  "feature": "IM-E03-F02",
+  "type": "Story",
+  "title": "As a device administrator I want to accept, adjust or override each recommendation with a reason and see the audit trail",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E03-BL-005",
+  "feature": "IM-E03-F03",
+  "type": "Enabler",
+  "title": "Implement conflict and risk detection with tenant policy (block/warn/justify) and a pre-save validation API",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E03-BL-006",
+  "feature": "IM-E03-F04",
+  "type": "Story",
+  "title": "As a device administrator I want cited suggestions from the vendor's interface specification I uploaded, marked unverified until the test passes",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Data & Analytics",
+  "sprint": "IM-S8"
+ },
+ {
+  "id": "IM-E03-BL-007",
+  "feature": "IM-E03-F05",
+  "type": "Task",
+  "title": "Author the ten connectivity option packs (schemas, guides, diagrams, validation, defaults)",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Integration",
+  "sprint": "IM-S3"
+ },
+ {
+  "id": "IM-E03-BL-008",
+  "feature": "IM-E03-F06",
+  "type": "Story",
+  "title": "As a device administrator I want calibration/QC schedules with lockout and release, two-tap check entry for clinicians and audit reports",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S3"
+ },
+ {
+  "id": "IM-E03-BL-009",
+  "feature": "IM-E03-F06",
+  "type": "Story",
+  "title": "As a clinic manager I want a fleet dashboard by site/room/bed with health, versions, alerts and update campaigns",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Data & Analytics",
+  "sprint": "IM-S3"
+ },
+ {
+  "id": "IM-E03-BL-010",
+  "feature": "IM-E03-F06",
+  "type": "Story",
+  "title": "As a support engineer I want PHI-masked diagnostics, payload inspector, time offset and a re-send action",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S3"
+ },
+ {
+  "id": "IM-E03-BL-011",
+  "feature": "IM-E03-F07",
+  "type": "Enabler",
+  "title": "Implement roles, four-eyes approval, change history and environment promotion Dev → UAT → Prod with diffs",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S3"
+ },
+ {
+  "id": "IM-E03-BL-012",
+  "feature": "IM-E03-F08",
+  "type": "Story",
+  "title": "As a security officer I want MDS2/SBOM intake, EOL dates and a posture policy that gates certification with documented exceptions",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S3"
+ },
+ {
+  "id": "IM-E03-BL-013",
+  "feature": "IM-E03-F08",
+  "type": "Story",
+  "title": "As an auditor I want a certification record per device with configuration snapshot, test evidence, approvals and the recommendation trail",
+  "sp": 5,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S3"
+ },
+ {
+  "id": "IM-E03-BL-014",
+  "feature": "IM-E03-F09",
+  "type": "Story",
+  "title": "As a host-product vendor I want to embed the console as web components / a SMART app and drive it by API",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E03-BL-015",
+  "feature": "IM-E03-F06",
+  "type": "Story",
+  "title": "As a device administrator I want decommissioning to revoke keys, remove bindings and archive configuration in one action",
+  "sp": 5,
+  "phase": "P2",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S14"
+ },
+ {
+  "id": "IM-E04-BL-001",
+  "feature": "IM-E04-F01",
+  "type": "Enabler",
+  "title": "Build the test plan generator from configuration, template bindings and tenant policy with live/simulator modes and test-subject management",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "QA / Test",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E04-BL-002",
+  "feature": "IM-E04-F02",
+  "type": "Enabler",
+  "title": "Implement the exchange test executor with sandbox template instances, coverage/unit/code/range checks, round-trip read-back, latency and negative cases",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E04-BL-003",
+  "feature": "IM-E04-F03",
+  "type": "Enabler",
+  "title": "Add security checks (TLS/mTLS, plaintext refusal, pairing policy, identity binding) to every exchange test with control mapping",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E04-BL-004",
+  "feature": "IM-E04-F04",
+  "type": "Story",
+  "title": "As a governance owner I want publication blocked until the exchange test passes and re-tests triggered by driver, template, firmware or parameter changes",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E04-BL-005",
+  "feature": "IM-E04-F05",
+  "type": "Story",
+  "title": "As a template owner I want a shadow-mode parallel run with discrepancy reports by field and device before I sign off go-live",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S15"
+ },
+ {
+  "id": "IM-E04-BL-006",
+  "feature": "IM-E04-F06",
+  "type": "Story",
+  "title": "As an auditor I want the evidence pack of every run attached to the device's certification record",
+  "sp": 5,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E04-BL-007",
+  "feature": "IM-E04-F07",
+  "type": "Story",
+  "title": "As a device administrator I want scheduled site regression suites with trend reporting",
+  "sp": 5,
+  "phase": "P2",
+  "owner": "QA / Test",
+  "sprint": "IM-S13"
+ },
+ {
+  "id": "IM-E04-BL-008",
+  "feature": "IM-E04-F08",
+  "type": "Enabler",
+  "title": "Expose the harness through an API used by driver CI and partner integration tests, sharing simulators and golden datasets",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Integration",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E04-BL-009",
+  "feature": "IM-E04-F02",
+  "type": "Task",
+  "title": "Validate the harness in UAT with real devices from five families and document false-positive/negative rates",
+  "sp": 5,
+  "phase": "P2",
+  "owner": "QA / Test",
+  "sprint": "IM-S13"
+ },
+ {
+  "id": "IM-E05-BL-001",
+  "feature": "IM-E05-F01",
+  "type": "Enabler",
+  "title": "Implement Template Definitions with field semantics, versioning, FHIR/host schema import and the catalogue by care setting",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E05-BL-002",
+  "feature": "IM-E05-F02",
+  "type": "Story",
+  "title": "As a template owner I want a binding editor pre-filled with recommended bindings and regression tests on template changes",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E05-BL-003",
+  "feature": "IM-E05-F03",
+  "type": "Enabler",
+  "title": "Build template adapters: FHIR, HL7 v2 ORU, host REST, embedded post-back, PDF attachment with acknowledgements and error handling",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Integration",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E05-BL-004",
+  "feature": "IM-E05-F04",
+  "type": "Story",
+  "title": "As a clinician I want a 'capture from device' component in my template that lists certified, in-calibration devices at my station or bed and files the result after my preview",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E05-BL-005",
+  "feature": "IM-E05-F04",
+  "type": "Enabler",
+  "title": "SMART on FHIR app and iOS/Android SDKs exposing the capture component for host products",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E05-BL-006",
+  "feature": "IM-E05-F05",
+  "type": "Story",
+  "title": "As a clinician I want the next certified option (other device, OCR with verification, manual with attestation) when a device is unavailable, with the path recorded",
+  "sp": 5,
+  "phase": "P1",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E05-BL-007",
+  "feature": "IM-E05-F06",
+  "type": "Story",
+  "title": "As a nurse I want batch screening mode with BLE devices and offline queueing; as a patient I want kiosk self-measurement with consent",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E05-BL-008",
+  "feature": "IM-E05-F07",
+  "type": "Story",
+  "title": "As an ICU nurse I want validated interval values from continuous feeds with trends and artefact flags in my flowsheet, without alarms",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E05-BL-009",
+  "feature": "IM-E05-F08",
+  "type": "Story",
+  "title": "As a patient I want plain-language result summaries in my language and control over my wearable data consent",
+  "sp": 8,
+  "phase": "P3",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S8"
+ },
+ {
+  "id": "IM-E05-BL-010",
+  "feature": "IM-E05-F09",
+  "type": "Task",
+  "title": "Reference templates & bindings – acute care: ICU/ward interval flowsheet, ED triage vitals set, anaesthesia record, infusion/MAR, blood gas & POC result (TPL-01…05) with field semantics, units, codes and harness regression cases",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Clinical SME",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E05-BL-011",
+  "feature": "IM-E05-F09",
+  "type": "Task",
+  "title": "Reference templates & bindings – occupational health & outpatient: audiogram, spirometry, vision & colour vision, drug & alcohol with chain of custody, fit test & ergonomics, wellness/wearable summary (TPL-17…22) – aligned with OHCM forms",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Clinical SME",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E05-BL-012",
+  "feature": "IM-E05-F09",
+  "type": "Task",
+  "title": "Reference templates & bindings – laboratory, imaging & cardiology: laboratory result report, imaging order/report link & dose record, echo/ECG structured report, device-clinic remote-monitoring (IDCO) report (TPL-06…09)",
+  "sp": 8,
+  "phase": "P2",
+  "owner": "Clinical SME",
+  "sprint": "IM-S10"
+ },
+ {
+  "id": "IM-E05-BL-013",
+  "feature": "IM-E05-F09",
+  "type": "Task",
+  "title": "Reference templates & bindings – RPM & specialist units: RPM daily readings dashboard, hospital-at-home flowsheet, dialysis session, neonatal observation chart, partogram, sleep/neurophysiology report, operative/perfusion record (TPL-10…16)",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Clinical SME",
+  "sprint": "IM-S12"
+ },
+ {
+  "id": "IM-E05-BL-014",
+  "feature": "IM-E05-F04",
+  "type": "Task",
+  "title": "Time-and-motion and UX audit in two reference sites (acute ward and OH clinic)",
+  "sp": 5,
+  "phase": "P2",
+  "owner": "QA / Test",
+  "sprint": "IM-S15"
+ },
+ {
+  "id": "IM-E06-BL-001",
+  "feature": "IM-E06-F01",
+  "type": "Enabler",
+  "title": "Implement PKI options (client CA / per-tenant managed CA), enrolment, rotation, revocation, OAuth2 clients and mTLS enforcement in all adapters",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E06-BL-002",
+  "feature": "IM-E06-F02",
+  "type": "Task",
+  "title": "Publish reference network designs for hospital, clinic, home and cloud with firewall templates and validation scripts",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E06-BL-003",
+  "feature": "IM-E06-F03",
+  "type": "Enabler",
+  "title": "Build hardened gateway and device-host images with zero-touch enrolment, drift detection and patch campaigns",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E06-BL-004",
+  "feature": "IM-E06-F04",
+  "type": "Enabler",
+  "title": "Integrate Azure Key Vault, GCP Secret Manager/Cloud KMS and HashiCorp Vault behind one secrets interface; HSM for production; CI secret scanning",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E06-BL-005",
+  "feature": "IM-E06-F05",
+  "type": "Enabler",
+  "title": "Establish the IEC 81001-5-1 life-cycle: threat models, SAST/DAST/SCA gates, signed releases with SBOM, advisory monitoring, disclosure process and SLAs",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E06-BL-006",
+  "feature": "IM-E06-F06",
+  "type": "Story",
+  "title": "As a security officer I want a vendor posture gate (MDS2/SBOM/EOL) with isolation patterns and exceptions per tenant policy",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S3"
+ },
+ {
+  "id": "IM-E06-BL-007",
+  "feature": "IM-E06-F07",
+  "type": "Enabler",
+  "title": "Tamper-evident audit store with SIEM forwarding (Sentinel, Chronicle, Splunk, QRadar) and PHI masking",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E06-BL-008",
+  "feature": "IM-E06-F08",
+  "type": "Story",
+  "title": "As a SOC analyst I want anomaly alerts with one-click isolation and a re-certification gate; run the drill",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S14"
+ },
+ {
+  "id": "IM-E06-BL-009",
+  "feature": "IM-E06-F09",
+  "type": "Task",
+  "title": "Privacy controls (minimisation, consent, retention, pseudonymised telemetry, de-identified non-prod) and DPIA templates per deployment setting",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S8"
+ },
+ {
+  "id": "IM-E06-BL-010",
+  "feature": "IM-E06-F10",
+  "type": "Enabler",
+  "title": "Maintain the security test kit with cloud-specific checks (Azure, GCP, private cloud) and run it in all reference environments per release",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "QA / Test",
+  "sprint": "IM-S14"
+ },
+ {
+  "id": "IM-E06-BL-011",
+  "feature": "IM-E06-F11",
+  "type": "Task",
+  "title": "Launch the assurance programme: SOC 2 Type II readiness, ISO 27001 scope, GA penetration test, IEC 80001-1 agreement template",
+  "sp": 8,
+  "phase": "P2",
+  "owner": "Security & Privacy",
+  "sprint": "IM-S14"
+ },
+ {
+  "id": "IM-E07-BL-001",
+  "feature": "IM-E07-F01",
+  "type": "Enabler",
+  "title": "Expose the FHIR R4 API surface with Subscriptions, SMART launch, scopes and OpenAPI/conformance statements; contract tests",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E07-BL-002",
+  "feature": "IM-E07-F02",
+  "type": "Enabler",
+  "title": "HL7 v2 and IHE DEV endpoints with profiles and conformance tests; prepare connectathon participation",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Integration",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E07-BL-003",
+  "feature": "IM-E07-F03",
+  "type": "Enabler",
+  "title": "Signed webhooks and bus topics with retries, replay and subscription management",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E07-BL-004",
+  "feature": "IM-E07-F04",
+  "type": "Enabler",
+  "title": "Publish SDKs (TypeScript, Java/Kotlin, .NET, Swift, Android, Python), web components, sample apps, sandbox tenants and the developer portal",
+  "sp": 21,
+  "phase": "P2",
+  "owner": "Developer relations",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E07-BL-005",
+  "feature": "IM-E07-F05",
+  "type": "Story",
+  "title": "As a partner I want a certification programme with automated test suites and a badge listed in the catalogue and marketplaces",
+  "sp": 13,
+  "phase": "P3",
+  "owner": "Partner team",
+  "sprint": "IM-S16+"
+ },
+ {
+  "id": "IM-E07-BL-006",
+  "feature": "IM-E07-F06",
+  "type": "Task",
+  "title": "Write and publish the Integration Guide for medical products with per-environment instructions (MacBook; Dev/UAT/Prod on Azure, GCP, private cloud) and checklists",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Product Owner",
+  "sprint": "IM-S13"
+ },
+ {
+  "id": "IM-E07-BL-007",
+  "feature": "IM-E07-F07",
+  "type": "Enabler",
+  "title": "Build and maintain reference integrations (EHR flowsheet FHIR + v2, OHCM, RPM app, LIS) with harness regression in CI",
+  "sp": 21,
+  "phase": "P2",
+  "owner": "Integration",
+  "sprint": "IM-S7"
+ },
+ {
+  "id": "IM-E07-BL-008",
+  "feature": "IM-E07-F01",
+  "type": "Task",
+  "title": "API versioning policy, deprecation windows and partner contract tests",
+  "sp": 3,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S5"
+ },
+ {
+  "id": "IM-E08-BL-001",
+  "feature": "IM-E08-F01",
+  "type": "Enabler",
+  "title": "Build the MacBook developer kit: bootstrap, arm64/amd64 images, local cluster/compose, simulators, local PKI/Vault, sample templates and docs",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E08-BL-002",
+  "feature": "IM-E08-F02",
+  "type": "Enabler",
+  "title": "Terraform modules and Helm charts for Azure (AKS, PostgreSQL Flexible HA, Event Hubs/Strimzi, Blob, Key Vault, Entra, Front Door/WAF, Monitor/Sentinel)",
+  "sp": 21,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E08-BL-003",
+  "feature": "IM-E08-F02",
+  "type": "Enabler",
+  "title": "Terraform modules and Helm charts for GCP (GKE, Cloud SQL HA, Pub/Sub/Strimzi, Cloud Storage, KMS/Secret Manager, Identity Platform, Cloud Armor, Logging/Chronicle)",
+  "sp": 21,
+  "phase": "P2",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S13"
+ },
+ {
+  "id": "IM-E08-BL-004",
+  "feature": "IM-E08-F02",
+  "type": "Enabler",
+  "title": "Private-cloud blueprint (OpenShift/Rancher on VMware, Patroni PostgreSQL, Strimzi/NATS, MinIO, Vault, Keycloak, HAProxy/F5, Prometheus/Grafana/Loki) with Ansible/Terraform",
+  "sp": 21,
+  "phase": "P2",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S13"
+ },
+ {
+  "id": "IM-E08-BL-005",
+  "feature": "IM-E08-F03",
+  "type": "Enabler",
+  "title": "HA/DR implementation and drills on each cloud; failover automation; backup verification",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "SRE",
+  "sprint": "IM-S13"
+ },
+ {
+  "id": "IM-E08-BL-006",
+  "feature": "IM-E08-F04",
+  "type": "Enabler",
+  "title": "CI/CD with signed images, SBOM, simulator/performance/security stages, GitOps promotion with approval gates; independent driver and configuration promotion",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E08-BL-007",
+  "feature": "IM-E08-F05",
+  "type": "Task",
+  "title": "SLO catalogue, observability stacks per cloud, runbooks for top-20 failure modes, on-call, patch windows, capacity model and FinOps dashboards",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "SRE",
+  "sprint": "IM-S13"
+ },
+ {
+  "id": "IM-E08-BL-008",
+  "feature": "IM-E08-F06",
+  "type": "Enabler",
+  "title": "Edge packaging (gateway arm64/amd64 images, Windows device host MSI, mobile SDK packaging) and cloud-independent fleet management",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E08-BL-009",
+  "feature": "IM-E08-F07",
+  "type": "Task",
+  "title": "Build the 5-year hosting TCO model per cloud and environment with cost per connected device; review with Finance",
+  "sp": 5,
+  "phase": "P1",
+  "owner": "Product Owner",
+  "sprint": "IM-S13"
+ },
+ {
+  "id": "IM-E08-BL-010",
+  "feature": "IM-E08-F02",
+  "type": "Task",
+  "title": "Reference deployments: IntiMed-hosted SaaS (Azure) and client-hosted single tenant (GCP and private cloud) with runbook parity",
+  "sp": 8,
+  "phase": "P2",
+  "owner": "SRE",
+  "sprint": "IM-S13"
+ },
+ {
+  "id": "IM-E09-BL-001",
+  "feature": "IM-E09-F01",
+  "type": "Enabler",
+  "title": "Automate tenant lifecycle incl. trials with sandbox devices and offboarding export/deletion evidence",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S16+"
+ },
+ {
+  "id": "IM-E09-BL-002",
+  "feature": "IM-E09-F02",
+  "type": "Enabler",
+  "title": "Implement licensing models, entitlements and metering with billing/marketplace feeds and reconciliation",
+  "sp": 13,
+  "phase": "P2",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S16+"
+ },
+ {
+  "id": "IM-E09-BL-003",
+  "feature": "IM-E09-F03",
+  "type": "Story",
+  "title": "As a client executive I want monthly analytics on capture rates, time saved, data quality, calibration compliance and fleet health",
+  "sp": 8,
+  "phase": "P2",
+  "owner": "Data & Analytics",
+  "sprint": "IM-S15"
+ },
+ {
+  "id": "IM-E09-BL-004",
+  "feature": "IM-E09-F04",
+  "type": "Enabler",
+  "title": "Privacy-preserving product analytics and cross-tenant benchmarking feeding the knowledge base (opt-in)",
+  "sp": 8,
+  "phase": "P3",
+  "owner": "Data & Analytics",
+  "sprint": "IM-S8"
+ },
+ {
+  "id": "IM-E09-BL-005",
+  "feature": "IM-E09-F05",
+  "type": "Story",
+  "title": "As a customer success manager I want health scores and adoption dashboards with support-case integration",
+  "sp": 5,
+  "phase": "P3",
+  "owner": "Customer success",
+  "sprint": "IM-S16+"
+ },
+ {
+  "id": "IM-E09-BL-006",
+  "feature": "IM-E09-F06",
+  "type": "Story",
+  "title": "As an OEM partner I want to white-label IntiMed with my branding and support channels",
+  "sp": 8,
+  "phase": "P3",
+  "owner": "Platform / Backend",
+  "sprint": "IM-S16+"
+ },
+ {
+  "id": "IM-E10-BL-001",
+  "feature": "IM-E10-F01",
+  "type": "Task",
+  "title": "Produce the regulatory analysis and classification record per market with exclusions and maintenance procedure",
+  "sp": 8,
+  "phase": "P1",
+  "owner": "Regulatory",
+  "sprint": "IM-S0"
+ },
+ {
+  "id": "IM-E10-BL-002",
+  "feature": "IM-E10-F02",
+  "type": "Enabler",
+  "title": "Implement IEC 62304 processes within the agile model and traceability tooling from epics/HLR to tests and releases",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Quality",
+  "sprint": "IM-S1"
+ },
+ {
+  "id": "IM-E10-BL-003",
+  "feature": "IM-E10-F03",
+  "type": "Task",
+  "title": "Build the ISO 14971 risk management file with hazard analysis and controls traced to features and tests",
+  "sp": 13,
+  "phase": "P1",
+  "owner": "Quality",
+  "sprint": "IM-S4"
+ },
+ {
+  "id": "IM-E10-BL-004",
+  "feature": "IM-E10-F04",
+  "type": "Task",
+  "title": "Usability engineering file with formative and summative evaluations of capture component, console and wizard",
+  "sp": 8,
+  "phase": "P2",
+  "owner": "Frontend / UX",
+  "sprint": "IM-S14"
+ },
+ {
+  "id": "IM-E10-BL-005",
+  "feature": "IM-E10-F05",
+  "type": "Task",
+  "title": "Clinical safety case templates, hazard logs, labelling, IFU, release notes and known-anomaly process",
+  "sp": 8,
+  "phase": "P2",
+  "owner": "Clinical safety",
+  "sprint": "IM-S14"
+ },
+ {
+  "id": "IM-E10-BL-006",
+  "feature": "IM-E10-F06",
+  "type": "Task",
+  "title": "Post-market surveillance, complaint handling and vigilance interfaces with timelines and risk-file feedback",
+  "sp": 5,
+  "phase": "P2",
+  "owner": "Quality",
+  "sprint": "IM-S15"
+ },
+ {
+  "id": "IM-E10-BL-007",
+  "feature": "IM-E10-F07",
+  "type": "Task",
+  "title": "Supplier management register for open source, cloud providers and device vendors",
+  "sp": 5,
+  "phase": "P2",
+  "owner": "Quality",
+  "sprint": "IM-S13"
+ }
+]

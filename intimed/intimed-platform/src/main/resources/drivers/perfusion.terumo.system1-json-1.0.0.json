@@ -1,0 +1,227 @@
+{
+ "manifest": {
+  "packageId": "perfusion.terumo.system1-json",
+  "version": "1.0.0",
+  "name": "Terumo System 1 perfusion – case data export (JSON)",
+  "family": "Operating room & surgical",
+  "models": [
+   "IMD-344"
+  ],
+  "options": [
+   "P2"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/perfusion.terumo.system1-json-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P2": {
+   "parameters": {
+    "source": "FOLDER",
+    "path": "/mnt/or/perfusion",
+    "pattern": "*.json",
+    "pollSeconds": 60,
+    "stabilitySeconds": 10,
+    "archive": "MOVE_TO_DONE",
+    "serviceAccount": "",
+    "encoding": "UTF-8",
+    "dedupKey": "sha256(file)"
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "JSON",
+  "identity": {
+   "subject": "/case/patientId",
+   "serial": "/device/serial",
+   "time": "/case/timestamp"
+  },
+  "fields": [
+   {
+    "key": "pump_flow",
+    "path": "/readings/arterialFlow",
+    "unit": "L/min"
+   },
+   {
+    "key": "line_pressure",
+    "path": "/readings/linePressure",
+    "unit": "mm[Hg]"
+   },
+   {
+    "key": "svo2",
+    "path": "/readings/svo2",
+    "unit": "%"
+   },
+   {
+    "key": "blood_temp",
+    "path": "/readings/arterialTemp",
+    "unit": "Cel"
+   },
+   {
+    "key": "cardioplegia",
+    "path": "/totals/cardioplegia",
+    "unit": "mL"
+   },
+   {
+    "key": "cell_saver",
+    "path": "/totals/cellSaver",
+    "unit": "mL"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "pump_flow",
+   "display": "Arterial pump flow",
+   "local": "INTIMED-CPB-FLOW",
+   "ucum": "L/min",
+   "plausible": {
+    "min": 0,
+    "max": 8
+   }
+  },
+  {
+   "key": "line_pressure",
+   "display": "Arterial line pressure",
+   "local": "INTIMED-CPB-LINEP",
+   "ucum": "mm[Hg]"
+  },
+  {
+   "key": "svo2",
+   "display": "Venous saturation (SvO2)",
+   "local": "INTIMED-CPB-SVO2",
+   "ucum": "%"
+  },
+  {
+   "key": "blood_temp",
+   "display": "Arterial blood temperature",
+   "local": "INTIMED-CPB-TEMP",
+   "ucum": "Cel",
+   "plausible": {
+    "min": 10,
+    "max": 42
+   }
+  },
+  {
+   "key": "cardioplegia",
+   "display": "Cardioplegia volume",
+   "local": "INTIMED-CPB-CPLG",
+   "ucum": "mL"
+  },
+  {
+   "key": "cell_saver",
+   "display": "Cell-saver return volume",
+   "local": "INTIMED-CPB-CS",
+   "ucum": "mL"
+  }
+ ],
+ "bindings": {
+  "TPL-16": {
+   "fields": {
+    "pump_flow": "pump_flow",
+    "line_pressure": "line_pressure",
+    "svo2": "svo2",
+    "blood_temp": "blood_temp",
+    "cardioplegia": "cardioplegia",
+    "cell_saver": "cell_saver"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "SESSION",
+   "why": "Setting rule for TPL-16 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "source": {
+   "value": "FOLDER",
+   "why": "Certified driver default for Terumo (P2)"
+  },
+  "path": {
+   "value": "/mnt/or/perfusion",
+   "why": "Certified driver default for Terumo (P2)"
+  },
+  "pattern": {
+   "value": "*.json",
+   "why": "Certified driver default for Terumo (P2)"
+  },
+  "pollSeconds": {
+   "value": 60,
+   "why": "Certified driver default for Terumo (P2)"
+  },
+  "stabilitySeconds": {
+   "value": 10,
+   "why": "Certified driver default for Terumo (P2)"
+  },
+  "archive": {
+   "value": "MOVE_TO_DONE",
+   "why": "Certified driver default for Terumo (P2)"
+  },
+  "encoding": {
+   "value": "UTF-8",
+   "why": "Certified driver default for Terumo (P2)"
+  },
+  "dedupKey": {
+   "value": "sha256(file)",
+   "why": "Certified driver default for Terumo (P2)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "{\"case\": {\"patientId\": \"{{SUBJECT}}\", \"timestamp\": \"{{TSISO}}\"}, \"device\": {\"serial\": \"{{SERIAL}}\", \"model\": \"System 1\"}, \"readings\": {\"arterialFlow\": {{V:pump_flow}}, \"linePressure\": {{V:line_pressure}}, \"svo2\": {{V:svo2}}, \"arterialTemp\": {{V:blood_temp}}}, \"totals\": {\"cardioplegia\": {{V:cardioplegia}}, \"cellSaver\": {{V:cell_saver}}}}"
+   }
+  ],
+  "values": {
+   "pump_flow": 4.6,
+   "line_pressure": 212,
+   "svo2": 74,
+   "blood_temp": 32.5,
+   "cardioplegia": 1100,
+   "cell_saver": 450
+  },
+  "serial": "S1-HLM-2207",
+  "timeFormat": "ISO",
+  "outOfRange": {
+   "key": "blood_temp",
+   "value": "51"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Terumo System 1 perfusion – case data export (JSON) with option P2. Read-only access to the vendor application's export folder (XML, GDT, CSV, PDF, JSON) or database; the vendor software stays the regulated measurement application.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

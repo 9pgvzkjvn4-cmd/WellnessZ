@@ -1,0 +1,749 @@
+[
+ {
+  "id": "IM-E01-F01",
+  "name": "Canonical pipeline & streaming support",
+  "description": "Pipeline services on the event bus; episodic and continuous modes; idempotency, replay, DLQ triage UI; ordering and late-arrival rules; alarm-state flags.",
+  "roles": "Platform; Integration",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-01; IM-E01-HLR-12; IM-E01-HLR-14",
+  "acceptance": "500 msg/s per tenant on simulators with p95 ≤ 3 s; replay yields no duplicates; alarm observations flagged not interpreted."
+ },
+ {
+  "id": "IM-E01-F02",
+  "name": "Adapter library P1–P10 (+ SDC-ready)",
+  "description": "All ten adapters with config schemas, health checks, conformance harnesses; PCD-01 periodic/spot, ACM, IPEC; LIS2/LAW; DICOMweb; FHIR Subscriptions; SDC adapter stub.",
+  "roles": "Integration",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-02",
+  "acceptance": "Each adapter passes its conformance suite with at least one real device/data manager per adapter in the lab."
+ },
+ {
+  "id": "IM-E01-F03",
+  "name": "Driver SDK, package registry & marketplace",
+  "description": "Package format, signing, versioning, compatibility matrix, candidate/certified channels, CLI, docs, partner submission workflow.",
+  "roles": "Integration; QA",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-03",
+  "acceptance": "New model in ≤ 3 working days for existing family; partner-submitted driver certified through the workflow."
+ },
+ {
+  "id": "IM-E01-F04",
+  "name": "Normalisation & terminology service",
+  "description": "MDC/LOINC/SNOMED/UCUM maps (RTMMS), conversions, reference ranges, GLI, locale/unit policy per tenant, FHIR writer, raw archive with hashes.",
+  "roles": "Data; Clinical",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-04",
+  "acceptance": "100% of posted observations carry MDC+LOINC+UCUM; archive hash verifies."
+ },
+ {
+  "id": "IM-E01-F05",
+  "name": "Association engine (worklist, encounter–bed, session, badge, matching)",
+  "description": "Priority rules per tenant/setting; ADT-driven bed binding with transfer/discharge handling; confidence thresholds; unmatched queue UI; continuous-feed pause/re-bind.",
+  "roles": "Platform; UX",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-05",
+  "acceptance": "No auto-filing below threshold; discharge pauses feeds; unmatched < 0.5%."
+ },
+ {
+  "id": "IM-E01-F06",
+  "name": "Quality gates & verification",
+  "description": "Calibration/QC, guideline grading library, plausibility/artefact rules, duplicates/late, verify-before-post per template.",
+  "roles": "Clinical; Platform",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-06",
+  "acceptance": "Blocked postings explain why; rule sets versioned and signed off by clinical governance."
+ },
+ {
+  "id": "IM-E01-F07",
+  "name": "Routing to Template Bindings (many-to-many)",
+  "description": "Binding resolution per model × template version; fan-out to multiple templates; provenance preserved; programme hooks for host products.",
+  "roles": "Platform; Product",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-07",
+  "acceptance": "One observation feeds two templates in test with provenance; binding regression suite passes."
+ },
+ {
+  "id": "IM-E01-F08",
+  "name": "Bidirectional device workflows",
+  "description": "Demographics/order push; start/stop from template; historic retrieval; receipt acknowledgements to data managers.",
+  "roles": "Integration",
+  "priority": "Should",
+  "hlrs": "IM-E01-HLR-08",
+  "acceptance": "Validated for spirometry, ECG, audiometry, POC data manager and vitals monitor families."
+ },
+ {
+  "id": "IM-E01-F09",
+  "name": "Edge store-and-forward & buffering",
+  "description": "Encrypted local queues on gateway/device host/mobile; ≥ 48 h; streaming buffer resolution; reconciliation.",
+  "roles": "Platform; Security",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-09",
+  "acceptance": "48-h offline test loses nothing; no duplicates; streaming gap report correct."
+ },
+ {
+  "id": "IM-E01-F10",
+  "name": "Simulators & golden datasets",
+  "description": "Per-family simulators (serial, BLE, MLLP periodic/spot, POCT1-A, LIS2, DICOM, API, streaming), golden datasets, CI gates, shared with IM-E04 harness.",
+  "roles": "QA; Integration",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-10",
+  "acceptance": "Every driver ships with passing simulator tests; harness reuses simulators."
+ },
+ {
+  "id": "IM-E01-F11",
+  "name": "Connector & device observability",
+  "description": "OpenTelemetry, dashboards, alerts, ops API, tenant scoping, streaming-gap detection.",
+  "roles": "Platform; Data",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-11",
+  "acceptance": "Dashboards live per tenant; alerts tested; ops API documented."
+ },
+ {
+  "id": "IM-E01-F12",
+  "name": "Multi-tenant partitioning & residency",
+  "description": "Tenant-scoped catalogues, keys, queues, templates, data; quotas; region pinning; tenant onboarding automation.",
+  "roles": "Platform; Security",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-13",
+  "acceptance": "Negative isolation tests pass; quotas enforced; residency pinned per tenant."
+ },
+ {
+  "id": "IM-E01-F13",
+  "name": "Regulatory scope guardrails",
+  "description": "Feature flags and architecture controls keeping IntiMed within MDDS-type scope; IEC 62304 classification record; release labelling.",
+  "roles": "Product; Regulatory",
+  "priority": "Must",
+  "hlrs": "IM-E01-HLR-14",
+  "acceptance": "Classification record approved; excluded functions not reachable."
+ },
+ {
+  "id": "IM-E02-F01",
+  "name": "Catalogue model, APIs & console views",
+  "description": "Entities, relationships, search/compare, APIs, lifecycle states, tenant acceptance policy.",
+  "roles": "Device Administrator; Platform",
+  "priority": "Must",
+  "hlrs": "IM-E02-HLR-01; IM-E02-HLR-04",
+  "acceptance": "Seed inventory loaded; acceptance policy gates certification in test."
+ },
+ {
+  "id": "IM-E02-F02",
+  "name": "Register feeds & change review",
+  "description": "openFDA, AccessGUDID, EUDAMED, recall feeds; scheduled refresh; diff review; publication.",
+  "roles": "Catalogue team; Integration",
+  "priority": "Must",
+  "hlrs": "IM-E02-HLR-02; IM-E02-HLR-03",
+  "acceptance": "Monthly refresh runs; recalls linked within 24 h in test."
+ },
+ {
+  "id": "IM-E02-F03",
+  "name": "Connectivity matrix & verification states",
+  "description": "Options/protocols per model with confidence state and spec references; console warnings.",
+  "roles": "Device Administrator; Integration",
+  "priority": "Must",
+  "hlrs": "IM-E02-HLR-06",
+  "acceptance": "Every model carries a verification state; warning shown for unverified."
+ },
+ {
+  "id": "IM-E02-F04",
+  "name": "Vendor/partner portal & request-a-model",
+  "description": "Submission, scoping, certification status, community verification.",
+  "roles": "Vendors; Integration",
+  "priority": "Should",
+  "hlrs": "IM-E02-HLR-05",
+  "acceptance": "First partner submission certified end-to-end."
+ },
+ {
+  "id": "IM-E02-F05",
+  "name": "Seed inventory & approval counts",
+  "description": "≈245 devices/≈20 families; openFDA counts for ≈130 codes; regulators table; performance standards.",
+  "roles": "Catalogue team",
+  "priority": "Must",
+  "hlrs": "IM-E02-HLR-07",
+  "acceptance": "Inventory published with sources and dates."
+ },
+ {
+  "id": "IM-E02-F06",
+  "name": "Catalogue analytics",
+  "description": "Coverage, requests, backlog, verification dashboards.",
+  "roles": "Product; Data",
+  "priority": "Should",
+  "hlrs": "IM-E02-HLR-08",
+  "acceptance": "Dashboards live."
+ },
+ {
+  "id": "IM-E03-F01",
+  "name": "Eight-step wizard & site templates",
+  "description": "Steps, pause/resume/clone, site/family templates, option filtering by model, batch provisioning.",
+  "roles": "Device Administrator",
+  "priority": "Must",
+  "hlrs": "IM-E03-HLR-01; IM-E03-HLR-08",
+  "acceptance": "Administrators provision three families in ≤ 45 min each without developer help."
+ },
+ {
+  "id": "IM-E03-F02",
+  "name": "Recommendation engine (defaults + context + knowledge base)",
+  "description": "Rule engine over driver defaults and tenant context; knowledge-base statistics from de-identified certified configurations; ranking; explanations; confidence; opt-in sharing.",
+  "roles": "Device Administrator; Data Science",
+  "priority": "Must",
+  "hlrs": "IM-E03-HLR-02; IM-E03-HLR-04",
+  "acceptance": "≥ 80% recommendation acceptance in pilot; explanations shown for every recommendation; audit complete."
+ },
+ {
+  "id": "IM-E03-F03",
+  "name": "Conflict & risk detection",
+  "description": "Policy-driven checks (security, interoperability, template coverage, compatibility, time-zone); block/warn/justify; pre-save validation API.",
+  "roles": "Device Administrator; CISO",
+  "priority": "Must",
+  "hlrs": "IM-E03-HLR-03",
+  "acceptance": "All listed risky configurations blocked in test; justification captured where allowed."
+ },
+ {
+  "id": "IM-E03-F04",
+  "name": "Documentation assistant (retrieval with citations)",
+  "description": "Tenant-scoped ingestion of interface specs/IFUs; retrieval; cited suggestions marked unverified; no auto-apply.",
+  "roles": "Device Administrator",
+  "priority": "Should",
+  "hlrs": "IM-E03-HLR-05",
+  "acceptance": "Suggestions cite source pages; confirmed only after test."
+ },
+ {
+  "id": "IM-E03-F05",
+  "name": "Connectivity option packs P1–P10",
+  "description": "Parameter schemas, step guides, diagrams, validation, defaults from driver packages.",
+  "roles": "Device Administrator; Integration",
+  "priority": "Must",
+  "hlrs": "IM-E03-HLR-06",
+  "acceptance": "Ten option packs with help text; validation rules active."
+ },
+ {
+  "id": "IM-E03-F06",
+  "name": "Fleet operations & diagnostics",
+  "description": "Inventory, calibration/QC lockout, versions and update campaigns, consumables, dashboards, alerts, PHI-masked diagnostics, re-send, decommissioning.",
+  "roles": "Device Administrator; Support",
+  "priority": "Must",
+  "hlrs": "IM-E03-HLR-07",
+  "acceptance": "Fleet dashboard 100% coverage; lockout works; decommission revokes keys."
+ },
+ {
+  "id": "IM-E03-F07",
+  "name": "Governance & environment promotion",
+  "description": "Roles, four-eyes, change history, export/import with diffs Dev → UAT → Prod, templates.",
+  "roles": "Device Administrator; CISO",
+  "priority": "Must",
+  "hlrs": "IM-E03-HLR-08",
+  "acceptance": "No production change without approval; promotion tested."
+ },
+ {
+  "id": "IM-E03-F08",
+  "name": "Vendor posture gate & certification records",
+  "description": "MDS2/SBOM intake, EOL dates, policy evaluation, exceptions; certification PDF/JSON with recommendations trail.",
+  "roles": "Security; Device Administrator",
+  "priority": "Must",
+  "hlrs": "IM-E03-HLR-09",
+  "acceptance": "Posture gate blocks non-compliant models; certificate for every published device."
+ },
+ {
+  "id": "IM-E03-F09",
+  "name": "Embeddable, multilingual console",
+  "description": "Web components/SMART app embedding; APIs; WCAG 2.2 AA; language packs.",
+  "roles": "Vendors; Device Administrator",
+  "priority": "Should",
+  "hlrs": "IM-E03-HLR-10",
+  "acceptance": "Console embedded in a host product demo; AA audit passed."
+ },
+ {
+  "id": "IM-E04-F01",
+  "name": "Test plan generator",
+  "description": "Plan from configuration and policy; live/simulator mode; test subjects; expected values from golden datasets.",
+  "roles": "Tester; Device Administrator",
+  "priority": "Must",
+  "hlrs": "IM-E04-HLR-01",
+  "acceptance": "Plan generated for every certified model/option; reviewable before run."
+ },
+ {
+  "id": "IM-E04-F02",
+  "name": "Exchange test executor",
+  "description": "Connection → acquisition → parse → normalise → associate → sandbox binding → coverage/unit/code/range → round-trip → latency → negatives.",
+  "roles": "Tester; Device Administrator",
+  "priority": "Must",
+  "hlrs": "IM-E04-HLR-02",
+  "acceptance": "All checks implemented with pass/fail criteria; executor used in pilot sites."
+ },
+ {
+  "id": "IM-E04-F03",
+  "name": "Security checks in the exchange test",
+  "description": "TLS/mTLS, plaintext refusal, pairing policy, certificate and identity binding; control mapping.",
+  "roles": "Security; Tester",
+  "priority": "Must",
+  "hlrs": "IM-E04-HLR-03",
+  "acceptance": "Security results in every report; mapped to SC controls."
+ },
+ {
+  "id": "IM-E04-F04",
+  "name": "Publish gate & re-test triggers",
+  "description": "Block publish without pass; exceptions with approval; triggers on driver/template/firmware/parameter change.",
+  "roles": "Device Administrator; Governance",
+  "priority": "Must",
+  "hlrs": "IM-E04-HLR-04",
+  "acceptance": "Publish blocked in test; triggers fire within 24 h."
+ },
+ {
+  "id": "IM-E04-F05",
+  "name": "Shadow mode & parallel-run sign-off",
+  "description": "Shadow template instances; discrepancy reports by field/device; owner sign-off.",
+  "roles": "Template owner; Clinical safety",
+  "priority": "Must",
+  "hlrs": "IM-E04-HLR-05",
+  "acceptance": "Pilot shadow run reports < 1% discrepancy; sign-off recorded."
+ },
+ {
+  "id": "IM-E04-F06",
+  "name": "Evidence pack & audit retrieval",
+  "description": "Results JSON, screenshots, masked traces, timings; attachment to certification; auditor view.",
+  "roles": "Auditor; Device Administrator",
+  "priority": "Must",
+  "hlrs": "IM-E04-HLR-06",
+  "acceptance": "Evidence pack for 100% of published devices."
+ },
+ {
+  "id": "IM-E04-F07",
+  "name": "Site regression suites",
+  "description": "Scheduled and post-release re-runs; trends.",
+  "roles": "Device Administrator",
+  "priority": "Should",
+  "hlrs": "IM-E04-HLR-07",
+  "acceptance": "Regression runs per site; trend dashboard."
+ },
+ {
+  "id": "IM-E04-F08",
+  "name": "Harness API for CI and partners",
+  "description": "API; shared simulators and golden datasets; SDK bindings.",
+  "roles": "Integration; Vendors",
+  "priority": "Must",
+  "hlrs": "IM-E04-HLR-08",
+  "acceptance": "Driver CI and a partner integration test use the API."
+ },
+ {
+  "id": "IM-E05-F01",
+  "name": "Template Definitions & catalogue",
+  "description": "Versioned definitions with field semantics; import from FHIR/host schemas; catalogue by setting.",
+  "roles": "Template owners; Platform",
+  "priority": "Must",
+  "hlrs": "IM-E05-HLR-01",
+  "acceptance": "20 reference templates imported and versioned."
+ },
+ {
+  "id": "IM-E05-F02",
+  "name": "Binding editor with recommendations",
+  "description": "Visual mapping, recommended bindings, transformations, many-to-many, preview, regression tests.",
+  "roles": "Template owners; Device Administrator",
+  "priority": "Must",
+  "hlrs": "IM-E05-HLR-02",
+  "acceptance": "Bindings for all reference templates; regression on version change."
+ },
+ {
+  "id": "IM-E05-F03",
+  "name": "Template adapters to host products",
+  "description": "FHIR, HL7 v2 ORU, host REST, embedded post-back, PDF attach; ACK/error handling.",
+  "roles": "Integration; Vendors",
+  "priority": "Must",
+  "hlrs": "IM-E05-HLR-03",
+  "acceptance": "Three host products integrated via different adapters in reference environment."
+ },
+ {
+  "id": "IM-E05-F04",
+  "name": "'Capture from device' components (web, SMART, mobile SDKs)",
+  "description": "Device list by station/bed, context push, progress, preview, flags, accept/reject/re-test, provenance.",
+  "roles": "Clinicians; Host UX",
+  "priority": "Must",
+  "hlrs": "IM-E05-HLR-04",
+  "acceptance": "Usability test passes; host integration ≤ 10 developer-days."
+ },
+ {
+  "id": "IM-E05-F05",
+  "name": "Fallback chain",
+  "description": "Other device, OCR with verification, manual with attestation; provenance path.",
+  "roles": "Clinicians",
+  "priority": "Must",
+  "hlrs": "IM-E05-HLR-05",
+  "acceptance": "Fallback paths recorded; verification cannot be bypassed."
+ },
+ {
+  "id": "IM-E05-F06",
+  "name": "Batch, kiosk & mobile modes",
+  "description": "Queue mode, kiosk identification/consent, offline, reconciliation.",
+  "roles": "Clinicians; Patients",
+  "priority": "Must",
+  "hlrs": "IM-E05-HLR-06",
+  "acceptance": "Screening day of 200 subjects offline without loss; kiosk flow passes privacy review."
+ },
+ {
+  "id": "IM-E05-F07",
+  "name": "Continuous-feed presentation (interval values, trends)",
+  "description": "Interval extraction, sparklines, artefact flags display-only.",
+  "roles": "Acute-care clinicians",
+  "priority": "Must",
+  "hlrs": "IM-E05-HLR-07",
+  "acceptance": "Interval values match monitor display; no alarm logic present."
+ },
+ {
+  "id": "IM-E05-F08",
+  "name": "Patient/employee summaries & consent",
+  "description": "Plain-language summaries, language preference, consent states for home/wearables.",
+  "roles": "Patients; Clinicians",
+  "priority": "Should",
+  "hlrs": "IM-E05-HLR-08",
+  "acceptance": "Consent enforced; summaries released per rules."
+ },
+ {
+  "id": "IM-E05-F09",
+  "name": "Reference template & binding library",
+  "description": "≥ 20 templates with bindings across settings; documentation.",
+  "roles": "Product; Clinical",
+  "priority": "Must",
+  "hlrs": "IM-E05-HLR-09",
+  "acceptance": "Library shipped and tested with the harness."
+ },
+ {
+  "id": "IM-E06-F01",
+  "name": "Endpoint identity & PKI options",
+  "description": "Client CA or per-tenant managed CA; enrolment, rotation, revocation; OAuth2 clients; mTLS enforcement; identity inventory.",
+  "roles": "Security; Platform",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-01",
+  "acceptance": "No endpoint without identity; plaintext refused; revocation ≤ 5 min."
+ },
+ {
+  "id": "IM-E06-F02",
+  "name": "Network zoning reference designs",
+  "description": "Hospital/clinic/home/cloud designs; firewall templates; broker pattern; validation scripts.",
+  "roles": "Security; Integration",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-02",
+  "acceptance": "Designs published; validated in reference environments."
+ },
+ {
+  "id": "IM-E06-F03",
+  "name": "Hardened gateway & device-host images",
+  "description": "CIS baselines, encryption, secure boot, EDR hooks, logging, zero-touch enrolment, drift, patch campaigns.",
+  "roles": "Platform; Security",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-03",
+  "acceptance": "Images pass hardening checks; drift alerts; campaigns tested."
+ },
+ {
+  "id": "IM-E06-F04",
+  "name": "Vault/KMS integration per cloud",
+  "description": "Key Vault, Secret Manager/Cloud KMS, HashiCorp Vault; HSM; rotation; CI secret scanning.",
+  "roles": "Security",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-04",
+  "acceptance": "No secrets in repos/configs; rotation tested on all clouds."
+ },
+ {
+  "id": "IM-E06-F05",
+  "name": "Secure development life-cycle & SBOM",
+  "description": "Threat models, gates, signed releases, SBOM, advisories, disclosure, SLAs.",
+  "roles": "Security; Platform",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-05",
+  "acceptance": "SBOM per release; SLAs met; disclosure process live."
+ },
+ {
+  "id": "IM-E06-F06",
+  "name": "Vendor posture gate",
+  "description": "MDS2/SBOM intake, EOL, policy, isolation patterns, exceptions.",
+  "roles": "Security; Device Administrator",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-06",
+  "acceptance": "Gate enforced; legacy isolated."
+ },
+ {
+  "id": "IM-E06-F07",
+  "name": "Tamper-evident audit & SIEM",
+  "description": "Hash-chained store, SIEM forwarding (Sentinel, Chronicle, Splunk, QRadar), PHI masking.",
+  "roles": "Security; Data",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-07",
+  "acceptance": "Integrity verified; SIEM parsers; masking tested."
+ },
+ {
+  "id": "IM-E06-F08",
+  "name": "Anomaly detection & isolation playbook",
+  "description": "Rules, alerts, isolation automation, evidence preservation, re-certification gate.",
+  "roles": "Security; Device Administrator",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-08",
+  "acceptance": "Drill: isolation < 15 min."
+ },
+ {
+  "id": "IM-E06-F09",
+  "name": "Privacy controls & DPIA templates",
+  "description": "Minimisation, consent, retention, pseudonymised telemetry, de-identified non-prod, DPIA per setting, residency.",
+  "roles": "Security; DPO",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-09",
+  "acceptance": "DPIA templates; retention jobs; no PHI in non-prod (scanner)."
+ },
+ {
+  "id": "IM-E06-F10",
+  "name": "Security test kit (cloud-aware)",
+  "description": "15 scripts + Azure/GCP/private-cloud checks, report builder, plan, evidence template, control matrix; delivered per release.",
+  "roles": "Security; QA; Clients",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-10",
+  "acceptance": "Kit passes in reference environments on all three clouds."
+ },
+ {
+  "id": "IM-E06-F11",
+  "name": "Assurance programme",
+  "description": "SOC 2 Type II, ISO 27001, pen tests, IEC 80001-1 agreement template, evidence automation.",
+  "roles": "Security; Product",
+  "priority": "Must",
+  "hlrs": "IM-E06-HLR-11",
+  "acceptance": "SOC 2 report; ISO certificate; annual pen test clean."
+ },
+ {
+  "id": "IM-E07-F01",
+  "name": "FHIR API, Subscriptions & SMART launch",
+  "description": "FHIR server surface, Subscriptions, SMART app launch, scopes, OpenAPI/conformance.",
+  "roles": "Vendors; Integration",
+  "priority": "Must",
+  "hlrs": "IM-E07-HLR-01; IM-E07-HLR-08",
+  "acceptance": "Conformance statement published; SMART launch of capture component in a host EHR sandbox."
+ },
+ {
+  "id": "IM-E07-F02",
+  "name": "HL7 v2 & IHE DEV endpoints",
+  "description": "ORU/ORM/ADT, PCD-01/02, ACM, IPEC; profiles; conformance tests; connectathon.",
+  "roles": "Integration",
+  "priority": "Must",
+  "hlrs": "IM-E07-HLR-02",
+  "acceptance": "Passes IHE DEV test tools; EHR v2 integration demo."
+ },
+ {
+  "id": "IM-E07-F03",
+  "name": "Webhooks & event topics",
+  "description": "Signed webhooks with retries/replay; bus topics; subscription management.",
+  "roles": "Integration; Vendors",
+  "priority": "Must",
+  "hlrs": "IM-E07-HLR-03",
+  "acceptance": "Events delivered with signatures; replay works."
+ },
+ {
+  "id": "IM-E07-F04",
+  "name": "SDKs, web components, samples & sandbox",
+  "description": "Six SDKs, components, sample apps, sandbox tenants, simulators, docs portal.",
+  "roles": "Developer relations",
+  "priority": "Must",
+  "hlrs": "IM-E07-HLR-04",
+  "acceptance": "End-to-end capture on a MacBook in < 1 hour by an external developer."
+ },
+ {
+  "id": "IM-E07-F05",
+  "name": "Partner certification & marketplaces",
+  "description": "Levels, automated suites, security requirements, badges, listings.",
+  "roles": "Partner team",
+  "priority": "Should",
+  "hlrs": "IM-E07-HLR-05",
+  "acceptance": "First five partners certified; marketplace listings live."
+ },
+ {
+  "id": "IM-E07-F06",
+  "name": "Integration Guide for medical products",
+  "description": "Embedding patterns and per-environment instructions for Azure/GCP/private cloud; checklists; reference architectures.",
+  "roles": "Vendors; Product",
+  "priority": "Must",
+  "hlrs": "IM-E07-HLR-06",
+  "acceptance": "Guide published; used by two partners."
+ },
+ {
+  "id": "IM-E07-F07",
+  "name": "Reference integrations",
+  "description": "EHR flowsheet, OHCM, RPM app, LIS with harness regression.",
+  "roles": "Integration",
+  "priority": "Must",
+  "hlrs": "IM-E07-HLR-07",
+  "acceptance": "Four references green in CI."
+ },
+ {
+  "id": "IM-E08-F01",
+  "name": "MacBook developer kit",
+  "description": "Bootstrap script, arm64/amd64 images, kind/k3d or compose profiles, simulators, local PKI/Vault, sample templates, docs.",
+  "roles": "Developers; Partners",
+  "priority": "Must",
+  "hlrs": "IM-E08-HLR-01",
+  "acceptance": "External developer bootstraps in ≤ 30 min."
+ },
+ {
+  "id": "IM-E08-F02",
+  "name": "Cloud blueprints & IaC (Azure, GCP, private cloud)",
+  "description": "Terraform modules, Helm charts, GitOps; environment-specific services; identical images.",
+  "roles": "Platform; Client IT",
+  "priority": "Must",
+  "hlrs": "IM-E08-HLR-02; IM-E08-HLR-07",
+  "acceptance": "Dev/UAT/Prod created from IaC on all three in reference accounts."
+ },
+ {
+  "id": "IM-E08-F03",
+  "name": "HA/DR design & drills",
+  "description": "Multi-zone, replication, backups, failover automation, drills.",
+  "roles": "SRE",
+  "priority": "Must",
+  "hlrs": "IM-E08-HLR-03",
+  "acceptance": "RPO/RTO met in drills on each cloud."
+ },
+ {
+  "id": "IM-E08-F04",
+  "name": "CI/CD & promotion",
+  "description": "Signed images, SBOM, test stages, GitOps promotion with gates; independent driver/config promotion.",
+  "roles": "Platform; QA",
+  "priority": "Must",
+  "hlrs": "IM-E08-HLR-04",
+  "acceptance": "Pipeline green; promotion audited."
+ },
+ {
+  "id": "IM-E08-F05",
+  "name": "SRE operations & FinOps",
+  "description": "SLOs, observability per cloud, runbooks, on-call, patching, capacity, cost per device.",
+  "roles": "SRE; Finance",
+  "priority": "Must",
+  "hlrs": "IM-E08-HLR-05",
+  "acceptance": "SLO reports; cost dashboards."
+ },
+ {
+  "id": "IM-E08-F06",
+  "name": "Edge packaging & fleet management",
+  "description": "Gateway images, device host MSI, mobile SDK packaging, fleet tooling independent of cloud.",
+  "roles": "Platform",
+  "priority": "Must",
+  "hlrs": "IM-E08-HLR-06",
+  "acceptance": "Fleet managed from each cloud."
+ },
+ {
+  "id": "IM-E08-F07",
+  "name": "Hosting TCO comparison model",
+  "description": "Editable 5-year model per cloud and environment; cost per connected device.",
+  "roles": "Finance; Product",
+  "priority": "Must",
+  "hlrs": "IM-E08-HLR-08",
+  "acceptance": "Model reviewed by Finance; in master workbook."
+ },
+ {
+  "id": "IM-E09-F01",
+  "name": "Tenant lifecycle automation",
+  "description": "Trial, onboarding, scaling, renewal, offboarding/export/deletion evidence.",
+  "roles": "Customer success; Platform",
+  "priority": "Must",
+  "hlrs": "IM-E09-HLR-01",
+  "acceptance": "Tenant onboarded ≤ 1 day; offboarding export verified."
+ },
+ {
+  "id": "IM-E09-F02",
+  "name": "Licensing, entitlements & metering",
+  "description": "Models, enforcement, metering, billing/marketplace feeds, reconciliation.",
+  "roles": "Commercial; Finance",
+  "priority": "Must",
+  "hlrs": "IM-E09-HLR-02",
+  "acceptance": "Metering reconciles ≥ 99.9%."
+ },
+ {
+  "id": "IM-E09-F03",
+  "name": "Client analytics",
+  "description": "Capture rates, time saved, quality, calibration, fleet; export/embed.",
+  "roles": "Clients",
+  "priority": "Must",
+  "hlrs": "IM-E09-HLR-03",
+  "acceptance": "Monthly client reports generated."
+ },
+ {
+  "id": "IM-E09-F04",
+  "name": "Product analytics & benchmarking",
+  "description": "Aggregation thresholds, opt-in, KB feed.",
+  "roles": "Product; Data",
+  "priority": "Should",
+  "hlrs": "IM-E09-HLR-04",
+  "acceptance": "Benchmarks published with privacy review."
+ },
+ {
+  "id": "IM-E09-F05",
+  "name": "Customer success tooling",
+  "description": "Health scores, adoption, support integration.",
+  "roles": "Customer success",
+  "priority": "Should",
+  "hlrs": "IM-E09-HLR-05",
+  "acceptance": "Health scores live."
+ },
+ {
+  "id": "IM-E09-F06",
+  "name": "White-label / OEM",
+  "description": "Branding, support channels, OEM entitlements.",
+  "roles": "Partners",
+  "priority": "Should",
+  "hlrs": "IM-E09-HLR-06",
+  "acceptance": "One OEM partner live."
+ },
+ {
+  "id": "IM-E10-F01",
+  "name": "Regulatory analysis & classification record",
+  "description": "Per-market analysis; exclusions; maintenance per release.",
+  "roles": "Regulatory",
+  "priority": "Must",
+  "hlrs": "IM-E10-HLR-01",
+  "acceptance": "Record approved; reviewed each release."
+ },
+ {
+  "id": "IM-E10-F02",
+  "name": "IEC 62304 process & traceability",
+  "description": "Processes mapped to agile; traceability tooling epics→HLR→tests→releases.",
+  "roles": "Quality; Engineering",
+  "priority": "Must",
+  "hlrs": "IM-E10-HLR-02",
+  "acceptance": "Traceability report generated per release."
+ },
+ {
+  "id": "IM-E10-F03",
+  "name": "Risk management file",
+  "description": "Hazard analysis; controls traced; verification.",
+  "roles": "Quality; Clinical safety",
+  "priority": "Must",
+  "hlrs": "IM-E10-HLR-03",
+  "acceptance": "File complete; controls verified."
+ },
+ {
+  "id": "IM-E10-F04",
+  "name": "Usability engineering file",
+  "description": "Formative/summative evaluations; use-error mitigations.",
+  "roles": "UX; Quality",
+  "priority": "Should",
+  "hlrs": "IM-E10-HLR-04",
+  "acceptance": "Summative evaluation passed for capture and wizard."
+ },
+ {
+  "id": "IM-E10-F05",
+  "name": "Clinical safety case templates, labelling & IFU",
+  "description": "Templates, hazard logs, IFU, release notes, known anomalies.",
+  "roles": "Clinical safety; Product",
+  "priority": "Must",
+  "hlrs": "IM-E10-HLR-05",
+  "acceptance": "Templates used by first clients."
+ },
+ {
+  "id": "IM-E10-F06",
+  "name": "Post-market surveillance & complaints",
+  "description": "Intake, triage, timelines, vigilance interfaces, feedback to risk file.",
+  "roles": "Quality; Support",
+  "priority": "Must",
+  "hlrs": "IM-E10-HLR-06",
+  "acceptance": "Process live; timelines met."
+ },
+ {
+  "id": "IM-E10-F07",
+  "name": "Supplier management",
+  "description": "OSS licences/SBOM, cloud shared responsibility, device vendor MDS2.",
+  "roles": "Quality; Security",
+  "priority": "Must",
+  "hlrs": "IM-E10-HLR-07",
+  "acceptance": "Supplier register complete."
+ }
+]

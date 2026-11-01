@@ -1,0 +1,164 @@
+{
+ "manifest": {
+  "packageId": "vision.manual.snellen",
+  "version": "1.0.0",
+  "name": "Snellen / LogMAR chart – manual entry with device attestation",
+  "family": "Occupational-health imaging & other instruments",
+  "models": [
+   "IMD-133"
+  ],
+  "options": [
+   "P10"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/vision.manual.snellen-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P10": {
+   "parameters": {
+    "attestationFields": "model,serial,calibrationDate,attestedBy",
+    "csvImport": true
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "MANUAL",
+  "fields": [
+   {
+    "key": "acuity_r"
+   },
+   {
+    "key": "acuity_l"
+   },
+   {
+    "key": "acuity_both"
+   },
+   {
+    "key": "ishihara",
+    "unit": "1"
+   },
+   {
+    "key": "stereo",
+    "unit": "1"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "acuity_r",
+   "display": "Far acuity right (Snellen)",
+   "local": "INTIMED-VA-R",
+   "type": "text"
+  },
+  {
+   "key": "acuity_l",
+   "display": "Far acuity left (Snellen)",
+   "local": "INTIMED-VA-L",
+   "type": "text"
+  },
+  {
+   "key": "acuity_both",
+   "display": "Far acuity both",
+   "local": "INTIMED-VA-B",
+   "type": "text"
+  },
+  {
+   "key": "ishihara",
+   "display": "Ishihara plates correct (of 14)",
+   "local": "INTIMED-ISHIHARA",
+   "ucum": "1"
+  },
+  {
+   "key": "stereo",
+   "display": "Stereo depth (arcsec)",
+   "local": "INTIMED-STEREO",
+   "ucum": "1"
+  }
+ ],
+ "bindings": {
+  "TPL-19": {
+   "fields": {
+    "acuity_r": "acuity_r",
+    "acuity_l": "acuity_l",
+    "acuity_both": "acuity_both",
+    "ishihara": "ishihara",
+    "stereo": "stereo"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "WORKLIST",
+   "why": "Setting rule for TPL-19 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {
+    "verifyBeforePost": true
+   },
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "attestationFields": {
+   "value": "model,serial,calibrationDate,attestedBy",
+   "why": "Certified driver default for Snellen (P10)"
+  },
+  "csvImport": {
+   "value": true,
+   "why": "Certified driver default for Snellen (P10)"
+  },
+  "note": {
+   "value": "LAST_RESORT",
+   "why": "Manual entry only when no certified device or OCR path is available (fallback chain)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "{\"time\": \"{{TSISO}}\", \"subject\": \"{{SUBJECT}}\", \"values\": {\"acuity_r\": \"{{V:acuity_r}}\", \"acuity_l\": \"{{V:acuity_l}}\", \"acuity_both\": \"{{V:acuity_both}}\", \"ishihara\": {{V:ishihara}}, \"stereo\": {{V:stereo}}}, \"attestation\": {\"model\": \"Snellen 6 m wall chart\", \"serial\": \"{{SERIAL}}\", \"calibrationDate\": \"2026-01-15\", \"attestedBy\": \"nurse.demo\"}}"
+   }
+  ],
+  "values": {
+   "acuity_r": "6/6",
+   "acuity_l": "6/9",
+   "acuity_both": "6/6",
+   "ishihara": 13,
+   "stereo": 60
+  },
+  "serial": "SNELLEN-WALL-3",
+  "timeFormat": "ISO",
+  "outOfRange": null,
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Snellen / LogMAR chart – manual entry with device attestation with option P10. Values typed by the clinician with attestation of device model, serial and calibration; bulk CSV for campaigns.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

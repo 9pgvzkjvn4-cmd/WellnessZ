@@ -1,0 +1,74 @@
+{
+ "option": "P3",
+ "name": "Bluetooth LE / Classic",
+ "how": "Standard GATT health profiles (BLP, HTP, PLX, WSS, GLS, BCS) or vendor services via gateway, tablet or kiosk; Classic SPP for older devices.",
+ "security": "HIGH",
+ "reliability": "MEDIUM",
+ "effort": "LOW",
+ "latency": "1–3 s",
+ "via": "Gateway / tablet / kiosk (mTLS identity) → HTTPS ingress",
+ "prerequisites": [
+  "Bonding owner enrolled (gateway, tablet or kiosk)",
+  "Device on the approved-device list",
+  "Pairing method LE Secure Connections"
+ ],
+ "tests": [
+  "XT-01 bonded (LE SC)",
+  "XT-03 indication received",
+  "XT-04 IEEE-11073 SFLOAT decode",
+  "XT-13 pairing policy"
+ ],
+ "parameters": [
+  {
+   "name": "pairing",
+   "required": true,
+   "default": "LE_SECURE_CONNECTIONS_PASSKEY",
+   "type": "enum",
+   "values": [
+    "LE_SECURE_CONNECTIONS_PASSKEY",
+    "LE_SECURE_CONNECTIONS_OOB",
+    "LE_SECURE_CONNECTIONS_NUMERIC",
+    "JUST_WORKS"
+   ]
+  },
+  {
+   "name": "bondingOwner",
+   "required": true,
+   "default": "GATEWAY",
+   "type": "enum",
+   "values": [
+    "GATEWAY",
+    "TABLET",
+    "KIOSK"
+   ]
+  },
+  {
+   "name": "service",
+   "required": true,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "characteristic",
+   "required": true,
+   "default": "",
+   "type": "string"
+  },
+  {
+   "name": "reconnect",
+   "required": false,
+   "default": "AUTO",
+   "type": "enum",
+   "values": [
+    "AUTO",
+    "ON_DEMAND"
+   ]
+  },
+  {
+   "name": "passkey",
+   "required": false,
+   "default": "",
+   "type": "secret"
+  }
+ ]
+}

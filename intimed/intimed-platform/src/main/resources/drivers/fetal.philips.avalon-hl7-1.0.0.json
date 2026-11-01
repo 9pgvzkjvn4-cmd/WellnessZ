@@ -1,0 +1,248 @@
+{
+ "manifest": {
+  "packageId": "fetal.philips.avalon-hl7",
+  "version": "1.0.0",
+  "name": "Philips Avalon FM30/FM50 via perinatal gateway (HL7)",
+  "family": "Neonatal & maternal",
+  "models": [
+   "IMD-325"
+  ],
+  "options": [
+   "P4"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/fetal.philips.avalon-hl7-1.0.0.cdx.json",
+  "captureMode": "CONTINUOUS",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P4": {
+   "parameters": {
+    "host": "intimed.local",
+    "port": 2575,
+    "tls": "MTLS",
+    "tlsMin": "1.2",
+    "sendingApplication": "AVALON_GW",
+    "sendingFacility": "LABOUR",
+    "ackMode": "ORIGINAL",
+    "profile": "IHE_PCD_01",
+    "timeZone": "UTC",
+    "maxMessagesPerSecond": 50
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "HL7V2",
+  "messageTypes": [
+   "ORU^R01"
+  ],
+  "identity": {
+   "subject": "PID-3.1",
+   "serial": "OBX-18.1",
+   "time": "OBR-7",
+   "timeFormat": "yyyyMMddHHmmss"
+  },
+  "fields": [
+   {
+    "key": "fhr",
+    "sel": "OBX[OBX-3.1=FHR]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=FHR]/OBX-6.1"
+   },
+   {
+    "key": "uc_freq",
+    "sel": "OBX[OBX-3.1=UCF]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=UCF]/OBX-6.1"
+   },
+   {
+    "key": "uc_intensity",
+    "sel": "OBX[OBX-3.1=UCI]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=UCI]/OBX-6.1"
+   },
+   {
+    "key": "mhr",
+    "sel": "OBX[OBX-3.1=MHR]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=MHR]/OBX-6.1"
+   },
+   {
+    "key": "m_sys",
+    "sel": "OBX[OBX-3.1=MSYS]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=MSYS]/OBX-6.1"
+   },
+   {
+    "key": "m_dia",
+    "sel": "OBX[OBX-3.1=MDIA]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=MDIA]/OBX-6.1"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "fhr",
+   "display": "Fetal heart rate",
+   "loinc": "55283-6",
+   "ucum": "/min",
+   "plausible": {
+    "min": 50,
+    "max": 240
+   }
+  },
+  {
+   "key": "uc_freq",
+   "display": "Contractions per 10 min",
+   "local": "INTIMED-UC-FREQ",
+   "ucum": "1"
+  },
+  {
+   "key": "uc_intensity",
+   "display": "Contraction intensity (IUP)",
+   "local": "INTIMED-UC-INT",
+   "ucum": "mm[Hg]"
+  },
+  {
+   "key": "mhr",
+   "display": "Maternal heart rate",
+   "loinc": "8867-4",
+   "ucum": "/min"
+  },
+  {
+   "key": "m_sys",
+   "display": "Systolic blood pressure",
+   "loinc": "8480-6",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 50,
+    "max": 260
+   }
+  },
+  {
+   "key": "m_dia",
+   "display": "Diastolic blood pressure",
+   "loinc": "8462-4",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 25,
+    "max": 160
+   }
+  }
+ ],
+ "bindings": {
+  "TPL-12": {
+   "fields": {
+    "fhr": "fhr",
+    "uc_freq": "uc_freq",
+    "uc_intensity": "uc_intensity",
+    "mhr": "mhr",
+    "m_sys": "m_sys",
+    "m_dia": "m_dia"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "ENCOUNTER_BED",
+   "why": "Setting rule for TPL-12 templates"
+  },
+  "captureMode": {
+   "value": "CONTINUOUS",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "host": {
+   "value": "intimed.local",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "port": {
+   "value": 2575,
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "tls": {
+   "value": "MTLS",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "tlsMin": {
+   "value": "1.2",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "sendingApplication": {
+   "value": "AVALON_GW",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "sendingFacility": {
+   "value": "LABOUR",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "ackMode": {
+   "value": "ORIGINAL",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "profile": {
+   "value": "IHE_PCD_01",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "timeZone": {
+   "value": "UTC",
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "maxMessagesPerSecond": {
+   "value": 50,
+   "why": "Certified driver default for Philips (P4)"
+  },
+  "intervalMinutes": {
+   "value": 5,
+   "why": "Partogram convention: values charted per 5 min, raw CTG stays in the perinatal system"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "MSH|^~\\&|AVALON_GW|LABOUR|INTIMED|INTIMED|{TS}||ORU^R01^ORU_R01|{CTRL}|P|2.6|||NE|AL||UNICODE UTF-8|||IHE_PCD_001^IHE PCD^1.3.6.1.4.1.19376.1.6.1.1.1^ISO\rPID|||{{SUBJECT}}^^^HOSP^MR\rOBR|1|{{CTRL}}||CTG^Cardiotocography^L|||{{TS}}\rOBX|1|NM|FHR^FHR^L||{{V:fhr}}|/min|||||F|||{{TS}}||||{{SERIAL}}\rOBX|2|NM|UCF^UCF^L||{{V:uc_freq}}|1|||||F|||{{TS}}||||{{SERIAL}}\rOBX|3|NM|UCI^UCI^L||{{V:uc_intensity}}|mm[Hg]|||||F|||{{TS}}||||{{SERIAL}}\rOBX|4|NM|MHR^MHR^L||{{V:mhr}}|/min|||||F|||{{TS}}||||{{SERIAL}}\rOBX|5|NM|MSYS^MSYS^L||{{V:m_sys}}|mm[Hg]|||||F|||{{TS}}||||{{SERIAL}}\rOBX|6|NM|MDIA^MDIA^L||{{V:m_dia}}|mm[Hg]|||||F|||{{TS}}||||{{SERIAL}}\r"
+   }
+  ],
+  "values": {
+   "fhr": 138,
+   "uc_freq": 3,
+   "uc_intensity": 55,
+   "mhr": 88,
+   "m_sys": 124,
+   "m_dia": 78
+  },
+  "serial": "FM50-DE33190",
+  "timeFormat": "yyyyMMddHHmmss",
+  "outOfRange": {
+   "key": "fhr",
+   "value": "35"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure Philips Avalon FM30/FM50 via perinatal gateway (HL7) with option P4. Device or vendor gateway sends ORU^R01 (and receives ADT/ORM) over MLLP with TLS and client certificates.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

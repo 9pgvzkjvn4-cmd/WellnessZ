@@ -1,0 +1,74 @@
+{
+ "id": "TPL-19",
+ "name": "OH vision & colour-vision record",
+ "settings": [
+  "OH",
+  "OPD"
+ ],
+ "captureMode": "SPOT",
+ "association": "WORKLIST",
+ "adapters": [
+  "FHIR",
+  "PDF"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "vision",
+   "label": "Vision screening",
+   "fields": [
+    {
+     "id": "acuity_r",
+     "label": "Far acuity right (Snellen)",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-VA-R"
+     },
+     "verify": true
+    },
+    {
+     "id": "acuity_l",
+     "label": "Far acuity left (Snellen)",
+     "type": "text",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-VA-L"
+     },
+     "verify": true
+    },
+    {
+     "id": "acuity_both",
+     "label": "Far acuity both",
+     "type": "text",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-VA-B"
+     }
+    },
+    {
+     "id": "ishihara",
+     "label": "Ishihara plates correct (of 14)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-ISHIHARA"
+     },
+     "unit": "1",
+     "decimals": 0
+    },
+    {
+     "id": "stereo",
+     "label": "Stereo depth (arcsec)",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-STEREO"
+     },
+     "unit": "1",
+     "decimals": 0
+    }
+   ]
+  }
+ ]
+}

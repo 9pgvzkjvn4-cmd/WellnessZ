@@ -1,0 +1,237 @@
+{
+ "manifest": {
+  "packageId": "infusion.bd.alaris-ipec",
+  "version": "1.0.0",
+  "name": "BD Alaris System via Systems Manager (IHE PCD IPEC + PIV auto-programming)",
+  "family": "Infusion & medication delivery",
+  "models": [
+   "IMD-221"
+  ],
+  "options": [
+   "P4"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/infusion.bd.alaris-ipec-1.0.0.cdx.json",
+  "captureMode": "SPOT",
+  "restricted": false,
+  "bidirectional": true,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P4": {
+   "parameters": {
+    "host": "intimed.local",
+    "port": 2575,
+    "tls": "MTLS",
+    "tlsMin": "1.2",
+    "sendingApplication": "ALARIS_SM",
+    "sendingFacility": "ICU",
+    "ackMode": "ORIGINAL",
+    "profile": "IHE_PCD_IPEC",
+    "timeZone": "UTC",
+    "maxMessagesPerSecond": 50
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "HL7V2",
+  "messageTypes": [
+   "ORU^R01"
+  ],
+  "identity": {
+   "subject": "PID-3.1",
+   "serial": "OBX-18.1",
+   "time": "OBR-7",
+   "timeFormat": "yyyyMMddHHmmss"
+  },
+  "fields": [
+   {
+    "key": "drug",
+    "sel": "OBX[OBX-3.1=DRUG]/OBX-5"
+   },
+   {
+    "key": "rate",
+    "sel": "OBX[OBX-3.1=157784]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=157784]/OBX-6.2"
+   },
+   {
+    "key": "vtbi",
+    "sel": "OBX[OBX-3.1=157872]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=157872]/OBX-6.2"
+   },
+   {
+    "key": "infused",
+    "sel": "OBX[OBX-3.1=157888]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=157888]/OBX-6.2"
+   },
+   {
+    "key": "pump_state",
+    "sel": "OBX[OBX-3.1=STATE]/OBX-5"
+   },
+   {
+    "key": "program_confirmed",
+    "sel": "OBX[OBX-3.1=PIV]/OBX-5"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "drug",
+   "display": "Drug",
+   "local": "INTIMED-DRUG",
+   "type": "text"
+  },
+  {
+   "key": "rate",
+   "display": "Infusion rate",
+   "mdc": "MDC_FLOW_FLUID_PUMP",
+   "ucum": "mL/h",
+   "plausible": {
+    "min": 0,
+    "max": 1200
+   }
+  },
+  {
+   "key": "vtbi",
+   "display": "Volume to be infused",
+   "mdc": "MDC_VOL_FLUID_TBI",
+   "ucum": "mL"
+  },
+  {
+   "key": "infused",
+   "display": "Volume infused",
+   "mdc": "MDC_VOL_FLUID_DELIV",
+   "ucum": "mL"
+  },
+  {
+   "key": "pump_state",
+   "display": "Pump state",
+   "local": "INTIMED-PUMP-STATE",
+   "type": "text"
+  },
+  {
+   "key": "program_confirmed",
+   "display": "Auto-programming confirmed",
+   "local": "INTIMED-AUTOPROG",
+   "type": "text"
+  }
+ ],
+ "bindings": {
+  "TPL-04": {
+   "fields": {
+    "drug": "drug",
+    "rate": "rate",
+    "vtbi": "vtbi",
+    "infused": "infused",
+    "pump_state": "pump_state",
+    "program_confirmed": "program_confirmed"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "ENCOUNTER_BED",
+   "why": "Setting rule for TPL-04 templates"
+  },
+  "captureMode": {
+   "value": "SPOT",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "host": {
+   "value": "intimed.local",
+   "why": "Certified driver default for BD (P4)"
+  },
+  "port": {
+   "value": 2575,
+   "why": "Certified driver default for BD (P4)"
+  },
+  "tls": {
+   "value": "MTLS",
+   "why": "Certified driver default for BD (P4)"
+  },
+  "tlsMin": {
+   "value": "1.2",
+   "why": "Certified driver default for BD (P4)"
+  },
+  "sendingApplication": {
+   "value": "ALARIS_SM",
+   "why": "Certified driver default for BD (P4)"
+  },
+  "sendingFacility": {
+   "value": "ICU",
+   "why": "Certified driver default for BD (P4)"
+  },
+  "ackMode": {
+   "value": "ORIGINAL",
+   "why": "Certified driver default for BD (P4)"
+  },
+  "profile": {
+   "value": "IHE_PCD_IPEC",
+   "why": "Certified driver default for BD (P4)"
+  },
+  "timeZone": {
+   "value": "UTC",
+   "why": "Certified driver default for BD (P4)"
+  },
+  "maxMessagesPerSecond": {
+   "value": 50,
+   "why": "Certified driver default for BD (P4)"
+  },
+  "autoProgramming": {
+   "value": true,
+   "why": "Vendor supports PIV (RGV^O15) – order-to-pump auto-programming reduces transcription error (IM-E01-BL-024)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "MSH|^~\\&|ALARIS_SM|ICU|INTIMED|INTIMED|{TS}||ORU^R01^ORU_R01|{CTRL}|P|2.6|||NE|AL||UNICODE UTF-8|||IHE_PCD_001^IHE PCD^1.3.6.1.4.1.19376.1.6.1.1.1^ISO\rPID|||{{SUBJECT}}^^^HOSP^MR\rOBR|1|{{CTRL}}^INTIMED||IPEC^Infusion event^L|||{{TS}}\rOBX|1|ST|DRUG^Drug^L||{{V:drug}}||||||F|||{{TS}}||||{{SERIAL}}\rOBX|2|NM|157784^MDC_FLOW_FLUID_PUMP^MDC|1.1.1.157784|{{V:rate}}|265266^MDC_DIM_MILLI_L_PER_HR^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|3|NM|157872^MDC_VOL_FLUID_TBI^MDC|1.1.1.157872|{{V:vtbi}}|263762^MDC_DIM_MILLI_L^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|4|NM|157888^MDC_VOL_FLUID_DELIV^MDC|1.1.1.157888|{{V:infused}}|263762^MDC_DIM_MILLI_L^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|5|ST|STATE^Pump state^L||{{V:pump_state}}||||||F|||{{TS}}||||{{SERIAL}}\rOBX|6|ST|PIV^Programming confirmation^L||{{V:program_confirmed}}||||||F|||{{TS}}||||{{SERIAL}}\r"
+   }
+  ],
+  "values": {
+   "drug": "Noradrenaline 8 mg/50 mL",
+   "rate": 4.5,
+   "vtbi": 50,
+   "infused": 12,
+   "pump_state": "INFUSING",
+   "program_confirmed": "CONFIRMED"
+  },
+  "serial": "ALARIS-8015-22719",
+  "timeFormat": "yyyyMMddHHmmss",
+  "outOfRange": {
+   "key": "rate",
+   "value": "2400"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure BD Alaris System via Systems Manager (IHE PCD IPEC + PIV auto-programming) with option P4. Device or vendor gateway sends ORU^R01 (and receives ADT/ORM) over MLLP with TLS and client certificates.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

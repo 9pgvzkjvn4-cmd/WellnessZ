@@ -1,0 +1,270 @@
+{
+ "manifest": {
+  "packageId": "anaesthesia.ge.aisys-pcd01",
+  "version": "1.0.0",
+  "name": "GE Aisys CS2 / Carestation via anaesthesia gateway (PCD-01)",
+  "family": "Respiratory & anaesthesia",
+  "models": [
+   "IMD-247"
+  ],
+  "options": [
+   "P4"
+  ],
+  "compatibility": {
+   "firmware": ">=1.0",
+   "vendorSoftware": "certified versions per IntiMed lab"
+  },
+  "author": "IntiMed driver team",
+  "sbomRef": "sbom/anaesthesia.ge.aisys-pcd01-1.0.0.cdx.json",
+  "captureMode": "CONTINUOUS",
+  "restricted": false,
+  "bidirectional": false,
+  "certification": {
+   "status": "CERTIFIED",
+   "lab": "IntiMed device lab (simulator golden sessions)"
+  }
+ },
+ "transport": {
+  "P4": {
+   "parameters": {
+    "host": "intimed.local",
+    "port": 2575,
+    "tls": "MTLS",
+    "tlsMin": "1.2",
+    "sendingApplication": "AISYS_GW",
+    "sendingFacility": "OR3",
+    "ackMode": "ORIGINAL",
+    "profile": "IHE_PCD_01",
+    "timeZone": "UTC",
+    "maxMessagesPerSecond": 50
+   },
+   "security": {
+    "tls": "1.2+",
+    "mtls": true
+   }
+  }
+ },
+ "grammar": {
+  "type": "HL7V2",
+  "messageTypes": [
+   "ORU^R01"
+  ],
+  "identity": {
+   "subject": "PID-3.1",
+   "serial": "OBX-18.1",
+   "time": "OBR-7",
+   "timeFormat": "yyyyMMddHHmmss"
+  },
+  "fields": [
+   {
+    "key": "etco2",
+    "sel": "OBX[OBX-3.1=151708]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=151708]/OBX-6.2"
+   },
+   {
+    "key": "fio2",
+    "sel": "OBX[OBX-3.1=152196]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=152196]/OBX-6.2"
+   },
+   {
+    "key": "et_sevo",
+    "sel": "OBX[OBX-3.1=152872]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=152872]/OBX-6.2"
+   },
+   {
+    "key": "mac",
+    "sel": "OBX[OBX-3.1=MAC]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=MAC]/OBX-6.2"
+   },
+   {
+    "key": "tv",
+    "sel": "OBX[OBX-3.1=151980]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=151980]/OBX-6.2"
+   },
+   {
+    "key": "peep",
+    "sel": "OBX[OBX-3.1=151976]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=151976]/OBX-6.2"
+   },
+   {
+    "key": "hr",
+    "sel": "OBX[OBX-3.1=147842]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=147842]/OBX-6.2"
+   },
+   {
+    "key": "bis",
+    "sel": "OBX[OBX-3.1=BIS]/OBX-5",
+    "unitSel": "OBX[OBX-3.1=BIS]/OBX-6.2"
+   }
+  ]
+ },
+ "semantics": [
+  {
+   "key": "etco2",
+   "display": "End-tidal CO2",
+   "mdc": "MDC_AWAY_CO2_ET",
+   "ucum": "mm[Hg]",
+   "plausible": {
+    "min": 0,
+    "max": 100
+   }
+  },
+  {
+   "key": "fio2",
+   "display": "Inspired O2 fraction",
+   "loinc": "3150-0",
+   "ucum": "%"
+  },
+  {
+   "key": "et_sevo",
+   "display": "End-tidal sevoflurane",
+   "mdc": "MDC_CONC_AWAY_SEVOFL_ET",
+   "ucum": "%"
+  },
+  {
+   "key": "mac",
+   "display": "MAC",
+   "local": "INTIMED-MAC",
+   "ucum": "1"
+  },
+  {
+   "key": "tv",
+   "display": "Tidal volume (expired)",
+   "mdc": "MDC_VOL_AWAY_TIDAL_EXP",
+   "ucum": "mL"
+  },
+  {
+   "key": "peep",
+   "display": "PEEP",
+   "mdc": "MDC_VENT_PRESS_AWAY_END_EXP_POS",
+   "ucum": "cm[H2O]"
+  },
+  {
+   "key": "hr",
+   "display": "Heart rate",
+   "loinc": "8867-4",
+   "ucum": "/min",
+   "plausible": {
+    "min": 20,
+    "max": 250
+   }
+  },
+  {
+   "key": "bis",
+   "display": "Bispectral index",
+   "mdc": "MDC_EEG_BISPECTRAL_INDEX",
+   "ucum": "1"
+  }
+ ],
+ "bindings": {
+  "TPL-03": {
+   "fields": {
+    "etco2": "etco2",
+    "fio2": "fio2",
+    "et_sevo": "et_sevo",
+    "mac": "mac",
+    "tv": "tv",
+    "peep": "peep",
+    "hr": "hr",
+    "bis": "bis"
+   }
+  }
+ },
+ "recommendations": {
+  "association": {
+   "value": "SESSION",
+   "why": "Setting rule for TPL-03 templates"
+  },
+  "captureMode": {
+   "value": "CONTINUOUS",
+   "why": "Template capture pattern"
+  },
+  "qualityGates": {
+   "value": {},
+   "why": "Driver quality-gate defaults (RR-11)"
+  },
+  "host": {
+   "value": "intimed.local",
+   "why": "Certified driver default for GE (P4)"
+  },
+  "port": {
+   "value": 2575,
+   "why": "Certified driver default for GE (P4)"
+  },
+  "tls": {
+   "value": "MTLS",
+   "why": "Certified driver default for GE (P4)"
+  },
+  "tlsMin": {
+   "value": "1.2",
+   "why": "Certified driver default for GE (P4)"
+  },
+  "sendingApplication": {
+   "value": "AISYS_GW",
+   "why": "Certified driver default for GE (P4)"
+  },
+  "sendingFacility": {
+   "value": "OR3",
+   "why": "Certified driver default for GE (P4)"
+  },
+  "ackMode": {
+   "value": "ORIGINAL",
+   "why": "Certified driver default for GE (P4)"
+  },
+  "profile": {
+   "value": "IHE_PCD_01",
+   "why": "Certified driver default for GE (P4)"
+  },
+  "timeZone": {
+   "value": "UTC",
+   "why": "Certified driver default for GE (P4)"
+  },
+  "maxMessagesPerSecond": {
+   "value": 50,
+   "why": "Certified driver default for GE (P4)"
+  },
+  "intervalMinutes": {
+   "value": 1,
+   "why": "Anaesthesia record policy: 1-minute values during the case (RR-07)"
+  }
+ },
+ "tests": {
+  "golden": [
+   {
+    "name": "nominal",
+    "payload": "MSH|^~\\&|AISYS_GW|OR3|INTIMED|INTIMED|{TS}||ORU^R01^ORU_R01|{CTRL}|P|2.6|||NE|AL||UNICODE UTF-8|||IHE_PCD_001^IHE PCD^1.3.6.1.4.1.19376.1.6.1.1.1^ISO\rPID|||{{SUBJECT}}^^^HOSP^MR\rOBR|1|{{CTRL}}^INTIMED||ANES^Anaesthesia^L|||{{TS}}\rOBX|1|NM|151708^MDC_AWAY_CO2_ET^MDC|1.1.1.151708|{{V:etco2}}|266016^MDC_DIM_MMHG^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|2|NM|152196^MDC_CONC_AWAY_O2_INSP^MDC|1.1.1.152196|{{V:fio2}}|262688^MDC_DIM_PERCENT^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|3|NM|152872^MDC_CONC_AWAY_SEVOFL_ET^MDC|1.1.1.152872|{{V:et_sevo}}|262688^MDC_DIM_PERCENT^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|4|NM|MAC^MAC^MDC|1.1.1.MAC|{{V:mac}}|262144^MDC_DIM_DIMLESS^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|5|NM|151980^MDC_VOL_AWAY_TIDAL_EXP^MDC|1.1.1.151980|{{V:tv}}|263762^MDC_DIM_MILLI_L^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|6|NM|151976^MDC_VENT_PRESS_AWAY_END_EXP_POS^MDC|1.1.1.151976|{{V:peep}}|266048^MDC_DIM_CM_H2O^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|7|NM|147842^MDC_ECG_HEART_RATE^MDC|1.1.1.147842|{{V:hr}}|264864^MDC_DIM_BEAT_PER_MIN^MDC|||||F|||{{TS}}||||{{SERIAL}}\rOBX|8|NM|BIS^MDC_EEG_BISPECTRAL_INDEX^MDC|1.1.1.BIS|{{V:bis}}|262144^MDC_DIM_DIMLESS^MDC|||||F|||{{TS}}||||{{SERIAL}}\r"
+   }
+  ],
+  "values": {
+   "etco2": 37,
+   "fio2": 45,
+   "et_sevo": 1.9,
+   "mac": 0.95,
+   "tv": 480,
+   "peep": 5,
+   "hr": 66,
+   "bis": 48
+  },
+  "serial": "AISYS-CS2-7781",
+  "timeFormat": "yyyyMMddHHmmss",
+  "outOfRange": {
+   "key": "etco2",
+   "value": "130"
+  },
+  "negative": [
+   "DUPLICATE",
+   "MALFORMED",
+   "TIME_SKEW",
+   "WRONG_SUBJECT",
+   "OUT_OF_RANGE"
+  ]
+ },
+ "docs": {
+  "guide": "Configure GE Aisys CS2 / Carestation via anaesthesia gateway (PCD-01) with option P4. Device or vendor gateway sends ORU^R01 (and receives ADT/ORM) over MLLP with TLS and client certificates.",
+  "troubleshooting": [
+   "Check the endpoint certificate is ACTIVE in the security console",
+   "Inspect the masked payload in diagnostics",
+   "Re-run the exchange test after any change"
+  ]
+ }
+}

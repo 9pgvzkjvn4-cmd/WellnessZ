@@ -1,0 +1,133 @@
+{
+ "id": "TPL-10",
+ "name": "Dialysis session record",
+ "settings": [
+  "SPEC"
+ ],
+ "captureMode": "SPOT",
+ "association": "SESSION",
+ "adapters": [
+  "FHIR",
+  "HL7V2"
+ ],
+ "version": "1.0.0",
+ "sections": [
+  {
+   "id": "session",
+   "label": "Session (prescription vs delivered)",
+   "fields": [
+    {
+     "id": "qb",
+     "label": "Blood flow",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-DIA-QB"
+     },
+     "unit": "mL/min",
+     "range": {
+      "min": 0,
+      "max": 600
+     },
+     "decimals": 0
+    },
+    {
+     "id": "qd",
+     "label": "Dialysate flow",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-DIA-QD"
+     },
+     "unit": "mL/min",
+     "range": {
+      "min": 0,
+      "max": 1000
+     },
+     "decimals": 0
+    },
+    {
+     "id": "uf_volume",
+     "label": "UF volume removed",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-DIA-UFV"
+     },
+     "unit": "mL",
+     "decimals": 0
+    },
+    {
+     "id": "uf_goal",
+     "label": "UF goal",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-DIA-UFG"
+     },
+     "unit": "mL",
+     "decimals": 0
+    },
+    {
+     "id": "ktv",
+     "label": "Kt/V (online clearance)",
+     "type": "quantity",
+     "mandatory": true,
+     "code": {
+      "local": "INTIMED-DIA-KTV"
+     },
+     "unit": "1",
+     "range": {
+      "min": 0,
+      "max": 4
+     },
+     "decimals": 2
+    },
+    {
+     "id": "vp",
+     "label": "Venous pressure",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-DIA-VP"
+     },
+     "unit": "mm[Hg]",
+     "decimals": 0
+    },
+    {
+     "id": "ap",
+     "label": "Arterial pressure",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-DIA-AP"
+     },
+     "unit": "mm[Hg]",
+     "decimals": 0
+    },
+    {
+     "id": "weight_pre",
+     "label": "Pre-dialysis weight",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "loinc": "29463-7"
+     },
+     "unit": "kg",
+     "decimals": 1
+    },
+    {
+     "id": "duration",
+     "label": "Treatment time",
+     "type": "quantity",
+     "mandatory": false,
+     "code": {
+      "local": "INTIMED-DIA-DUR"
+     },
+     "unit": "min",
+     "decimals": 0
+    }
+   ]
+  }
+ ]
+}

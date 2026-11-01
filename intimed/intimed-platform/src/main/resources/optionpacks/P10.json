@@ -1,0 +1,32 @@
+{
+ "option": "P10",
+ "name": "Manual entry with device attestation (last resort)",
+ "how": "Values typed by the clinician with attestation of device model, serial and calibration; bulk CSV for campaigns.",
+ "security": "LOW",
+ "reliability": "LOW",
+ "effort": "LOW",
+ "latency": "manual",
+ "via": "Capture component form",
+ "prerequisites": [
+  "Attestation fields agreed",
+  "Validation rules per field"
+ ],
+ "tests": [
+  "XT-04 attestation mandatory",
+  "XT-14 verify-before-post"
+ ],
+ "parameters": [
+  {
+   "name": "attestationFields",
+   "required": true,
+   "default": "model,serial,calibrationDate,attestedBy",
+   "type": "string"
+  },
+  {
+   "name": "csvImport",
+   "required": false,
+   "default": false,
+   "type": "bool"
+  }
+ ]
+}
