@@ -79,7 +79,10 @@ function CampaignSetup({ client, onSessionExpired, onCancel }: ScreenProps & { o
   const api = schedulingApi(client);
   const { sites, siteCode } = useSites(client, onSessionExpired);
   const types = useAppointmentTypes(client, onSessionExpired);
-  const start = addDays(todayLocal(), 14);
+  // Two weeks ahead, rolled forward to a weekday so the default (weekends skipped) always yields at least one day.
+  const in14 = addDays(todayLocal(), 14);
+  const weekday = new Date(`${in14}T00:00:00Z`).getUTCDay();
+  const start = weekday === 6 ? addDays(in14, 2) : weekday === 0 ? addDays(in14, 1) : in14;
   const [f, setF] = useState<CampaignForm>({
     name: '',
     campaignType: 'SURVEILLANCE',

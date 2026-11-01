@@ -119,7 +119,7 @@ describe('detection, log and controls', () => {
       'POST /device-security/incidents': { incidentRef: 'DSI-2026-000002' },
     });
     render(<SecurityAlerts {...props(api, 'SECURITY_OPS')} />);
-    expect(await screen.findByRole('rowheader', { name: 'Failed auth burst' })).toBeTruthy();
+    expect(within(await screen.findByRole('table', { name: '1 alert' })).getByRole('rowheader', { name: 'Failed auth burst' })).toBeTruthy();
     expect(screen.getByText('4.0 min (SLA 15)')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Acknowledge' }));
     expect(await screen.findByText('Alert acknowledged.')).toBeTruthy();
