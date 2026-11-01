@@ -208,7 +208,10 @@ class Increment6EndToEndIntegrationTest extends IntegrationTestBase {
         assertThat(spis.diagnostics().health(dev).state()).isEqualTo("HEALTHY");
 
         // ---- E34 on /device-ingest: both factors, fail closed, one PHI-free security event per failure
-        byte[] hl7 = golden("vitals/csm-pcd01/normal.hl7");
+        // the golden message, measured now (the engine associates through the session only inside its time window)
+        String now = java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(java.time.ZoneOffset.UTC).format(Instant.now());
+        byte[] hl7 = new String(golden("vitals/csm-pcd01/normal.hl7"), java.nio.charset.StandardCharsets.ISO_8859_1)
+                .replace("20261030091405", now).getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
         mvc.perform(gateway(post("/api/v1/device-ingest/hl7v2"), endpoint, token, null).contentType("application/hl7-v2").content(hl7))
                 .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("mtls_required"));
         mvc.perform(gateway(post("/api/v1/device-ingest/hl7v2"), endpoint, "not-the-token", cert.sha256()).contentType("application/hl7-v2").content(hl7))
