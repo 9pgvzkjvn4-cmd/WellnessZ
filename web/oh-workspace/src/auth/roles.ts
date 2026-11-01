@@ -26,6 +26,9 @@ const CLINICIANS = [...CLINICIAN_ROLES];
 const PHYSICIANS = [...PHYSICIAN_ROLES];
 /** Physicians + OH_CLINICIAN (orders, result worklist, fitness decisions on non-licensed standards, food-handler clearance). */
 const PHYSICIANS_AND_NURSES = [...PHYSICIANS, 'OH_CLINICIAN'];
+/** Increment 6 – device console roles (API-Contract-E31-E34 §2): never see person data. */
+export const DEVICE_CONSOLE_ROLES = ['DEVICE_ADMIN', 'DEVICE_APPROVER', 'INTEGRATION_TESTER', 'SECURITY_OPS'] as const;
+const DEVICE_ROLES = [...DEVICE_CONSOLE_ROLES];
 /** Increment-4 non-clinical roles (never read the OH clinical record). */
 export const NON_CLINICAL_CLAIMS_ROLES = ['CLAIMS_COORDINATOR', 'FINANCE', 'LEGAL_COUNSEL', 'PROCUREMENT'] as const;
 
@@ -282,6 +285,33 @@ export const FEATURES = {
   ergonomics: ['ERGONOMIST', 'HSE_OFFICER'],
   ergonomicsPhotos: ['ERGONOMIST'],
   promotionReports: ['HEALTH_PROMOTION_LEAD', 'CMO'],
+  // Increment 6 – E32 device console (API-Contract-E31-E34 §13, §18). Console roles never see person data.
+  deviceCatalogue: [...DEVICE_ROLES, 'BIOMEDICAL', 'NURSING_HEAD'],
+  devicePostureWrite: ['DEVICE_ADMIN', 'SECURITY_OPS'],
+  deviceWizard: [...DEVICE_ROLES],
+  deviceConfigWrite: ['DEVICE_ADMIN', 'INTEGRATION_TESTER'],
+  deviceAdmin: ['DEVICE_ADMIN'],
+  deviceApprove: ['DEVICE_APPROVER', 'SECURITY_OPS'],
+  deviceApprovals: ['DEVICE_APPROVER', 'SECURITY_OPS'],
+  deviceDrivers: [...DEVICE_ROLES],
+  deviceDriverRegister: ['INTEGRATION_TESTER'],
+  deviceDriverCertify: ['DEVICE_APPROVER'],
+  deviceDriverDeprecate: ['DEVICE_APPROVER', 'DEVICE_ADMIN'],
+  deviceDriverRevoke: ['SECURITY_OPS'],
+  deviceCalibration: ['DEVICE_ADMIN', 'BIOMEDICAL', ...CLINICIANS],
+  deviceCalibrationCheck: ['DEVICE_ADMIN', 'BIOMEDICAL', 'OH_CLINICIAN', 'OH_PHYSICIAN', 'AME', 'NURSING_HEAD', 'COLLECTOR'],
+  deviceCalibrationReport: ['DEVICE_ADMIN', 'NURSING_HEAD', 'AUDITOR'],
+  deviceFleet: ['DEVICE_ADMIN', 'SECURITY_OPS', 'NURSING_HEAD', 'PLATFORM_ADMIN'],
+  deviceDiagnostics: ['DEVICE_ADMIN', 'INTEGRATION_TESTER', 'SECURITY_OPS'],
+  deviceGovernance: ['DEVICE_ADMIN', 'DEVICE_APPROVER', 'INTEGRATION_TESTER'],
+  deviceModelRequests: ['DEVICE_ADMIN', 'DEVICE_APPROVER', 'INTEGRATION_TESTER'],
+  deviceModelRequestScope: ['INTEGRATION_TESTER'],
+  deviceNurseReview: ['OH_CLINICIAN', 'NURSING_HEAD'],
+  // Increment 6 – E34 endpoint & integration security (§15). AUDITOR reads events and assurance records.
+  securityEndpoints: ['SECURITY_OPS'],
+  securityControls: ['SECURITY_OPS'],
+  securityEvents: ['SECURITY_OPS', 'AUDITOR'],
+  securityAssurance: ['SECURITY_OPS', 'AUDITOR'],
 } satisfies Record<string, readonly string[]>;
 
 export type Feature = keyof typeof FEATURES;
@@ -317,7 +347,7 @@ export interface NavItem {
   path: string;
   label: string;
   feature: Feature;
-  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic' | 'Absence' | 'Surveillance' | 'Claims' | 'Treatment' | 'Support' | 'Testing' | 'Public health' | 'Promotion';
+  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic' | 'Absence' | 'Surveillance' | 'Claims' | 'Treatment' | 'Support' | 'Testing' | 'Public health' | 'Promotion' | 'Devices' | 'Security';
 }
 
 export const NAV: readonly NavItem[] = [
@@ -431,6 +461,25 @@ export const NAV: readonly NavItem[] = [
   { path: '/promotion/screening', label: 'Screening events', feature: 'screeningEvents', group: 'Promotion' },
   { path: '/ergonomics', label: 'Ergonomics', feature: 'ergonomics', group: 'Promotion' },
   { path: '/promotion/reports', label: 'Campaign reports', feature: 'promotionReports', group: 'Promotion' },
+  // Security operations land on the endpoint inventory, so the E34 group comes first.
+  // Increment 6 – E34 endpoint & integration security
+  { path: '/security/devices', label: 'Endpoints', feature: 'securityEndpoints', group: 'Security' },
+  { path: '/security/devices/alerts', label: 'Alerts & incidents', feature: 'securityEndpoints', group: 'Security' },
+  { path: '/security/devices/events', label: 'Security event log', feature: 'securityEvents', group: 'Security' },
+  { path: '/security/devices/zones', label: 'Zones & conduits', feature: 'securityControls', group: 'Security' },
+  { path: '/security/devices/keys', label: 'Signing keys', feature: 'securityControls', group: 'Security' },
+  { path: '/security/devices/secrets', label: 'Connector secrets', feature: 'securityControls', group: 'Security' },
+  { path: '/security/devices/assurance', label: 'Assurance & go-live', feature: 'securityAssurance', group: 'Security' },
+  // Increment 6 – E32 device console
+  { path: '/devices/approvals', label: 'Approvals (four-eyes)', feature: 'deviceApprovals', group: 'Devices' },
+  { path: '/devices/wizard', label: 'Provisioning', feature: 'deviceWizard', group: 'Devices' },
+  { path: '/devices/catalogue', label: 'Device catalogue', feature: 'deviceCatalogue', group: 'Devices' },
+  { path: '/devices/fleet', label: 'Fleet & alerts', feature: 'deviceFleet', group: 'Devices' },
+  { path: '/devices/calibration', label: 'Calibration & QC', feature: 'deviceCalibration', group: 'Devices' },
+  { path: '/devices/drivers', label: 'Driver registry', feature: 'deviceDrivers', group: 'Devices' },
+  { path: '/devices/governance', label: 'Governance & promotion', feature: 'deviceGovernance', group: 'Devices' },
+  { path: '/devices/model-requests', label: 'Model requests', feature: 'deviceModelRequests', group: 'Devices' },
+  { path: '/devices/test-review', label: 'Device test review', feature: 'deviceNurseReview', group: 'Devices' },
 ];
 
 export function navFor(roles: readonly string[] | undefined): NavItem[] {
@@ -462,5 +511,10 @@ export function featureForRoute(route: string): Feature | undefined {
   if (/^\/cism\/[^/]+$/.test(route)) return 'cismNames';
   if (/^\/communicable\/[^/]+$/.test(route)) return 'communicable';
   if (/^\/exposures\/[^/]+$/.test(route)) return 'exposurePathways';
+  if (/^\/devices\/catalogue\/[^/]+$/.test(route)) return 'deviceCatalogue';
+  if (/^\/devices\/wizard\/[^/]+$/.test(route)) return 'deviceWizard';
+  if (/^\/devices\/fleet\/[^/]+$/.test(route)) return 'deviceFleet';
+  if (/^\/devices\/diagnostics\/[^/]+$/.test(route)) return 'deviceDiagnostics';
+  if (/^\/security\/devices\/endpoints\/[^/]+$/.test(route)) return 'securityEndpoints';
   return undefined;
 }

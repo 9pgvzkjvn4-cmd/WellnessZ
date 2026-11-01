@@ -25,6 +25,14 @@ export interface ProblemDetail {
   field?: string;
   /** `409 code=cds_alert` (contract E03 §4.5): the alerts that need an override reason. Only known string fields are kept. */
   alerts?: ProblemAlert[];
+  /** `422 step_invalid` and similar (contract E31-E34 §13.2): field-level findings `{field, code, message}`. */
+  errors?: ProblemFieldIssue[];
+}
+
+export interface ProblemFieldIssue {
+  field: string;
+  code?: string;
+  message: string;
 }
 
 export interface ProblemAlert {
@@ -92,7 +100,21 @@ export function toProblem(body: unknown, headerCorrelationId?: string | null): P
     correlationId: str(b.correlationId) ?? str(headerCorrelationId ?? undefined),
     ...(str(b.field) ? { field: str(b.field) } : {}),
     ...(Array.isArray(b.alerts) ? { alerts: toAlerts(b.alerts) } : {}),
+    ...(Array.isArray(b.errors) ? { errors: toFieldIssues(b.errors) } : {}),
   };
+}
+
+function toFieldIssues(list: unknown[]): ProblemFieldIssue[] {
+  const out: ProblemFieldIssue[] = [];
+  for (const a of list.slice(0, 100)) {
+    if (!a || typeof a !== 'object') continue;
+    const r = a as Record<string, unknown>;
+    const field = str(r.field);
+    const message = str(r.message);
+    if (!field || !message) continue;
+    out.push({ field, code: str(r.code), message });
+  }
+  return out;
 }
 
 function toAlerts(list: unknown[]): ProblemAlert[] {
