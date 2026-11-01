@@ -1,0 +1,50 @@
+#!/usr/sbin/nft -f
+# =============================================================================
+# WellnessZ clinic gateway - host firewall (SC-02 / SC-03, IEC 62443-3-3 SR 5.1, CIS host-based firewall)
+# Install: /etc/nftables.conf (include) ; systemctl enable --now nftables
+# Default DROP in and out. Allowed:
+#   in : device VLAN -> device listeners (2575 MLLP/TLS, 2576 POCT1-A/TLS, 8097 BLE relay/TLS)
+#        management subnet -> SSH 22 (keys only, see cloud-init sshd drop-in)
+#   out: device ingest LB 443 (mTLS), DNS, NTP, package mirror 443, EDR / log forwarder endpoints
+# Checked by tools/device-security/05_gateway_hardening_linux.sh (firewall: input policy drop) and
+# 01_network_segmentation_check.mjs (probes from the device VLAN).
+# Plain systemd host only: on the k3s variant kube-proxy / flannel own iptables-nft chains - keep
+# the input policy but add the cluster CIDRs (10.42.0.0/16, 10.43.0.0/16) and cni0 as k3s documents.
+# RECIPE ONLY - addresses are placeholders; not loaded on a real host in this repository.
+# =============================================================================
+flush ruleset
+
+define DEVICE_VLAN   = { 10.10.30.0/24 }        # <device VLAN(s) of the site>
+define MGMT_NET      = { 10.10.99.0/27 }        # <jump hosts of the site / IT operations>
+define INGEST_LB     = { 10.200.0.10 }          # <device ingest internal LB of the environment>
+define DNS_SERVERS   = { 10.10.1.53 }
+define NTP_SERVERS   = { 10.10.1.123 }
+define PKG_MIRRORS   = { 10.10.1.80 }           # <apt mirror / proxy>
+define OPS_ENDPOINTS = { 10.10.1.90 }           # <EDR cloud proxy, syslog/SIEM forwarder>
+
+table inet wellnessz {
+  chain input {
+    type filter hook input priority filter; policy drop;
+    ct state established,related accept
+    ct state invalid drop
+    iif "lo" accept
+    ip protocol icmp icmp type { echo-request, destination-unreachable, time-exceeded } limit rate 5/second accept
+    ip saddr $DEVICE_VLAN tcp dport { 2575, 2576, 8097 } ct state new accept
+    ip saddr $MGMT_NET tcp dport 22 ct state new limit rate 10/minute accept
+    limit rate 10/minute log prefix "wz-fw-in-drop " level warn
+  }
+  chain forward {
+    type filter hook forward priority filter; policy drop;
+  }
+  chain output {
+    type filter hook output priority filter; policy drop;
+    ct state established,related accept
+    oif "lo" accept
+    ip daddr $INGEST_LB tcp dport 443 accept
+    ip daddr $DNS_SERVERS meta l4proto { udp, tcp } th dport 53 accept
+    ip daddr $NTP_SERVERS udp dport 123 accept
+    ip daddr $PKG_MIRRORS tcp dport { 80, 443 } accept
+    ip daddr $OPS_ENDPOINTS tcp dport { 443, 6514 } accept
+    limit rate 10/minute log prefix "wz-fw-out-drop " level warn
+  }
+}

@@ -37,13 +37,15 @@ function Datasets({ client, onSessionExpired }: ScreenProps) {
   const action = useAction(onSessionExpired);
   const [count, setCount] = useState<Record<string, string>>({});
   const [runs, setRuns] = useState<SimulatorRun[]>([]);
+  const [device, setDevice] = useState('');
 
   async function run(d: GoldenDataset) {
     const n = Math.max(1, Math.min(500, Number(count[d.datasetId] ?? '1') || 1));
+    const deviceInstanceId = device.trim() || undefined;
     await action.run(async () => {
-      const r = await api.simulate(d.adapter, { datasetId: d.datasetId, count: n });
+      const r = await api.simulate(d.adapter, { datasetId: d.datasetId, count: n, ...(deviceInstanceId ? { deviceInstanceId } : {}) });
       setRuns([r, ...runs].slice(0, 10));
-      return `Sample ${d.datasetId}: ${r.messages} message(s), ${r.accepted} accepted, ${r.duplicates} duplicate(s), ${r.failed} refused.`;
+      return `Sample ${d.datasetId}${deviceInstanceId ? ` as ${deviceInstanceId}` : ''}: ${r.messages} message(s), ${r.accepted} accepted, ${r.duplicates} duplicate(s), ${r.failed} refused.`;
     });
   }
 
@@ -58,6 +60,9 @@ function Datasets({ client, onSessionExpired }: ScreenProps) {
             </select>
           )}
         </Field>
+        <Field label="Feed as device (optional)" hint="Published device instance, e.g. DEV-000003 – a capture session listening on it receives the simulated reading (marked as test traffic)">
+          {(id) => <input id={id} className="mono" maxLength={64} pattern="[A-Za-z0-9._\-]{1,64}" value={device} onChange={(e) => setDevice(e.target.value)} />}
+        </Field>
       </div>
       <ActionFeedback error={action.error} message={action.message} />
       {runs.length > 0 && (
@@ -66,7 +71,7 @@ function Datasets({ client, onSessionExpired }: ScreenProps) {
           <ul className="plain-list">
             {runs.map((r) => (
               <li key={r.runId} className="small">
-                <span className="mono">{r.datasetId}</span> ({r.adapter}) – {r.messages} sent · {r.accepted} accepted · {r.duplicates} duplicate · {r.failed} refused · outcomes {r.statuses.slice(0, 5).map((s) => humanise(s.split(':')[0])).join(', ')}
+                <span className="mono">{r.datasetId}</span> ({r.adapter}{r.deviceInstanceId && r.deviceInstanceId !== r.endpointId ? ` as ${r.deviceInstanceId}` : ''}) – {r.messages} sent · {r.accepted} accepted · {r.duplicates} duplicate · {r.failed} refused · outcomes {r.statuses.slice(0, 5).map((s) => humanise(s.split(':')[0])).join(', ')}
                 {r.statuses.length > 5 ? '…' : ''} · evidence <ShortHash value={r.evidenceSha256} />
               </li>
             ))}

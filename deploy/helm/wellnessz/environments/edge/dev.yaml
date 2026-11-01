@@ -1,0 +1,15 @@
+# =============================================================================
+# EDGE (clinic gateway cluster) - DEV
+# Layer order (later wins):
+#   -f values.yaml -f values-edge-k3s.yaml -f environments/edge/dev.yaml [-f deploy/sites/<site>/values.yaml]
+# Per-site values (device VLAN, ingest LB address, connectors, Secret name) go into a
+# small site file - the same image digest is promoted to every site.
+# =============================================================================
+global:
+  environment: dev
+  requireImageDigests: false
+deviceGateway:
+  coreUrl: https://ingest.dev.wellnessz.example.com
+  networkPolicy:
+    coreCidrs:
+      - 10.202.0.10/32          # <device ingest internal LB of the dev environment>

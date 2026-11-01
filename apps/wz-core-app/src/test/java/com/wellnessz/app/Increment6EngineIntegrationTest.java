@@ -298,6 +298,113 @@ class Increment6EngineIntegrationTest extends IntegrationTestBase {
     // ------------------------------------------------------------------ tests
 
     @Test
+    void simulatorRunAsAPublishedDeviceFeedsTheCaptureSessionAndIsFiledOnlyWhenAccepted() throws Exception {
+        SESSIONS.remove("DEV-T-VIT");
+        String run = "{\"datasetId\":\"vitals/csm-pcd01/normal\",\"deviceInstanceId\":\"DEV-T-VIT\"}";
+        // no capture session listening: the simulated reading stays unassociated – not in a person's record, not in the unmatched queue
+        // (the dataset's own PID-3 E1001 is synthetic identity and never used for test traffic)
+        MvcResult lone = mvc.perform(post("/api/v1/device-engine/simulators/HL7V2/run").with(TESTER).contentType(MediaType.APPLICATION_JSON).content(run))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.deviceInstanceId").value("DEV-T-VIT"))
+                .andExpect(jsonPath("$.endpointId").value("SIM-HL7V2")).andExpect(jsonPath("$.simulated").value(true)).andReturn();
+        UUID loneObs = UUID.fromString(body(lone).get("observationIds").get(0).asString());
+        assertThat(obsStatus(loneObs)).isEqualTo("UNMATCHED");
+        assertThat(jdbc.queryForObject("select employee_id from deviceint.observation where id = ?", String.class, loneObs)).isNull();
+        assertThat(jdbc.queryForObject("select count(*) from deviceint.unmatched_item where observation_id = ?", Integer.class, loneObs)).isZero();
+        assertThat(jdbc.queryForMap("select m.endpoint_id, m.device_instance_id, m.test_traffic from deviceint.message m "
+                + "join deviceint.observation o on o.message_id = m.id where o.id = ?", loneObs))
+                .containsEntry("endpoint_id", "SIM-HL7V2").containsEntry("device_instance_id", "DEV-T-VIT").containsEntry("test_traffic", true);
+
+        // a nurse's capture session listens on the device (employee E1002): the reading arrives as that device in the session
+        session("DEV-T-VIT", "E1002", null);
+        try {
+            MvcResult fed = mvc.perform(post("/api/v1/device-engine/simulators/HL7V2/run").with(TESTER).contentType(MediaType.APPLICATION_JSON)
+                    .content(run)).andExpect(status().isOk()).andReturn();
+            UUID obs = UUID.fromString(body(fed).get("observationIds").get(0).asString());
+            assertThat(obsStatus(obs)).isEqualTo("PENDING_VERIFICATION"); // always verify-before-post, never auto-routed
+            Map<String, Object> row = jdbc.queryForMap("select employee_id, association_method, flags_summary from deviceint.observation where id = ?", obs);
+            assertThat(row).containsEntry("employee_id", "E1002").containsEntry("association_method", "SESSION");
+            assertThat((String) row.get("flags_summary")).contains("SIMULATED:INFO:simulated_test_traffic");
+            DeviceObservationGateway.ObservationPreview preview = gateway.preview(obs).orElseThrow();
+            assertThat(preview.observation().provenance().simulated()).isTrue();
+            assertThat(preview.observation().effectiveAt()).isAfter(Instant.now().minusSeconds(120)); // arrives "now", not at the dataset time
+            assertThat(jdbc.queryForObject("select count(*) from ohrecord.result where device_observation_id = ?", Integer.class, obs)).isZero();
+            assertThat(jdbc.queryForObject("select count(*) from deviceint.fhir_resource where observation_id = ? and resource_type = 'Provenance'",
+                    Integer.class, obs)).isPositive();
+            // the clinician accepts it in the session: only now is it filed – and the record keeps the simulated marking
+            DeviceObservationSink.Delivery d = gateway.accept("nurse1", obs, null, null);
+            assertThat(d.status()).isEqualTo(DeviceObservationSink.Delivery.Status.DELIVERED);
+            assertThat(jdbc.queryForObject("select device_model from ohrecord.result where device_observation_id = ?", String.class, obs))
+                    .startsWith("Simulated – ");
+            assertThat(gateway.preview(obs).orElseThrow().observation().provenance().simulated()).isTrue();
+        } finally {
+            SESSIONS.remove("DEV-T-VIT");
+        }
+        // unknown device, a driver of another adapter, a test-form run combined with a device
+        mvc.perform(post("/api/v1/device-engine/simulators/HL7V2/run").with(TESTER).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"datasetId\":\"vitals/csm-pcd01/normal\",\"deviceInstanceId\":\"DEV-NOPE\"}"))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("device_not_published"));
+        mvc.perform(post("/api/v1/device-engine/simulators/HL7V2/run").with(TESTER).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"datasetId\":\"vitals/csm-pcd01/normal\",\"deviceInstanceId\":\"DEV-T-BLE\"}"))
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("dataset_device_mismatch"));
+        mvc.perform(post("/api/v1/device-engine/simulators/HL7V2/run").with(TESTER).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"datasetId\":\"vitals/csm-pcd01/normal\",\"deviceInstanceId\":\"DEV-T-VIT\",\"targetTestForm\":true}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void operationsViewsAreOpenToIntegrationTestersAndCarryNoPersonData() throws Exception {
+        // a reading with an employee in the pipeline, so that the views have something to (not) show
+        session("DEV-T-VIT", "E1001", null);
+        try {
+            mvc.perform(device("hl7v2", "EP-T-GW", "DEV-T-VIT", key()).contentType("application/hl7-v2").content(golden("vitals/csm-pcd01/normal.hl7")))
+                    .andExpect(status().isOk());
+        } finally {
+            SESSIONS.remove("DEV-T-VIT");
+        }
+        for (String path : List.of("/api/v1/device-engine/ops/connectors", "/api/v1/device-engine/ops/metrics", "/api/v1/device-engine/ops/alerts")) {
+            String text = mvc.perform(get(path).with(TESTER)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            // technical only: ids, states, counts, rates – no employee id, name, badge, date of birth or values
+            assertThat(text).doesNotContain("E1001").doesNotContain("Erin").doesNotContain("employee").doesNotContain("19850412")
+                    .doesNotContain("systolic");
+        }
+        mvc.perform(get("/api/v1/device-engine/ops/connectors").with(NURSE)).andExpect(status().isForbidden());
+        // the tester still has no person-level access
+        mvc.perform(get("/api/v1/device-engine/observations").param("employeeId", "E1001").with(TESTER)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/device-engine/unmatched").with(TESTER)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void observationReadersVerifyTheRawArchiveAndAdminsGetTheProvenanceOnlyView() throws Exception {
+        session("DEV-T-VIT", "E1001", null);
+        UUID obs;
+        try {
+            MvcResult r = mvc.perform(device("hl7v2", "EP-T-GW", "DEV-T-VIT", key()).contentType("application/hl7-v2")
+                    .content(golden("vitals/csm-pcd01/normal.hl7"))).andExpect(status().isOk()).andReturn();
+            obs = UUID.fromString(jdbc.queryForObject("select o.id::text from deviceint.observation o join deviceint.message m on m.id = o.message_id "
+                    + "where m.idempotency_key = ?", String.class, r.getRequest().getHeader("Idempotency-Key")));
+        } finally {
+            SESSIONS.remove("DEV-T-VIT");
+        }
+        JsonNode view = json.readTree(mvc.perform(get("/api/v1/device-engine/observations/" + obs).with(NURSE)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        String raw = view.path("rawArchiveId").asString();
+        assertThat(raw).isNotBlank();
+        mvc.perform(get("/api/v1/device-engine/observations/" + obs + "/archive/verify").with(NURSE)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.intact").value(true));
+        // an archive that does not belong to the observation is not reachable through it
+        mvc.perform(get("/api/v1/device-engine/observations/" + obs + "/archive/verify").param("archiveId", UUID.randomUUID().toString()).with(NURSE))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/device-engine/observations/" + obs + "/archive/verify").with(TESTER)).andExpect(status().isForbidden());
+        // DEVICE_ADMIN: provenance only (no employee, no values), then the archive check by id
+        String prov = mvc.perform(get("/api/v1/device-engine/observations/" + obs + "/provenance").with(ADMIN)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.rawArchiveId").value(raw)).andReturn().getResponse().getContentAsString();
+        assertThat(prov).doesNotContain("E1001").doesNotContain("employeeId").doesNotContain("components").doesNotContain("systolic");
+        mvc.perform(get("/api/v1/device-engine/archive/" + raw + "/verify").with(ADMIN)).andExpect(status().isOk()).andExpect(jsonPath("$.intact").value(true));
+        mvc.perform(get("/api/v1/device-engine/observations/" + obs + "/provenance").with(NURSE)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/device-engine/observations/" + obs).with(ADMIN)).andExpect(status().isForbidden());
+    }
+
+    @Test
     void hl7Pcd01AckIdempotencyVerificationAndRoutingIntoE03() throws Exception {
         byte[] hl7 = golden("vitals/csm-pcd01/normal.hl7");
         mvc.perform(post("/api/v1/device-ingest/hl7v2").header("X-Device-Endpoint", "EP-T-GW").header("Authorization", "DeviceToken tok-EP-T-GW")

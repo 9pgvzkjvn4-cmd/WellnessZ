@@ -27,13 +27,13 @@
     ]
   },
 
-  "gateway": { "serviceName": "wz-device-gateway", "managementPort": 8091, "edrService": "falcon-sensor", "queueDir": "/var/lib/wz-device-gateway/queue", "plaintextMllpException": false },
+  "gateway": { "serviceName": "wellnessz-gateway", "managementPort": 8095, "edrService": "falcon-sensor", "queueDir": "/var/lib/wellnessz-gateway/queue", "plaintextMllpException": false },
   "deviceHost": { "serviceName": "WellnessZDeviceHost" },
-  "ble": { "configFile": "/etc/wz-device-gateway/gateway-config.json", "checkBondedDevices": true, "approvedBondedCount": 4 },
+  "ble": { "checkBondedDevices": true, "approvedBondedCount": 4 },
   "backup": { "encrypted": true },
   "zap": { "openapiUrl": "https://core.staging.wellnessz.local/v3/api-docs", "failOn": "FAIL" },
   "deviceAdminPages": [ { "name": "audiometer-vendor-pc", "url": "http://10.10.30.21/admin", "username": "admin", "passwords": ["admin", "1234", "service"] } ],
-  "logFiles": [ "/var/log/wellnessz/core.log", "/var/log/wz-device-gateway/gateway.log" ],
+  "logFiles": [ "/var/log/wellnessz/core.log", "./evidence-input/gateway-journal.log" ],
   "rateLimit": { "bearer": "env:WZ_PACK_NURSE_TOKEN", "path": "/me", "requests": 800 },
   "isolationSlaMinutes": 15,
   "certExpiryWarningDays": 30,

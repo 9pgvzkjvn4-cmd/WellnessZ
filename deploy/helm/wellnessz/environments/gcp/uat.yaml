@@ -147,6 +147,20 @@ networkPolicy:
     cidrs:
       - 10.56.64.0/20          # terraform (uat.tfvars): psa_range
 
+# Increment 6 device ingest: mTLS host for gateways / agents / data managers, webhook host for vendor
+# clouds. Served by the dedicated ingress-nginx controller (IngressClass nginx-device) - see
+# deploy/device-ingress/README.md. Token pepper + trust anchors: secrets.device.files (Secret Manager).
+deviceIngest:
+  enabled: true
+  host: ingest.uat.wellnessz.example.com
+  mtls:
+    caSecret: wellnessz/wellnessz-device-pki-ca   # ca.crt (+ ca.crl) of the group-PKI issuing CA(s)
+  sourceRanges:
+    - 10.201.0.0/16          # <site gateway-zone supernet over VPN / ExpressRoute / Interconnect> (E34 zone_cidr rows)
+  webhooks:
+    host: webhooks.uat.wellnessz.example.com
+    sourceRanges: []          # vendor-cloud egress ranges from the vendor contract; empty = any (HMAC still required)
+
 observability:
   logLevel: INFO
   rootLogLevel: INFO

@@ -1,7 +1,7 @@
 WellnessZ {{ .Chart.AppVersion }} deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
 
 Components:
-{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" "ohWorkspace" "partnerPortal" }}
+{{- range $key := list "core" "bff" "employeePortal" "managerWorkspace" "ohWorkspace" "partnerPortal" "deviceGateway" }}
 {{- $c := index $.Values $key }}
   - {{ $c.name }}: {{ ternary "enabled" "disabled" $c.enabled }}
 {{- end }}
@@ -20,6 +20,15 @@ Endpoints:
 {{- if and .Values.ingress.api.enabled .Values.core.enabled }}
   https://{{ .Values.ingress.api.host }}/api/v1
 {{- end }}
+{{- end }}
+{{- if .Values.deviceIngest.enabled }}
+
+Device ingest (mTLS, IngressClass {{ .Values.deviceIngest.className }}):
+  https://{{ .Values.deviceIngest.host }}{{ .Values.deviceIngest.paths.ingest }}  (+ {{ .Values.deviceIngest.paths.enrolment }})
+{{- with .Values.deviceIngest.webhooks.host }}
+  https://{{ . }}{{ $.Values.deviceIngest.paths.webhooks }}  (vendor webhooks, HMAC, no client certificate)
+{{- end }}
+  Prerequisites: deploy/device-ingress/README.md (dedicated controller, CA secret {{ .Values.deviceIngest.mtls.caSecret }}).
 {{- end }}
 {{- if eq .Values.secrets.provider "none" }}
 

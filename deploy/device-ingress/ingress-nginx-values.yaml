@@ -1,0 +1,94 @@
+# =============================================================================
+# Dedicated ingress-nginx controller for the WellnessZ DEVICE INGEST (increment 6).
+# Values for the upstream chart (https://kubernetes.github.io/ingress-nginx, chart 4.x):
+#   helm upgrade --install ingress-nginx-device ingress-nginx/ingress-nginx \
+#     -n ingress-nginx-device --create-namespace -f deploy/device-ingress/ingress-nginx-values.yaml \
+#     [-f <platform patch: AKS / GKE / on-prem LB annotations below>]
+# Why a separate instance: the device ingest needs (a) client-certificate verification against the
+# group-PKI CA, (b) a Lua snippet to pass the SHA-256 thumbprint (nginx only exposes SHA-1) and
+# (c) strict forwarding-header handling. Snippets stay DISABLED on the public / web controller;
+# they are enabled only here, for one IngressClass that only the WellnessZ chart may use
+# (restrict-device-ingressclass.yaml).
+# NOTE: the community ingress-nginx project was retired in March 2026 (see values.yaml of the chart).
+# Pin the last release your platform team supports, mirror the image by digest, and plan the move to
+# a maintained NGINX-based controller that offers the same three capabilities (README section 5).
+# Rendered / validated here: chart values syntax only - NOT installed in a cluster from this repository.
+# =============================================================================
+controller:
+  replicaCount: 2
+  ingressClass: nginx-device
+  ingressClassResource:
+    name: nginx-device
+    enabled: true
+    default: false
+    controllerValue: k8s.io/ingress-nginx-device
+  watchIngressWithoutClass: false
+  # Watch only the WellnessZ namespace (Ingresses + the CA / TLS secrets live there)
+  scope:
+    enabled: true
+    namespace: wellnessz
+  # Required by the chart-authored configuration-snippet (thumbprint + header hygiene)
+  allowSnippetAnnotations: true
+  config:
+    annotations-risk-level: Critical
+    # --- forwarding headers: the core trusts X-Forwarded-For (left-most) for the zone CIDR check ---
+    use-forwarded-headers: "false"          # never take client X-Forwarded-* / real IP from the request
+    compute-full-forwarded-for: "false"     # X-Forwarded-For = TCP peer only
+    enable-real-ip: "false"
+    use-proxy-protocol: "false"             # true only behind an L4 LB that SNATs and speaks PROXY v2
+    # --- TLS ---
+    ssl-protocols: "TLSv1.2 TLSv1.3"
+    ssl-ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305"
+    ssl-prefer-server-ciphers: "true"
+    ssl-session-tickets: "false"
+    hsts: "true"
+    hsts-include-subdomains: "true"
+    # --- hygiene ---
+    server-tokens: "false"
+    hide-headers: "Server,X-Powered-By"
+    strict-validate-path-type: "true"
+    allow-backend-server-header: "false"
+    # Access log without query strings / bodies (no PHI); subject DN carries the endpoint id only
+    log-format-escape-json: "true"
+    log-format-upstream: '{"time":"$time_iso8601","remote_addr":"$remote_addr","host":"$host","method":"$request_method","path":"$uri","status":$status,"bytes":$body_bytes_sent,"request_time":$request_time,"upstream_status":"$upstream_status","ssl_protocol":"$ssl_protocol","client_verify":"$ssl_client_verify","client_s_dn":"$ssl_client_s_dn","request_id":"$req_id"}'
+    proxy-body-size: "64m"
+  service:
+    type: LoadBalancer
+    # Preserve the client (gateway) source address: required for whitelist-source-range and the core zone check
+    externalTrafficPolicy: Local
+    # Gateway-zone supernets of the sites (+ vendor-cloud egress ranges if the webhook host shares this LB)
+    loadBalancerSourceRanges: []
+    annotations: {}
+    # --- platform patch (pick one) ---
+    # AKS internal LB:     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    #                      service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "<device-ingest-subnet>"
+    # GKE internal LB:     networking.gke.io/load-balancer-type: "Internal"
+    # on-prem (MetalLB):   metallb.universe.tf/address-pool: device-ingest
+  # Optional second, PUBLIC LB for the vendor webhook host only (deviceIngest.webhooks.host):
+  # external:
+  #   enabled: true
+  # internal:
+  #   enabled: true
+  #   annotations: { service.beta.kubernetes.io/azure-load-balancer-internal: "true" }
+  admissionWebhooks:
+    enabled: true
+  metrics:
+    enabled: true
+  networkPolicy:
+    enabled: true
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 512Mi }
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: ingress-nginx
+          app.kubernetes.io/instance: ingress-nginx-device
+defaultBackend:
+  enabled: false

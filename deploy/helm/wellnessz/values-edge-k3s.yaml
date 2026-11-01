@@ -1,0 +1,104 @@
+# =============================================================================
+# Clinic EDGE cluster - device gateway only (k3s / MicroK8s on the hardened
+# gateway host built with deploy/edge/). No core, BFF, web apps or ingress here:
+# the gateway terminates device protocols (HL7 MLLP/TLS, POCT1-A/TLS, BLE relay)
+# on the device VLAN and forwards over HTTPS mTLS to the device ingest host
+# (deviceIngest.host of the core environment).
+#   helm upgrade --install wz-edge deploy/helm/wellnessz -n wellnessz-edge \
+#     -f values.yaml -f values-edge-k3s.yaml -f environments/edge/<env>.yaml \
+#     --set-string deviceGateway.image.digest=sha256:...
+# Secrets: one pre-created Secret per site (sealed-secrets / external-secrets /
+# vault agent - never in values), see deviceGateway.secrets in values.yaml and
+# deploy/edge/README.md. The single-node alternative without Kubernetes is the
+# systemd unit apps/wz-device-gateway/service/linux/wellnessz-gateway.service.
+# =============================================================================
+global:
+  imageRegistry: registry.site.example.internal/wellnessz   # site pull-through mirror of the release registry
+  environment: prod
+  springProfiles: prod
+
+secrets:
+  provider: none
+
+migrations:
+  mode: app   # no-op: core is not deployed here
+
+topologySpread:
+  enabled: false   # single node
+
+core:
+  enabled: false
+bff:
+  enabled: false
+employeePortal:
+  enabled: false
+managerWorkspace:
+  enabled: false
+ohWorkspace:
+  enabled: false
+partnerPortal:
+  enabled: false
+
+ingress:
+  enabled: false
+deviceIngest:
+  enabled: false
+
+deviceGateway:
+  enabled: true
+  role: GATEWAY
+  coreUrl: https://ingest.wellnessz.example.com
+  listeners:
+    - { name: mllp-tls, port: 2575 }
+    - { name: poct-tls, port: 2576 }
+  service:
+    type: LoadBalancer          # k3s ServiceLB (klipper-lb) binds the node's device-VLAN address
+    externalTrafficPolicy: Local
+    loadBalancerSourceRanges:
+      - 10.10.30.0/24           # <device VLAN of the site>
+  persistence:
+    size: 4Gi
+    storageClassName: local-path   # k3s default; the node's /var/lib/rancher sits on the LUKS volume (deploy/edge)
+  secrets:
+    existingSecret: wellnessz-gateway-secrets
+    truststore: truststore.p12
+    truststorePassword: truststore-password
+  # Connectors of this site (README of apps/wz-device-gateway). Listener key stores live in the same Secret.
+  config: |
+    wz:
+      gateway:
+        heartbeat:
+          baseline: CIS-L1
+        mllp:
+          - id: mllp-vitals
+            device-instance-id: DI-SITE-VITALS-01
+            bind-address: 0.0.0.0
+            port: 2575
+            tls: { enabled: true, key-store: /etc/wellnessz/gateway/secrets/listener.p12, key-store-password: "file:/etc/wellnessz/gateway/secrets/listener-password", require-client-certificate: false }
+            sending-applications: []
+        poct:
+          - id: poct-dm
+            device-instance-id: DI-SITE-POCT-01
+            bind-address: 0.0.0.0
+            port: 2576
+            tls: { enabled: true, key-store: /etc/wellnessz/gateway/secrets/listener.p12, key-store-password: "file:/etc/wellnessz/gateway/secrets/listener-password" }
+  networkPolicy:
+    deviceCidrs:
+      - 10.10.30.0/24           # <device VLAN of the site> (E34 zone DEVICE_VLAN)
+    coreCidrs:
+      - 10.200.0.10/32          # <device ingest internal LB address reached over the site VPN>
+    extraEgress: []
+    # e.g. vendor database poller / serial-over-TCP terminal server on the clinic LAN:
+    # - to: [{ ipBlock: { cidr: 10.10.40.15/32 } }]
+    #   ports: [{ protocol: TCP, port: 1433 }]
+
+networkPolicy:
+  enabled: true
+  defaultDenyNamespace: true
+  # k3s CoreDNS carries k8s-app=kube-dns in kube-system (chart defaults)
+  monitoring:
+    enabled: false
+  database:
+    cidrs: []
+  https:
+    cidrs: []   # the gateway uses deviceGateway.networkPolicy.coreCidrs only

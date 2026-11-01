@@ -146,7 +146,7 @@ jobs:
             echo "digests=" >> "$GITHUB_OUTPUT"; echo "release registry ${REGISTRY}: digests resolved per stage"; exit 0
           fi
           : > digests.txt
-          for img in wz-core-app wz-bff employee-app manager-workspace oh-workspace partner-portal; do
+          for img in wz-core-app wz-bff wz-device-gateway employee-app manager-workspace oh-workspace partner-portal; do
             d=$(docker buildx imagetools inspect "${REGISTRY}/${img}:${SOURCE_TAG}" --format '{{json .Manifest}}' | jq -r .digest)
             [[ "$d" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo "::error::${img}:${SOURCE_TAG} not found - was the commit built on main?"; exit 1; }
             cosign verify "${REGISTRY}/${img}@${d}" \

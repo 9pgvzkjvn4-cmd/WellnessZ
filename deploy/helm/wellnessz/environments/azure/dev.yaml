@@ -150,6 +150,19 @@ networkPolicy:
     cidrs:
       - 10.48.3.0/24          # terraform (dev.tfvars): subnet_cidrs.postgres
 
+# Increment 6 device ingest: mTLS host for gateways / agents / data managers, webhook host for vendor
+# clouds. Served by the dedicated ingress-nginx controller (IngressClass nginx-device) - see
+# deploy/device-ingress/README.md. Token pepper + trust anchors: secrets.device.files (Key Vault).
+deviceIngest:
+  enabled: true
+  host: ingest.dev.wellnessz.example.com
+  mtls:
+    caSecret: wellnessz/wellnessz-device-pki-ca   # ca.crt (+ ca.crl) of the group-PKI issuing CA(s)
+  sourceRanges: []                # DEV: any source (core still checks the endpoint's zone CIDRs)
+  webhooks:
+    host: webhooks.dev.wellnessz.example.com
+    sourceRanges: []          # vendor-cloud egress ranges from the vendor contract; empty = any (HMAC still required)
+
 observability:
   logLevel: DEBUG
   rootLogLevel: INFO

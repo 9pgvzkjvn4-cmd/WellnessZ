@@ -1,0 +1,166 @@
+# =============================================================================
+# Device security test pack (E34-HLR-11 / E34-BL-010 / E34-BL-011) against STAGING.
+#   tools/device-security/run-all.sh --authorised --targets <file> --out <dir> [--submit]
+# Runs on manual dispatch and quarterly (2nd day of Jan / Apr / Jul / Oct). The pack's
+# --authorised flag (rules of engagement: defensive checks of our own systems only,
+# docs/increment-06/device-security/test-plan.md) is passed ONLY inside this job, which is
+# bound to the protected GitHub Environment `device-security-staging`:
+#   * Required reviewers: CISO / Security Operations (prevent self-review). Every run,
+#     including the scheduled one, waits for that approval - the approver confirms the
+#     test window with the Cyber team and refreshes the short-lived token secrets.
+#   * Deployment branches: main only.
+#   * Secrets (environment-scoped, never repository-wide):
+#       DEVICE_PACK_TARGETS_JSON      targets file (tools/device-security/targets.example.json shape,
+#                                     "environment": "staging"; secrets only as env:NAME references)
+#       WZ_PACK_SECOPS_TOKEN, WZ_PACK_AUDITOR_TOKEN, WZ_PACK_TESTER_TOKEN,
+#       WZ_PACK_DEVICE_ADMIN_TOKEN, WZ_PACK_NURSE_TOKEN   bearer tokens of the staging test identities
+#       WZ_PACK_ENDPOINT_TOKEN, WZ_PACK_ENDPOINT_THUMBPRINT  pack endpoint identity (staging)
+#       DEVICE_PACK_CLIENT_CERT_PEM, DEVICE_PACK_CLIENT_KEY_PEM  group-PKI test client certificate
+#       WZ_PACK_PSQL_URL              optional read-only DB role for check 10
+#   * Variables: DEVICE_PACK_RUNNER (optional self-hosted runner label INSIDE the staging
+#     gateway zone - segmentation (01), MLLP (03), hardening (05/06) and queue (10) checks
+#     need it; on a GitHub-hosted runner they report NOT_RUN / FAIL), DEVICE_PACK_SUBMIT
+#     ("true" = record the run in /device-security/test-pack/runs on scheduled runs).
+# Evidence: every script's JSON + .sha256, the consolidated report, ZAP reports and a
+# SHA256SUMS manifest are uploaded as one artefact (retention 400 days where the
+# repository allows it; otherwise GitHub caps it - --submit archives the run in the core).
+# =============================================================================
+name: Device security pack
+
+# checkov:skip=CKV_GHA_7: builds nothing; the only input is a boolean that toggles recording the run (--submit), passed via env and gated by environment reviewers
+on:
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: Record the run in the core (/device-security/test-pack/runs, --submit)
+        type: boolean
+        default: true
+  schedule:
+    - cron: "41 4 2 1,4,7,10 *" # quarterly, 04:41 UTC on the 2nd of Jan / Apr / Jul / Oct
+
+permissions:
+  contents: read
+
+concurrency:
+  group: device-security-pack
+  cancel-in-progress: false
+
+jobs:
+  pack:
+    name: Device security pack (staging, authorised)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ vars.DEVICE_PACK_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 120
+    environment:
+      name: device-security-staging
+    permissions:
+      contents: read
+    env:
+      OUT: ${{ github.workspace }}/device-security-evidence
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      - name: Prepare targets file (staging only)
+        env:
+          TARGETS_JSON: ${{ secrets.DEVICE_PACK_TARGETS_JSON }}
+          CLIENT_CERT_PEM: ${{ secrets.DEVICE_PACK_CLIENT_CERT_PEM }}
+          CLIENT_KEY_PEM: ${{ secrets.DEVICE_PACK_CLIENT_KEY_PEM }}
+        run: |
+          set -euo pipefail
+          umask 077
+          dir="$RUNNER_TEMP/pack"
+          mkdir -p "$dir" "$OUT"
+          [ -n "$TARGETS_JSON" ] || { echo "::error::DEVICE_PACK_TARGETS_JSON is not set in environment device-security-staging"; exit 1; }
+          printf '%s' "$TARGETS_JSON" > "$dir/targets.json"
+          if [ -n "$CLIENT_CERT_PEM" ] && [ -n "$CLIENT_KEY_PEM" ]; then
+            printf '%s\n' "$CLIENT_CERT_PEM" > "$dir/pack.pem"
+            printf '%s\n' "$CLIENT_KEY_PEM" > "$dir/pack.key"
+          fi
+          # Refuse anything but staging; point file paths at this checkout / the temp files.
+          node - "$dir" "$GITHUB_WORKSPACE" <<'NODE'
+          const fs = require('fs');
+          const [dir, ws] = process.argv.slice(2);
+          const f = `${dir}/targets.json`;
+          const t = JSON.parse(fs.readFileSync(f, 'utf8'));
+          if (t.environment !== 'staging') { console.error(`::error::targets.environment must be "staging" (got "${t.environment}")`); process.exit(1); }
+          const hosts = JSON.stringify([t.apiBase, t.tlsTargets, t.mtlsTargets, t.zap]);
+          if (/(^|[^a-z])(prod|production)([^a-z]|$)/i.test(hosts)) { console.error('::error::targets mention a production host - refusing'); process.exit(1); }
+          t.repoRoot = ws;
+          if (fs.existsSync(`${dir}/pack.pem`)) t.devCa = { clientCert: `${dir}/pack.pem`, clientKey: `${dir}/pack.key` };
+          fs.writeFileSync(f, JSON.stringify(t, null, 2));
+          console.log(`targets: environment=${t.environment} apiBase=${t.apiBase}`);
+          NODE
+
+      - name: Run the pack (--authorised)
+        id: pack
+        env:
+          WZ_PACK_SECOPS_TOKEN: ${{ secrets.WZ_PACK_SECOPS_TOKEN }}
+          WZ_PACK_AUDITOR_TOKEN: ${{ secrets.WZ_PACK_AUDITOR_TOKEN }}
+          WZ_PACK_TESTER_TOKEN: ${{ secrets.WZ_PACK_TESTER_TOKEN }}
+          WZ_PACK_DEVICE_ADMIN_TOKEN: ${{ secrets.WZ_PACK_DEVICE_ADMIN_TOKEN }}
+          WZ_PACK_NURSE_TOKEN: ${{ secrets.WZ_PACK_NURSE_TOKEN }}
+          WZ_PACK_ENDPOINT_TOKEN: ${{ secrets.WZ_PACK_ENDPOINT_TOKEN }}
+          WZ_PACK_ENDPOINT_THUMBPRINT: ${{ secrets.WZ_PACK_ENDPOINT_THUMBPRINT }}
+          WZ_PACK_PSQL_URL: ${{ secrets.WZ_PACK_PSQL_URL }}
+          SUBMIT_INPUT: ${{ inputs.submit }}
+          SUBMIT_VAR: ${{ vars.DEVICE_PACK_SUBMIT }}
+        run: |
+          set -uo pipefail
+          submit=""
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$SUBMIT_INPUT" = true ]; then submit="--submit"; fi
+          if [ "$GITHUB_EVENT_NAME" = schedule ] && [ "${SUBMIT_VAR:-false}" = true ]; then submit="--submit"; fi
+          rc=0
+          bash tools/device-security/run-all.sh --authorised --targets "$RUNNER_TEMP/pack/targets.json" --out "$OUT" $submit || rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          echo "pack exit code: $rc (0 = PASS / NOT_RUN only, 1 = at least one FAIL, 2 = refused)"
+
+      - name: Evidence manifest (SHA-256)
+        if: always()
+        run: |
+          set -euo pipefail
+          cd "$OUT" 2>/dev/null || { echo "no evidence directory"; exit 0; }
+          # verify each script's own .sha256, then hash everything into one manifest
+          for s in *.sha256; do [ -e "$s" ] && sha256sum -c "$s"; done
+          manifest="$RUNNER_TEMP/SHA256SUMS"
+          find . -maxdepth 1 -type f -printf '%f\n' | sort | xargs -r sha256sum > "$manifest"
+          mv "$manifest" SHA256SUMS
+          {
+            echo "### Device security pack (staging) - run ${GITHUB_RUN_ID}"
+            echo '| Script | Outcome |'
+            echo '|---|---|'
+            for j in [0-9][0-9]*.json; do
+              [ -e "$j" ] || continue
+              # shellcheck disable=SC2016 # JavaScript template literal, not a shell expansion
+              node -e 'const j=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));console.log(`| ${j.script ?? process.argv[1]} | ${j.outcome ?? "-"} |`)' "$j" || true
+            done
+            echo
+            echo "Evidence manifest SHA-256: \`$(sha256sum SHA256SUMS | awk '{print $1}')\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evidence (JSON + SHA-256)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: device-security-evidence-${{ github.run_id }}
+          path: |
+            device-security-evidence/*.json
+            device-security-evidence/*.sha256
+            device-security-evidence/SHA256SUMS
+            device-security-evidence/*.html
+            device-security-evidence/*.md
+          if-no-files-found: warn
+          retention-days: 400
+
+      - name: Fail on pack failures
+        if: steps.pack.outputs.rc != '0'
+        env:
+          RC: ${{ steps.pack.outputs.rc }}
+        run: |
+          echo "::error::device security pack reported FAIL (exit $RC) - see the evidence artefact"
+          exit 1

@@ -248,10 +248,12 @@ the CSI driver picks up the new file (Azure rotation every 2 min).
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `ci.yml` | PR, push `main` | Java 21 `./mvnw verify` (JaCoCo, Surefire reports, CycloneDX SBOM) + SpotBugs/FindSecBugs (`-Psecurity`); web lint/test/build/`npm audit`/CycloneDX for the four apps (incl. `partner-portal`, increment 4); gitleaks (full history); OWASP dependency-check (fail CVSS ≥ 7, `NVD_API_KEY`, SARIF to code scanning); dependency review on PRs; Helm lint/template, `terraform fmt`, Trivy IaC scan |
+| `ci.yml` | PR, push `main` | Java 21 `./mvnw verify` (JaCoCo, Surefire reports, CycloneDX SBOM) + SpotBugs/FindSecBugs (`-Psecurity`); web lint/test/build/`npm audit`/CycloneDX for the four apps (incl. `partner-portal`, increment 4); gitleaks (full history); OWASP dependency-check (fail CVSS ≥ 7, `NVD_API_KEY`, SARIF to code scanning); dependency review on PRs; Helm lint/template (incl. the edge overlays), kubeconform, `terraform fmt`, Trivy IaC scan; job *Device gateway build & test* (`apps/wz-device-gateway` verify + SpotBugs, `Dockerfile.gateway` build check) |
 | `codeql.yml` | PR, push, weekly | CodeQL `java-kotlin` + `javascript-typescript`, `security-extended` |
-| `container.yml` | push `main`, dispatch, `workflow_call` (built once per commit, tag `sha-<12>`; release tags are not rebuilt) | Build 6 images (incl. `oh-workspace` and `partner-portal`) → Trivy gate (CRITICAL/HIGH, fixed) → push to GHCR / ACR / Artifact Registry (OIDC) → SBOM + SLSA provenance attestations → cosign keyless signature → Binary Authorization attestation (GAR) |
+| `container.yml` | push `main`, dispatch, `workflow_call` (built once per commit, tag `sha-<12>`; release tags are not rebuilt) | Build 7 images (incl. `oh-workspace`, `partner-portal` and the increment-6 edge gateway `wz-device-gateway`) → Trivy gate (CRITICAL/HIGH, fixed) → push to GHCR / ACR / Artifact Registry (OIDC) → SBOM + SLSA provenance attestations → cosign keyless signature → Binary Authorization attestation (GAR) |
 | `cd.yml` (+ `deploy-env.yml`) | `container.yml` done on `main`, tag `v*`, dispatch | DEV → UAT → PROD per cloud through GitHub Environments `azure-dev/uat/prod`, `gcp-dev/uat/prod`; the same signed digests promoted (cosign verify + digest-preserving `cosign copy`), Helm overlays `environments/<cloud>/<env>.yaml`, `helm upgrade --install --atomic`, smoke tests, automatic `helm rollback`; `deploy-env.yml` can also be dispatched for one cloud + environment. See [`environments/README.md`](environments/README.md) |
+| `device-security-pack.yml` | dispatch, quarterly | Device security test pack (`tools/device-security/run-all.sh --authorised`) against staging, only inside the protected Environment `device-security-staging`; JSON evidence + `.sha256` + `SHA256SUMS` uploaded as artefact (E34-BL-010 / -011) |
+| `dast.yml` | dispatch, weekly | OWASP ZAP baseline (passive, Docker) against staging URLs via the protected Environment `dast-staging`; report only ([DAST doc](../docs/security/DAST-ZAP-Baseline.md)) |
 
 All actions are pinned to full commit SHAs (version in comment), every workflow
 and job declares least-privilege `permissions`, checkouts use
@@ -264,6 +266,9 @@ and job declares least-privilege `permissions`, checkouts use
   required checks (`CI`, `CodeQL`), signed commits, linear history, no force push.
 * Environments `azure-dev`, `azure-uat`, `azure-prod`, `gcp-dev`, `gcp-uat`,
   `gcp-prod` with the variables listed at the top of `deploy-env.yml`;
+  `device-security-staging` and `dast-staging` (required reviewers CISO /
+  Security Operations, branch `main`; secrets / variables listed at the top of
+  `device-security-pack.yml` and `dast.yml`);
   **required reviewers** on `*-uat` and `*-prod` (prod: CAB/security group),
   deployment branch rule `v*` tags for uat/prod, optional wait timer
   (see [`environments/README.md`](environments/README.md)).

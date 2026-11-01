@@ -76,7 +76,7 @@ CHART=deploy/helm/wellnessz CLOUD=azure ENV=uat
 helm upgrade --install wellnessz $CHART -n wellnessz \
   -f $CHART/values.yaml -f $CHART/values-$CLOUD.yaml -f $CHART/environments/$CLOUD/$ENV.yaml \
   [-f deploy/clients/<client>/values.yaml] \
-  --set-string core.image.digest=sha256:... --set-string bff.image.digest=sha256:... # (all six components)
+  --set-string core.image.digest=sha256:... --set-string bff.image.digest=sha256:... # (all seven components incl. deviceGateway)
 ```
 
 Replace the `<…>` placeholders in the overlay with that environment's
@@ -86,7 +86,7 @@ Replace the `<…>` placeholders in the overlay with that environment's
 ## Promotion flow (GitHub Actions)
 
 ```
-push main ──► container.yml: build 6 images once, Trivy gate, SBOM/SLSA, cosign sign (sha-<12>)
+push main ──► container.yml: build 7 images once, Trivy gate, SBOM/SLSA, cosign sign (sha-<12>)
                  │
                  ▼ (workflow_run)
 cd.yml ──► resolve digests once + verify signatures ──► azure-dev / gcp-dev (automatic)
@@ -125,6 +125,27 @@ Every stage (`deploy-env.yml`):
 * Repository variables: `DEPLOY_CLOUDS` (`["azure"]`, `["gcp"]` or
   `["azure","gcp"]`), `RELEASE_REGISTRY` (default `ghcr.io/<owner>/wellnessz`),
   optional `DEPLOY_RUNNER`.
+
+## Increment 6: device ingest and clinic edge
+
+* **Device ingest (core clusters).** `environments/<cloud>/<env>.yaml` enable `deviceIngest`: an mTLS host
+  (`ingest.<env>.<domain>`) for gateways / agents / data managers and a webhook host for vendor clouds, served by a
+  dedicated ingress-nginx controller (IngressClass `nginx-device`, internal LB in the gateway zone). The controller sets
+  `X-Client-Cert-Sha256` from the verified client certificate, overwrites `X-Forwarded-For` and strips client-supplied
+  certificate / forwarding headers. Prerequisites (controller values, admission policy, CA secret
+  `wellnessz/wellnessz-device-pki-ca`, AGIC / GKE differences): [`../device-ingress/README.md`](../device-ingress/README.md).
+* **Secrets.** `secrets.device.files` adds `WZ_DEVICE_TOKEN_PEPPER` (`file:` reference) and `WZ_DEVICE_TRUST_ANCHORS`
+  (PEM path) to core through the same CSI / Vault mechanism (Key Vault / Secret Manager names `wz-device-token-pepper`,
+  `wz-device-trust-anchors`, created by Terraform with placeholders; Vault `kv/data/wellnessz/<env>/core#…`). Replace
+  both before enabling the device ingest; the pepper placeholder is deliberately too short so core refuses to start.
+* **Public API host.** `/api/v1/device-*` is denied on the public hosts: chart Ingress `<release>-api-device-deny`
+  (nginx classes) and the WAF rules `BlockDevicePathsOnPublicApi` (App Gateway) / priority 900 (Cloud Armor).
+* **Clinic edge (k3s).** `values-edge-k3s.yaml` + `environments/edge/<env>.yaml` deploy only the `deviceGateway`
+  component (one replica, persistent encrypted journal, device-zone NetworkPolicy). The image `wz-device-gateway` is
+  built, signed and promoted with the others; `helm-release.sh` pins it as `deviceGateway.image.digest` (ignored where
+  the component is disabled). Hardened host recipe: [`../edge/README.md`](../edge/README.md).
+* Releases built before the gateway image existed cannot be promoted with the current `cd.yml` / `deploy-env.yml`
+  (the digest set requires `wz-device-gateway`); roll back such releases with `helm rollback`.
 
 ## Client customisation
 
@@ -168,4 +189,5 @@ done; done
 actionlint
 ```
 
-`ci.yml` (job *IaC & config checks*) lints and renders every cloud/environment overlay.
+`ci.yml` (job *IaC & config checks*) lints and renders every cloud/environment overlay and the edge overlays, and
+runs kubeconform on the rendered manifests.

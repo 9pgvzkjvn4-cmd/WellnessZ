@@ -74,6 +74,58 @@ jobs:
           retention-days: 90
 
   # ---------------------------------------------------------------------------
+  # Increment 6 edge gateway (apps/wz-device-gateway): its own module build + tests + SpotBugs/FindSecBugs and a
+  # container build of Dockerfile.gateway on every PR (container.yml builds, scans and signs it on main).
+  gateway:
+    name: Device gateway build & test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Maven verify (gateway + required platform modules; GatewayIntegrationTest included)
+        run: |
+          if [ -x ./mvnw ]; then MVN=./mvnw; else MVN=mvn; fi
+          $MVN -pl apps/wz-device-gateway -am verify
+
+      - name: SAST – SpotBugs + FindSecBugs on the gateway (fails on any finding)
+        run: |
+          if [ -x ./mvnw ]; then MVN=./mvnw; else MVN=mvn; fi
+          $MVN -pl apps/wz-device-gateway -am -Psecurity -DskipTests -Ddependency-check.skip=true verify
+
+      - name: Upload gateway test reports and jar
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: device-gateway
+          path: |
+            apps/wz-device-gateway/target/surefire-reports/
+            apps/wz-device-gateway/target/failsafe-reports/
+            apps/wz-device-gateway/target/wz-device-gateway.jar
+          if-no-files-found: warn
+          retention-days: 30
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Container build check (Dockerfile.gateway, not pushed)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: deploy/docker/Dockerfile.gateway
+          push: false
+          load: false
+          tags: ci/wz-device-gateway:${{ github.sha }}
+          cache-from: type=gha,scope=wz-device-gateway
+
+  # ---------------------------------------------------------------------------
   web:
     name: Web ${{ matrix.app }}
     runs-on: ubuntu-latest
@@ -253,7 +305,7 @@ jobs:
           # uat/prod require digests, so render with a placeholder digest.
           d="sha256:$(printf '0%.0s' $(seq 64))"
           digests=()
-          for c in core bff employeePortal managerWorkspace ohWorkspace partnerPortal; do
+          for c in core bff employeePortal managerWorkspace ohWorkspace partnerPortal deviceGateway; do
             digests+=(--set-string "$c.image.digest=$d")
           done
           for cloud in azure gcp hybrid; do
@@ -263,6 +315,21 @@ jobs:
               helm template wz "$chart" "${args[@]}" > "/tmp/render-$cloud-$env.yaml"
             done
           done
+          # Increment 6 clinic edge cluster (device gateway only, k3s)
+          for env in dev uat prod; do
+            args=(-f "$chart/values.yaml" -f "$chart/values-edge-k3s.yaml" -f "$chart/environments/edge/$env.yaml" "${digests[@]}")
+            helm lint "$chart" "${args[@]}"
+            helm template wz "$chart" "${args[@]}" > "/tmp/render-edge-$env.yaml"
+          done
+
+      - name: kubeconform (rendered manifests, strict; CRDs such as SecretProviderClass / BackendConfig skipped)
+        env:
+          KUBECONFORM_IMAGE: ghcr.io/yannh/kubeconform:v0.8.0
+        run: |
+          docker run --rm -v /tmp:/render:ro "$KUBECONFORM_IMAGE" \
+            -strict -summary -ignore-missing-schemas -kubernetes-version 1.31.0 /render/render-*.yaml
+          docker run --rm -v "$PWD/deploy/device-ingress:/in:ro" "$KUBECONFORM_IMAGE" \
+            -strict -summary -kubernetes-version 1.31.0 /in/restrict-device-ingressclass.yaml
 
       - name: terraform fmt
         run: |

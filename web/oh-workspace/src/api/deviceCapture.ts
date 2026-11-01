@@ -130,6 +130,8 @@ export interface ProvenanceView {
   associationConfidence?: number | null;
   clockSkewMillis?: number;
   rawPayloadSha256?: string | null;
+  /** Simulator test traffic accepted into this capture (contract §12) – never a measurement on the person. */
+  simulated?: boolean;
 }
 export interface SequenceItem {
   observationId: string;

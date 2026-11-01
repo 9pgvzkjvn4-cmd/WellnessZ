@@ -51,6 +51,7 @@ export function QualityFlags({ flags, acknowledged, onToggle, idPrefix, readOnly
 export function ProvenanceDetails({ p, marking }: { p?: ProvenanceView | null; marking?: string | null }) {
   if (!p) return null;
   const rows: [string, string | null | undefined][] = [
+    ['Test traffic', p.simulated ? 'Simulated test reading from a simulator run – not measured on this person' : undefined],
     ['Capture method', humanise(p.captureMethod)],
     ['Device', [p.manufacturer, p.model].filter(Boolean).join(' ') || undefined],
     ['Serial', p.serial],

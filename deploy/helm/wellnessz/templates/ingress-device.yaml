@@ -57,6 +57,11 @@ Controller prerequisites (dedicated ingress-nginx instance): deploy/device-ingre
        the DEDICATED device controller only (deploy/device-ingress/ingress-nginx-values.yaml). */}}
 {{- $snippet := include "wellnessz.deviceIngest.snippet" (dict "header" $hdr "mtls" $s.mtls) }}
 {{- $_ := set $ann "nginx.ingress.kubernetes.io/configuration-snippet" $snippet }}
+{{- /* Reviewed scanner exceptions (CVE-2021-25742 class): the snippet is a chart constant (only the header name is
+       interpolated, schema-restricted to [A-Za-z0-9-]); snippets are enabled on the dedicated device controller only,
+       whose IngressClass is restricted to the platform team (deploy/device-ingress/README.md section 3). */}}
+{{- $_ := set $ann "checkov.io/skip1" "CKV_K8S_152=Chart-constant Lua computes the SHA-256 thumbprint of the verified client certificate (nginx only offers SHA-1); dedicated device controller only - deploy/device-ingress/README.md" }}
+{{- $_ := set $ann "checkov.io/skip2" "CKV_K8S_153=Chart-constant snippet strips client-supplied certificate and forwarding headers; snippets allowed on the dedicated device controller only - deploy/device-ingress/README.md" }}
 {{- end }}
 {{- $ann = merge (deepCopy (default (dict) $di.annotations)) $ann }}
 ---

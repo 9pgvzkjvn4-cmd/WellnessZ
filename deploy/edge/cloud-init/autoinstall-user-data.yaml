@@ -1,0 +1,215 @@
+#cloud-config
+# =============================================================================
+# WellnessZ clinic gateway - golden image recipe (E34-HLR-03 / E34-F03 / E34-BL-003)
+# Ubuntu Server 24.04 LTS autoinstall (subiquity) + first-boot cloud-init.
+#   * Serve this file as `user-data` (with an empty `meta-data`) from the install media's
+#     CIDATA volume or a NoCloud HTTP seed; boot the 24.04 live-server ISO with `autoinstall`.
+#   * Full-disk encryption (LUKS2 + LVM) at install time; the TPM2 binding and removal of the
+#     one-time install passphrase are done on first boot (runcmd) - see ../secure-boot-tpm.md.
+#   * OS policy files (USB allow-list, BlueZ, nftables, systemd drop-in) are fetched from the
+#     release artefact store at the version of deploy/edge/os-policy that was reviewed
+#     (`source.uri`, cloud-init >= 23.1) - no copies in this file.
+#   * Debian 13 alternative: same packages and files via preseed + the `late_command` that runs
+#     the runcmd block below (Debian 12 has no openjdk-21 package: use the Temurin apt repository).
+# Aligned with CIS Ubuntu Linux 24.04 LTS Benchmark Level 1 - Server (checklist:
+# ../hardening-checklist.md). RECIPE ONLY: YAML-validated in this repository, NOT installed on
+# hardware or a VM here. Replace every <placeholder> before use.
+# =============================================================================
+autoinstall:
+  version: 1
+  locale: en_GB.UTF-8
+  keyboard: { layout: gb }
+  timezone: Etc/UTC
+  source:
+    id: ubuntu-server-minimal          # minimal install: smallest attack surface
+  network:
+    version: 2
+    ethernets:
+      device-vlan:                     # listeners only (2575 / 2576 / 8097)
+        match: { name: "en*0" }
+        dhcp4: false
+        addresses: [10.10.30.5/24]     # <gateway address on the device VLAN>
+      uplink:                          # gateway zone: core ingest, DNS, NTP, mirror
+        match: { name: "en*1" }
+        dhcp4: true
+  storage:
+    layout:
+      name: lvm
+      # One-time install passphrase; replaced by a TPM2 keyslot + escrowed recovery key on first boot
+      password: "<one-time-install-passphrase>"
+  ssh:
+    install-server: true
+    allow-pw: false
+    authorized-keys: []                # keys are added via user-data below
+  updates: all
+  packages:
+    - openjdk-21-jre-headless
+    - nftables
+    - chrony
+    - auditd
+    - audispd-plugins
+    - aide
+    - unattended-upgrades
+    - apparmor-utils
+    - libpam-pwquality
+    - tpm2-tools
+    - ser2net                          # serial-over-TCP on loopback for allow-listed USB-serial devices
+  late-commands:
+    # CIS (bootloader / kernel parameters): kernel hardening parameters (USB deny-by-default, lockdown, audit early)
+    - |
+      cat > /target/etc/default/grub.d/60-wellnessz.cfg <<'EOF'
+      GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT usbcore.authorized_default=0 lockdown=integrity apparmor=1 security=apparmor audit=1 audit_backlog_limit=8192 init_on_alloc=1 slab_nomerge"
+      EOF
+    - curtin in-target --target=/target -- update-grub
+  user-data:
+    hostname: wz-gw-<site>-01
+    users:
+      - name: wzadmin
+        gecos: WellnessZ gateway administrator (break-glass, keys only)
+        groups: [sudo]
+        shell: /bin/bash
+        lock_passwd: true
+        ssh_authorized_keys:
+          - "<ssh-ed25519 public key of the IT operations jump host>"
+    disable_root: true
+    ssh_pwauth: false
+    write_files:
+      # ---- OS policy from the reviewed release (deploy/edge/os-policy) ----
+      - path: /etc/udev/rules.d/70-wellnessz-usb-allowlist.rules
+        source: { uri: "https://artefacts.example.internal/wellnessz/edge/<release>/os-policy/udev/70-wellnessz-usb-allowlist.rules" }
+        permissions: "0644"
+      - path: /etc/bluetooth/main.conf
+        source: { uri: "https://artefacts.example.internal/wellnessz/edge/<release>/os-policy/bluetooth/main.conf" }
+        permissions: "0644"
+      - path: /etc/bluetooth/input.conf
+        source: { uri: "https://artefacts.example.internal/wellnessz/edge/<release>/os-policy/bluetooth/input.conf" }
+        permissions: "0644"
+      - path: /etc/nftables.conf
+        source: { uri: "https://artefacts.example.internal/wellnessz/edge/<release>/os-policy/nftables/wellnessz-gateway.nft" }
+        permissions: "0600"
+      - path: /etc/systemd/system/wellnessz-gateway.service
+        source: { uri: "https://artefacts.example.internal/wellnessz/edge/<release>/service/linux/wellnessz-gateway.service" }
+        permissions: "0644"
+      - path: /etc/systemd/system/wellnessz-gateway.service.d/10-wellnessz-hardening.conf
+        source: { uri: "https://artefacts.example.internal/wellnessz/edge/<release>/os-policy/systemd/10-wellnessz-hardening.conf" }
+        permissions: "0644"
+      # ---- CIS: SSH server ----
+      - path: /etc/ssh/sshd_config.d/50-wellnessz.conf
+        permissions: "0600"
+        content: |
+          PermitRootLogin no
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PubkeyAuthentication yes
+          AllowGroups sudo
+          MaxAuthTries 3
+          LoginGraceTime 30
+          ClientAliveInterval 300
+          ClientAliveCountMax 2
+          X11Forwarding no
+          AllowTcpForwarding no
+          AllowAgentForwarding no
+          PermitUserEnvironment no
+          Banner /etc/issue.net
+          LogLevel VERBOSE
+          Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes128-gcm@openssh.com
+          KexAlgorithms sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org
+          MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+      - path: /etc/issue.net
+        content: |
+          Authorised access only. WellnessZ clinic gateway - activity is logged and monitored.
+      # ---- CIS: network kernel parameters ----
+      - path: /etc/sysctl.d/60-wellnessz.conf
+        content: |
+          net.ipv4.ip_forward = 0
+          net.ipv4.conf.all.send_redirects = 0
+          net.ipv4.conf.default.send_redirects = 0
+          net.ipv4.conf.all.accept_redirects = 0
+          net.ipv4.conf.default.accept_redirects = 0
+          net.ipv4.conf.all.secure_redirects = 0
+          net.ipv4.conf.all.accept_source_route = 0
+          net.ipv4.conf.all.log_martians = 1
+          net.ipv4.conf.all.rp_filter = 1
+          net.ipv4.icmp_echo_ignore_broadcasts = 1
+          net.ipv4.tcp_syncookies = 1
+          net.ipv6.conf.all.disable_ipv6 = 1
+          kernel.kptr_restrict = 2
+          kernel.dmesg_restrict = 1
+          kernel.yama.ptrace_scope = 2
+          kernel.unprivileged_bpf_disabled = 1
+          fs.suid_dumpable = 0
+          fs.protected_fifos = 2
+          fs.protected_regular = 2
+      # ---- CIS: unused filesystems, network protocols and buses ----
+      - path: /etc/modprobe.d/60-wellnessz-blacklist.conf
+        content: |
+          install usb-storage /bin/false
+          install firewire-core /bin/false
+          install thunderbolt /bin/false
+          install cramfs /bin/false
+          install freevxfs /bin/false
+          install hfs /bin/false
+          install hfsplus /bin/false
+          install jffs2 /bin/false
+          install udf /bin/false
+          install dccp /bin/false
+          install sctp /bin/false
+          install rds /bin/false
+          install tipc /bin/false
+          # Sites WITHOUT a local BLE radio (default): no Bluetooth stack at all
+          install bluetooth /bin/false
+          install btusb /bin/false
+      # ---- CIS: software updates in the approved maintenance window ----
+      - path: /etc/apt/apt.conf.d/20auto-upgrades
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+          APT::Periodic::AutocleanInterval "7";
+      - path: /etc/apt/apt.conf.d/52wellnessz-unattended
+        content: |
+          Unattended-Upgrade::Allowed-Origins { "${distro_id}:${distro_codename}-security"; "${distro_id}ESMApps:${distro_codename}-apps-security"; };
+          Unattended-Upgrade::Automatic-Reboot "true";
+          Unattended-Upgrade::Automatic-Reboot-Time "03:30";
+          Unattended-Upgrade::Remove-Unused-Dependencies "true";
+      # ---- CIS: auditd rules (identity, time, network config, sudo, modules, gateway state) ----
+      - path: /etc/audit/rules.d/60-wellnessz.rules
+        content: |
+          -w /etc/passwd -p wa -k identity
+          -w /etc/group -p wa -k identity
+          -w /etc/shadow -p wa -k identity
+          -w /etc/sudoers -p wa -k scope
+          -w /etc/sudoers.d/ -p wa -k scope
+          -a always,exit -F arch=b64 -S adjtimex,settimeofday,clock_settime -k time-change
+          -w /etc/nftables.conf -p wa -k firewall
+          -w /etc/udev/rules.d/ -p wa -k usb-policy
+          -w /etc/bluetooth/ -p wa -k ble-policy
+          -w /etc/wellnessz/ -p wa -k wellnessz-config
+          -a always,exit -F arch=b64 -S init_module,finit_module,delete_module -k modules
+          -w /var/log/sudo.log -p wa -k actions
+          -e 2
+      # ---- time sync (SC-14) ----
+      - path: /etc/chrony/conf.d/60-wellnessz.conf
+        content: |
+          server 10.10.1.123 iburst nts
+          makestep 1.0 3
+          rtcsync
+    runcmd:
+      - [systemctl, mask, --now, bluetooth.service]          # unmask only on BLE sites (main.conf applies then)
+      - [systemctl, disable, --now, snapd.service, snapd.socket]
+      - [apt-get, -y, purge, telnet, rsh-client, avahi-daemon, cups]
+      - [useradd, --system, --home-dir, /nonexistent, --shell, /usr/sbin/nologin, --user-group, wellnessz]
+      - [install, -d, -o, root, -g, wellnessz, -m, "0750", /etc/wellnessz/gateway, /opt/wellnessz/gateway, /opt/wellnessz/gateway/drivers]
+      - [udevadm, control, --reload]
+      - [sysctl, --system]
+      - [augenrules, --load]
+      - [systemctl, enable, --now, nftables, auditd, chrony, unattended-upgrades]
+      # TPM2-bound LUKS keyslot (PCR 7 = Secure Boot state) + escrowed recovery key, then drop the install passphrase
+      - [sh, -c, 'dev=$(blkid -t TYPE=crypto_LUKS -o device | head -n1); systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 "$dev" && systemd-cryptenroll --recovery-key "$dev" > /root/recovery-key.txt && echo "ESCROW /root/recovery-key.txt to the vault, then shred it"']
+      - [sh, -c, 'sed -i "s/discard/discard,tpm2-device=auto/" /etc/crypttab || true; update-initramfs -u']
+      # File integrity baseline (CIS: filesystem integrity checking)
+      - [sh, -c, 'aideinit -y -f && cp /var/lib/aide/aide.db.new /var/lib/aide/aide.db']
+      # Gateway: jar from the release (SHA-256 from the signed release manifest) OR k3s + the Helm chart
+      # (deploy/helm/wellnessz/values-edge-k3s.yaml). Enrolment token + client key store are provisioned by IT
+      # operations into /etc/wellnessz/gateway (0640 root:wellnessz) - never baked into the image.
+      - [sh, -c, 'echo "golden image ready - run tools/device-security/05_gateway_hardening_linux.sh --authorised before go-live"']
+    final_message: "WellnessZ gateway image built in $UPTIME s - run the hardening check (pack script 05) before enrolment."

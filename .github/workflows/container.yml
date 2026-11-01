@@ -67,6 +67,10 @@ jobs:
           - image: wz-bff
             context: .
             dockerfile: deploy/docker/Dockerfile.bff
+          # increment 6 edge gateway / Device Host agent (k3s chart component deviceGateway or systemd host)
+          - image: wz-device-gateway
+            context: .
+            dockerfile: deploy/docker/Dockerfile.gateway
           - image: employee-app
             context: web/employee-app
             dockerfile: web/employee-app/Dockerfile

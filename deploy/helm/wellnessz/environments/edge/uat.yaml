@@ -1,0 +1,15 @@
+# =============================================================================
+# EDGE (clinic gateway cluster) - UAT
+# Layer order (later wins):
+#   -f values.yaml -f values-edge-k3s.yaml -f environments/edge/uat.yaml [-f deploy/sites/<site>/values.yaml]
+# Per-site values (device VLAN, ingest LB address, connectors, Secret name) go into a
+# small site file - the same image digest is promoted to every site.
+# =============================================================================
+global:
+  environment: uat
+  requireImageDigests: true
+deviceGateway:
+  coreUrl: https://ingest.uat.wellnessz.example.com
+  networkPolicy:
+    coreCidrs:
+      - 10.201.0.10/32          # <device ingest internal LB of the uat environment>

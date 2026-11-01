@@ -43,6 +43,7 @@ component_key() {
   case "$1" in
     wz-core-app) echo core ;;
     wz-bff) echo bff ;;
+    wz-device-gateway) echo deviceGateway ;;   # disabled in cloud overlays; pinned anyway (edge overlays enable it)
     employee-app) echo employeePortal ;;
     manager-workspace) echo managerWorkspace ;;
     oh-workspace) echo ohWorkspace ;;

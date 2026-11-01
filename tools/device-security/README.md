@@ -28,6 +28,21 @@ cp targets.example.json targets.local.json   # git-ignored; secrets only as env:
 ./run-all.sh --authorised --targets targets.local.json --out ./device-security-evidence [--submit]
 ```
 
+**Gateway fields of the targets file** (checked against `apps/wz-device-gateway`):
+
+| Field | Value | Source |
+|---|---|---|
+| `gateway.serviceName` | `wellnessz-gateway` | systemd unit `apps/wz-device-gateway/service/linux/wellnessz-gateway.service` |
+| `gateway.managementPort` | `8095` | status page + actuator, `server.port` / `WZ_GATEWAY_STATUS_PORT`, bound to `127.0.0.1` |
+| `gateway.queueDir` | `/var/lib/wellnessz-gateway/queue` | `WZ_GATEWAY_DATA_DIR` (`StateDirectory=wellnessz-gateway`, container volume `/var/lib/wellnessz-gateway`) + `queue/` (`EncryptedJournal`) |
+| `ble.configFile` | not set | the gateway keeps the core-delivered configuration encrypted (`data-dir/config/current.enc`); script 06 reads `GET /device-ingest/config` with the pack endpoint identity instead |
+| `logFiles` | exported journal | the gateway logs to stdout / journald, not to a file: `journalctl -u wellnessz-gateway --since -7d > evidence-input/gateway-journal.log` before the run |
+
+**CI.** `.github/workflows/device-security-pack.yml` runs the pack against staging on manual dispatch and quarterly, with
+`--authorised` only inside the protected GitHub Environment `device-security-staging` (required reviewers CISO / Security
+Operations), and uploads every JSON evidence file, its `.sha256`, the report and a `SHA256SUMS` manifest as an artefact.
+Host-level checks (01, 03, 05, 06, 10) need a self-hosted runner inside the staging gateway zone (`DEVICE_PACK_RUNNER`).
+
 Test plan and rules of engagement, evidence template and control matrix (IEC 62443, NIST SP 800-53, FDA §524B / premarket
 guidance, IEC 81001-5-1, OWASP): `docs/increment-06/device-security/`.
 

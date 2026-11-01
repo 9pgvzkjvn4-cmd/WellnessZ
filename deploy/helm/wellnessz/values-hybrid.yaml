@@ -49,6 +49,17 @@ secrets:
         format: fileRef
       - fileName: wellnessz-db-ca.crt
         remoteName: kv/data/wellnessz/core#db-ca-crt
+  # increment 6 (E34) - mounted into core only when deviceIngest.enabled (Vault "path#key")
+  device:
+    files:
+      - fileName: wz-device-token-pepper
+        remoteName: kv/data/wellnessz/core#wz-device-token-pepper
+        env: WZ_DEVICE_TOKEN_PEPPER
+        format: fileRef
+      - fileName: wz-device-trust-anchors.pem
+        remoteName: kv/data/wellnessz/core#wz-device-trust-anchors
+        env: WZ_DEVICE_TRUST_ANCHORS
+        format: path
 
 migrations:
   mode: job

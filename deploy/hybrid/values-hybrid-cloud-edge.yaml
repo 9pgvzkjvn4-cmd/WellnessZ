@@ -15,6 +15,10 @@ global:
 core:
   enabled: false
 
+# Device machine traffic terminates next to core (on-prem device ingest), never at the cloud edge
+deviceIngest:
+  enabled: false
+
 migrations:
   mode: app   # no-op: core is not deployed here
 

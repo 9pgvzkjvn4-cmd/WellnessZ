@@ -205,24 +205,27 @@ spec:
             {{- with $gw.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          {{- $probe := printf "exec 3<>/dev/tcp/127.0.0.1/%d && printf 'GET /actuator/health/%%s HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3" (int $gw.statusPort) }}
+          {{- /* the TOP-LEVEL status is the last key of the body ("...,"status":"UP"}" at the end of the line); nested
+                 components also contain "status":"UP" but never at the end of a line (tested against the gateway jar) */}}
+          {{- $probe := printf "exec 3<>/dev/tcp/127.0.0.1/%d && printf 'GET /actuator/health%%s HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -qE '\"status\":\"UP\"[}][[:space:]]*$' <&3" (int $gw.statusPort) }}
           # exec probes: the status server answers loopback peers only (kubelet httpGet would come from the node IP)
           startupProbe:
             exec:
-              command: ["bash", "-c", {{ printf $probe "liveness" | quote }}]
+              command: ["bash", "-c", {{ printf $probe "/liveness" | quote }}]
             periodSeconds: 10
             failureThreshold: 30
             timeoutSeconds: 5
           livenessProbe:
             exec:
-              command: ["bash", "-c", {{ printf $probe "liveness" | quote }}]
+              command: ["bash", "-c", {{ printf $probe "/liveness" | quote }}]
             periodSeconds: 20
             failureThreshold: 3
             timeoutSeconds: 5
-          # readiness = enrolled, connectors started, queue < 90 % and not quarantined
+          # readiness = overall health incl. the `gateway` indicator: enrolled, connectors started, queue < 90 %,
+          # not quarantined (ISOLATE) - otherwise the Service stops sending device traffic and devices keep their data
           readinessProbe:
             exec:
-              command: ["bash", "-c", {{ printf $probe "readiness" | quote }}]
+              command: ["bash", "-c", {{ printf $probe "" | quote }}]
             periodSeconds: 10
             failureThreshold: 3
             timeoutSeconds: 5

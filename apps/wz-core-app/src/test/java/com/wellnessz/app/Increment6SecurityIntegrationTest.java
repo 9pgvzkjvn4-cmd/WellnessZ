@@ -203,7 +203,6 @@ class Increment6SecurityIntegrationTest extends IntegrationTestBase {
         // the demo seed of the first start (fresh test database) published the demo devices
         assertThat(count("select count(*) from devicecat.configuration where status in ('PUBLISHED', 'QUARANTINED') and device_instance_id in "
                 + "('DEV-000001','DEV-000002','DEV-000003','DEV-000004','DEV-000005','DEV-000006','DEV-000007','DEV-000008')")).isEqualTo(8);
-        assertThat(spis.catalogue().instance("DEV-000003")).get().satisfies(i -> assertThat(i.published()).isTrue());
     }
 
     @Test

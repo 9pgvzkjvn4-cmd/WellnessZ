@@ -1,0 +1,45 @@
+# =============================================================================
+# Admission guard for the device IngressClass (Kubernetes >= 1.30, ValidatingAdmissionPolicy GA).
+# Snippets are allowed on the nginx-device controller, so only the WellnessZ chart's device
+# Ingresses (namespace wellnessz, label wellnessz.io/zone=device) may use that class, and no
+# other Ingress in the cluster may carry snippet annotations for it.
+#   kubectl apply -f deploy/device-ingress/restrict-device-ingressclass.yaml
+# Adjust the namespace if the release is installed elsewhere.
+# =============================================================================
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: wellnessz-device-ingressclass
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["networking.k8s.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["ingresses"]
+  matchConditions:
+    - name: uses-device-ingressclass
+      expression: >-
+        (has(object.spec.ingressClassName) && object.spec.ingressClassName == 'nginx-device') ||
+        (has(object.metadata.annotations) && 'kubernetes.io/ingress.class' in object.metadata.annotations &&
+         object.metadata.annotations['kubernetes.io/ingress.class'] == 'nginx-device')
+  validations:
+    - expression: "object.metadata.namespace == 'wellnessz'"
+      message: "IngressClass nginx-device is reserved for the WellnessZ device ingest in namespace wellnessz"
+    - expression: >-
+        has(object.metadata.labels) && 'wellnessz.io/zone' in object.metadata.labels &&
+        object.metadata.labels['wellnessz.io/zone'] == 'device'
+      message: "Only the WellnessZ chart's device Ingresses (label wellnessz.io/zone=device) may use IngressClass nginx-device"
+    - expression: >-
+        !has(object.metadata.annotations) ||
+        !('nginx.ingress.kubernetes.io/server-snippet' in object.metadata.annotations)
+      message: "server-snippet is not allowed on the device controller (only the chart's configuration-snippet)"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: wellnessz-device-ingressclass
+spec:
+  policyName: wellnessz-device-ingressclass
+  validationActions: [Deny]

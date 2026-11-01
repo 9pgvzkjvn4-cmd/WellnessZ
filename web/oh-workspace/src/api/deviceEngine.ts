@@ -263,6 +263,10 @@ export interface SimulatorRun {
   observationIds: string[];
   statuses: string[];
   evidenceSha256: string;
+  /** The published device the run was fed as (or the virtual SIM-<adapter> endpoint). */
+  deviceInstanceId?: string | null;
+  endpointId?: string | null;
+  simulated?: boolean;
 }
 export interface TerminologyEntry {
   system: string;
@@ -330,7 +334,7 @@ export function engineApi(client: AuthClient) {
     validate: (packageJson: unknown) => client.api<DriverReport>(`${base}/drivers/validate`, { method: 'POST', body: packageJson }),
     conformance: (packageJson: unknown) => client.api<Conformance>(`${base}/drivers/conformance`, { method: 'POST', body: { packageJson } }),
     golden: (family?: string) => client.api<GoldenDataset[]>(`${base}/golden-datasets${buildQuery({ family })}`),
-    simulate: (adapter: string, body: { datasetId: string; count?: number }) =>
+    simulate: (adapter: string, body: { datasetId: string; count?: number; deviceInstanceId?: string }) =>
       client.api<SimulatorRun>(`${base}/simulators/${seg(adapter)}/run`, { method: 'POST', body }),
     terminology: (q: { system?: string; code?: string }) => client.api<TerminologyEntry[]>(`${base}/terminology/maps${buildQuery(q)}`),
     terminologyVersions: () => client.api<TerminologyVersion[]>(`${base}/terminology/versions`),

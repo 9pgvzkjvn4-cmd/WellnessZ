@@ -46,6 +46,17 @@ secrets:
         format: fileRef
       - fileName: wellnessz-db-ca.crt
         remoteName: kv/data/wellnessz/uat/core#db-ca-crt
+  # increment 6 (E34) - mounted into core only when deviceIngest.enabled
+  device:
+    files:
+      - fileName: wz-device-token-pepper
+        remoteName: kv/data/wellnessz/uat/core#wz-device-token-pepper
+        env: WZ_DEVICE_TOKEN_PEPPER
+        format: fileRef
+      - fileName: wz-device-trust-anchors.pem
+        remoteName: kv/data/wellnessz/uat/core#wz-device-trust-anchors
+        env: WZ_DEVICE_TRUST_ANCHORS
+        format: path
 
 migrations:
   mode: job   # hybrid always uses the pre-upgrade Job (core never holds the owner credential)
@@ -89,6 +100,20 @@ networkPolicy:
   coreExtraIngressPeers:
     - ipBlock:
         cidr: 10.44.0.0/23
+
+# Increment 6 device ingest: mTLS host for gateways / agents / data managers, webhook host for vendor
+# clouds. Served by the dedicated ingress-nginx controller (IngressClass nginx-device) - see
+# deploy/device-ingress/README.md. Token pepper + trust anchors: secrets.device.files (Vault).
+deviceIngest:
+  enabled: true
+  host: ingest.uat.wellnessz.onprem.example.internal
+  mtls:
+    caSecret: wellnessz/wellnessz-device-pki-ca   # ca.crt (+ ca.crl) of the group-PKI issuing CA(s)
+  sourceRanges:
+    - 10.201.0.0/16          # <site gateway-zone supernet over VPN / ExpressRoute / Interconnect> (E34 zone_cidr rows)
+  webhooks:
+    host: webhooks.uat.wellnessz.onprem.example.internal   # published to vendor clouds through the DMZ reverse proxy
+    sourceRanges: []          # vendor-cloud egress ranges from the vendor contract; empty = any (HMAC still required)
 
 observability:
   logLevel: INFO

@@ -101,7 +101,9 @@ jobs:
       AKS_PRIVATE: ${{ vars.AKS_PRIVATE || 'false' }}
       AKS_RG: ${{ vars.AKS_RESOURCE_GROUP }}
       AKS_CLUSTER: ${{ vars.AKS_CLUSTER_NAME }}
-      IMAGES: wz-core-app wz-bff employee-app manager-workspace oh-workspace partner-portal
+      # wz-device-gateway is promoted with the others (same signed digest set) although cloud overlays keep
+      # deviceGateway disabled: edge clusters pull the promoted digest from the environment registry.
+      IMAGES: wz-core-app wz-bff wz-device-gateway employee-app manager-workspace oh-workspace partner-portal
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

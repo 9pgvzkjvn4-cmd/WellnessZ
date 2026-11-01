@@ -37,6 +37,14 @@ describe('Engine health', () => {
     // DEVICE_ADMIN may replay a range
     expect(screen.getByText('Replay a time range from the stored raw payloads')).toBeTruthy();
   });
+  it('INTEGRATION_TESTER reads connector health, metrics and alerts (technical, PHI-free) without the unmatched count', async () => {
+    const api = mockApi(routes);
+    render(<EngineHealth {...props(api, 'INTEGRATION_TESTER')} />);
+    expect(await screen.findByText('400 / 1800 ms')).toBeTruthy();
+    expect(api.find('GET', '/device-engine/ops/alerts')).toHaveLength(1);
+    expect(api.find('GET', '/device-engine/unmatched/count')).toHaveLength(0);
+    expect(screen.queryByText('Replay a time range from the stored raw payloads')).toBeNull();
+  });
   it('NURSING_HEAD sees health without range replay; 403 is explained', async () => {
     const api = mockApi({ ...routes, 'GET /device-engine/ops/metrics': forbidden, 'GET /device-engine/ops/connectors': forbidden });
     render(<EngineHealth {...props(api, 'INTEGRATION_TESTER')} />);
@@ -186,6 +194,19 @@ describe('Simulators, golden datasets and driver checks', () => {
     await waitFor(() => expect(api.find('POST', '/device-engine/simulators/HL7V2/run')[0]?.body).toEqual({ datasetId: 'vitals/vitals.synthetic.pcd01/normal', count: 3 }));
     expect(await screen.findByText(/3 message\(s\), 3 accepted, 0 duplicate\(s\), 0 refused/)).toBeTruthy();
     expect(screen.getByText(/outcomes Unmatched/)).toBeTruthy();
+  });
+  it('feeds a sample as a published device so that a capture session receives it', async () => {
+    const user = userEvent.setup();
+    const api = mockApi({
+      'GET /device-engine/golden-datasets': [{ datasetId: 'vitals/csm-pcd01/normal', family: 'VITALS', adapter: 'HL7V2', packageId: 'vitals.welchallyn.csm-pcd01', kind: 'NORMAL', description: 'PCD-01 vitals' }],
+      'POST /device-engine/simulators/HL7V2/run': { runId: 'r2', adapter: 'HL7V2', datasetId: 'vitals/csm-pcd01/normal', messages: 1, accepted: 1, duplicates: 0, failed: 0, messageIds: [], observationIds: ['o9'], statuses: ['PENDING_VERIFICATION'], evidenceSha256: '8'.repeat(64), deviceInstanceId: 'DEV-000003', endpointId: 'SIM-HL7V2', simulated: true },
+    });
+    render(<EngineTooling {...props(api, 'INTEGRATION_TESTER')} />);
+    await user.type(await screen.findByLabelText(/Feed as device/), 'DEV-000003');
+    await user.click(await screen.findByRole('button', { name: 'Run sample' }));
+    await waitFor(() => expect(api.find('POST', '/device-engine/simulators/HL7V2/run')[0]?.body).toEqual({ datasetId: 'vitals/csm-pcd01/normal', count: 1, deviceInstanceId: 'DEV-000003' }));
+    expect(await screen.findByText(/Sample vitals\/csm-pcd01\/normal as DEV-000003/)).toBeTruthy();
+    expect(screen.getByText(/HL7V2 as DEV-000003/)).toBeTruthy();
   });
   it('validates a driver package and runs conformance (integration tester only)', async () => {
     const user = userEvent.setup();

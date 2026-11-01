@@ -233,6 +233,9 @@ until physician sign-off (E33-F06).
                  {"url": "urn:wellnessz:fhir:association", "valueString": "SESSION|1.00"},
                  {"url": "urn:wellnessz:fhir:config-version", "valueInteger": 3} ] }
 ```
+Simulator test traffic (§12) additionally carries `{"url": "urn:wellnessz:fhir:simulated", "valueBoolean": true}`; the kernel
+`DeviceObservation.Provenance` has the matching flag `simulated` (`true` only for simulator runs; the 19-argument constructor of
+increment 6 keeps creating real captures with `simulated=false`).
 
 **Raw archive.** Every inbound message body and attachment is stored before parsing (`RawPayloadStore.put(bytes|stream) →
 {archiveId, sha256, size}`), AES-GCM encrypted with a per-object key derived (HKDF) from the master key, retention class
@@ -506,7 +509,9 @@ All codes above are illustrative and must be confirmed against the LOINC / RTMMS
 the client certificate (TLS 1.2+/1.3 mutual authentication) – `X-Client-Cert-Sha256: <hex SHA-256 of the DER certificate>`
 (header name `wellnessz.device.ingest.certificate-header`; the ingress must strip any client-supplied value). Missing
 thumbprint → 401 `mtls_required` (plaintext refused, E34-HLR-01); missing token / endpoint → 401 `credentials_missing`; E34
-verdicts → 401 with its `failureCode`. The principal is `DeviceEndpointPrincipal.current()`; authority `ROLE_DEVICE_ENDPOINT`;
+verdicts → 401 with its `failureCode` – except `endpoint_forbidden`, which is **403** (see §15.3: one rule for the filter,
+the ingest access-denied handler and the module controllers – **401 for every authentication failure, 403 for an authenticated
+endpoint on a path its kind may not use**). The principal is `DeviceEndpointPrincipal.current()`; authority `ROLE_DEVICE_ENDPOINT`;
 rate limit = integration budget per endpoint (`wellnessz.security.integration-rate-limit-per-minute`). Person bearer tokens are
 **not** accepted on these paths, and device tokens are not accepted anywhere else. Local / test: the E2E script and the
 integration tests send the thumbprint header themselves (no ingress in the dev stack).
@@ -596,6 +601,10 @@ Priority order (first that yields a candidate ≥ threshold wins; all candidates
 observation is **UNMATCHED** with the candidate shown as a suggestion; below 0.60 UNMATCHED without suggestion. **Nothing below
 0.95 is ever auto-filed** (E31-F05 acceptance). Two candidates within 0.05 of each other → UNMATCHED (`ambiguous`).
 Restricted categories (`BREATH_ALCOHOL`, `DRUG_SCREEN`) accept only `WORKLIST` (E10 test id) or `SESSION`.
+**Simulator test traffic** associates only by `SESSION` (a capture session listening on the device the run is fed as); the
+dataset's synthetic identity (vendor id, badge, worklist, demographics) is ignored, so there is no conflict and no other candidate.
+Without a listening session it stays `UNMATCHED` with reason `test_traffic` **and no `unmatched_item`** (never in the clinicians'
+queue).
 
 **Unmatched queue.** `unmatched_item {id, observationId, siteCode, category, receivedAt, suggestions[{employeeId, displayName, method, confidence}], status OPEN|RESOLVED|DISCARDED, resolvedBy?, resolvedAt?, reason?}`;
 SLA `device.unmatched.resolution-sla-hours` (8 – one working day); KPI unmatched < 0.5 % of messages; resolution requires a
@@ -640,7 +649,11 @@ clinical logic. Form codes are `<MODULE>.<FORM>[.<CATEGORY>]`, version `"1"` for
 |---|---|---|---|
 | `E03.RESULT` | **E03 record – extends the existing device-result capture** (`ResultService.device`, the logic behind `POST /employees/{employeeId}/results/device`): the adapter builds the same `DeviceRequest` and calls a new package-level entry `ResultService.deviceFromEngine(DeviceRequest, EngineProvenance)` that (a) reuses the calibration check, `DeviceRules` (audiometry STS vs baseline, spirometry ratio / % predicted, vision, ECG), abnormal worklist, letters, `ResultFollowUpListener` (→ E07 surveillance follow-ups) and audit, (b) sets `source=DEVICE`, `device_observation_id`, `capture_method`, `driver_version`, `verified_by`, `verified_at` (V21 columns), (c) returns the existing result on a repeated `device_observation_id`. The E03 `DeviceRequest.category` pattern is widened to `AUDIOMETRY|SPIROMETRY|VISION|ECG|VITALS|BODY_COMPOSITION|ABPM_HOLTER|POC|FIT_TEST|ERGONOMICS|IMAGING` and `measurements` to ≤ 60 entries; new `DeviceRules` evaluators for the added categories are minimal (plausible ranges; POC abnormal vs reference range → `ABNORMAL`; FIT_TEST `pass=false` → `ABNORMAL`; others `NORMAL`, coded LOINC panel) | `E03.DEVICE_RESULT.{AUDIOMETRY, SPIROMETRY, VISION, ECG, VITALS, BODY_COMPOSITION, ABPM_HOLTER, POC, FIT_TEST, ERGONOMICS, IMAGING}` | `RESULT` + result id; the E03 chart shows the device badge (`source`, `capture_method`, device, time) |
 | `E07.IH_MEASUREMENT` | **E07 surveillance** – exposure feeds (noise dosimeters, gas-detector docks, vibration): adapter calls the existing `ExposureService` import for one `MeasurementRow {sourceRef = observationId, segCode, hazardCode, measurementType NOISE_DOSIMETRY|AIR_SAMPLING|VIBRATION, value, unit, measuredOn}` (duplicates by `sourceRef` already ignored) – programme enrolment and action levels stay E07 logic. Personal audiometry / spirometry / fit-test results reach E07 **through E03** (`ResultFollowUpListener`), not directly | `E07.IH_MEASUREMENT` (category `EXPOSURE`) | `IH_MEASUREMENT` |
-| `E10.BREATH_ALCOHOL` | **E10 substance programme (restricted)** – records the device breath reading against the open test named by `orderRef` (E10 test id; worklist / session only): screening and confirmation sequence, device serial, calibration date, operator, time, location; feeds the existing collection / MRO pathway (`breathScreenResult`); no open test → `REJECTED no_open_test` | `E10.BREATH_ALCOHOL` (`BREATH_ALCOHOL`), `E10.DRUG_SCREEN` (`DRUG_SCREEN`, instrumented readers) | `DA_TEST_READING` |
+| `E10.BREATH_ALCOHOL` | **E10 substance programme (restricted)** – records the device breath reading against the open test named by `orderRef` (E10 test id; worklist / session only): screening and confirmation sequence, device serial, calibration date, operator, time, location; feeds the existing collection / MRO pathway (`breathScreenResult`, **g/210 L** – the E10 e-CCF unit, `TestingOperationsController`
+0–1, cut-off 0.02 g/210 L); no open test → `REJECTED no_open_test`. **Unit:** the engine delivers `breathScreenResult` in UCUM
+`g/(210.L)`; a device reporting mg/L is converted in NORMALISE (`1 mg/L = 0.001 g/L = 0.21 g/(210.L)`, factor **0.21**, built into
+the terminology as `TerminologySnapshot.BUILT_IN`; e.g. 0.20 mg/L = 0.042 g/210 L – pure unit arithmetic, no blood/breath ratio), and
+`DriverValidator` refuses a binding to `breathScreenResult` whose mapping UCUM is not `g/(210.L)`. The UI does not convert. | `E10.BREATH_ALCOHOL` (`BREATH_ALCOHOL`), `E10.DRUG_SCREEN` (`DRUG_SCREEN`, instrumented readers) | `DA_TEST_READING` |
 | `E12.SCREENING` | **E12 health promotion** – kiosk / screening-day vitals into `POST /promotion/screening-events/{id}/results` logic (`Measures` systolic, diastolic, bmi, glucoseMmol, cholesterolMmol, waistCm); `orderRef` = screening event id; thresholds and follow-up cases stay E12 logic | `E12.SCREENING_RESULT` (`VITALS`, `BODY_COMPOSITION`, `POC`) | `SCREENING_RESULT` |
 | `E12.WEARABLE` | **E12 consented wearables** – daily aggregates into the existing wearable-data logic (active enrolment + `WEARABLE_DATA` consent, else `REJECTED consent_missing`) | `E12.WEARABLE_DAILY` (`WEARABLE`) | `WEARABLE_DAILY` |
 | E05 fitness (no sink) | **E05 consumes device-sourced E03 results** through the existing chart / `ChartContributor`; fitness decisions remain manual E05 actions triggered from the E33 comparison screen (§14.7). ECG interpretation sign-off = E33 sign-off → E03 result acknowledgement (`ackAction FITNESS_REVIEW` where needed) | – | – |
@@ -654,7 +667,9 @@ authored; routing to an undeployed target dead-letters with `route_target_unavai
 | Method | Path | Roles | Notes |
 |---|---|---|---|
 | GET | `/device-engine/observations?employeeId=&category=&from=&to=` | OH roles (ABAC on the employee; restricted categories MRO / OH_PHYSICIAN only) | `[ObservationSummary {observationId, category, status, effectiveAt, deviceInstanceId, model, captureMethod, flags[], routedRecordId?}]` – person-level read audited `DEVICE_OBSERVATION_READ` |
-| GET | `/device-engine/observations/{id}` | same | `ObservationPreview` (+ FHIR bundle with `?format=fhir`: Observation, DiagnosticReport, Device, Provenance) |
+| GET | `/device-engine/observations/{id}` | same | `ObservationPreview` (+ FHIR bundle with `?format=fhir`: Observation, DiagnosticReport, Device, Provenance) + `rawArchiveId` (raw payload archive of the message; absent for a restricted reading the viewer may not open) |
+| GET | `/device-engine/observations/{id}/archive/verify?archiveId=` | same (ABAC on the employee; restricted readings MRO / OH_PHYSICIAN only) | hash check of the observation's raw payload (`archiveId` omitted) or one of its attachments → `{sha256Stored, sha256Computed, intact}`; any other archive id → 404; audited `DEVICE_ARCHIVE_VERIFY` |
+| GET | `/device-engine/observations/{id}/provenance` | DEVICE_ADMIN, AUDITOR | **provenance-only view** (no person data): `{observationId, category, status, effectiveAt, deviceInstanceId, captureMethod, provenance, rawArchiveId, rawPayloadSha256, attachments[], restricted}` – no employee, values, flags, bound fields or filed record; audited `DEVICE_PROVENANCE_READ`; the archive check then uses `/device-engine/archive/{archiveId}/verify` |
 | GET | `/device-engine/observations/{id}/attachments/{archiveId}` | same | streamed PDF / image; waveform as JSON series |
 | GET | `/device-engine/unmatched?siteCode=&status=OPEN` | OH_CLINICIAN, OH_PHYSICIAN, NURSING_HEAD, AME, CMO (site team) | `[UnmatchedItem {id, observationId, category, receivedAt, ageHours, slaDueAt, deviceInstanceId, suggestions[{employeeId, displayName, method, confidence}], restricted}]` (restricted: no values) |
 | POST | `/device-engine/unmatched/{id}/resolve` | same | `{employeeId, reasonCode, note?}` → re-enters VALIDATE; `{discard:true, reasonCode}` discards |
@@ -662,17 +677,17 @@ authored; routing to an undeployed target dead-letters with `route_target_unavai
 | GET | `/device-engine/dead-letters?stage=&status=` | DEVICE_ADMIN, INTEGRATION_TESTER, PLATFORM_ADMIN | masked `[DeadLetter]` |
 | POST | `/device-engine/dead-letters/{id}/replay` · `/discard` | DEVICE_ADMIN, INTEGRATION_TESTER | `{driverVersion?}` / `{reason}` |
 | POST | `/device-engine/replay` | DEVICE_ADMIN (four-eyes not required; audited) | `{from, to, deviceInstanceId?, stageFrom}` → `{jobId, messages}` |
-| GET | `/device-engine/ops/connectors?siteCode=&state=` | DEVICE_ADMIN, SECURITY_OPS, PLATFORM_ADMIN, NURSING_HEAD | `[ConnectorHealth]` (E31-F11 operations API) |
-| GET | `/device-engine/ops/metrics?window=PT1H\|P1D` | same | `{messages, perSecondP95, latencyP50Ms, latencyP95Ms, parseErrorRate, validationBlockRate, unmatchedRate, unmatchedOpen, deadLettersOpen, slaBreaches}` per connector / site |
-| GET | `/device-engine/ops/alerts` | same | active alerts `{type STALE|SILENT|ERROR_RATE|LATENCY|UNMATCHED_SLA|QUEUE_CAPACITY|CALIBRATION_DUE, deviceInstanceId?, siteCode, since, level}` → `device.connector-alert` / `device.unmatched-queue` notifications to the on-duty administrator |
+| GET | `/device-engine/ops/connectors?siteCode=&state=` | DEVICE_ADMIN, SECURITY_OPS, PLATFORM_ADMIN, NURSING_HEAD, INTEGRATION_TESTER | `[ConnectorHealth {deviceInstanceId, endpointId, siteCode, option, state, lastSeenAt, messages24h, errors24h, p95LatencyMillis, unmatchedOpen, deadLetters}]` (E31-F11 operations API) – technical and PHI-free (ids, states, counts, rates; no employee, value or payload); simulator test traffic does not count towards a connector's health |
+| GET | `/device-engine/ops/metrics?window=PT1H\|P1D` | same (incl. INTEGRATION_TESTER; counts and rates only) | `{messages, perSecondP95, latencyP50Ms, latencyP95Ms, parseErrorRate, validationBlockRate, unmatchedRate, unmatchedOpen, deadLettersOpen, slaBreaches}` per connector / site |
+| GET | `/device-engine/ops/alerts` | same (incl. INTEGRATION_TESTER; ids, site, level only) | active alerts `{type STALE|SILENT|ERROR_RATE|LATENCY|UNMATCHED_SLA|QUEUE_CAPACITY|CALIBRATION_DUE, deviceInstanceId?, siteCode, since, level}` → `device.connector-alert` / `device.unmatched-queue` notifications to the on-duty administrator |
 | GET / POST | `/device-engine/drivers` · `/device-engine/drivers/validate` | INTEGRATION_TESTER (DEVICE_ADMIN read) | upload package JSON → schema + secret scan + mapping coverage report (no persistence) |
 | POST | `/device-engine/drivers/conformance` | INTEGRATION_TESTER | `{packageJson}` → runs all test vectors in the simulator → `{passed, results[{name, outcome, diff}]}`; evidence SHA-256 |
 | POST | `/device-engine/drivers/sign` | INTEGRATION_TESTER (request), DEVICE_APPROVER (approve) | signing request; on approval calls `DevicePackageSignatures.sign` and hands the signed package to the E32 registry (`POST /device-catalogue/drivers`) |
 | GET | `/device-engine/golden-datasets?family=` | INTEGRATION_TESTER, DEVICE_ADMIN | `[{datasetId, family, adapter, kind NORMAL|EDGE|MALFORMED|TIME_SKEW|DUPLICATE|PERFORMANCE, description}]` (synthetic only) |
-| POST | `/device-engine/simulators/{adapter}/run` | INTEGRATION_TESTER, DEVICE_ADMIN | `{datasetId, deviceInstanceId? or configurationId, ratePerSecond?, count?}` → feeds the pipeline as a virtual endpoint (`SIM-<adapter>`, test traffic flagged, retention `DEVICE_RAW_UNFILED`, never routed to production sinks unless `targetTestForm=true` which routes to the wizard test form) |
+| POST | `/device-engine/simulators/{adapter}/run` | INTEGRATION_TESTER, DEVICE_ADMIN | `{datasetId, deviceInstanceId?, ratePerSecond?, count?, targetTestForm?}` → feeds the pipeline through the virtual endpoint `SIM-<adapter>` (test traffic flagged, retention `DEVICE_RAW_UNFILED`) → `{runId, adapter, datasetId, messages, accepted, duplicates, failed, messageIds[], observationIds[], statuses[], evidenceSha256, deviceInstanceId, endpointId, simulated:true}`. **Without `deviceInstanceId`** the readings come from the virtual instance `SIM-<adapter>` (bundled sample package). **With `deviceInstanceId`** (a published, not quarantined instance whose driver uses the dataset's adapter – else 404 `device_not_published`, 409 `device_quarantined`, 422 `dataset_device_mismatch`) the readings arrive **as that device** (its driver, station, calibration gates; effective time = receipt) so a capture session listening on it receives them. Test traffic always: provenance `simulated:true`, quality flag `SIMULATED` (INFO), association by `SESSION` only (§9), never an `unmatched_item`, always verify-before-post, connector last-seen untouched; it reaches a production sink **only when a clinician accepts it in that capture session** (the E03 result then shows `device_model` "Simulated – …"). `targetTestForm=true` (not combinable with `deviceInstanceId`) marks the observations ROUTED to `TEST_FORM` (wizard evidence) without calling any sink |
 | GET | `/device-engine/terminology/maps?system=MDC&code=` · `/device-engine/terminology/predicted?equation=GLI_2012&age=&sex=&heightCm=` | INTEGRATION_TESTER, clinicians | reference data; versions listed at `/device-engine/terminology/versions` |
 | GET | `/device-engine/gates` | all device roles + clinicians | gate catalogue with sign-off status |
-| GET | `/device-engine/archive/{archiveId}/verify` | DEVICE_ADMIN, AUDITOR | `{sha256Stored, sha256Computed, intact}` – no content |
+| GET | `/device-engine/archive/{archiveId}/verify` | DEVICE_ADMIN, AUDITOR | `{sha256Stored, sha256Computed, intact}` – no content (archive ids from the provenance-only view; observation readers use `/observations/{id}/archive/verify`) |
 | GET | `/device-engine/tenants` · PUT `/device-engine/tenants/{code}/quota` | PLATFORM_ADMIN | `{code, messagesPerMinute, maxConnectors, catalogueScope}` (E31-F12; quota exceeded → 429 for that tenant's endpoints) |
 
 **Multi-tenancy (E31-HLR-12).** Every engine row carries `tenant_code` (`GROUP` for the airline group; partner tenants from E20
@@ -877,10 +892,11 @@ rejectReason?}`.
 | Method | Path | Roles | Notes |
 |---|---|---|---|
 | GET | `/device-capture/forms` · `/device-capture/forms/{formCode}` | clinicians, COLLECTOR, device roles (field catalogue only) | form registry `{formCode, formVersion, module, category, fieldGroups[{group, fields[{path, label, type, unit?, required}]}], target}` – seeded for the 15 categories (E03.DEVICE_RESULT.*, E07.IH_MEASUREMENT, E10.BREATH_ALCOHOL, E10.DRUG_SCREEN, E12.SCREENING_RESULT, E12.WEARABLE_DAILY); used by the E32 binding editor (step 5) |
-| GET | `/device-capture/devices?formCode=&siteCode=&stationCode=` | clinicians, COLLECTOR | station-aware list from `DeviceCatalogueLookup.instancesAtStation` filtered to PUBLISHED, in-calibration, not locked-out, not quarantined: `[{deviceInstanceId, displayName ("Spirometer – Room 2"), model, option, status AVAILABLE|BUSY|LOCKED_OUT|OFFLINE, lockReason?, nextAction?}]` – **no technical parameters** (E33-HLR-01) |
-| POST | `/device-capture/sessions` | clinicians (COLLECTOR for E10 forms) | `{formCode, formVersion, fieldGroup?, employeeId, caseId?, orderRef?, deviceInstanceId, siteCode, stationCode}` → `201 Session` (LISTENING); ABAC write check on the employee; triggers worklist / demographics push when the driver supports it (`START_ACQUISITION` / `PUSH_WORKLIST` gateway command) |
+| GET | `/device-capture/devices?formCode=&siteCode=&stationCode=` | clinicians, COLLECTOR | station-aware list from `DeviceCatalogueLookup.instancesAtStation` filtered to PUBLISHED, in-calibration, not locked-out, not quarantined: `[{deviceInstanceId, displayName ("Spirometer – Room 2"), model, option, status AVAILABLE|BUSY|LOCKED_OUT|OFFLINE, lockReason?, nextAction?}]` – **no technical parameters** (E33-HLR-01). Display names are **unique per station**: when two devices of the form at the station would share a name, the model is appended ("Vital signs monitor – Room 1 (UA-651BLE)"), and when the model is shared too a short asset tag – the E14 equipment id, else the last four characters of the serial, else the instance id ("… (Connex Spot · VIT-LHR-01)"); the session's `deviceName` and the alternates of the fall-back chain use the same names |
+| POST | `/device-capture/sessions` | clinicians (COLLECTOR for E10 forms) | `{formCode, formVersion, fieldGroup?, employeeId, caseId?, orderRef?, deviceInstanceId?, siteCode, stationCode}` → `201 Session` (LISTENING); ABAC write check on the employee; triggers worklist / demographics push when the driver supports it (`START_ACQUISITION` / `PUSH_WORKLIST` gateway command). **Without `deviceInstanceId`** (fall-back paths only): allowed only when no device of the form at the station is AVAILABLE (else 422 `device_available`); the session opens in `FALLBACK_OFFERED` with `fallbackReason DEVICE_UNAVAILABLE` and no device, offering photo / OCR (not for restricted categories) and manual entry with attestation; restricted categories keep their rules (opened by the COLLECTOR with the E10 test id, manual path only, MRO-visible attestation) |
 | GET | `/device-capture/sessions/{id}` | session operator, clinicians of the site | session + `preview` (`DeviceObservationGateway.preview`) when PREVIEW: values with units, quality flags, raw report / waveform links, bound fields, comparison block (§14.7) |
-| GET | `/device-capture/sessions/{id}/events` | same | Server-Sent Events `state` / `progress` / `preview` (fallback: poll `GET …/{id}` every 2 s); end-to-end ≤ 5 s p95 |
+| GET | `/device-capture/sessions/{id}/events` | same | Server-Sent Events `state` / `progress` / `preview` (fallback: poll `GET …/{id}` every 2 s); end-to-end ≤ 5 s p95. An SSE comment `:keep-alive` every 15 s (`wellnessz.device-capture.sse-keepalive-ms`) keeps idle streams open through proxies and releases the emitter of a browser that has gone; the BFF relays the stream unbuffered (§18) |
+| GET | `/device-capture/sign-offs?siteCode=` | PHYSICIANS (OH_PHYSICIAN, AME, CMO – the form's sign-off roles) | captures awaiting physician sign-off (state ACCEPTED, interpretation UNVERIFIED – ECG / ABPM), filtered by the form's sign-off roles and ABAC on the employee (clinical read), restricted readings never listed, oldest first, ≤ 500: `[{sessionId, category, formCode, employeeId, employeeName, siteCode, stationCode, deviceName, acceptedAt, verifiedBy}]` – **no values or interpretation text** (the detail is read with `GET …/sessions/{id}`); audited `DEVICE_SIGN_OFF_QUEUE_READ` |
 | POST | `/device-capture/sessions/{id}/accept` | clinicians (the verifier; restricted categories: COLLECTOR within own session, MRO) | `{acknowledgedFlags[], note?}` → `DeviceObservationGateway.accept` → `{state ACCEPTED, routedRecordType, routedRecordId}`; 422 `observation_blocked`, 422 `flags_not_acknowledged` |
 | POST | `/device-capture/sessions/{id}/reject` | same | `{reasonCode RETEST|WRONG_EMPLOYEE|ARTEFACT|DEVICE_FAULT|OTHER, note?}`; `RETEST` keeps the session LISTENING |
 | POST | `/device-capture/sessions/{id}/cancel` | operator | |
@@ -1000,9 +1016,14 @@ with OAuth2 client credentials held in `DeviceSecretStore`.
 Kernel `DeviceEndpointAuthenticationFilter` → `DeviceEndpointAuthenticator.authenticate(Credentials{endpointId, certificateSha256, token,
 remoteAddress, method, path})`. E34 rules in order: endpoint exists (`unknown_endpoint`) → status ACTIVE (`endpoint_pending`,
 `endpoint_isolated`, `endpoint_revoked`) → token hash matches and not expired (`bad_token`, `token_expired`) → thumbprint equals the
-bound certificate and the certificate is within validity (`certificate_mismatch`) → zone rule for the path and remote address
-(`zone_violation`) → `Result.success(principal)` with the authorised `deviceInstanceIds`. Revocation is effective on the next request
-(cache ≤ 60 s; SLA 5 min). E34 must not publish the failure event (the filter does, once). Successful authentications are **not**
+bound certificate and the certificate is within validity (`certificate_mismatch`) → zone rule for the remote address
+(`zone_violation`) → **authorisation**: the path must be allowed for the endpoint kind (vendor clouds: none) – `endpoint_forbidden`, decided
+only after every authentication factor passed → `Result.success(principal)` with the authorised `deviceInstanceIds`. Revocation is effective on the next request
+(cache ≤ 60 s; SLA 5 min). E34 must not publish the failure event (the filter does, once). **Status codes (decision):** the filter answers **401** for every
+authentication failure (`credentials_missing`, `mtls_required`, `unknown_endpoint`, `bad_token`, `token_expired`,
+`certificate_mismatch`, `endpoint_pending|isolated|revoked`, `zone_violation`, `endpoint_security_unavailable`, `rate_limited` from E34)
+and **403** for `endpoint_forbidden` (an authenticated endpoint on a path its kind may not use) – the same as the kernel ingest
+access-denied handler and E33's kiosk check. The security event stays `ENDPOINT_AUTH_FAILED` with the reason code. Successful authentications are **not**
 written to the audit log per request (volume); E34 keeps per-endpoint counters for anomaly rules.
 
 ### 15.4 Network zoning (E34-HLR-02, E34-F02)
@@ -1206,9 +1227,15 @@ i18n bundles – E33 UI task).
 
 ## 18. BFF resources and web screens
 
-**BFF (done).** `/workspace/device-fleet` added to `CORE_WORKSPACE_RESOURCES` (manager workspace, counts only). All other device
-endpoints are reached through `/bff/api/**` (authenticated) from the OH workspace; `WORKSPACE_ROLES` unchanged (device console roles
-use the OH workspace, not the manager workspace). Machine endpoints (`/device-ingest`, `/device-enrolment`, `/device-webhooks`) are
+**BFF (done).** `/workspace/device-fleet` added to `CORE_WORKSPACE_RESOURCES` (manager workspace, counts only).
+**Workspace roles:** `/bff/api/workspace/**` requires one of `WORKSPACE_ROLES`; `/bff/api/workspace/device-fleet` (and below) additionally
+admits **NURSING_HEAD** (`DEVICE_FLEET_WORKSPACE_ROLES` – the core E32 rule is MANAGER, NURSING_HEAD) and nothing else of the
+workspace (least privilege); the manager workspace shows the nursing head the device-availability screen only.
+**Streaming:** the proxy relays responses as a stream – `text/event-stream`, NDJSON and responses without a length are flushed per chunk
+with `X-Accel-Buffering: no` (SSE also `Cache-Control: no-cache, no-store`), no read timeout on an open body (only connect / response
+headers are bounded), a browser disconnect closes the upstream stream; the security headers (CSP, frame options, HSTS, referrer policy,
+nosniff) are written on commit as for every response. All other device
+endpoints are reached through `/bff/api/**` (authenticated) from the OH workspace; device console roles use the OH workspace, not the manager workspace. Machine endpoints (`/device-ingest`, `/device-enrolment`, `/device-webhooks`) are
 **never** proxied by the BFF.
 
 **OH workspace (`web/oh-workspace`) – new route group "Devices" (role gating in `src/auth/roles.ts`):**
@@ -1249,6 +1276,11 @@ kiosk API is delivered and exercised by tests and the E2E script).
 * Golden datasets (E31, `modules/wz-e31-device-engine/src/main/resources/e31/golden/<family>/<package>/…`): for every package in §6.2 at
   least `normal`, `edge`, `malformed`, `time-skew`, `duplicate`; performance profile `perf/mixed-50ps.json`.
 * Simulator endpoints `SIM-<adapter>` are virtual (no tokens), usable only through `/device-engine/simulators/**`.
+* **Seed order (fresh database).** The demo seeders run on `ApplicationReadyEvent` in a fixed order: E34 endpoints
+  (`E34DemoSeeder.SEED_ORDER`, `LOWEST_PRECEDENCE − 20`) → E32 drivers and published configurations (`E32DemoSeeder.SEED_ORDER`,
+  `− 10`) → E31 / E33 demo data (default order). E32 certifies its demo devices against the E34 endpoints in one transaction; E34's
+  `DeviceEndpointProvisioning.state` is `noRollbackFor = ApiException` so an unknown endpoint (404, caught by E32) never marks the
+  caller's transaction rollback-only (root cause of the first-start `UnexpectedRollbackException` that left every device unpublished).
 
 ## 20. Tests
 
@@ -1308,6 +1340,7 @@ token cannot call `/device-ingest`; another tenant's endpoint → 403 / 404. `Ar
 `route_target_unavailable`, `sink_rejected`, `binding_field_unknown`, `signature_invalid`, `timestamp_out_of_window`, `no_driver_for_option`,
 `step_invalid`, `four_eyes_violation`, `posture_blocked`, `recertification_required`, `device_busy`, `session_expired`, `consent_missing`,
 `attestation_incomplete`, `qc_due`, `qc_failed`, `qc_lot_invalid`, `device_out_of_calibration`, `device_out_of_service`, `device_not_registered`,
+`device_available` (device-less capture while a device is available), `dataset_device_mismatch` (simulator dataset vs the device's driver adapter),
 `enrolment_invalid`, `enrolment_token_invalid`, `enrolment_token_expired`, `already_enrolled`, `certificate_untrusted`,
 `certificate_key_usage`, `proof_invalid`, `thumbprint_mismatch`, `module_disabled`.
 

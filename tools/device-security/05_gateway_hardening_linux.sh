@@ -23,8 +23,8 @@ fi
 mkdir -p "$OUT"
 SCRIPT=05_gateway_hardening_linux
 cfg() { node -e "const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));const v=process.argv[2].split('.').reduce((o,k)=>o==null?undefined:o[k],c);if(v!==undefined)process.stdout.write(String(v))" "$TARGETS" "$1" 2>/dev/null; }
-SERVICE="$(cfg gateway.serviceName)"; SERVICE="${SERVICE:-wz-device-gateway}"
-MGMT_PORT="$(cfg gateway.managementPort)"; MGMT_PORT="${MGMT_PORT:-8091}"
+SERVICE="$(cfg gateway.serviceName)"; SERVICE="${SERVICE:-wellnessz-gateway}"   # apps/wz-device-gateway/service/linux/wellnessz-gateway.service
+MGMT_PORT="$(cfg gateway.managementPort)"; MGMT_PORT="${MGMT_PORT:-8095}"   # gateway status page + actuator (server.port, WZ_GATEWAY_STATUS_PORT)
 EDR="$(cfg gateway.edrService)"; EDR="${EDR:-falcon-sensor}"
 ENVIRONMENT="$(cfg environment)"; ENVIRONMENT="${ENVIRONMENT:-unspecified}"
 CHECKS=""
