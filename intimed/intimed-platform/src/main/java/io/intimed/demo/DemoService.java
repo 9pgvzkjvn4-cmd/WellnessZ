@@ -186,6 +186,9 @@ public class DemoService implements ApplicationRunner {
         String id;
         if (existing != null) {
             id = existing.get("id").asString();
+            JsonNode lr = existing.path("lastRun");
+            if (lr.has("runId")) out.put("run", lr.get("runId").asString()).put("runStatus", lr.path("status").asString())
+                    .put("checks", lr.path("passed").asInt() + "/" + lr.path("total").asInt()).put("seal", lr.path("seal").asString());
         } else {
             ObjectNode site = Json.obj().put("site", s[1]).put("station", s[2]);
             if (!s[3].isEmpty()) site.put("bed", s[3]);
