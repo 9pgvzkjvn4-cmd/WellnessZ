@@ -590,6 +590,61 @@ class Increment6ConsoleIntegrationTest extends IntegrationTestBase {
         assertThat(versions.path("compatible").asBoolean()).isFalse();
     }
 
+    // ------------------------------------------------------------------ P6 vendor-cloud polling in the wizard (E31-BL-008)
+
+    /**
+     * P6 polling through the wizard: the OAuth2 client secret – required by the P6 schema – is accepted write-only in {@code secrets}
+     * (stored through the vault, only the reference kept), and the vendor host must be on the egress allow-list read from the
+     * {@code device.cloud.allowed-hosts} configuration entry, the same source the engine's poller enforces.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void p6PollingClientSecretIsWriteOnlyAndTheHostMustBeOnTheConfiguredEgressAllowList() throws Exception {
+        Map<String, Object> pkg = json.readValue(getClass().getResourceAsStream("/e31/drivers/wear.cloud.daily-poll-1.0.0.json"), Map.class);
+        pkg.put("version", "1.0.9");
+        pkg.put("signature", Map.of("keyId", "pkg-test-2026", "algorithm", "Ed25519", "value", "c2lnbmF0dXJl"));
+        ok(post("/api/v1/device-catalogue/drivers"), TESTER, Map.of("packageJson", pkg, "conformanceRunId", "CR-P6", "conformanceEvidenceSha256", "ab".repeat(32)));
+        ok(post("/api/v1/device-catalogue/drivers/wear.cloud.daily-poll/1.0.9/certify"), APPROVER, null);
+        assertThat(ok(put("/api/v1/device-catalogue/models/MD-121/posture"), SECOPS, Map.of("mds2", Map.of("received", true), "patchPath", "VENDOR_CLOUD_MANAGED",
+                "remoteSupport", "NONE", "supportStatus", "CURRENT", "sbom", Map.of("available", true), "contacts", Map.of("securityEmail", "psirt@vendor.example")))
+                .path("posture").asText()).isEqualTo("ACCEPTABLE");
+        String previous = jdbc.queryForObject("select config_value from masterdata.config_entry where config_key = 'device.cloud.allowed-hosts'", String.class);
+        try {
+            jdbc.update("update masterdata.config_entry set config_value = '.vendor.example' where config_key = 'device.cloud.allowed-hosts'");
+            JsonNode cfg = ok(post("/api/v1/device-configurations"), ADMIN, Map.of("modelCode", "MD-121", "siteCode", "LHR"));
+            String id = cfg.path("configurationId").asText();
+            cfg = ok(put("/api/v1/device-configurations/" + id + "/steps/2"), ADMIN, Map.of("option", "P6"));
+            assertThat(cfg.path("driverPackageId").asText()).isEqualTo("wear.cloud.daily-poll");
+            cfg = ok(put("/api/v1/device-configurations/" + id + "/steps/3"), ADMIN, Map.of("items", List.of(
+                    Map.of("code", "VENDOR_CLOUD_AGREEMENT", "status", "DONE", "evidence", Map.of("reference", "DPA-P6")),
+                    Map.of("code", "INTERFACE_SPEC_CONFIRMED", "status", "DONE", "evidence", Map.of("reference", "SPEC-P6")))));
+            assertThat(stepStatus(cfg, 3)).as(cfg.toString()).isEqualTo("VALID");
+            Map<String, Object> params = new java.util.LinkedHashMap<>(Map.of("apiBaseUrl", "https://api.vendor.example/v1", "residencyRegion", "UK",
+                    "poll", Map.of("enabled", true, "intervalSeconds", 900), "webhook", Map.of("enabled", false),
+                    "oauth2", Map.of("tokenUrl", "https://auth.vendor.example/oauth/token", "clientId", "wz-client")));
+            // without the secret the schema still requires it
+            assertThat(errorCodes(problem(put("/api/v1/device-configurations/" + id + "/steps/4"), ADMIN, Map.of("parameters", params), 422))).contains("required");
+            // a host outside the configured allow-list is refused
+            Map<String, Object> outside = new java.util.LinkedHashMap<>(params);
+            outside.put("apiBaseUrl", "https://api.other-cloud.example/v1");
+            assertThat(errorCodes(problem(put("/api/v1/device-configurations/" + id + "/steps/4"), ADMIN,
+                    Map.of("parameters", outside, "secrets", Map.of("oauth2.clientSecretRef", "p6-client-s3cret")), 422))).contains("host_not_allowed");
+            // the secret supplied write-only satisfies the schema; only the vault reference is kept
+            cfg = ok(put("/api/v1/device-configurations/" + id + "/steps/4"), ADMIN, Map.of("parameters", params,
+                    "secrets", Map.of("oauth2.clientSecretRef", "p6-client-s3cret")));
+            assertThat(stepStatus(cfg, 4)).as(cfg.toString()).isEqualTo("VALID");
+            verify(secrets).store(eq("deviceadmin1"), eq("device-configuration:" + id), eq("oauth2.clientSecretRef"), any());
+            assertThat(cfg.toString()).doesNotContain("p6-client-s3cret");
+            assertThat(jdbc.queryForObject("select count(*) from devicecat.configuration where data like '%p6-client-s3cret%'", Integer.class)).isZero();
+            // the administrator narrows the list in the configuration entry: the wizard applies it at once (no restart)
+            jdbc.update("update masterdata.config_entry set config_value = 'auth.vendor.example' where config_key = 'device.cloud.allowed-hosts'");
+            assertThat(errorCodes(problem(put("/api/v1/device-configurations/" + id + "/steps/4"), ADMIN, Map.of("parameters", params), 422)))
+                    .contains("host_not_allowed");
+        } finally {
+            jdbc.update("update masterdata.config_entry set config_value = ? where config_key = 'device.cloud.allowed-hosts'", previous == null ? "" : previous);
+        }
+    }
+
     // ------------------------------------------------------------------ driver registry (signatures, four-eyes, revocation)
 
     @Test

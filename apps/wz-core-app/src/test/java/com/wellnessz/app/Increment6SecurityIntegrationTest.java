@@ -237,6 +237,11 @@ class Increment6SecurityIntegrationTest extends IntegrationTestBase {
         // enrolment failures (each a security event ENROLMENT_FAILED)
         mvc.perform(enrolRequest(enrolmentToken, EndpointKind.GATEWAY, cert, null, proof))
                 .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("mtls_required"));
+        // an anonymous call (no client certificate, no token) is an authentication failure – 401, never a 400 validation error
+        mvc.perform(post("/api/v1/device-enrolment/enrol").contentType(MediaType.APPLICATION_JSON).content("{}").with(from(nextAddress())))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("mtls_required"));
+        mvc.perform(post("/api/v1/device-enrolment/enrol").header(CERT_HEADER, cert.sha256()).contentType(MediaType.APPLICATION_JSON).content("{}")
+                .with(from(nextAddress()))).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("credentials_missing"));
         mvc.perform(enrolRequest(enrolmentToken, EndpointKind.GATEWAY, cert, other.sha256(), proof))
                 .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("thumbprint_mismatch"));
         DeviceTestPki.Client untrusted = PKI.selfSigned("rogue");

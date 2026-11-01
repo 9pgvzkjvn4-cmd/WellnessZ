@@ -10,13 +10,15 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * Secret scanner shared by the console import, driver validation and the security test pack (contract §15.6): a member whose
- * key looks like a credential must hold a reference ({@code devsec:} / {@code vault:}), never a literal value. Findings carry
- * the JSON path only – never the value.
+ * key looks like a credential must hold a reference ({@code devsec:} / {@code vault:}), never a literal value. In a driver
+ * package a {@code PARAMETER:<name>} reference is a reference too: it resolves against the published configuration, where the
+ * value itself is a {@code devsec:} reference (the same rule as the E31 driver validator – without it the bundled P6 OAuth2
+ * driver {@code wear.cloud.daily-poll} could not be signed). Findings carry the JSON path only – never the value.
  */
 public final class SecretScanner {
 
     public static final Pattern SENSITIVE_KEY = Pattern.compile("(?i)(password|secret|token|api[-_]?key|private[-_]?key|credential)");
-    public static final Pattern REFERENCE = Pattern.compile("^(devsec|vault):.+");
+    public static final Pattern REFERENCE = Pattern.compile("^(devsec|vault):.+|^PARAMETER:[A-Za-z][A-Za-z0-9_.\\-]{0,99}$");
 
     /** Literal-looking credentials inside free text (PEM private keys, bearer tokens, AWS-style keys). */
     private static final Pattern EMBEDDED = Pattern.compile("-----BEGIN [A-Z ]*PRIVATE KEY-----|(?i)bearer\\s+[A-Za-z0-9._\\-]{20,}|AKIA[0-9A-Z]{16}");

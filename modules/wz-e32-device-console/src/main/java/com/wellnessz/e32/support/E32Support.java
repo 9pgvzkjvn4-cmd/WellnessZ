@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import com.wellnessz.casekernel.device.DeviceCloudEgress;
 import com.wellnessz.casekernel.device.DeviceCodes;
 import com.wellnessz.casekernel.device.DeviceSecurityEventPublisher;
 import com.wellnessz.casekernel.device.DeviceSpis;
@@ -58,14 +59,14 @@ public class E32Support {
     private final String environment;
     private final String ohPortal;
     private final String tenantResidency;
-    private final List<String> cloudAllowedHosts;
+    private final DeviceCloudEgress cloudEgress;
 
     public E32Support(JdbcTemplate jdbc, JsonMapper json, Clock clock, AuditService audit, NotificationService notifications,
                       ObjectProvider<DeviceSpis> spis, ModuleRegistry modules,
                       @Value("${wellnessz.device.console.environment:dev}") String environment,
                       @Value("${wellnessz.notification.oh-workspace-url:https://oh.wellnessz.local}") String ohPortal,
                       @Value("${wellnessz.device.console.tenant-residency:UK}") String tenantResidency,
-                      @Value("${device.cloud.allowed-hosts:}") List<String> cloudAllowedHosts) {
+                      DeviceCloudEgress cloudEgress) {
         this.jdbc = jdbc;
         this.json = json;
         this.clock = clock;
@@ -76,7 +77,7 @@ public class E32Support {
         this.environment = environment;
         this.ohPortal = ohPortal;
         this.tenantResidency = tenantResidency;
-        this.cloudAllowedHosts = List.copyOf(cloudAllowedHosts);
+        this.cloudEgress = cloudEgress;
     }
 
     // ------------------------------------------------------------------ infrastructure accessors
@@ -124,8 +125,9 @@ public class E32Support {
         return spis().tenants().tenant(code).map(t -> t.sees(ownerTenant)).orElse(false);
     }
 
+    /** P6 egress allow-list: the {@code device.cloud.allowed-hosts} configuration entry, the same source the E31 poller enforces. */
     public List<String> cloudAllowedHosts() {
-        return cloudAllowedHosts;
+        return cloudEgress.allowedHosts();
     }
 
     public void requireEnabled() {

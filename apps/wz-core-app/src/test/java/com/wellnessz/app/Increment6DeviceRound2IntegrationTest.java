@@ -43,6 +43,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import com.wellnessz.casekernel.device.DeviceCaptureSessions;
+import com.wellnessz.casekernel.device.DeviceCloudEgress;
 import com.wellnessz.casekernel.device.DeviceCatalogueLookup;
 import com.wellnessz.casekernel.device.DeviceCodes;
 import com.wellnessz.casekernel.device.DeviceEndpointAuthenticator;
@@ -55,6 +56,9 @@ import com.wellnessz.e31.driver.DriverPackage;
 import com.wellnessz.e31.service.CaptureSessionListener;
 import com.wellnessz.e31.service.GatewayService;
 import com.wellnessz.e31.service.TenantService;
+import com.wellnessz.e31.support.EngineSettings;
+import com.wellnessz.e32.option.OptionRules;
+import com.wellnessz.e32.support.E32Support;
 import com.wellnessz.e34.signing.PackageSignatureService;
 
 import tools.jackson.databind.JsonNode;
@@ -101,6 +105,8 @@ class Increment6DeviceRound2IntegrationTest extends IntegrationTestBase {
     @Autowired TenantService tenants;
     @Autowired PackageSignatureService signatures;
     @Autowired BundledDrivers bundled;
+    @Autowired E32Support consoleSupport;
+    @Autowired EngineSettings engineSettings;
 
     // ------------------------------------------------------------------ mock vendor cloud
 
@@ -407,6 +413,36 @@ class Increment6DeviceRound2IntegrationTest extends IntegrationTestBase {
         mvc.perform(post("/api/v1/device-engine/ops/cloud-connectors/DEV-R2-WCP/poll").with(NURSE)).andExpect(status().isForbidden());
         assertThat(jdbc.queryForObject("select count(*) from devicesec.security_event where type = 'CLOUD_POLL_REFUSED' and device_instance_id = 'DEV-R2-WCP-OUT'",
                 Integer.class)).isPositive();
+    }
+
+    /**
+     * One source for {@code device.cloud.allowed-hosts}: the E32 wizard (step 4 semantic check) and the E31 poller read the same
+     * configuration entry ({@link DeviceCloudEgress}); a change applies to both at once (the Spring property only seeds it).
+     */
+    @Test
+    void wizardAndPollerReadTheSameEgressAllowListFromTheConfigurationEntry() throws Exception {
+        Map<String, Object> p6 = Map.of("apiBaseUrl", "https://api.vendor.example/v1", "poll", Map.of("enabled", true, "intervalSeconds", 300),
+                "oauth2", Map.of("tokenUrl", "https://api.vendor.example/token", "clientId", "wz", "clientSecretRef", "devsec:x"), "residencyRegion", "EU");
+        try {
+            jdbc.update("update masterdata.config_entry set config_value = ' api.vendor.example , .cloud.example' where config_key = ?", DeviceCloudEgress.KEY);
+            assertThat(consoleSupport.cloudAllowedHosts()).containsExactly("api.vendor.example", ".cloud.example")
+                    .isEqualTo(engineSettings.cloudAllowedHosts());
+            assertThat(OptionRules.semantic("P6", p6, new OptionRules.Context(consoleSupport.cloudAllowedHosts(), "EU", null)))
+                    .noneMatch(i -> "host_not_allowed".equals(i.code()));
+            // the poller refuses the mock cloud on 127.0.0.1, which is no longer on the list – no outbound call
+            int pages = PAGE_CALLS.get();
+            assertThat(poll("DEV-R2-WCP").path("status").asString()).isEqualTo("HOST_NOT_ALLOWED");
+            assertThat(PAGE_CALLS.get()).isEqualTo(pages);
+
+            // an administrator removes the vendor host: the wizard refuses it immediately as well (no restart, no property)
+            jdbc.update("update masterdata.config_entry set config_value = '127.0.0.1' where config_key = ?", DeviceCloudEgress.KEY);
+            assertThat(consoleSupport.cloudAllowedHosts()).containsExactly("127.0.0.1").isEqualTo(engineSettings.cloudAllowedHosts());
+            assertThat(OptionRules.semantic("P6", p6, new OptionRules.Context(consoleSupport.cloudAllowedHosts(), "EU", null)))
+                    .anyMatch(i -> "host_not_allowed".equals(i.code()) && "apiBaseUrl".equals(i.field()));
+        } finally {
+            jdbc.update("update masterdata.config_entry set config_value = '127.0.0.1' where config_key = ?", DeviceCloudEgress.KEY);
+            jdbc.update("update deviceint.cloud_poll_state set next_poll_at = null, consecutive_failures = 0 where device_instance_id = 'DEV-R2-WCP'");
+        }
     }
 
     // ------------------------------------------------------------------ outbound orders, start from form

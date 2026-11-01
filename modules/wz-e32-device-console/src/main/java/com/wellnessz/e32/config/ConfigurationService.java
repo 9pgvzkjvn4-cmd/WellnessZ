@@ -660,7 +660,15 @@ public class ConfigurationService {
                 Docs.put(params, path, existingRef);
             }
         }
-        List<FieldIssue> schemaIssues = ParameterValidator.validate(schema, params);
+        // the schema sees a secret supplied in this request as its (future) reference: a secret the option schema requires (P6
+        // oauth2.clientSecretRef) was otherwise always "required" – the value never travels in parameters, only in secrets
+        Map<String, Object> validated = Docs.copyMap(params);
+        secretsIn.forEach((k, v) -> {
+            if (secretPaths.contains(k) && Docs.str(v) != null && !Docs.str(v).isEmpty()) {
+                Docs.put(validated, k, "devsec:pending");
+            }
+        });
+        List<FieldIssue> schemaIssues = ParameterValidator.validate(schema, validated);
         schemaIssues.forEach(i -> issues.add(new FieldIssue(i.field().startsWith("parameters") ? i.field() : "parameters." + i.field(), i.code(), i.message())));
         if (issues.isEmpty()) {
             // semantic rules see the secrets as (future) references

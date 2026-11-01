@@ -32,6 +32,18 @@ class SecretScannerAndPoliciesTest {
     }
 
     @Test
+    void driverPackageParameterReferencesAreNotLiteralSecrets() {
+        // the bundled P6 driver (wear.cloud.daily-poll) names its OAuth2 client secret and token URL as configuration parameters
+        assertThat(SecretScanner.scan(Canonicaliser.parse("""
+                {"protocol":{"poll":{"oauth2":{"tokenUrl":"PARAMETER:tokenUrl","clientId":"PARAMETER:clientId","secretRef":"PARAMETER:clientSecretRef"}},
+                  "signature":{"secretRef":"PARAMETER:webhook.webhookSecretRef"}}}
+                """))).isEmpty();
+        // only a well-formed parameter name is a reference – anything else is still a literal
+        assertThat(SecretScanner.scan(Canonicaliser.parse("{\"clientSecret\":\"PARAMETER:\",\"password\":\"PARAMETER: s3cret value\"}")))
+                .extracting(SecretScanner.Finding::path).containsExactlyInAnyOrder("$.clientSecret", "$.password");
+    }
+
+    @Test
     void remediationDueDates() {
         LocalDate d = LocalDate.of(2026, 10, 1);
         assertThat(GovernanceService.dueOn("CRITICAL", d)).isEqualTo(LocalDate.of(2026, 10, 8));

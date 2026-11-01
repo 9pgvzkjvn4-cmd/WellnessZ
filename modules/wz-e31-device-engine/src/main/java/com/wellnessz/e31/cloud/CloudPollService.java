@@ -25,11 +25,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.wellnessz.casekernel.device.DeviceCatalogueLookup;
@@ -335,13 +338,30 @@ public class CloudPollService {
         }
     }
 
+    /**
+     * Runs a secret resolution as the engine. E34 resolves connector secrets for the engine only and refuses any call made with a
+     * person's authentication ({@code person_caller}); "Poll now" (operations screen) runs the poll in the administrator's request
+     * thread, so without this the OAuth2 client secret never resolved there ({@code secret_unresolved}). The value goes only to the
+     * vendor's token endpoint – never into the response – and the person's context is restored afterwards.
+     */
+    static <T> T asEngine(Supplier<T> call) {
+        SecurityContext previous = SecurityContextHolder.getContext();
+        SecurityContextHolder.setContext(SecurityContextHolder.createEmptyContext());
+        try {
+            return call.get();
+        } finally {
+            SecurityContextHolder.setContext(previous);
+        }
+    }
+
     Token token(CloudConnector c) throws PollFailure {
         Token cached = tokens.get(c.deviceInstanceId());
         Instant now = clock.instant();
         if (cached != null && cached.expiresAt().isAfter(now.plusSeconds(30))) {
             return cached;
         }
-        char[] secret = spis.secrets().resolve(c.clientSecretRef(), "CLOUD_POLL").orElseThrow(() -> new PollFailure("AUTH_FAILED", "secret_unresolved", 0));
+        char[] secret = asEngine(() -> spis.secrets().resolve(c.clientSecretRef(), "CLOUD_POLL"))
+                .orElseThrow(() -> new PollFailure("AUTH_FAILED", "secret_unresolved", 0));
         String basic;
         try {
             byte[] pair = (enc(c.clientId()) + ":" + enc(new String(secret))).getBytes(StandardCharsets.UTF_8);

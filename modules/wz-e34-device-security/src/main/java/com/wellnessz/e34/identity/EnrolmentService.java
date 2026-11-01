@@ -82,8 +82,16 @@ public class EnrolmentService {
         if (!throttle.tryAcquire(remoteAddress)) {
             throw fail(null, remoteAddress, HttpStatus.TOO_MANY_REQUESTS, "rate_limited");
         }
-        if (cmd == null || blank(cmd.enrolmentToken()) || cmd.enrolmentToken().length() > 128 || blank(cmd.endpointKind())
-                || blank(cmd.certificatePem()) || blank(cmd.proof()) || tooLong(cmd)) {
+        // credentials first (contract §15.3 – every authentication failure is a 401): without the ingress-verified client
+        // certificate or without an enrolment token the call is unauthenticated, whatever else the body holds
+        String thumbprint = normalise(headerThumbprint);
+        if (thumbprint == null) {
+            throw fail(null, remoteAddress, HttpStatus.UNAUTHORIZED, "mtls_required");
+        }
+        if (cmd == null || blank(cmd.enrolmentToken())) {
+            throw fail(null, remoteAddress, HttpStatus.UNAUTHORIZED, "credentials_missing");
+        }
+        if (cmd.enrolmentToken().length() > 128 || blank(cmd.endpointKind()) || blank(cmd.certificatePem()) || blank(cmd.proof()) || tooLong(cmd)) {
             throw fail(null, remoteAddress, HttpStatus.BAD_REQUEST, "enrolment_invalid");
         }
         DeviceCodes.EndpointKind kind;
@@ -91,10 +99,6 @@ public class EnrolmentService {
             kind = DeviceCodes.EndpointKind.valueOf(cmd.endpointKind());
         } catch (IllegalArgumentException e) {
             throw fail(null, remoteAddress, HttpStatus.BAD_REQUEST, "enrolment_invalid");
-        }
-        String thumbprint = normalise(headerThumbprint);
-        if (thumbprint == null) {
-            throw fail(null, remoteAddress, HttpStatus.UNAUTHORIZED, "mtls_required");
         }
         String tokenHash = hasher.hash(cmd.enrolmentToken());
         Instant now = settings.now();

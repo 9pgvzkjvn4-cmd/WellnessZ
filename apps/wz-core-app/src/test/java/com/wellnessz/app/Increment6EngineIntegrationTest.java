@@ -638,6 +638,11 @@ class Increment6EngineIntegrationTest extends IntegrationTestBase {
         mvc.perform(post("/api/v1/device-webhooks/DEV-T-FIT").header("X-Timestamp", Long.toString(Instant.now().getEpochSecond() - 3600))
                 .header("X-Signature", sig).contentType(MediaType.APPLICATION_JSON).content(payload)).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("timestamp_out_of_window"));
+        // unknown connectors are authentication failures (401 unknown_endpoint), not 404 – no connector enumeration
+        mvc.perform(post("/api/v1/device-webhooks/DEV-NOT-A-CONNECTOR").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("unknown_endpoint"));
+        mvc.perform(post("/api/v1/device-webhooks/DEV-000001").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("unknown_endpoint"));
         // with E34 deployed, security events go to its hash-chained store (the platform audit log is only the fallback without E34)
         assertThat(jdbc.queryForObject("select count(*) from devicesec.security_event where type = 'WEBHOOK_SIGNATURE_FAILED' and source_module = 'E31' "
                 + "and device_instance_id = 'DEV-T-FIT' and reason_code in ('signature_invalid', 'timestamp_out_of_window')", Integer.class)).isGreaterThanOrEqualTo(2);

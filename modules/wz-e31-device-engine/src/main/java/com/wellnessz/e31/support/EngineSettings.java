@@ -3,7 +3,6 @@ package com.wellnessz.e31.support;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.wellnessz.casekernel.device.DeviceCloudEgress;
 import com.wellnessz.masterdata.ConfigService;
 
 /**
@@ -25,15 +25,17 @@ public class EngineSettings {
     private final ConfigService config;
     private final Clock clock;
     private final boolean requireRegisteredDevices;
+    private final DeviceCloudEgress cloudEgress;
     private final Map<String, Cached> cache = new ConcurrentHashMap<>();
 
     private record Cached(String value, Instant at) {
     }
 
-    public EngineSettings(ConfigService config, Clock clock,
+    public EngineSettings(ConfigService config, Clock clock, DeviceCloudEgress cloudEgress,
                           @Value("${wellnessz.record.require-registered-devices:false}") boolean requireRegisteredDevices) {
         this.config = config;
         this.clock = clock;
+        this.cloudEgress = cloudEgress;
         this.requireRegisteredDevices = requireRegisteredDevices;
     }
 
@@ -100,8 +102,9 @@ public class EngineSettings {
         return !"false".equalsIgnoreCase(raw("device.pipeline.inline", "true").strip());
     }
 
+    /** P6 egress allow-list – the same configuration entry the E32 wizard checks ({@link DeviceCloudEgress}, not cached here). */
     public List<String> cloudAllowedHosts() {
-        return Arrays.stream(raw("device.cloud.allowed-hosts", "").split(",")).map(String::strip).filter(s -> !s.isEmpty()).toList();
+        return cloudEgress.allowedHosts();
     }
 
     public boolean requireRegisteredDevices() {

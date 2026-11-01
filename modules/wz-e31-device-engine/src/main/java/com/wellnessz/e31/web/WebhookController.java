@@ -81,12 +81,14 @@ public class WebhookController {
     @PostMapping(value = "/{connectorId}", consumes = MediaType.ALL_VALUE)
     public ResponseEntity<Object> receive(@PathVariable String connectorId, @RequestBody byte[] body, HttpServletRequest req) {
         modules.requireEnabled("E31");
+        // an unknown or unpublished connector is an authentication failure (401 unknown_endpoint, contract §15.3) – not a 404, which
+        // let an anonymous caller enumerate the published vendor-cloud connectors
         if (!connectorId.matches("[A-Za-z0-9._\\-]{1,64}")) {
-            throw ApiException.notFound("Connector");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "unknown_endpoint", "Unknown webhook connector");
         }
         DeviceCatalogueLookup.DeviceInstance instance = spis.catalogue().instance(connectorId)
                 .filter(i -> i.option() == DeviceCodes.Option.P6_CLOUD_API && i.published())
-                .orElseThrow(() -> ApiException.notFound("Connector"));
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "unknown_endpoint", "Unknown webhook connector"));
         String endpoint = "VENDOR:" + connectorId;
         if (messages.countForEndpointSince(endpoint, clock.instant().minusSeconds(60)) >= RATE_PER_MINUTE) {
             throw new RateLimitedException("Connector rate limit exceeded", 60);
