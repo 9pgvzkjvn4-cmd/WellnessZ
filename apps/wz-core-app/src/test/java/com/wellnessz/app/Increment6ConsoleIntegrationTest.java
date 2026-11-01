@@ -3,10 +3,12 @@ package com.wellnessz.app;
 import static com.wellnessz.app.PlatformIntegrationTest.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -26,7 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
@@ -67,14 +69,19 @@ class Increment6ConsoleIntegrationTest extends IntegrationTestBase {
     @Autowired
     CatalogueSeedLoader seedLoader;
 
-    @MockitoBean
-    DeviceDiagnostics diagnostics;
-    @MockitoBean
-    DeviceEndpointProvisioning provisioning;
-    @MockitoBean
-    DeviceSecretStore secrets;
-    @MockitoBean
-    DevicePackageSignatures signatures;
+    /*
+     * Real E31 / E34 beans, spied (not replaced): every SPI call reaches the real module. Only what needs a live device or a
+     * foreign signing key is stubbed narrowly on the concrete bean – replacing the SPI type with a mock would also replace the
+     * module's multi-interface beans (EndpointService is DeviceEndpointProvisioning *and* the E34 controllers' service).
+     */
+    @MockitoSpyBean
+    com.wellnessz.e31.service.DiagnosticsService diagnostics;
+    @MockitoSpyBean
+    com.wellnessz.e34.identity.EndpointService provisioning;
+    @MockitoSpyBean
+    com.wellnessz.e34.secrets.SecretStoreService secrets;
+    @MockitoSpyBean
+    com.wellnessz.e34.signing.PackageSignatureService signatures;
 
     static final JwtRequestPostProcessor ADMIN = user("deviceadmin1", "S8901", "/AIRLINE", "DEVICE_ADMIN");
     static final JwtRequestPostProcessor APPROVER = user("deviceapprover1", "S8902", "/AIRLINE", "DEVICE_APPROVER");
@@ -86,31 +93,26 @@ class Increment6ConsoleIntegrationTest extends IntegrationTestBase {
     static final JwtRequestPostProcessor EMPLOYEE = user("employee1", "E1001", "/AIRLINE/CATERING", "EMPLOYEE");
 
     @BeforeEach
-    void mocks() {
-        when(provisioning.state(anyString())).thenAnswer(i -> new DeviceEndpointProvisioning.EndpointState(i.getArgument(0),
-                DeviceCodes.EndpointStatus.ACTIVE, Instant.now(), false));
-        when(provisioning.provision(anyString(), any())).thenAnswer(i -> {
-            DeviceEndpointProvisioning.ProvisionRequest r = i.getArgument(1);
-            return r.existingEndpointId() != null
-                    ? new DeviceEndpointProvisioning.EndpointIssue(r.existingEndpointId(), DeviceCodes.EndpointStatus.ACTIVE, null, null)
-                    : new DeviceEndpointProvisioning.EndpointIssue("EP-" + r.deviceInstanceId(), DeviceCodes.EndpointStatus.PENDING_ENROLMENT,
-                            "enrol-once-7Hq2", Instant.now().plusSeconds(86400));
-        });
-        when(diagnostics.runTest(anyString(), any())).thenAnswer(i -> new DeviceDiagnostics.TestRun(UUID.randomUUID(), "PASSED",
-                List.of(new DeviceDiagnostics.TestStep("CONNECTION", "PASS", "mTLS authenticated, plaintext refused"),
-                        new DeviceDiagnostics.TestStep("END_TO_END", "PASS", "sample result in the test form"),
-                        new DeviceDiagnostics.TestStep("NEGATIVE_VECTORS", "PASS", "malformed and implausible refused")),
-                "ab".repeat(32), Instant.now()));
-        when(diagnostics.health(anyString())).thenAnswer(i -> new DeviceDiagnostics.ConnectorHealth(i.getArgument(0), "HEALTHY", Instant.now(), 12, 0,
-                900L, 0, 0));
-        when(diagnostics.trace(anyString(), org.mockito.ArgumentMatchers.anyInt())).thenAnswer(i -> List.of(new DeviceDiagnostics.TraceEntry(UUID.randomUUID(),
-                Instant.now(), "PARSE", "OK", null, "PID|1||E1001^^^WZ||Testperson^Erin||19850214|F\rOBX|1|NM|150021^MDC||124|mm[Hg]", "systolic→8480-6",
-                1200L)));
-        when(secrets.store(anyString(), anyString(), anyString(), any())).thenAnswer(i -> "devsec:" + UUID.randomUUID());
-        when(signatures.verify(any(), anyString(), eq("pkg-test-2026"))).thenReturn(new DevicePackageSignatures.Verification(true, "pkg-test-2026",
-                "Ed25519", null));
-        when(signatures.verify(any(), anyString(), eq("pkg-unknown"))).thenReturn(new DevicePackageSignatures.Verification(false, "pkg-unknown",
-                "Ed25519", "unknown_key"));
+    void stubs() {
+        // the simulator test runs for real through E31; a LIVE test needs a connected device, so it is answered here
+        doAnswer(i -> {
+            DeviceDiagnostics.TestRequest r = i.getArgument(1);
+            if (!"LIVE".equals(r.mode())) {
+                return i.callRealMethod();
+            }
+            assertThat(r.parameters()).containsKey("deviceInstanceId");
+            return new DeviceDiagnostics.TestRun(UUID.randomUUID(), "PASSED",
+                    List.of(new DeviceDiagnostics.TestStep("CONNECTION", "PASS", "mTLS authenticated, plaintext refused"),
+                            new DeviceDiagnostics.TestStep("END_TO_END", "PASS", "sample result in the test form")), "ab".repeat(32), Instant.now());
+        }).when(diagnostics).runTest(anyString(), any());
+        doAnswer(i -> new DeviceDiagnostics.ConnectorHealth(i.getArgument(0), "HEALTHY", Instant.now(), 12, 0, 900L, 0, 0))
+                .when(diagnostics).health(anyString());
+        doAnswer(i -> List.of(new DeviceDiagnostics.TraceEntry(UUID.randomUUID(), Instant.now(), "PARSE", "OK", null,
+                "PID|1||E1001^^^WZ||Testperson^Erin||19850214|F\rOBX|1|NM|150021^MDC||124|mm[Hg]", "systolic→8480-6", 1200L)))
+                .when(diagnostics).trace(anyString(), anyInt());
+        // the test packages carry a placeholder signature under a test key id; unknown keys are verified by the real E34
+        doReturn(new DevicePackageSignatures.Verification(true, "pkg-test-2026", "Ed25519", null))
+                .when(signatures).verify(any(), anyString(), eq("pkg-test-2026"));
     }
 
     // ------------------------------------------------------------------ helpers
@@ -383,12 +385,26 @@ class Increment6ConsoleIntegrationTest extends IntegrationTestBase {
         ok(post("/api/v1/device-configurations/CFG-000009/submit"), ADMIN, null);
         ok(post("/api/v1/device-configurations/CFG-000009/approve"), APPROVER, null);
         JsonNode pub = ok(post("/api/v1/device-configurations/CFG-000009/publish"), ADMIN, null);
-        assertThat(pub.path("enrolmentToken").asText()).isEqualTo("enrol-once-7Hq2");
-        assertThat(pub.path("endpointId").asText()).isEqualTo("EP-DEV-000009");
+        // real E34 provisioning: a vendor cloud is ACTIVE at once (webhooks are HMAC-signed – no enrolment token to show), in the
+        // VENDOR_CLOUD zone of its kind (not the device VLAN), with the instance authorised on it
+        String endpoint = pub.path("endpointId").asText();
+        assertThat(endpoint).matches("EP-LHR-VC-\\d{2,}");
+        assertThat(pub.has("enrolmentToken")).isFalse();
+        verify(provisioning).provision(eq("deviceadmin1"), any());
+        assertThat(spis.provisioning().state(endpoint).status()).isEqualTo(DeviceCodes.EndpointStatus.ACTIVE);
+        assertThat(jdbc.queryForObject("select zone from devicesec.endpoint where endpoint_id = ?", String.class, endpoint)).isEqualTo("VENDOR_CLOUD");
+        assertThat(jdbc.queryForObject("select count(*) from devicesec.endpoint_instance where endpoint_id = ? and device_instance_id = 'DEV-000009'",
+                Integer.class, endpoint)).isEqualTo(1);
         String reloaded = ok(get("/api/v1/device-configurations/CFG-000009"), ADMIN, null).toString();
-        assertThat(reloaded).doesNotContain("enrol-once-7Hq2");
-        assertThat(jdbc.queryForObject("select count(*) from devicecat.configuration where data like '%enrol-once-7Hq2%'", Integer.class)).isZero();
-        assertThat(lookup().instance("DEV-000009").orElseThrow().option()).isEqualTo(DeviceCodes.Option.P6_CLOUD_API);
+        assertThat(reloaded).doesNotContain("s3cr3t-hmac-value");
+        assertThat(jdbc.queryForObject("select count(*) from devicecat.configuration where data like '%s3cr3t-hmac-value%'", Integer.class)).isZero();
+        DeviceCatalogueLookup.DeviceInstance vc = lookup().instance("DEV-000009").orElseThrow();
+        assertThat(vc.option()).isEqualTo(DeviceCodes.Option.P6_CLOUD_API);
+        assertThat(vc.endpointId()).isEqualTo(endpoint);
+        // the webhook secret is a vault reference that resolves for the engine only
+        String ref = String.valueOf(vc.parameters().get("webhook") instanceof Map<?, ?> w ? w.get("webhookSecretRef") : null);
+        assertThat(ref).startsWith("devsec:");
+        assertThat(spis.secrets().resolve(ref, "WEBHOOK_HMAC")).hasValueSatisfying(v -> assertThat(new String(v)).isEqualTo("s3cr3t-hmac-value"));
     }
 
     // ------------------------------------------------------------------ governance: export / import with diff (E32-F06)
@@ -437,6 +453,10 @@ class Increment6ConsoleIntegrationTest extends IntegrationTestBase {
     @Test
     void decommissioningNeedsFourEyesRevokesTheEndpointAndRemovesTheInstance() throws Exception {
         assertThat(lookup().instance("DEV-000002")).isPresent();
+        // the engine knows another device behind the same shared agent
+        jdbc.update("""
+                insert into deviceint.connector_state (device_instance_id, tenant_code, endpoint_id, endpoint_status, updated_at)
+                values ('DEV-000001', 'GROUP', 'EP-LHR-AGT-01', 'ACTIVE', now()) on conflict (device_instance_id) do nothing""");
         problem(post("/api/v1/device-configurations/CFG-000002/decommission"), ADMIN, Map.of("reason", "replaced", "disposal", "SOLD"), 400);
         ok(post("/api/v1/device-configurations/CFG-000002/decommission"), ADMIN, Map.of("reason", "Replaced by a new audiometer", "disposal",
                 "RETURNED_TO_VENDOR"));
@@ -447,6 +467,13 @@ class Increment6ConsoleIntegrationTest extends IntegrationTestBase {
         assertThat(done.path("disposal").path("disposal").asText()).isEqualTo("RETURNED_TO_VENDOR");
         verify(provisioning).revoke("deviceapprover1", "EP-LHR-AGT-01", "DEV-000002", "DECOMMISSIONED");
         assertThat(lookup().instance("DEV-000002")).isEmpty();
+        // real E34: only the instance's authorisation is withdrawn – the shared agent and its other devices keep running
+        assertThat(spis.provisioning().state("EP-LHR-AGT-01").status()).isEqualTo(DeviceCodes.EndpointStatus.ACTIVE);
+        assertThat(jdbc.queryForObject("select count(*) from devicesec.endpoint_instance where endpoint_id = 'EP-LHR-AGT-01' and device_instance_id = 'DEV-000002'",
+                Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select endpoint_status from deviceint.connector_state where device_instance_id = 'DEV-000001'", String.class))
+                .isEqualTo("ACTIVE");
+        assertThat(lookup().instance("DEV-000001")).hasValueSatisfying(i -> assertThat(i.status()).isNotEqualTo("QUARANTINED"));
         assertThat(lookup().instancesForEndpoint("EP-LHR-AGT-01", "AU300-1001")).isEmpty();
         problem(post("/api/v1/device-configurations/CFG-000002/clone"), ADMIN, Map.of("siteCode", "LHR", "stationCode", "LHR-OH-ROOM-2"), 409);
     }

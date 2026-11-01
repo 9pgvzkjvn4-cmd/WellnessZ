@@ -7,6 +7,8 @@ import { ToneBadge } from '../../components/Tone';
 import { ActionFeedback, Empty, ErrorAlert, Field, Loading, PageTitle, SelectOptions, StatusBadge } from '../../components/ui';
 import { useAction, useAsync } from '../../components/useAsync';
 import { toggleAll, toggleId } from '../../domain/surveillance';
+import { surveillanceCaptureForms } from '../../domain/capture';
+import { EmbeddedCapture } from '../capture/EmbeddedCapture';
 import type { ScreenProps } from '../types';
 
 const MAX_BULK = 5000;
@@ -189,6 +191,17 @@ export function SurveillanceDue({ client, session, onSessionExpired }: ScreenPro
       {dialog && (
         <Dialog title={dialog.mode === 'complete' ? 'Record surveillance completed' : 'Exempt from programme'} onClose={() => setDialog(undefined)}>
           <p>{dialog.e.displayName} – <strong>{dialog.e.programmeTitle}</strong></p>
+          {dialog.mode === 'complete' && (
+            <EmbeddedCapture
+              client={client}
+              session={session}
+              onSessionExpired={onSessionExpired}
+              employeeId={dialog.e.employeeId}
+              employeeName={dialog.e.displayName}
+              forms={surveillanceCaptureForms(`${dialog.e.programmeCode} ${dialog.e.programmeTitle}`)}
+              buttonLabel="Record the test from a device"
+            />
+          )}
           <form className="form" onSubmit={submitRow}>
             {dialog.mode === 'complete' ? (
               <>

@@ -151,6 +151,17 @@ const SecurityZones = lazy(() => import('./screens/security/DeviceSecurity').the
 const SigningKeys = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.SigningKeys })));
 const ConnectorSecrets = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.ConnectorSecrets })));
 const SecurityAssurance = lazy(() => import('./screens/security/DeviceSecurity').then((m) => ({ default: m.SecurityAssurance })));
+// Increment 6 – E31 engine operations & E33 module-embedded capture (one chunk per screen file).
+const EngineHealth = lazy(() => import('./screens/engine/Operations').then((m) => ({ default: m.EngineHealth })));
+const DeadLetters = lazy(() => import('./screens/engine/Operations').then((m) => ({ default: m.DeadLetters })));
+const UnmatchedQueue = lazy(() => import('./screens/engine/Clinical').then((m) => ({ default: m.UnmatchedQueue })));
+const ObservationsBrowser = lazy(() => import('./screens/engine/Clinical').then((m) => ({ default: m.ObservationsBrowser })));
+const ObservationDetail = lazy(() => import('./screens/engine/Clinical').then((m) => ({ default: m.ObservationDetail })));
+const EngineTooling = lazy(() => import('./screens/engine/Tooling').then((m) => ({ default: m.EngineTooling })));
+const TerminologyViewer = lazy(() => import('./screens/engine/Tooling').then((m) => ({ default: m.TerminologyViewer })));
+const BatchMode = lazy(() => import('./screens/capture/CaptureScreens').then((m) => ({ default: m.BatchMode })));
+const SignOffScreen = lazy(() => import('./screens/capture/CaptureScreens').then((m) => ({ default: m.SignOffScreen })));
+const CaptureKpis = lazy(() => import('./screens/capture/CaptureScreens').then((m) => ({ default: m.CaptureKpis })));
 
 /** Fixed second segments that are screens, not ids (`/claims/reports` is not claim "reports"). */
 const CLAIM_SCREENS = new Set(['reports', 'costs', 'nurse-assignment', 'disclosures', 'preauthorisations']);
@@ -195,6 +206,12 @@ function renderRoute(route: string, props: ScreenProps): ReactNode {
   if (wizardMatch?.[1]) return <DeviceWizard key={wizardMatch[1]} {...props} configurationId={decodeURIComponent(wizardMatch[1])} />;
   const instanceMatch = /^\/devices\/(?:fleet|diagnostics)\/([^/]+)$/.exec(route);
   if (instanceMatch?.[1]) return <DeviceInstance key={instanceMatch[1]} {...props} deviceInstanceId={decodeURIComponent(instanceMatch[1])} />;
+  const observationMatch = /^\/devices\/observations\/([^/]+)$/.exec(route);
+  if (observationMatch?.[1]) return <ObservationDetail key={observationMatch[1]} {...props} observationId={decodeURIComponent(observationMatch[1])} />;
+  const signOffMatch = /^\/devices\/sign-off\/([^/]+)$/.exec(route);
+  if (signOffMatch?.[1]) return <SignOffScreen key={signOffMatch[1]} {...props} sessionId={decodeURIComponent(signOffMatch[1])} />;
+  const batchMatch = /^\/devices\/batch\/([^/]+)$/.exec(route);
+  if (batchMatch?.[1]) return <BatchMode key={batchMatch[1]} {...props} batchId={decodeURIComponent(batchMatch[1])} />;
   const endpointMatch = /^\/security\/devices\/endpoints\/([^/]+)$/.exec(route);
   if (endpointMatch?.[1]) return <SecurityEndpointDetail key={endpointMatch[1]} {...props} endpointId={decodeURIComponent(endpointMatch[1])} />;
   switch (route) {
@@ -214,6 +231,16 @@ function renderRoute(route: string, props: ScreenProps): ReactNode {
     case '/security/devices/keys': return <SigningKeys {...props} />;
     case '/security/devices/secrets': return <ConnectorSecrets {...props} />;
     case '/security/devices/assurance': return <SecurityAssurance {...props} />;
+    case '/devices/operations': return <EngineHealth {...props} />;
+    case '/devices/dead-letters': return <DeadLetters {...props} />;
+    case '/devices/unmatched': return <UnmatchedQueue {...props} />;
+    case '/devices/observations': return <ObservationsBrowser {...props} />;
+    case '/devices/simulators': return <EngineTooling {...props} />;
+    case '/devices/simulators/drivers': return <EngineTooling {...props} tab="drivers" />;
+    case '/devices/terminology': return <TerminologyViewer {...props} />;
+    case '/devices/batch': return <BatchMode {...props} />;
+    case '/devices/sign-off': return <SignOffScreen {...props} />;
+    case '/devices/kpis': return <CaptureKpis {...props} />;
     case '/queues': return <Queues {...props} />;
     case '/escalations': return <Escalations {...props} />;
     case '/handovers': return <Handovers {...props} />;
@@ -407,7 +434,7 @@ export function App({ client }: { client: AuthClient }) {
         ? route
         : /^\/(claims|referrals|providers)\/./.test(route)
           ? `/${route.split('/')[1]}`
-          : route.replace(/^(\/intake\/incidents)\/.*$/, '$1').replace(/^(\/scheduling\/campaigns)\/.*$/, '$1').replace(/^(\/absence\/lta|\/surveillance\/programmes)\/.*$/, '$1').replace(/^(\/support\/cases|\/cism)\/.*$/, '$1').replace(/^(\/communicable|\/exposures)\/.*$/, '$1').replace(/^\/devices\/diagnostics\/.*$/, '/devices/fleet').replace(/^(\/devices\/(?:catalogue|wizard|fleet))\/.*$/, '$1').replace(/^\/security\/devices\/endpoints\/.*$/, '/security/devices');
+          : route.replace(/^(\/intake\/incidents)\/.*$/, '$1').replace(/^(\/scheduling\/campaigns)\/.*$/, '$1').replace(/^(\/absence\/lta|\/surveillance\/programmes)\/.*$/, '$1').replace(/^(\/support\/cases|\/cism)\/.*$/, '$1').replace(/^(\/communicable|\/exposures)\/.*$/, '$1').replace(/^\/devices\/diagnostics\/.*$/, '/devices/fleet').replace(/^(\/devices\/(?:catalogue|wizard|fleet))\/.*$/, '$1').replace(/^\/security\/devices\/endpoints\/.*$/, '/security/devices').replace(/^(\/devices\/(?:observations|sign-off|batch|simulators))\/.*$/, '$1');
 
   return (
     <div className="shell">

@@ -20,7 +20,7 @@ export function stepOf(cfg: Pick<Configuration, 'steps'>, n: number): WizardStep
 export function stepStatusView(status: StepStatus | undefined): { label: string; symbol: string; tone: 'green' | 'amber' | 'red' | 'muted' } {
   switch (status) {
     case 'VALID': return { label: 'Complete', symbol: '✓', tone: 'green' };
-    case 'IN_PROGRESS': return { label: 'In progress', symbol: '◐', tone: 'amber' };
+    case 'IN_PROGRESS': return { label: 'In progress', symbol: '▲', tone: 'amber' };
     case 'INVALID': return { label: 'Needs attention', symbol: '!', tone: 'red' };
     default: return { label: 'Not started', symbol: '○', tone: 'muted' };
   }
@@ -62,7 +62,11 @@ export function problemCode(e: unknown): string | undefined {
 /** Turns `errors[{field, message}]` of a 422 into error-summary entries; `idFor` maps a server field to a control id. */
 export function serverFindings(e: unknown, idFor: (field: string) => string | undefined, fallbackId: string): FieldError[] {
   if (!(e instanceof ApiError) || !e.problem?.errors?.length) return [];
-  return e.problem.errors.map((f) => ({ field: idFor(f.field) ?? fallbackId, message: f.message }));
+  return e.problem.errors.map((f) => {
+    const leaf = f.field.replace(/\[.*$/, '').split('.').pop() ?? '';
+    const labelled = /^[a-z]/.test(f.message) && leaf && !['parameters', 'common', 'step'].includes(leaf) ? `${labelFor(leaf)} ${f.message}` : f.message;
+    return { field: idFor(f.field) ?? fallbackId, message: labelled };
+  });
 }
 
 // ------------------------------------------------------------------ path helpers
@@ -118,6 +122,8 @@ export interface SchemaField {
   alwaysRequired: boolean;
   /** Top-level section the field belongs to ('' = top level). */
   group: string;
+  /** Set when the parent object is required but none of its members is: at least one member must be filled. */
+  anyOf?: string;
   hint?: string;
 }
 
@@ -164,7 +170,9 @@ export function flattenSchema(schema: JsonSchema | undefined, prefix = '', group
     const path = prefix ? `${prefix}.${key}` : key;
     const req = required.has(key);
     if (s.type === 'object' && s.properties) {
-      out.push(...flattenSchema(s, path, group || key, parentAlways && req));
+      const children = flattenSchema(s, path, group || key, parentAlways && req);
+      const allOptional = !(s.required ?? []).length;
+      out.push(...(parentAlways && req && allOptional ? children.map((c) => (parentPath(c.path) === path ? { ...c, anyOf: path } : c)) : children));
       continue;
     }
     out.push({ path, label: labelFor(key), kind: kindOf(s), schema: s, required: req, alwaysRequired: parentAlways && req, group, hint: hintFor(s) });
@@ -211,6 +219,13 @@ function parentPath(path: string): string {
 /** Client-side validation against the schema; `idFor(path)` yields the control id for the error summary. */
 export function validateSchemaForm(fields: SchemaField[], st: FormState, idFor: (path: string) => string, secretsSet: (path: string) => boolean = () => false): FieldError[] {
   const errors: FieldError[] = [];
+  const anyOfGroups = [...new Set(fields.map((f) => f.anyOf).filter((g): g is string => !!g))];
+  for (const g of anyOfGroups) {
+    const members = fields.filter((f) => f.anyOf === g);
+    if (!members.some((f) => filled(st[f.path]))) {
+      errors.push({ field: idFor(members[0]!.path), message: `${labelFor(g.split('.').pop() ?? g)}: enter at least one of ${members.map((m) => m.label).join(', ')}` });
+    }
+  }
   for (const f of fields) {
     const raw = st[f.path];
     const parent = parentPath(f.path);

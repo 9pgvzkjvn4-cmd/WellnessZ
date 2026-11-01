@@ -74,6 +74,21 @@ import tools.jackson.databind.json.JsonMapper;
 @Service("e31PipelineProcessor")
 public class PipelineProcessor {
 
+    /** Check type of a point-of-care QC message in the E32 QC schedules (contract section 13.6). */
+    static final String QC_CHECK_TYPE = "POC_QC_LOT";
+
+    static String qcTime(String v) {
+        if (v == null) {
+            return null;
+        }
+        try {
+            return TimeParsing.iso(v, ZoneOffset.UTC).toString();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+
     public static final String ENGINE_ACTOR = "device-engine";
     static final Duration[] BACKOFF = {Duration.ofSeconds(5), Duration.ofSeconds(30), Duration.ofMinutes(2), Duration.ofMinutes(10), Duration.ofHours(1)};
     static final Set<DeviceCodes.Category> RESTRICTED = Set.of(DeviceCodes.Category.BREATH_ALCOHOL, DeviceCodes.Category.DRUG_SCREEN);
@@ -183,7 +198,11 @@ public class PipelineProcessor {
             if ("POCT1A".equals(m.kind())) {
                 String root = XPathParser.rootName(body);
                 if ("QCN.R01".equals(root)) {
-                    bus.publish(new E31Events.QcReceived(m.id().toString(), instance.deviceInstanceId(), root));
+                    Map<String, String> qc = XPathParser.qcSummary(body);
+                    String expiry = qc.get("lotExpiry") == null ? null : qc.get("lotExpiry").substring(0, Math.min(10, qc.get("lotExpiry").length()));
+                    String performed = qcTime(qc.get("performedAt"));
+                    bus.publish(new E31Events.QcReceived(m.id().toString(), instance.deviceInstanceId(), root, QC_CHECK_TYPE, qc.get("lot"), expiry,
+                            qc.get("outcome") == null ? "PASS" : qc.get("outcome"), performed));
                 }
             }
             ParseContext ctx = new ParseContext(pkg, body, m.contentType(), m.headers(), m.capturedAt() == null ? m.receivedAt() : m.capturedAt(),

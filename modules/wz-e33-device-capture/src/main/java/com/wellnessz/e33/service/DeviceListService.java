@@ -170,11 +170,18 @@ public class DeviceListService {
         return new DeviceChoice(i.deviceInstanceId(), name, i.model(), option, "LOCKED_OUT", reason, next, null);
     }
 
-    /** Connector health from the engine when it is deployed; {@code null} when unknown. */
+    /**
+     * Connector health from the engine when it is deployed; {@code null} when unknown. The engine reports {@code SILENT} for a
+     * connector it has never seen ({@code lastSeenAt == null} – a newly published device that only transmits when it measures):
+     * that is "no data yet", not "offline", and must not force every first capture into the fall-back chain.
+     */
     private String health(String deviceInstanceId) {
         try {
             DeviceDiagnostics.ConnectorHealth h = spis.diagnostics().health(deviceInstanceId);
-            return h == null ? null : h.state();
+            if (h == null || h.lastSeenAt() == null && !"ISOLATED".equals(h.state())) {
+                return null;
+            }
+            return h.state();
         } catch (ApiException | UnsupportedOperationException e) {
             return null;
         }

@@ -141,8 +141,15 @@ public class AssociationService {
         if (r.identity().name() != null) {
             candidates.addAll(fuzzy(r.identity().name(), r.identity().dateOfBirth()));
         }
-        AssociationEngine.Decision d = AssociationEngine.decide(candidates, conflict, r.restricted(), settings.autoFileThreshold(),
+        // only the association methods the published configuration allows may file a result (DeviceInstance.associationMethods,
+        // wizard step 5); the others remain suggestions for the clinician's resolution in the unmatched queue
+        List<AssociationEngine.Candidate> allowed = allowedCandidates(candidates, r.instance());
+        AssociationEngine.Decision d = AssociationEngine.decide(allowed, conflict, r.restricted(), settings.autoFileThreshold(),
                 settings.suggestThreshold());
+        if (!d.associated() && allowed.size() < candidates.size()) {
+            d = new AssociationEngine.Decision(d.status(), d.employeeId(), d.method(), d.confidence(), d.reason(),
+                    AssociationEngine.suggestions(candidates, settings.suggestThreshold()));
+        }
         if (r.persistCandidates()) {
             for (AssociationEngine.Candidate c : candidates) {
                 if (c.employeeId() != null) {
@@ -152,6 +159,17 @@ public class AssociationService {
             }
         }
         return new Result(d, session, orderRef, caseId, candidates);
+    }
+
+    /** Methods that never come from the device configuration: a clinician's resolution, entry in the form, area measurements. */
+    static final java.util.Set<String> ALWAYS_ALLOWED = java.util.Set.of("MANUAL_RESOLUTION", "ENTERED_IN_FORM", "AREA_MEASUREMENT");
+
+    static List<AssociationEngine.Candidate> allowedCandidates(List<AssociationEngine.Candidate> candidates,
+                                                               DeviceCatalogueLookup.DeviceInstance instance) {
+        if (instance == null || instance.associationMethods().isEmpty()) {
+            return candidates;
+        }
+        return candidates.stream().filter(c -> ALWAYS_ALLOWED.contains(c.method()) || instance.associationMethods().contains(c.method())).toList();
     }
 
     boolean inWindow(DeviceCaptureSessions.SessionBinding s, Instant effectiveAt) {

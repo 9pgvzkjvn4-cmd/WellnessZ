@@ -312,6 +312,25 @@ export const FEATURES = {
   securityControls: ['SECURITY_OPS'],
   securityEvents: ['SECURITY_OPS', 'AUDITOR'],
   securityAssurance: ['SECURITY_OPS', 'AUDITOR'],
+  // Increment 6 – E33 module-embedded capture & E31 engine (API-Contract-E31-E34 §12, §14, §18). Mirrors the controllers'
+  // @PreAuthorize: capture = clinicians + COLLECTOR; observations = OH roles + MRO (ABAC server-side, restricted categories
+  // MRO / physician only – the MRO keeps the increment-5 rule of no other clinical screen); engine operations PHI-free (counts, masked dead letters).
+  deviceCapture: [...CLINICIANS, 'COLLECTOR'],
+  deviceSignOff: [...PHYSICIANS],
+  deviceBatch: [...CLINICIANS],
+  deviceKpis: ['NURSING_HEAD', 'CMO', 'DEVICE_ADMIN', 'PLATFORM_ADMIN'],
+  deviceUnmatched: ['OH_CLINICIAN', 'OH_PHYSICIAN', 'NURSING_HEAD', 'AME', 'CMO'],
+  deviceObservations: ['OH_CLINICIAN', 'OH_PHYSICIAN', 'AME', 'CMO', 'NURSING_HEAD', 'CASE_MANAGER'],
+  deviceArchiveVerify: ['DEVICE_ADMIN', 'AUDITOR'],
+  deviceProvenance: ['OH_CLINICIAN', 'OH_PHYSICIAN', 'AME', 'CMO', 'NURSING_HEAD', 'CASE_MANAGER', 'DEVICE_ADMIN', 'AUDITOR'],
+  engineOps: ['DEVICE_ADMIN', 'SECURITY_OPS', 'PLATFORM_ADMIN', 'NURSING_HEAD'],
+  engineUnmatchedCount: ['OH_CLINICIAN', 'OH_PHYSICIAN', 'NURSING_HEAD', 'AME', 'CMO', 'DEVICE_ADMIN'],
+  engineDeadLetters: ['DEVICE_ADMIN', 'INTEGRATION_TESTER', 'PLATFORM_ADMIN'],
+  engineReplay: ['DEVICE_ADMIN', 'INTEGRATION_TESTER'],
+  engineRangeReplay: ['DEVICE_ADMIN'],
+  engineSimulators: ['INTEGRATION_TESTER', 'DEVICE_ADMIN'],
+  engineDriverValidate: ['INTEGRATION_TESTER'],
+  engineTerminology: ['INTEGRATION_TESTER', 'DEVICE_ADMIN', 'OH_CLINICIAN', 'OH_PHYSICIAN', 'AME', 'CMO', 'NURSING_HEAD'],
 } satisfies Record<string, readonly string[]>;
 
 export type Feature = keyof typeof FEATURES;
@@ -347,7 +366,7 @@ export interface NavItem {
   path: string;
   label: string;
   feature: Feature;
-  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic' | 'Absence' | 'Surveillance' | 'Claims' | 'Treatment' | 'Support' | 'Testing' | 'Public health' | 'Promotion' | 'Devices' | 'Security';
+  group: 'Work' | 'Record' | 'Fitness' | 'Intake' | 'Reception' | 'Team' | 'Configuration' | 'Privacy' | 'Clinic' | 'Absence' | 'Surveillance' | 'Claims' | 'Treatment' | 'Support' | 'Testing' | 'Public health' | 'Promotion' | 'Devices' | 'Device capture' | 'Security';
 }
 
 export const NAV: readonly NavItem[] = [
@@ -480,6 +499,16 @@ export const NAV: readonly NavItem[] = [
   { path: '/devices/governance', label: 'Governance & promotion', feature: 'deviceGovernance', group: 'Devices' },
   { path: '/devices/model-requests', label: 'Model requests', feature: 'deviceModelRequests', group: 'Devices' },
   { path: '/devices/test-review', label: 'Device test review', feature: 'deviceNurseReview', group: 'Devices' },
+  // Increment 6 – E31 engine operations & E33 capture
+  { path: '/devices/operations', label: 'Engine health', feature: 'engineOps', group: 'Devices' },
+  { path: '/devices/dead-letters', label: 'Dead letters & replay', feature: 'engineDeadLetters', group: 'Devices' },
+  { path: '/devices/simulators', label: 'Simulators & driver tests', feature: 'engineSimulators', group: 'Devices' },
+  { path: '/devices/terminology', label: 'Terminology & gates', feature: 'engineTerminology', group: 'Devices' },
+  { path: '/devices/kpis', label: 'Capture KPIs', feature: 'deviceKpis', group: 'Devices' },
+  { path: '/devices/batch', label: 'Screening batch mode', feature: 'deviceBatch', group: 'Device capture' },
+  { path: '/devices/unmatched', label: 'Unmatched readings', feature: 'deviceUnmatched', group: 'Device capture' },
+  { path: '/devices/sign-off', label: 'ECG / ABPM sign-off', feature: 'deviceSignOff', group: 'Device capture' },
+  { path: '/devices/observations', label: 'Observations & provenance', feature: 'deviceProvenance', group: 'Device capture' },
 ];
 
 export function navFor(roles: readonly string[] | undefined): NavItem[] {
@@ -516,5 +545,9 @@ export function featureForRoute(route: string): Feature | undefined {
   if (/^\/devices\/fleet\/[^/]+$/.test(route)) return 'deviceFleet';
   if (/^\/devices\/diagnostics\/[^/]+$/.test(route)) return 'deviceDiagnostics';
   if (/^\/security\/devices\/endpoints\/[^/]+$/.test(route)) return 'securityEndpoints';
+  if (/^\/devices\/observations\/[^/]+$/.test(route)) return 'deviceProvenance';
+  if (/^\/devices\/sign-off\/[^/]+$/.test(route)) return 'deviceSignOff';
+  if (/^\/devices\/batch\/[^/]+$/.test(route)) return 'deviceBatch';
+  if (route === '/devices/simulators/drivers') return 'engineSimulators';
   return undefined;
 }

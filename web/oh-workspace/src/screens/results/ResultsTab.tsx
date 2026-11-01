@@ -5,6 +5,8 @@ import { formatDate, humanise } from '../../components/format';
 import { ActionFeedback, Empty, ErrorAlert, Field, Loading, SelectOptions, StatusBadge } from '../../components/ui';
 import { useAction, useAsync } from '../../components/useAsync';
 import type { ChartTabProps } from '../chart/chartTabProps';
+import { E03_CAPTURE_FORMS } from '../../domain/capture';
+import { EmbeddedCapture } from '../capture/EmbeddedCapture';
 import { DeviceResultForm } from './DeviceResultForm';
 import { OrderForm } from './OrderForm';
 import { OverdueBadge, ResultFlag, ResultValue } from './ResultFlag';
@@ -120,6 +122,18 @@ export function ResultsTab({ client, session, onSessionExpired, employeeId, case
           </button>
         )}
       </div>
+      <EmbeddedCapture
+        client={client}
+        session={session}
+        onSessionExpired={onSessionExpired}
+        employeeId={employeeId}
+        caseId={caseId}
+        forms={E03_CAPTURE_FORMS}
+        onAccepted={() => {
+          results.reload();
+          refreshSummary();
+        }}
+      />
       {panel === 'order' && canOrder && <OrderForm client={client} onSessionExpired={onSessionExpired} employeeId={employeeId} caseId={caseId} onPlaced={() => orders.reload()} />}
       {panel === 'device' && canDevice && (
         <DeviceResultForm

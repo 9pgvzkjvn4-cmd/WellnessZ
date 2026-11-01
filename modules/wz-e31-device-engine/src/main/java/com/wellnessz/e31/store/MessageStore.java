@@ -163,6 +163,12 @@ public class MessageStore {
                 code, endpointId);
     }
 
+    /** Parks the in-flight messages of one device instance (its authorisation was withdrawn on a shared endpoint). */
+    public void parkInstance(String deviceInstanceId, String code) {
+        jdbc.update("update deviceint.message set status = 'PARKED', error_code = ? where device_instance_id = ? and status in ('RECEIVED','RETRY','PROCESSING')",
+                code, deviceInstanceId);
+    }
+
     public int unpark(String endpointId) {
         return jdbc.update("""
                 update deviceint.message set status = 'RETRY', next_attempt_at = ?, error_code = null

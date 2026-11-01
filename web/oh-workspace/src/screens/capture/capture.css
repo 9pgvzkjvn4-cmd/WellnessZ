@@ -1,0 +1,314 @@
+/* E33 module-embedded capture and E31 engine screens – uses the tokens from src/styles.css. Touch targets ≥ 44 × 44 px (glove use). */
+
+.capture-panel {
+  border: 1px solid var(--c-border);
+  border-left: 4px solid var(--c-accent);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  padding: 0.75rem 1rem 1rem;
+  margin: 0.75rem 0;
+}
+.capture-panel button,
+.embedded-capture > button,
+.batch-run button,
+.capture-panel select,
+.capture-panel input:not([type='checkbox']):not([type='radio']) {
+  min-height: 44px;
+}
+.capture-panel .link-button {
+  min-height: 44px;
+  padding: 0 0.25rem;
+}
+.capture-panel input[type='checkbox'],
+.capture-panel input[type='radio'] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.capture-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+}
+.capture-head h3 {
+  margin: 0;
+}
+.station-line {
+  margin: 0.35rem 0 0.75rem;
+}
+.station-picker {
+  margin: 0.5rem 0 0.75rem;
+}
+.embedded-capture {
+  margin: 0.75rem 0;
+}
+.capture-form-choice {
+  max-width: 32rem;
+  margin-top: 0.5rem;
+}
+
+.device-choices {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.device-choice {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+}
+.device-choice.device-available {
+  border-color: var(--c-ok);
+}
+.device-choice.device-locked-out,
+.device-choice.device-offline {
+  background: var(--c-surface-2, var(--c-bg));
+}
+
+.capture-status {
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--c-info-bg);
+  margin: 0.5rem 0;
+}
+.state-accepted .capture-status {
+  background: var(--c-success-bg);
+}
+.state-rejected .capture-status,
+.state-expired .capture-status,
+.state-cancelled .capture-status {
+  background: var(--c-bg);
+}
+.state-fallback-offered .capture-status {
+  background: var(--c-warn-bg);
+}
+.state-badge.state-listening,
+.state-badge.state-fallback-entry {
+  background: var(--c-info-bg);
+  color: var(--c-primary);
+}
+.state-badge.state-preview {
+  background: var(--c-amber-bg);
+  color: var(--c-amber);
+}
+.state-badge.state-accepted {
+  background: var(--c-green-bg);
+  color: var(--c-green);
+}
+.state-badge.state-fallback-offered,
+.state-badge.state-rejected {
+  background: var(--c-red-bg);
+  color: var(--c-red);
+}
+.capture-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pulse {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: var(--c-accent);
+  animation: wz-pulse 1.4s ease-in-out infinite;
+}
+@keyframes wz-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+  }
+}
+
+.capture-preview {
+  margin: 0.5rem 0;
+}
+.preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+.capture-marking {
+  background: var(--c-green-bg);
+  color: var(--c-green);
+}
+.capture-marking.marking-ocr-verified,
+.capture-marking.marking-manual-attested {
+  background: var(--c-amber-bg);
+  color: var(--c-amber);
+}
+.capture-values td.num {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.flag-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+.flag-item {
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+}
+.flag-item.flag-warn {
+  border-color: var(--c-amber);
+  background: var(--c-warn-bg);
+}
+.flag-item.flag-block {
+  border-color: var(--c-red);
+  background: var(--c-error-bg);
+}
+.flag-item .ack {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  font-weight: 600;
+}
+.provenance {
+  margin: 0.5rem 0;
+}
+.provenance summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.restricted-reading {
+  padding: 0.75rem;
+  border: 2px dashed var(--c-amber);
+  border-radius: var(--radius);
+  background: var(--c-warn-bg);
+  color: var(--c-warn);
+  margin: 0.5rem 0;
+}
+.restricted-reading p {
+  margin: 0.25rem 0 0;
+}
+.comparison .current-row {
+  background: var(--c-info-bg);
+}
+
+.fallback-chain {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--c-border);
+}
+.fallback-steps {
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+.fallback-steps > li {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+}
+.fallback-steps > li.step-open {
+  border-color: var(--c-accent);
+}
+.fallback-steps > li.step-done {
+  opacity: 0.8;
+}
+.fallback-steps ul {
+  margin: 0.35rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* batch mode */
+.offline-banner {
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--c-warn-bg);
+  color: var(--c-warn);
+  border: 1px solid var(--c-amber);
+  margin: 0.5rem 0;
+}
+.connection {
+  font-weight: 600;
+}
+.connection.online {
+  color: var(--c-green);
+}
+.connection.offline {
+  color: var(--c-red);
+}
+.batch-layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 20rem) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .batch-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.batch-queue {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+  max-height: 70vh;
+  overflow: auto;
+}
+.queue-button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: left;
+  background: var(--c-surface);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+}
+.queue-button:hover {
+  background: var(--c-info-bg);
+}
+.queue-entry.is-current .queue-button {
+  border-left: 4px solid var(--c-accent);
+}
+.queue-entry.is-selected .queue-button {
+  outline: 2px solid var(--c-accent);
+}
+.queue-pos {
+  font-variant-numeric: tabular-nums;
+  min-width: 1.75rem;
+  font-weight: 700;
+}
+.queue-name {
+  flex: 1;
+}
+.big-button {
+  min-height: 56px;
+  font-size: 1.05rem;
+  padding: 0 1.25rem;
+}
+.batch-bar {
+  margin-bottom: 0.75rem;
+}

@@ -1599,9 +1599,18 @@ tr.row-suppressed td {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
-  counter-reset: none;
+}
+@media (min-width: 110rem) {
+  .stepper {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+@media (max-width: 40rem) {
+  .stepper {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .stepper-item button {
   display: flex;
@@ -1784,4 +1793,11 @@ del::before {
 }
 ins::before {
   content: '+ ';
+}
+.wizard-panel .form,
+.wizard-panel form.form {
+  max-width: 72rem;
+}
+.option-compare td:nth-child(6) {
+  min-width: 14rem;
 }

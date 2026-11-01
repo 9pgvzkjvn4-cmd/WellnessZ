@@ -29,8 +29,13 @@ public final class E31Events {
         }
     }
 
-    /** {@code device.qc.received.v1}: a QC message (POCT1-A QCN.R01) arrived for an instance – E32 updates its QC log. */
-    public record QcReceived(String messageId, String deviceInstanceId, String messageType) implements DomainEvent {
+    /**
+     * {@code device.qc.received.v1}: a QC message (POCT1-A QCN.R01) arrived for an instance – E32 records it as a QC check.
+     * Payload per contract section 13.6: {@code {deviceInstanceId, checkType, lot, lotExpiry, outcome, performedAt}} (PHI-free);
+     * {@code messageId} / {@code messageType} are kept for tracing.
+     */
+    public record QcReceived(String messageId, String deviceInstanceId, String messageType, String checkType, String lot, String lotExpiry,
+                             String outcome, String performedAt) implements DomainEvent {
         public static final String TYPE = "device.qc.received.v1";
 
         @Override

@@ -420,6 +420,10 @@ class Increment6SecurityIntegrationTest extends IntegrationTestBase {
         RequestPostProcessor tester = user("inttester1", "S8903", "/AIRLINE", "INTEGRATION_TESTER");
         mvc.perform(post("/api/v1/device-security/packages/sign").with(user("emp", "E1001", null, "EMPLOYEE")).contentType(MediaType.APPLICATION_JSON)
                 .content(manifest)).andExpect(status().isForbidden());
+        // a key of this test's own: the platform key signed the bundled driver packages at start-up, and revoking it below would
+        // (correctly) revoke those packages in the E32 registry for every test sharing the database
+        mvc.perform(post("/api/v1/device-security/signing-keys").with(secops()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"algorithm\":\"Ed25519\"}")).andExpect(status().isCreated());
         MvcResult signed = mvc.perform(post("/api/v1/device-security/packages/sign").with(tester).contentType(MediaType.APPLICATION_JSON).content(manifest))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.signature.algorithm").value("Ed25519")).andReturn();
         JsonNode sig = body(signed).get("signature");

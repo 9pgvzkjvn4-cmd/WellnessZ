@@ -531,8 +531,9 @@ class Increment6EngineIntegrationTest extends IntegrationTestBase {
         mvc.perform(post("/api/v1/device-webhooks/DEV-T-FIT").header("X-Timestamp", Long.toString(Instant.now().getEpochSecond() - 3600))
                 .header("X-Signature", sig).contentType(MediaType.APPLICATION_JSON).content(payload)).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("timestamp_out_of_window"));
-        assertThat(jdbc.queryForObject("select count(*) from platform.audit_event where action = 'DEVICE_SECURITY_EVENT' and reason like 'WEBHOOK_SIGNATURE_FAILED%'",
-                Integer.class)).isGreaterThanOrEqualTo(2);
+        // with E34 deployed, security events go to its hash-chained store (the platform audit log is only the fallback without E34)
+        assertThat(jdbc.queryForObject("select count(*) from devicesec.security_event where type = 'WEBHOOK_SIGNATURE_FAILED' and source_module = 'E31' "
+                + "and device_instance_id = 'DEV-T-FIT' and reason_code in ('signature_invalid', 'timestamp_out_of_window')", Integer.class)).isGreaterThanOrEqualTo(2);
         // DICOM instance streamed first, then its metadata
         byte[] instance = "DICM synthetic chest image".getBytes(StandardCharsets.US_ASCII);
         MvcResult att = mvc.perform(device("attachments", "EP-T-GW", null, key()).contentType("application/dicom").header("X-Attachment-Kind", "DICOM")

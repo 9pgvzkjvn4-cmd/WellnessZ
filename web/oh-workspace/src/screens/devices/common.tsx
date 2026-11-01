@@ -66,3 +66,13 @@ export function OneTimeToken({ label, token, expiresAt, onDismiss }: { label: st
     </div>
   );
 }
+
+/** Options for code lists shown verbatim (site codes, technical codes) – no humanising. */
+export function CodeOptions({ values, empty }: { values: readonly string[]; empty?: string }) {
+  return (
+    <>
+      {empty !== undefined && <option value="">{empty}</option>}
+      {values.map((v) => <option key={v} value={v}>{v}</option>)}
+    </>
+  );
+}

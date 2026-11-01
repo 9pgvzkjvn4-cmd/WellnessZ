@@ -24,7 +24,8 @@ describe('App shell – increment 3 absence / surveillance', () => {
     render(<App client={api.client} />);
     await waitFor(() => expect(window.location.hash).toBe('#/surveillance/compliance'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Surveillance compliance' })).toBeTruthy();
-    expect(navLinks()).toEqual(['Compliance & audit', 'Security event log', 'Assurance & go-live']);
+    expect(navLinks()[0]).toBe('Compliance & audit');
+    expect(navLinks()).toEqual(expect.arrayContaining(['Security event log', 'Assurance & go-live']));
   });
 
   it('CREW_LICENSING opening an absence URL is restricted and no request is made', async () => {

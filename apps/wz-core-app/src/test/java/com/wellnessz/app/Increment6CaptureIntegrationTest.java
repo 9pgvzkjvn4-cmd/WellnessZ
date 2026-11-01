@@ -252,15 +252,19 @@ class Increment6CaptureIntegrationTest extends IntegrationTestBase {
             return store.get(id).status();
         }
 
+        static Map<String, Object> fields(Obs o) {
+            Map<String, Object> fields = new LinkedHashMap<>();
+            o.observation().components().forEach(c -> fields.put("measurements." + c.key(), c.value() != null ? c.value() : c.text()));
+            return fields;
+        }
+
         @Override
         public Optional<ObservationPreview> preview(UUID id) {
             Obs o = store.get(id);
             if (o == null) {
                 return Optional.empty();
             }
-            Map<String, Object> fields = new LinkedHashMap<>();
-            o.observation().components().forEach(c -> fields.put("measurements." + c.key(), c.value() != null ? c.value() : c.text()));
-            return Optional.of(new ObservationPreview(o.observation(), o.status(), o.formCode(), "1", fields, o.verify()));
+            return Optional.of(new ObservationPreview(o.observation(), o.status(), o.formCode(), "1", fields(o), o.verify()));
         }
 
         @Override
@@ -284,7 +288,8 @@ class Increment6CaptureIntegrationTest extends IntegrationTestBase {
         DeviceObservationSink.Delivery route(String actor, Obs o) {
             Optional<DeviceObservationSink> sink = spis.getObject().sink("E03.RESULT");
             if (sink.isPresent()) {
-                return sink.get().deliver(actor, new DeviceObservationSink.Routed(o.observation(), o.formCode(), "1", Map.of(), true));
+                // like the engine: the bound form fields travel with the observation (the sink runs its clinical rules on them)
+                return sink.get().deliver(actor, new DeviceObservationSink.Routed(o.observation(), o.formCode(), "1", fields(o), true));
             }
             List<String> existing = jdbc.queryForList("select id::text from ohrecord.result where device_observation_id = ?", String.class,
                     o.observation().observationId());
@@ -466,7 +471,9 @@ class Increment6CaptureIntegrationTest extends IntegrationTestBase {
                 .andExpect(request().asyncStarted()).andReturn();
         assertThat(stream.getResponse().getContentAsString()).contains("event:state").contains("LISTENING");
         UUID obs = engine.reading("DEV-T-VITALS-1", Category.VITALS, Map.of("systolic", 128, "diastolic", 82, "pulse", 71), pass());
-        assertThat(stream.getResponse().getContentAsString()).contains("event:preview").contains(obs.toString()).doesNotContain("128");
+        // the stream carries state and ids only – never the values (the timestamps may contain any digits, so match the values)
+        assertThat(stream.getResponse().getContentAsString()).contains("event:preview").contains(obs.toString())
+                .doesNotContain("systolic").doesNotContain(":128").doesNotContain("\"128\"");
 
         JsonNode v = call(get("/api/v1/device-capture/sessions/" + id), NURSE, null, 200);
         assertThat(v.path("state").asString()).isEqualTo("PREVIEW");

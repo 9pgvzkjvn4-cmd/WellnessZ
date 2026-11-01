@@ -20,7 +20,7 @@ import {
 import { errorFor } from '../../domain/validation';
 import { navigate } from '../../routing/useHashRoute';
 import type { ScreenProps } from '../types';
-import { CodeBadge, Hash, OneTimeToken, UnavailableNotice } from './common';
+import { CodeBadge, CodeOptions, Hash, OneTimeToken, UnavailableNotice } from './common';
 
 const hashParam = (name: string): string => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get(name) ?? '';
 
@@ -42,7 +42,7 @@ export function DeviceWizardList(props: ScreenProps) {
       {can(session.roles, 'deviceConfigWrite') && <StartProvisioning {...props} stations={stations.data ?? []} />}
       <form className="filters" aria-label="Filter configurations" onSubmit={(e) => e.preventDefault()}>
         <Field label="Status">{(id) => <select id={id} value={status} onChange={(e) => setStatus(e.target.value)}><SelectOptions values={CONFIG_STATUSES} empty="All statuses" /></select>}</Field>
-        <Field label="Site">{(id) => <select id={id} value={site} onChange={(e) => setSite(e.target.value)}><SelectOptions values={sites} empty="All sites" /></select>}</Field>
+        <Field label="Site">{(id) => <select id={id} value={site} onChange={(e) => setSite(e.target.value)}><CodeOptions values={sites} empty="All sites" /></select>}</Field>
       </form>
       {list.loading && !list.data && <Loading />}
       <ErrorAlert error={list.error} />
@@ -76,6 +76,12 @@ export function DeviceWizardList(props: ScreenProps) {
 function StartProvisioning({ client, session, onSessionExpired, stations }: ScreenProps & { stations: Station[] }) {
   const api = devicesApi(client);
   const [modelCode, setModelCode] = useState(hashParam('model'));
+  useEffect(() => {
+    // "Provision this model" may land here while the list is already open (same route, new query)
+    const onHash = () => { const m = hashParam('model'); if (m) setModelCode(m); };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
   const [siteCode, setSiteCode] = useState('');
   const [errors, setErrors] = useState<FieldError[]>([]);
   const action = useAction(onSessionExpired);
@@ -101,7 +107,7 @@ function StartProvisioning({ client, session, onSessionExpired, stations }: Scre
         {(d) => <input id="start-model" aria-describedby={d} aria-invalid={!!errorFor(errors, 'start-model')} value={modelCode} maxLength={9} onChange={(e) => setModelCode(e.target.value.toUpperCase())} />}
       </IdField>
       <IdField id="start-site" label="Site" required={testerOnly} error={errorFor(errors, 'start-site')}>
-        {(d) => <select id="start-site" aria-describedby={d} value={siteCode} onChange={(e) => setSiteCode(e.target.value)}><SelectOptions values={sites} empty="Decide at step 5" /></select>}
+        {(d) => <select id="start-site" aria-describedby={d} value={siteCode} onChange={(e) => setSiteCode(e.target.value)}><CodeOptions values={sites} empty="Decide at step 5" /></select>}
       </IdField>
       <div className="actions"><button type="submit" disabled={action.busy}>Create draft</button> <a href="#/devices/catalogue">Browse the catalogue</a></div>
       <ActionFeedback error={action.error} />
@@ -136,6 +142,17 @@ export function DeviceWizard(props: ScreenProps & { configurationId: string }) {
   useEffect(() => {
     if (moved.current) headingRef.current?.focus();
   }, [current]);
+
+  // Four-eyes work happens in other people's sessions (nurse review, approvals): refresh when the window regains focus.
+  const reloadRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    reloadRef.current = () => { setLocal(undefined); loaded.reload(); };
+  });
+  useEffect(() => {
+    const onFocus = () => reloadRef.current();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   function goTo(n: number) {
     moved.current = true;
@@ -620,7 +637,16 @@ function Step4Form({ cfg, api, editable, onSessionExpired, onSaved, d }: StepPro
     if (ok && next) {
       setSecretValues({});
       onSaved(next, 5);
-    } else setErrors(serverFindings(failure, step4FieldId, 'wiz-p4-save'));
+    } else {
+      // a server path may name an object (e.g. parameters.deviceAddress) – point at its first control
+      const ids = new Set([...pFields.map((f) => fieldId('p', f.path)), ...cFields.map((f) => fieldId('c', f.path))]);
+      const idFor = (server: string) => {
+        const id = step4FieldId(server);
+        if (!id || ids.has(id)) return id;
+        return [...ids].find((x) => x.startsWith(`${id}-`));
+      };
+      setErrors(serverFindings(failure, idFor, 'wiz-p4-save'));
+    }
   }
   return (
     <form className="form" onSubmit={save} noValidate aria-label="Configure parameters">
@@ -704,7 +730,7 @@ function SchemaInput({ f, form, state, setState, error, secrets }: { f: SchemaFi
             <select {...common} value={String(state[f.path] ?? '')} onChange={(e) => set(e.target.value)}>
               {!req && <option value="">–</option>}
               {req && !state[f.path] && <option value="">Choose…</option>}
-              {(s.enum ?? []).map((o) => <option key={String(o)} value={String(o)}>{typeof o === 'number' ? String(o) : humanise(o)}</option>)}
+              {(s.enum ?? []).map((o) => <option key={String(o)} value={String(o)}>{String(o).replace(/_/g, ' ')}</option>)}
             </select>
           );
         }
@@ -800,7 +826,7 @@ function Step5Form({ cfg, api, editable, onSessionExpired, onSaved, manifest, st
       <ErrorSummary errors={errors} />
       <fieldset disabled={!editable}>
         <legend>Association methods</legend>
-        <p className="small muted">How a reading is matched to the employee. Driver worklist push: {humanise(push)}. Breath-alcohol and drug-screen results accept only worklist or capture-session association.</p>
+        <p className="small muted">How a reading is matched to the employee. Driver worklist push: <span className="mono">{push}</span>. Breath-alcohol and drug-screen results accept only worklist or capture-session association.</p>
         <div className="checkbox-group">
           {ASSOCIATION_METHODS.map((m) => (
             <label key={m} className="inline-row">
@@ -813,7 +839,7 @@ function Step5Form({ cfg, api, editable, onSessionExpired, onSaved, manifest, st
       <fieldset disabled={!editable}>
         <legend>Station</legend>
         <div className="form-grid">
-          <Field label="Site">{(id) => <select id={id} value={f.siteCode} onChange={(e) => setF({ ...f, siteCode: e.target.value, stationCode: '' })}><SelectOptions values={sites} empty="Choose…" /></select>}</Field>
+          <Field label="Site">{(id) => <select id={id} value={f.siteCode} onChange={(e) => setF({ ...f, siteCode: e.target.value, stationCode: '' })}><CodeOptions values={sites} empty="Choose…" /></select>}</Field>
           <IdField id="wiz-station" label="Station" required error={errorFor(errors, 'wiz-station')}>
             {(d) => (
               <select id="wiz-station" aria-describedby={d} aria-invalid={!!errorFor(errors, 'wiz-station')} value={f.stationCode} onChange={(e) => setF({ ...f, stationCode: e.target.value })}>
@@ -918,14 +944,14 @@ function Step6({ cfg, api, editable, session, onSessionExpired, onSaved, reload 
         ))}
       </ul>
       {editable && writer && (
-        <form className="inline-form" onSubmit={run} aria-label="Run a test">
+        <form className="form" onSubmit={run} aria-label="Run a test">
           <fieldset>
             <legend>Mode</legend>
             <label className="inline-row"><input type="radio" name="test-mode" checked={mode === 'SIMULATOR'} onChange={() => setMode('SIMULATOR')} /> Simulator (golden datasets incl. negative vectors)</label>
             <label className="inline-row"><input type="radio" name="test-mode" checked={mode === 'LIVE'} onChange={() => setMode('LIVE')} /> Live device (connection, end-to-end sample, mTLS and plaintext-refused checks)</label>
           </fieldset>
           <Field label="Dataset">{(id) => <select id={id} value={datasetId} onChange={(e) => setDatasetId(e.target.value)}><option value="">All vectors of the package</option>{(manifest.data?.testVectors ?? []).map((v) => <option key={v.name} value={v.name}>{humanise(v.name)}</option>)}</select>}</Field>
-          <button type="submit" disabled={runAction.busy}>{runAction.busy ? 'Running…' : 'Run diagnostics test'}</button>
+          <div className="actions"><button type="submit" disabled={runAction.busy}>{runAction.busy ? 'Running…' : 'Run diagnostics test'}</button></div>
         </form>
       )}
       <UnavailableNotice error={runAction.error} what="The diagnostics test runner (integration engine)" />
@@ -1142,7 +1168,7 @@ function CloneForm({ cfg, api, onSessionExpired }: { cfg: Configuration; api: De
       <h3 id="clone-title">Clone to another station</h3>
       <p className="small muted">Creates a new draft at step 5 with the same model, option and parameters; tests (including a live test at the new station), approval and publication are required again.</p>
       <ErrorSummary errors={errors} />
-      <Field label="Site">{(id) => <select id={id} value={f.siteCode} onChange={(e) => setF({ siteCode: e.target.value, stationCode: '' })}><SelectOptions values={sites} empty="Any site" /></select>}</Field>
+      <Field label="Site">{(id) => <select id={id} value={f.siteCode} onChange={(e) => setF({ siteCode: e.target.value, stationCode: '' })}><CodeOptions values={sites} empty="Any site" /></select>}</Field>
       <IdField id="clone-station" label="Station" required error={errorFor(errors, 'clone-station')}>
         {(d) => <select id="clone-station" aria-describedby={d} value={f.stationCode} onChange={(e) => setF({ ...f, stationCode: e.target.value })}><option value="">Choose…</option>{list.filter((s) => s.active && s.stationCode !== cfg.stationCode && (!f.siteCode || s.siteCode === f.siteCode)).map((s) => <option key={s.stationCode} value={s.stationCode}>{s.name} ({s.stationCode})</option>)}</select>}
       </IdField>

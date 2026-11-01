@@ -120,6 +120,38 @@ public class XPathParser implements RecordParser {
         }
     }
 
+    /**
+     * QC summary of a POCT1-A {@code QCN.R01}: control / reagent lot, lot expiry, outcome (PASS | FAIL) and time. Unknown
+     * elements yield {@code null}; a result flagged abnormal ({@code A}, {@code AA}, {@code H}, {@code L}, {@code FAIL}) is FAIL.
+     */
+    public static Map<String, String> qcSummary(byte[] xml) {
+        Map<String, String> out = new java.util.LinkedHashMap<>();
+        try {
+            Document doc = SafeXml.parse(xml, false);
+            XPath xp = XPathFactory.newInstance().newXPath();
+            out.put("lot", first(xp, doc, "//CTC/CTC.lot_number/@V", "//REG/REG.reagent_lot_number/@V", "//*[contains(local-name(),'lot_number')]/@V"));
+            out.put("lotExpiry", first(xp, doc, "//CTC/CTC.expiration_date/@V", "//REG/REG.expiration_date/@V",
+                    "//*[contains(local-name(),'expiration_date')]/@V"));
+            out.put("performedAt", first(xp, doc, "//OBS/OBS.observation_dttm/@V", "/*/HDR/HDR.creation_dttm/@V"));
+            String flag = first(xp, doc, "//OBS/OBS.qc_result_cd/@V", "//OBS/OBS.normal_flag/@V", "//OBS/OBS.interpretation_cd/@V");
+            out.put("outcome", flag == null ? null : java.util.Set.of("A", "AA", "H", "L", "HH", "LL", "F", "FAIL", "FAILED")
+                    .contains(flag.toUpperCase(java.util.Locale.ROOT)) ? "FAIL" : "PASS");
+        } catch (RuntimeException e) {
+            // unparseable – the summary stays empty and E32 ignores the event
+        }
+        return out;
+    }
+
+    private static String first(XPath xp, Document doc, String... selectors) {
+        for (String s : selectors) {
+            String v = text(xp, s, doc);
+            if (v != null) {
+                return v;
+            }
+        }
+        return null;
+    }
+
     /** Root element name, e.g. {@code OBS.R01}; {@code null} if unparseable. */
     public static String rootName(byte[] xml) {
         try {

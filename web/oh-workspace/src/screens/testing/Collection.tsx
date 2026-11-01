@@ -12,6 +12,7 @@ import { errorFor } from '../../domain/validation';
 import { useNow } from '../support/useNow';
 import type { ScreenProps } from '../types';
 import { WindowBadge } from './Requirements';
+import { EmbeddedCapture } from '../capture/EmbeddedCapture';
 
 const OPEN = new Set(['REQUIRED', 'NOTIFIED', 'DISPATCHED']);
 const CCF_FIELDS = { specimenId: 'ccf-specimen', specimenType: 'ccf-type', collectedAt: 'ccf-collected', siteCode: 'ccf-site', temperatureInRange: 'ccf-temperature', sealIntact: 'ccf-seal', donorIdentityChecked: 'ccf-identity', breathScreenResult: 'ccf-breath' };
@@ -69,13 +70,14 @@ export function TestingCollection(props: ScreenProps) {
   );
 }
 
-function CcfForm({ client, onSessionExpired, req, onDone }: ScreenProps & { req: Requirement; onDone: (specimenId?: string) => void }) {
+function CcfForm({ client, session, onSessionExpired, req, onDone }: ScreenProps & { req: Requirement; onDone: (specimenId?: string) => void }) {
   const api = testingApi(client);
   const defaultType: SpecimenType | '' = req.panels.length === 1 && req.panels[0] === 'ALCOHOL_BREATH' ? 'BREATH' : '';
   const [form, setForm] = useState<CollectionForm>(() => ({ ...emptyCollectionForm(req.siteCode ?? '', toLocalInput()), specimenType: defaultType }));
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [refusal, setRefusal] = useState<{ reason: RefusalReason | ''; observations: string }>();
   const [refusalErrors, setRefusalErrors] = useState<FieldError[]>([]);
+  const [deviceMarking, setDeviceMarking] = useState<string>();
   const action = useAction(onSessionExpired);
   const typeRef = useRef<HTMLSelectElement>(null);
   const collectedRef = useRef<HTMLInputElement>(null);
@@ -127,6 +129,25 @@ function CcfForm({ client, onSessionExpired, req, onDone }: ScreenProps & { req:
   return (
     <section className="card" aria-labelledby="ccf-title">
       <h2 id="ccf-title">Chain of custody – {req.ref} · {req.displayName}</h2>
+      {type === 'BREATH' && (
+        <EmbeddedCapture
+          client={client}
+          session={session}
+          onSessionExpired={onSessionExpired}
+          employeeId={req.employeeId}
+          employeeName={req.displayName}
+          orderRef={req.id}
+          forms={[{ formCode: 'E10.BREATH_ALCOHOL', label: 'Evidential breath alcohol' }]}
+          buttonLabel="Capture breath reading from device"
+          onAccepted={(_r, s) => {
+            const v = s.preview?.values.find((x) => (x.key === 'breathScreenResult' || x.key === 'brac') && x.value !== null && x.value !== undefined);
+            if (v?.value === undefined || v.value === null) return;
+            const g210 = v.unit && /mg\/L/i.test(v.unit) ? Math.round(v.value * 0.21 * 1000) / 1000 : v.value;
+            setDeviceMarking(s.preview?.marking ?? 'device-sourced');
+            set({ breathScreenResult: g210.toFixed(3) });
+          }}
+        />
+      )}
       <form className="form" onSubmit={submit} noValidate>
         <ErrorSummary errors={errors} />
         <div className="form-grid">
@@ -178,8 +199,8 @@ function CcfForm({ client, onSessionExpired, req, onDone }: ScreenProps & { req:
           <label className="inline-row"><input type="checkbox" checked={form.splitSpecimen} onChange={(e) => set({ splitSpecimen: e.target.checked })} /> Split specimen (bottles A and B)</label>
         )}
         {type === 'BREATH' && (
-          <IdField id="ccf-breath" label="Breath screen result (g/210 L)" required error={err('ccf-breath')} hint="Evidential breath device reading – e.g. 0.000">
-            {(d) => <input id="ccf-breath" type="number" inputMode="decimal" step="0.001" min={0} max={1} aria-describedby={d} aria-invalid={!!err('ccf-breath')} value={form.breathScreenResult} onChange={(e) => set({ breathScreenResult: e.target.value })} />}
+          <IdField id="ccf-breath" label="Breath screen result (g/210 L)" required error={err('ccf-breath')} hint={deviceMarking ? `Filled from the device (${deviceMarking}) – re-measure to change it` : 'Evidential breath device reading – e.g. 0.000'}>
+            {(d) => <input id="ccf-breath" type="number" inputMode="decimal" step="0.001" min={0} max={1} readOnly={!!deviceMarking} aria-describedby={d} aria-invalid={!!err('ccf-breath')} value={form.breathScreenResult} onChange={(e) => set({ breathScreenResult: e.target.value })} />}
           </IdField>
         )}
         <Field label="Remarks">{(id) => <textarea id={id} rows={2} maxLength={2000} value={form.remarks} onChange={(e) => set({ remarks: e.target.value })} />}</Field>

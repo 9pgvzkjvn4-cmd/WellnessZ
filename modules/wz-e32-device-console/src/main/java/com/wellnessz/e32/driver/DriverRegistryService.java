@@ -149,7 +149,9 @@ public class DriverRegistryService {
                 sig = Docs.of("keyId", s.keyId(), "algorithm", s.algorithm(), "value", s.signatureBase64());
             }
         } catch (RuntimeException unavailable) {
-            // E34 not deployed (or the signing key is not provisioned): bundled demo package stays unsigned
+            // E34 not deployed (or the signer is refused): the bundled package stays unsigned – and E31 will refuse to load it
+            org.slf4j.LoggerFactory.getLogger(DriverRegistryService.class).warn("Bundled driver package {}@{} registered unsigned: {}",
+                    Docs.str(pkg.get("packageId")), Docs.str(pkg.get("version")), unavailable.getClass().getSimpleName());
         }
         Map<String, Object> signature = sig;
         return Optional.ofNullable(tx.execute(s -> store(actor, pkg, report, signature, status, "BUNDLED-" + report.sha256().substring(0, 12),
@@ -205,15 +207,39 @@ public class DriverRegistryService {
     @Transactional
     public Map<String, Object> revoke(CurrentUser user, String packageId, String version, String reason) {
         support.requireEnabled();
-        DriverStore.DriverRow d = drivers.require(packageId, version);
-        drivers.setStatus(d, "REVOKED", reason, user.username());
+        return revokeAs(user.username(), drivers.require(packageId, version), reason);
+    }
+
+    /**
+     * {@code device.signing-key.revoked.v1} (E34, contract §15.5): every package version signed with the key becomes REVOKED and
+     * the live instances on it SUSPENDED, exactly as a manual revocation. Returns the revoked package references.
+     */
+    @Transactional
+    public List<String> revokeSignedWith(String keyId, String actor) {
+        List<String> revoked = new ArrayList<>();
+        if (keyId == null || keyId.isBlank()) {
+            return revoked;
+        }
+        for (DriverStore.DriverRow d : drivers.all()) {
+            if (keyId.equals(d.signatureKeyId()) && !"REVOKED".equals(d.status())) {
+                revokeAs(actor, d, "SIGNING_KEY_REVOKED");
+                revoked.add(d.ref());
+            }
+        }
+        return revoked;
+    }
+
+    private Map<String, Object> revokeAs(String actor, DriverStore.DriverRow d, String reason) {
+        String packageId = d.packageId();
+        String version = d.version();
+        drivers.setStatus(d, "REVOKED", reason, actor);
         List<String> suspended = new ArrayList<>();
         for (Configuration c : configurations.liveOnDriver(packageId, version)) {
             if (Configuration.PUBLISHED.equals(c.status())) {
                 c.setStatus(Configuration.SUSPENDED);
                 c.setStatusReason("DRIVER_REVOKED");
-                configurations.update(c, user.username());
-                support.history("CONFIGURATION", c.configurationId(), c.version(), user.username(), "SUSPEND", null,
+                configurations.update(c, actor);
+                support.history("CONFIGURATION", c.configurationId(), c.version(), actor, "SUSPEND", null,
                         Docs.of("reason", "DRIVER_REVOKED", "driver", d.ref()), null);
             }
             suspended.add(c.deviceInstanceId());
@@ -224,9 +250,9 @@ public class DriverRegistryService {
                     java.util.UUID.randomUUID(), c.deviceInstanceId(), c.siteCode(), "Driver " + d.ref() + " revoked",
                     "DRIVER_REVOKED:" + c.deviceInstanceId() + ":" + d.ref(), java.sql.Timestamp.from(support.now()));
         }
-        support.history("DRIVER", d.ref(), null, user.username(), "REVOKE", null, Docs.of("from", d.status(), "to", "REVOKED", "suspended", suspended), null);
+        support.history("DRIVER", d.ref(), null, actor, "REVOKE", null, Docs.of("from", d.status(), "to", "REVOKED", "suspended", suspended), null);
         support.audit("DEVICE_DRIVER_REVOKE", "DEVICE_DRIVER", d.ref());
-        support.securityEvent("PACKAGE_REVOKED", DeviceCodes.Severity.HIGH, null, null, null, user.username(), "package_revoked",
+        support.securityEvent("PACKAGE_REVOKED", DeviceCodes.Severity.HIGH, null, null, null, actor, "package_revoked",
                 Map.of("keyId", d.signatureKeyId() == null ? "-" : d.signatureKeyId()));
         Map<String, Object> out = entry(drivers.require(packageId, version));
         out.put("suspendedInstances", suspended);

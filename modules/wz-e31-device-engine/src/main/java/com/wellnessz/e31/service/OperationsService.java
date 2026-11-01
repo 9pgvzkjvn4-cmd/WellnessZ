@@ -133,6 +133,12 @@ public class OperationsService {
         return out;
     }
 
+    /** Last heartbeat of a gateway / agent endpoint, {@code null} when it never sent one. */
+    public Instant lastHeartbeat(String endpointId) {
+        return jdbc.query("select last_heartbeat_at from deviceint.gateway_state where endpoint_id = ?",
+                rs -> rs.next() && rs.getTimestamp(1) != null ? rs.getTimestamp(1).toInstant() : null, endpointId);
+    }
+
     public ConnectorHealth health(String deviceInstanceId) {
         Map<String, Object> r = jdbc.queryForList("select * from deviceint.connector_state where device_instance_id = ?", deviceInstanceId)
                 .stream().findFirst().orElse(Map.of());

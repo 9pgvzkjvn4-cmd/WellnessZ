@@ -100,6 +100,8 @@ public class E32DemoSeeder {
         }
     }
 
+    static final String SEED_SIGNER = "system:demo-seed";
+
     private int registerDrivers() throws IOException {
         byte[] bytes;
         try (InputStream in = new ClassPathResource(DRIVERS).getInputStream()) {
@@ -108,7 +110,9 @@ public class E32DemoSeeder {
         int n = 0;
         for (Object o : support.readList(new String(bytes, StandardCharsets.UTF_8))) {
             Map<String, Object> pkg = Docs.map(o);
-            if (registry.registerBundled("demo-seed", pkg, "CERTIFIED").isPresent()) {
+            // E34 signs for unauthenticated callers only as a "system…" actor (no user at start-up); with any other actor the
+            // signature was refused, the packages stayed unsigned and E31 refused every demo device with signature_invalid
+            if (registry.registerBundled(SEED_SIGNER, pkg, "CERTIFIED").isPresent()) {
                 n++;
             }
         }

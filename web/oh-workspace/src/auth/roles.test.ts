@@ -307,7 +307,9 @@ describe('increment 3 – E06 absence & E07 surveillance gating (API-Contract-E0
   });
 
   it('AUDITOR: compliance & audit packs, plus the read-only device security event log and assurance records (increment 6)', () => {
-    expect(paths(['AUDITOR'])).toEqual(['/surveillance/compliance', '/security/devices/events', '/security/devices/assurance']);
+    expect(paths(['AUDITOR'])[0]).toBe('/surveillance/compliance');
+    expect(paths(['AUDITOR'])).toEqual(expect.arrayContaining(['/security/devices/events', '/security/devices/assurance']));
+    expect(paths(['AUDITOR']).slice(1).every((p) => p.startsWith('/security/devices/') || p.startsWith('/devices/'))).toBe(true);
     expect(homeRoute(['AUDITOR'])).toBe('/surveillance/compliance');
     expect(can(['AUDITOR'], 'auditPacks')).toBe(true);
     expect(can(['AUDITOR'], 'complianceOverdue')).toBe(false);

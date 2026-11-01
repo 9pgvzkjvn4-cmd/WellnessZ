@@ -791,9 +791,16 @@ public class ConfigurationService {
             throw ApiException.badRequest("validation_failed", "mode must be SIMULATOR or LIVE");
         }
         String formCode = c.formCodes().isEmpty() ? null : c.formCodes().get(0);
+        // the engine's LIVE test needs the instance and the endpoint fronting it (contract §13.4: connector or gateway seen in 5 min)
+        Map<String, Object> testParameters = new LinkedHashMap<>(Docs.copyMap(c.parameters()));
+        testParameters.put("deviceInstanceId", c.deviceInstanceId());
+        String host = c.option() == null ? null : OptionRules.hostEndpoint(c.option(), c.parameters());
+        if (host != null || c.endpointId() != null) {
+            testParameters.put("endpointId", host != null ? host : c.endpointId());
+        }
         DeviceDiagnostics.TestRun run = support.spis().diagnostics().runTest(user.username(), new DeviceDiagnostics.TestRequest(c.configurationId(),
                 c.modelCode(), DeviceCodes.Option.ofCode(c.option()), mode, c.driverPackageId(), c.driverVersion(), cmd.datasetId(),
-                Docs.copyMap(c.parameters()), formCode));
+                testParameters, formCode));
         if (run == null) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "test_unavailable", "The test runner returned no result");
         }
@@ -1059,8 +1066,10 @@ public class ConfigurationService {
         DeviceEndpointProvisioning.EndpointIssue issue = null;
         if (kind != null) {
             String zone = c.zone() == null ? "DEVICE_VLAN" : c.zone();
+            // the step-3 zone is the device's network segment; the endpoint's zone follows the E34 policy for its kind (contract
+            // §15.4) – passing the device VLAN made E34 refuse DEVICE endpoints (P8) with zone_violation and mis-zoned gateways
             issue = support.spis().provisioning().provision(user.username(), new DeviceEndpointProvisioning.ProvisionRequest(c.deviceInstanceId(),
-                    DeviceCodes.EndpointKind.valueOf(kind), c.siteCode(), zone, c.tenantCode(), existing));
+                    DeviceCodes.EndpointKind.valueOf(kind), c.siteCode(), null, c.tenantCode(), existing));
             c.setEndpointId(issue.endpointId());
             c.setEndpointKind(kind);
             c.setZone(zone);

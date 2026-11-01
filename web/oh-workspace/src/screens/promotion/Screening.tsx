@@ -13,6 +13,7 @@ import { DEFAULT_THRESHOLDS, flagMeasures, flagTone, isAbnormal, list, MEASURES_
 import { employeeOrBadge } from '../../domain/surveillance';
 import { errorFor } from '../../domain/validation';
 import type { ScreenProps } from '../types';
+import { EmbeddedCapture } from '../capture/EmbeddedCapture';
 
 type Props = Pick<ScreenProps, 'client' | 'onSessionExpired'>;
 
@@ -91,7 +92,7 @@ function AddParticipants({ client, onSessionExpired, event, onAdded }: Props & {
 }
 
 /** Result entry (clinicians only) with live threshold flags; abnormal results open a follow-up case (≤ 48 h) server-side. */
-function ResultEntry({ client, onSessionExpired, event, onRecorded }: Props & { event: ScreeningEvent; onRecorded: () => void }) {
+function ResultEntry({ client, session, onSessionExpired, event, onRecorded }: Props & { session: ScreenProps['session']; event: ScreeningEvent; onRecorded: () => void }) {
   const keys: MeasureKey[] = MEASURES_FOR_TYPE[event.type]?.length ? MEASURES_FOR_TYPE[event.type]! : (Object.keys(DEFAULT_THRESHOLDS) as MeasureKey[]);
   const [employeeId, setEmployeeId] = useState('');
   const [form, setForm] = useState<Partial<Record<MeasureKey, string>>>({});
@@ -157,6 +158,26 @@ function ResultEntry({ client, onSessionExpired, event, onRecorded }: Props & { 
         {isAbnormal(preview) && <Alert kind="warning">Outside the screening thresholds – saving opens a follow-up case (within 48 h) and sends a result letter.</Alert>}
         <button type="submit" disabled={action.busy}>Save result</button>
       </form>
+      {(() => {
+        const who = employeeOrBadge(employeeId, 'EMPLOYEE');
+        if (!who || !('employeeId' in who)) return <p className="small muted">Choose the participant to capture the measures from a device instead of typing them.</p>;
+        return (
+          <EmbeddedCapture
+            key={who.employeeId}
+            client={client}
+            session={session}
+            onSessionExpired={onSessionExpired}
+            employeeId={who.employeeId}
+            employeeName={pending.find((p) => p.employeeId === who.employeeId)?.displayName ?? undefined}
+            orderRef={event.id}
+            forms={[{ formCode: 'E12.SCREENING_RESULT', label: 'Screening measures' }]}
+            onAccepted={() => {
+              setEmployeeId('');
+              onRecorded();
+            }}
+          />
+        );
+      })()}
       <ActionFeedback error={action.error} />
       {result && (
         <div aria-live="polite">
@@ -206,7 +227,7 @@ function EventDetail({ client, session, onSessionExpired, eventId }: ScreenProps
               </table>
             </div>
           )}
-          {clinician ? <ResultEntry client={client} onSessionExpired={onSessionExpired} event={e} onRecorded={detail.reload} /> : <p className="small muted">Results are entered by clinicians and are not shown here.</p>}
+          {clinician ? <ResultEntry client={client} session={session} onSessionExpired={onSessionExpired} event={e} onRecorded={detail.reload} /> : <p className="small muted">Results are entered by clinicians and are not shown here.</p>}
         </>
       )}
     </section>

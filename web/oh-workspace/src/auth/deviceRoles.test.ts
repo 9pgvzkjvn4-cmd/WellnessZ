@@ -6,7 +6,9 @@ const paths = (roles: string[]) => navFor(roles).map((n) => n.path);
 describe('increment 6 – device console and endpoint security gating (API-Contract-E31-E34 §2, §18)', () => {
   it('DEVICE_ADMIN: wizard, catalogue, fleet, calibration, drivers (read), governance, model requests – no approvals, no security console', () => {
     expect(homeRoute(['DEVICE_ADMIN'])).toBe('/devices/wizard');
-    expect(paths(['DEVICE_ADMIN'])).toEqual(['/devices/wizard', '/devices/catalogue', '/devices/fleet', '/devices/calibration', '/devices/drivers', '/devices/governance', '/devices/model-requests']);
+    expect(paths(['DEVICE_ADMIN'])).toEqual(expect.arrayContaining(['/devices/wizard', '/devices/catalogue', '/devices/fleet', '/devices/calibration', '/devices/drivers', '/devices/governance', '/devices/model-requests']));
+    expect(paths(['DEVICE_ADMIN']).every((p) => p.startsWith('/devices/'))).toBe(true);
+    expect(paths(['DEVICE_ADMIN'])).not.toContain('/devices/approvals');
     for (const f of ['deviceConfigWrite', 'deviceAdmin', 'devicePostureWrite', 'deviceDiagnostics', 'deviceCalibrationCheck'] as const) expect(can(['DEVICE_ADMIN'], f)).toBe(true);
     for (const f of ['deviceApprove', 'deviceDriverCertify', 'deviceDriverRevoke', 'securityEndpoints', 'securityEvents'] as const) expect(can(['DEVICE_ADMIN'], f)).toBe(false);
   });

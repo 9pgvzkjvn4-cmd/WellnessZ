@@ -95,14 +95,17 @@ describe('schema → form', () => {
     expect(msgs[id('calibrationSchedule')]).toMatch(/not valid JSON/);
     expect(msgs[id('serialServer.authRef')]).toMatch(/required \(stored write-only/);
     // the optional serial-server object is not in use → its required fields are not enforced
-    const ok = validateSchemaForm(fields, { ...st, 'mllp.port': '2575', 'mllp.listenerEndpointId': 'EP-LHR-GW-01' }, id);
+    const ok = validateSchemaForm(fields, { ...st, 'mllp.port': '2575', 'mllp.listenerEndpointId': 'EP-LHR-GW-01', 'deviceAddress.dns': 'csm1.lhr.local' }, id);
     expect(ok).toEqual([]);
+    // a required object whose members are all optional needs at least one of them
+    const none = validateSchemaForm(fields, { ...st, 'mllp.port': '2575', 'mllp.listenerEndpointId': 'EP-LHR-GW-01' }, id);
+    expect(none).toEqual([{ field: id('deviceAddress.ip'), message: 'Device address: enter at least one of IP, DNS' }]);
     expect(validateSchemaForm(fields, { ...st, 'mllp.port': '2575.5', 'mllp.listenerEndpointId': 'EP-1X' }, id).map((e) => e.message)).toContain('Port must be a whole number');
   });
   it('treats a stored secret ({set:true}) as present', () => {
     const stored = storedSecrets({ serialServer: { authRef: { set: true } } }, ['serialServer.authRef'], undefined);
     expect(stored.has('serialServer.authRef')).toBe(true);
-    const st = { ...toFormState(fields, { ackMode: 'ORIGINAL', mllp: { port: 2575, tls: 'REQUIRED', listenerEndpointId: 'EP-LHR-GW-01' } }), 'serialServer.host': 'ts.local' };
+    const st = { ...toFormState(fields, { ackMode: 'ORIGINAL', mllp: { port: 2575, tls: 'REQUIRED', listenerEndpointId: 'EP-LHR-GW-01' } }), 'serialServer.host': 'ts.local', 'deviceAddress.ip': '10.40.10.21' };
     expect(validateSchemaForm(fields, st, (p) => p, (p) => stored.has(p))).toEqual([]);
     expect(storedSecrets(undefined, ['a.b'], { 'a.b': { set: true } }).has('a.b')).toBe(true);
   });
@@ -202,7 +205,9 @@ describe('problems', () => {
     const p = toProblem({ status: 422, code: 'step_invalid', detail: 'Step 4 is not valid', errors: [{ field: 'parameters.mllp.port', code: 'maximum', message: 'too big' }, { bogus: true }, 'x'] });
     expect(p.errors).toEqual([{ field: 'parameters.mllp.port', code: 'maximum', message: 'too big' }]);
     const e = new ApiError(422, p);
-    expect(serverFindings(e, step4FieldId, 'fallback')).toEqual([{ field: 'cfg-p-mllp-port', message: 'too big' }]);
+    expect(serverFindings(e, step4FieldId, 'fallback')).toEqual([{ field: 'cfg-p-mllp-port', message: 'Port too big' }]);
+    const bare = new ApiError(422, toProblem({ errors: [{ field: 'parameters.deviceAddress', message: 'is required' }, { field: 'step3', message: 'Prerequisites checklist is not complete' }] }));
+    expect(serverFindings(bare, () => undefined, 'f').map((x) => x.message)).toEqual(['Device address is required', 'Prerequisites checklist is not complete']);
     expect(serverFindings(new ApiError(409, { code: 'four_eyes_violation' }), step4FieldId, 'x')).toEqual([]);
     expect(toProblem({ status: 400 }).errors).toBeUndefined();
   });

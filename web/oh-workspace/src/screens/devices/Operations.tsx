@@ -10,7 +10,7 @@ import { useAction, useAsync } from '../../components/useAsync';
 import { plural } from '../../domain/deviceConsole';
 import { errorFor } from '../../domain/validation';
 import type { ScreenProps } from '../types';
-import { CodeBadge, UnavailableNotice } from './common';
+import { CodeBadge, CodeOptions, UnavailableNotice } from './common';
 
 // ====================================================================== calibration, QC and lockout
 
@@ -37,7 +37,7 @@ export function DeviceCalibration(props: ScreenProps) {
         <KpiTile label="Checks due or overdue" value={rows.reduce((n, r) => n + r.checks.filter((c) => c.verdict !== 'VALID').length, 0)} />
       </div>
       <form className="filters" aria-label="Filter devices" onSubmit={(e) => e.preventDefault()}>
-        <Field label="Site">{(id) => <select id={id} value={site} onChange={(e) => setSite(e.target.value)}><SelectOptions values={sites.length ? sites : site ? [site] : []} empty="All sites" /></select>}</Field>
+        <Field label="Site">{(id) => <select id={id} value={site} onChange={(e) => setSite(e.target.value)}><CodeOptions values={sites.length ? sites : site ? [site] : []} empty="All sites" /></select>}</Field>
         {can(session.roles, 'deviceCalibrationReport') && (
           <div className="filter-actions">
             <a className="button secondary" href={calibrationReportUrl(site || undefined, 'csv')} download>Compliance report (CSV)</a>

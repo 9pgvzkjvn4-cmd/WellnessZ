@@ -94,8 +94,7 @@ public class DiagnosticsService implements DeviceDiagnostics {
         StringBuilder evidence = new StringBuilder(String.valueOf(r.configurationId()));
         boolean ok = true;
         if ("LIVE".equals(r.mode())) {
-            OperationsService.ConnectorHealth h = r.configurationId() == null ? null : ops.health(String.valueOf(r.parameters().get("deviceInstanceId")));
-            boolean seen = h != null && ("HEALTHY".equals(h.state()) || "DEGRADED".equals(h.state()));
+            boolean seen = liveSeen(r);
             steps.add(new TestStep("CONNECTION", seen ? "PASS" : "FAIL", seen ? "Connector seen within 5 minutes" : "No traffic or heartbeat in 5 minutes"));
             ok = seen;
         } else {
@@ -108,8 +107,7 @@ public class DiagnosticsService implements DeviceDiagnostics {
                 steps.add(new TestStep("DRIVER", "FAIL", e instanceof EngineException ee ? ee.code() : ((ApiException) e).code()));
                 return finish(actor, r, steps, evidence, false);
             }
-            GoldenDatasets.Dataset d = r.goldenDatasetId() == null ? golden.list(null).stream().filter(x -> x.packageId().equals(pkg.packageId())
-                    && "NORMAL".equals(x.kind())).findFirst().orElse(null) : golden.find(r.goldenDatasetId()).orElse(null);
+            GoldenDatasets.Dataset d = dataset(pkg.packageId(), r.goldenDatasetId());
             if (d == null) {
                 steps.add(new TestStep("DATASET", "FAIL", "No golden dataset for the driver"));
                 return finish(actor, r, steps, evidence, false);
@@ -133,6 +131,39 @@ public class DiagnosticsService implements DeviceDiagnostics {
             evidence.append('|').append(d.datasetId());
         }
         return finish(actor, r, steps, evidence, ok);
+    }
+
+    /**
+     * Golden dataset of a test: the full id ({@code vitals/csm-pcd01/normal}), or – as the console sends it – the short kind
+     * ({@code normal}, {@code edge} …) of the driver package's datasets; the package's NORMAL dataset when none is named.
+     */
+    GoldenDatasets.Dataset dataset(String packageId, String datasetId) {
+        if (datasetId == null || datasetId.isBlank()) {
+            return golden.list(null).stream().filter(x -> x.packageId().equals(packageId) && "NORMAL".equals(x.kind())).findFirst().orElse(null);
+        }
+        return golden.find(datasetId).or(() -> golden.list(null).stream().filter(x -> x.packageId().equals(packageId))
+                .filter(x -> datasetId.equalsIgnoreCase(x.kind()) || x.datasetId().endsWith("/" + datasetId)).findFirst()).orElse(null);
+    }
+
+    /**
+     * LIVE connection test of a draft (wizard step 6): the device connector was seen within 5 minutes, or – for a device that is
+     * not published yet, so the gateway cannot report it – the endpoint fronting it (parameter {@code endpointId}) sent a heartbeat
+     * within 5 minutes. The console passes {@code deviceInstanceId} and {@code endpointId} with the draft parameters.
+     */
+    boolean liveSeen(TestRequest r) {
+        Object instance = r.parameters().get("deviceInstanceId");
+        if (instance != null) {
+            OperationsService.ConnectorHealth h = ops.health(String.valueOf(instance));
+            if ("HEALTHY".equals(h.state()) || "DEGRADED".equals(h.state())) {
+                return true;
+            }
+        }
+        Object endpoint = r.parameters().get("endpointId");
+        if (endpoint == null) {
+            return false;
+        }
+        java.time.Instant heartbeat = ops.lastHeartbeat(String.valueOf(endpoint));
+        return heartbeat != null && heartbeat.isAfter(clock.instant().minus(Duration.ofMinutes(5)));
     }
 
     TestRun finish(String actor, TestRequest r, List<TestStep> steps, StringBuilder evidence, boolean ok) {
