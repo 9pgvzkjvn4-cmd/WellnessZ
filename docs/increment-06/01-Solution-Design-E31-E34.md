@@ -828,6 +828,8 @@ module schemas, matching the ArchUnit boundaries.
 | Supply-chain vulnerability | CycloneDX SBOM, dependency check, signed images (CI), vulnerability due dates | SC-06 |
 | Loss or tampering of audit evidence | Hash-chained platform audit and security event log, SIEM forwarding, time sync | SC-08, SC-14 |
 
+The full STRIDE model per trust boundary (device ↔ gateway, gateway ↔ ingress, ingress ↔ core, vendor cloud ↔ webhook,
+console users) with mitigations, controls and tests is [`device-security/threat-model.md`](device-security/threat-model.md).
 The control-by-control mapping to IEC 62443, NIST SP 800-53, FDA §524B, IEC 81001-5-1, OWASP and ISO 27001 is in
 [`device-security/control-mapping.csv`](device-security/control-mapping.csv) and Architecture 02, Section 16.
 
@@ -929,15 +931,19 @@ in staging.
   files; `RESEND_LAST` and `START_ACQUISITION` are answered `not_supported_by_connector`.
 * **Gateway:** listeners are declared locally – the core's `GatewayConfig` applies heartbeat interval, queue limits, BLE
   allow-list and log level, not listener topology; certificate renewal is supported by the core but not automated in the
-  gateway; TPM attestation is recorded as present / absent, not verified; the gateway image is not yet built by the
-  container workflow.
+  gateway; TPM attestation is recorded as present / absent, not verified. The gateway image is built, Trivy-gated, SBOM-attested
+  and signed by `container.yml`, promoted with the other images and deployable on a clinic k3s node (Helm component
+  `deviceGateway`, `values-edge-k3s.yaml`).
 * **Engine:** no OAuth2 polling of vendor clouds; no command-line SDK; catalogue not tenant-scoped; no performance test.
 * **Capture:** no native tablet app with an on-device queue; respirator fit tests file an E03 result but there is no
   separate respirator clearance register to update; ABPM / Holter and glucose have no packaged driver yet; the console UI
   is English with Arabic option help – a WCAG 2.2 AA audit and the nurse time-and-motion study are outstanding.
 * **Security:** CIS golden images, disk encryption, secure boot and EDR are infrastructure deliverables not built in this
-  increment (the gateway reports its self-check); CRL / OCSP left to the ingress / PKI; the test pack has no CI stage or
-  quarterly schedule yet; SIEM and ITSM receive events through the outbox – their parsers / connectors are not connected.
+  increment (the gateway reports its self-check; a CIS-aligned image recipe is in `deploy/edge/`, not applied to
+  hardware); CRL / OCSP left to the ingress / PKI (the device ingest supports a CRL in its CA secret, see
+  `deploy/device-ingress/README.md`); the test pack has a CI workflow with a quarterly schedule
+  (`device-security-pack.yml`) and DAST runs as a report-only ZAP baseline (`dast.yml`) – neither has run against staging yet;
+  the STRIDE threat model is `device-security/threat-model.md` (approval pending); SIEM and ITSM receive events through the outbox – their parsers / connectors are not connected.
 
 ## 16. Requirements coverage summary
 
@@ -945,17 +951,16 @@ Document 02 traces every item of the four workbooks. Summary:
 
 | Level | Items | Implemented | Implemented – needs sign-off | Partially | Not in scope (E35) |
 |---|---|---|---|---|---|
-| High-level requirements | 48 | 29 | 4 | 15 | 0 |
-| Features | 46 | 30 | 6 | 10 | 0 |
-| Backlog items | 71 | 31 | 11 | 29 | 0 |
-| **Total** | **165** | **90 (55 %)** | **21 (13 %)** | **54 (33 %)** | **0** |
+| High-level requirements | 48 | 29 | 5 | 14 | 0 |
+| Features | 46 | 30 | 7 | 9 | 0 |
+| Backlog items | 71 | 31 | 13 | 27 | 0 |
+| **Total** | **165** | **90 (55 %)** | **25 (15 %)** | **50 (30 %)** | **0** |
 
 Partial items fall into four groups: **hardware-dependent adapters** not verifiable without devices (native serial / USB,
 BLE radio, DICOM C-STORE / MWL, real vendor exports and data managers, the ≥ 40 certified models target);
 **functions not built** in this increment (OAuth2 cloud polling, outbound HL7 worklists, start-from-form, the native
-tablet app, tenant-scoped catalogues, respirator clearance register, SDK command line, performance and soak tests, a CI
-stage for the security test pack); **infrastructure and governance work** outside the software (CIS golden images, the
-reference network design validated in two sites, penetration test, IEC 80001-1 agreement, threat-model documents, DAST in
-CI); and **user studies** (time-and-motion study, WCAG audit, training videos). No item belongs to E35; where an
+tablet app, tenant-scoped catalogues, respirator clearance register, SDK command line, performance and soak tests); **infrastructure and governance work** outside the software (CIS golden images, the
+reference network design validated in two sites, the first staging run of the security test pack, penetration test,
+IEC 80001-1 agreement); and **user studies** (time-and-motion study, WCAG audit, training videos). No item belongs to E35; where an
 acceptance criterion touches E35 (for example horizontal scaling across nodes), the item is reported as partial with that
 reason.

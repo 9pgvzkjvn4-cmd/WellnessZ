@@ -341,6 +341,12 @@ docker run -d --name wz-gateway -v wz-gateway-data:/var/lib/wellnessz-gateway \
 
 The queue volume must be persistent; the status port is not published (use `docker exec … curl` or the health check).
 
+The image `wz-device-gateway` is built, Trivy-gated, SBOM-attested and cosign-signed by `.github/workflows/container.yml`
+and promoted by digest with the other images. On a clinic k3s node use the Helm chart component `deviceGateway`
+(`deploy/helm/wellnessz/values-edge-k3s.yaml` + `environments/edge/<env>.yaml`: one replica, Recreate, persistent
+journal volume, exec probes against the loopback status page, device-zone NetworkPolicy). Hardened host recipe:
+`deploy/edge/`.
+
 ### Windows (Device Host agent)
 
 1. Install a Java 21 runtime (e.g. Temurin JRE) and copy `wz-device-gateway.jar` to `C:\Program Files\WellnessZ\Gateway\`
