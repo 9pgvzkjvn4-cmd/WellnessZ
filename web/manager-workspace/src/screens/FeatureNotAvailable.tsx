@@ -16,6 +16,7 @@ const WHO = {
   psychosocial: 'line managers',
   campaigns: 'line managers',
   ergonomics: 'line managers',
+  deviceFleet: 'line managers',
 } as const;
 
 /** Shown when an increment-2 / increment-3 / increment-4 route is opened without the required role. */

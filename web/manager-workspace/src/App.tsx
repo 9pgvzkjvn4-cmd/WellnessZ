@@ -10,6 +10,7 @@ import { Analytics } from './screens/Analytics';
 import { CaseStatus } from './screens/CaseStatus';
 import { Claims } from './screens/Claims';
 import { Compliance } from './screens/Compliance';
+import { DeviceFleet } from './screens/DeviceFleet';
 import { Documents } from './screens/Documents';
 import { DutyProposals } from './screens/DutyProposals';
 import { FeatureNotAvailable } from './screens/FeatureNotAvailable';
@@ -111,6 +112,7 @@ export function App({ client }: { client: AuthClient }) {
   else if (feature?.feature === 'psychosocial') screen = <Psychosocial {...props} />;
   else if (feature?.feature === 'campaigns') screen = <UnitCampaigns {...props} />;
   else if (feature?.feature === 'ergonomics') screen = <Ergonomics {...props} />;
+  else if (feature?.feature === 'deviceFleet') screen = <DeviceFleet {...props} />;
   else if (feature?.feature === 'jobOffers' && feature.caseId) screen = <JobOffers {...props} caseId={feature.caseId} />;
   else if (feature?.feature === 'ihr' && feature.caseId) screen = <IhrAssessments {...props} caseId={feature.caseId} />;
   else if (caseMatch?.[1]) screen = <CaseStatus {...props} caseId={decodeURIComponent(caseMatch[1])} />;

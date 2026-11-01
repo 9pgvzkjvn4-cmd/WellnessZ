@@ -52,6 +52,7 @@ describe('increment 2 role gating (E05 / E03)', () => {
       '/psychosocial',
       '/campaigns',
       '/ergonomics',
+      '/device-fleet',
       '/analytics',
     ]);
   });

@@ -67,7 +67,8 @@ export type Feature =
   | 'testing'
   | 'psychosocial'
   | 'campaigns'
-  | 'ergonomics';
+  | 'ergonomics'
+  | 'deviceFleet';
 
 export const isSafetyManager = (roles: readonly string[] | undefined) => has(roles, 'SAFETY_MANAGER');
 export const isCrewScheduling = (roles: readonly string[] | undefined) => has(roles, 'CREW_SCHEDULING');
@@ -102,6 +103,10 @@ export function canUse(feature: Feature, roles: readonly string[] | undefined): 
     case 'campaigns':
     case 'ergonomics':
       return isManager(roles);
+    // increment 6 (docs/increment-06/API-Contract-E31-E34.md §18): site device availability, counts only. The core also allows
+    // NURSING_HEAD, but the BFF workspace rule (WORKSPACE_ROLES, unchanged) admits MANAGER only.
+    case 'deviceFleet':
+      return isManager(roles);
   }
 }
 
@@ -130,6 +135,7 @@ export const FEATURE_ROUTES = {
   psychosocial: '/psychosocial',
   campaigns: '/campaigns',
   ergonomics: '/ergonomics',
+  deviceFleet: '/device-fleet',
 } as const;
 const FEATURE_LABELS: Record<keyof typeof FEATURE_ROUTES, string> = {
   restrictions: 'Team restrictions',
@@ -145,6 +151,7 @@ const FEATURE_LABELS: Record<keyof typeof FEATURE_ROUTES, string> = {
   psychosocial: 'Psychosocial risk',
   campaigns: 'Health campaigns',
   ergonomics: 'Ergonomics',
+  deviceFleet: 'Device availability',
 };
 
 /**

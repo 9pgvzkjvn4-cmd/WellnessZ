@@ -831,3 +831,14 @@ td meter {
   width: 5rem;
   vertical-align: middle;
 }
+
+/* Increment 6 – device availability (counts only). */
+.text-warn {
+  color: var(--c-warn, #7a4d00);
+  font-weight: 600;
+}
+tr.total-row th,
+tr.total-row td {
+  border-top: 2px solid var(--c-border);
+  font-weight: 700;
+}
