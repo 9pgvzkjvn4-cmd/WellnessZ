@@ -57,7 +57,7 @@ generated ids; they find records by model, station or status.
 * SHA-256, SHA-1 / UUIDv5 observation ids, HMAC-SHA256 webhooks with a 300 s replay window, hash-chained logs, Ed25519 signatures verified with WebCrypto (labelled **SIMULATED – digest check** where the browser lacks Ed25519).
 * JSON-Schema 2020-12 validation of the P1–P10 option packs plus the practice rules of `OptionRules.java`, and the secret scanner.
 
-All 18 driver packages' 56 test vectors and all 93 golden datasets pass through these parsers (`test/codecs.test.js`).
+All 19 driver packages' 59 test vectors and all 98 golden datasets pass through these parsers (`test/codecs.test.js`).
 
 **Limitations (demo, not production):** no real devices, network, mTLS or PKI; the enrolment proof of possession is a SHA-256
 stand-in for a signature with the certificate key; the GLI-2012 values are an approximation; data stays in the browser.

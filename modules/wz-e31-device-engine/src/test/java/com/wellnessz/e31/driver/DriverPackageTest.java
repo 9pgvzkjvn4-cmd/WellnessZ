@@ -118,4 +118,33 @@ class DriverPackageTest {
         assertThat(breath.bindings().get(0).fields()).containsEntry("brac", "breathScreenResult");
         assertThat(breath.bindings().get(0).target()).isEqualTo("E10.BREATH_ALCOHOL");
     }
+
+    /** BLE pairing must be a P3 schema value (Just Works only by exception); start commands and historic queries need their capability. */
+    @Test
+    void protocolRulesForPairingStartCommandsAndHistoricQueries() {
+        BundledDrivers bundled = TestSupport.bundled();
+        for (String id : List.of("vitals.tanita.wss-ble", "vitals.withings.bodycomp-bcs", "vitals.withings.thermo-htp")) {
+            DriverPackage p = bundled.get(id, null).orElseThrow();
+            assertThat(p.protocolText("pairing")).as(id).isEqualTo("LE_SECURE_CONNECTIONS_PASSKEY");
+        }
+        ObjectNode ble = (ObjectNode) parser.tree(bundled.source("vitals.tanita.wss-ble", null).orElseThrow());
+        ((ObjectNode) ble.get("protocol")).put("pairing", "LE_SECURE_CONNECTIONS_JUST_WORKS");
+        assertThat(DriverValidator.validate(parser, TestSupport.json().writeValueAsString(ble), TestSupport.terminology(), Set.of()).errors())
+                .anyMatch(e -> e.startsWith("protocol.pairing"));
+        ((ObjectNode) ble.get("protocol")).put("pairing", "JUST_WORKS_EXCEPTION");
+        DriverValidator.Report exception = DriverValidator.validate(parser, TestSupport.json().writeValueAsString(ble), TestSupport.terminology(), Set.of());
+        assertThat(exception.errors()).noneMatch(e -> e.startsWith("protocol.pairing"));
+        assertThat(exception.warnings()).anyMatch(w -> w.contains("security exception"));
+
+        ObjectNode serial = (ObjectNode) parser.tree(bundled.source("da.lifeloc.fc20-serial", null).orElseThrow());
+        assertThat(DriverValidator.validate(parser, TestSupport.json().writeValueAsString(serial), TestSupport.terminology(), Set.of()).errors()).isEmpty();
+        ((ObjectNode) serial.get("capabilities")).put("startFromForm", false);
+        ((ObjectNode) serial.get("protocol").get("startCommand")).put("transport", "USB");
+        assertThat(DriverValidator.validate(parser, TestSupport.json().writeValueAsString(serial), TestSupport.terminology(), Set.of()).errors())
+                .anyMatch(e -> e.contains("declared without capabilities.startFromForm")).anyMatch(e -> e.contains("SERIAL or MLLP"));
+        ObjectNode mac = (ObjectNode) parser.tree(bundled.source("ecg.ge.mac-hl7", null).orElseThrow());
+        ((ObjectNode) mac.get("capabilities")).put("historicRetrieval", false);
+        assertThat(DriverValidator.validate(parser, TestSupport.json().writeValueAsString(mac), TestSupport.terminology(), Set.of()).errors())
+                .anyMatch(e -> e.contains("historicQuery: declared without"));
+    }
 }

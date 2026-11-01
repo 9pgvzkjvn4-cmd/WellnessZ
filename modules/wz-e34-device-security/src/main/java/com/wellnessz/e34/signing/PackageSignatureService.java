@@ -30,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.wellnessz.casekernel.device.DeviceCodes;
 import com.wellnessz.casekernel.device.DevicePackageSignatures;
+import com.wellnessz.casekernel.device.DeviceSpis;
+import com.wellnessz.casekernel.device.DeviceTenantDirectory;
 import com.wellnessz.common.error.ApiException;
 import com.wellnessz.e34.events.E34Events;
 import com.wellnessz.e34.events.SecurityEventService;
@@ -54,11 +56,14 @@ public class PackageSignatureService implements DevicePackageSignatures {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     public record KeyView(String keyId, String algorithm, String publicKey, String status, String createdBy, Instant createdAt,
-                          Instant retiredAt, Instant revokedAt) {
+                          Instant retiredAt, Instant revokedAt, String tenantCode) {
     }
 
-    private record StoredKey(String keyId, String algorithm, String publicKey, String privateKey, String status) {
+    private record StoredKey(String keyId, String algorithm, String publicKey, String privateKey, String status, String tenantCode) {
     }
+
+    static final String KEY_COLUMNS = "key_id, algorithm, public_key, private_key, status, tenant_code";
+    static final java.util.regex.Pattern TENANT = java.util.regex.Pattern.compile("[A-Z0-9_]{2,30}");
 
     private final JdbcTemplate jdbc;
     private final FieldEncryptor encryptor;
@@ -66,21 +71,34 @@ public class PackageSignatureService implements DevicePackageSignatures {
     private final AuditService audit;
     private final EventBus bus;
     private final E34Settings settings;
+    private final DeviceSpis spis;
 
     public PackageSignatureService(JdbcTemplate jdbc, FieldEncryptor encryptor, SecurityEventService events, AuditService audit, EventBus bus,
-                                   E34Settings settings) {
+                                   E34Settings settings, DeviceSpis spis) {
         this.jdbc = jdbc;
         this.encryptor = encryptor;
         this.events = events;
         this.audit = audit;
         this.bus = bus;
         this.settings = settings;
+        this.spis = spis;
     }
 
     // ------------------------------------------------------------------ SPI
 
+    /** Group packages: only group keys verify (tenant keys verify only through the tenant-aware call). */
     @Override
     public Verification verify(byte[] canonicalManifest, String signatureBase64, String keyId) {
+        return verify(canonicalManifest, signatureBase64, keyId, DeviceTenantDirectory.GROUP);
+    }
+
+    /**
+     * Per-tenant signing keys (E31-HLR-12, E34-HLR-06): a key verifies packages of its own tenant; group keys verify packages of
+     * every tenant (the shared catalogue). Another tenant's key → {@code key_not_for_tenant}.
+     */
+    @Override
+    public Verification verify(byte[] canonicalManifest, String signatureBase64, String keyId, String tenantCode) {
+        String tenant = DeviceTenantDirectory.normalise(tenantCode);
         if (canonicalManifest == null || keyId == null || !keyId.matches("[A-Za-z0-9._\\-]{1,40}")) {
             return invalid(keyId, null, "unknown_key");
         }
@@ -89,6 +107,9 @@ public class PackageSignatureService implements DevicePackageSignatures {
             return invalid(keyId, null, "unknown_key");
         }
         StoredKey k = key.get();
+        if (!DeviceTenantDirectory.GROUP.equals(k.tenantCode()) && !k.tenantCode().equals(tenant)) {
+            return invalid(keyId, k.algorithm(), "key_not_for_tenant");
+        }
         if ("REVOKED".equals(k.status())) {
             return invalid(keyId, k.algorithm(), "key_revoked");
         }
@@ -111,19 +132,27 @@ public class PackageSignatureService implements DevicePackageSignatures {
     @Override
     @Transactional
     public Signature sign(String actor, byte[] canonicalManifest) {
+        return sign(actor, DeviceTenantDirectory.GROUP, canonicalManifest);
+    }
+
+    /** Signs with the tenant's active key (created on first use; the tenant must exist in the engine's tenant directory). */
+    @Override
+    @Transactional
+    public Signature sign(String actor, String tenantCode, byte[] canonicalManifest) {
         settings.requireEnabled();
         requireSigner(actor);
         if (canonicalManifest == null || canonicalManifest.length == 0 || canonicalManifest.length > 2_000_000) {
             throw ApiException.badRequest("validation_failed", "Manifest required");
         }
-        StoredKey k = activeKey(actor);
+        String tenant = tenant(tenantCode);
+        StoredKey k = activeKey(actor, tenant);
         try {
             java.security.Signature s = java.security.Signature.getInstance(k.algorithm());
             s.initSign(privateKey(k));
             s.update(canonicalManifest);
             String sig = Base64.getEncoder().encodeToString(s.sign());
             String sha = TokenHasher.sha256Hex(canonicalManifest);
-            audit.record("DEVICE_PACKAGE_SIGN", "DEVICE_DRIVER_PACKAGE", sha, AuditService.Outcome.SUCCESS, k.keyId());
+            audit.record("DEVICE_PACKAGE_SIGN", "DEVICE_DRIVER_PACKAGE", sha, AuditService.Outcome.SUCCESS, k.keyId() + " " + tenant);
             events.record("PACKAGE_SIGNED", DeviceCodes.Severity.INFO, null, null, actor, null, Map.of("keyId", k.keyId(), "algorithm", k.algorithm()));
             return new Signature(k.keyId(), k.algorithm(), sig);
         } catch (GeneralSecurityException e) {
@@ -136,25 +165,33 @@ public class PackageSignatureService implements DevicePackageSignatures {
     @Transactional(readOnly = true)
     public List<KeyView> keys() {
         settings.requireEnabled();
-        return jdbc.query("select key_id, algorithm, public_key, status, created_by, created_at, retired_at, revoked_at from devicesec.signing_key "
-                + "order by created_at desc", (rs, i) -> new KeyView(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
-                rs.getString(5), EndpointRepository.inst(rs, "created_at"), EndpointRepository.inst(rs, "retired_at"),
-                EndpointRepository.inst(rs, "revoked_at")));
+        return jdbc.query("select key_id, algorithm, public_key, status, created_by, created_at, retired_at, revoked_at, tenant_code "
+                + "from devicesec.signing_key order by created_at desc", (rs, i) -> new KeyView(rs.getString(1), rs.getString(2), rs.getString(3),
+                rs.getString(4), rs.getString(5), EndpointRepository.inst(rs, "created_at"), EndpointRepository.inst(rs, "retired_at"),
+                EndpointRepository.inst(rs, "revoked_at"), rs.getString(9)));
     }
 
     /** Rotation: a new ACTIVE key; the previous one becomes RETIRED and keeps verifying existing packages. */
     @Transactional
     public KeyView rotate(String actor, String algorithm) {
+        return rotate(actor, algorithm, DeviceTenantDirectory.GROUP);
+    }
+
+    /** Rotation of one tenant's key (per-tenant signing keys). */
+    @Transactional
+    public KeyView rotate(String actor, String algorithm, String tenantCode) {
         settings.requireEnabled();
+        String tenant = tenant(tenantCode);
         String alg = algorithm == null || algorithm.isBlank() ? "Ed25519" : algorithm;
         if (!ALGORITHMS.contains(alg)) {
             throw ApiException.badRequest("validation_failed", "Algorithm must be Ed25519 or SHA256withECDSA");
         }
         Instant now = settings.now();
-        jdbc.queryForList("select key_id from devicesec.signing_key where status = 'ACTIVE' for update", String.class);
-        jdbc.update("update devicesec.signing_key set status = 'RETIRED', retired_at = ? where status = 'ACTIVE'", EndpointRepository.ts(now));
-        String keyId = createKey(actor, alg, now);
-        audit.record("DEVICE_SIGNING_KEY_ROTATE", "DEVICE_SIGNING_KEY", keyId, AuditService.Outcome.SUCCESS, alg);
+        jdbc.queryForList("select key_id from devicesec.signing_key where status = 'ACTIVE' and tenant_code = ? for update", String.class, tenant);
+        jdbc.update("update devicesec.signing_key set status = 'RETIRED', retired_at = ? where status = 'ACTIVE' and tenant_code = ?",
+                EndpointRepository.ts(now), tenant);
+        String keyId = createKey(actor, alg, now, tenant);
+        audit.record("DEVICE_SIGNING_KEY_ROTATE", "DEVICE_SIGNING_KEY", keyId, AuditService.Outcome.SUCCESS, alg + " " + tenant);
         events.record("SIGNING_KEY_ROTATED", DeviceCodes.Severity.MEDIUM, null, null, actor, null, Map.of("keyId", keyId, "algorithm", alg));
         return keys().stream().filter(k -> k.keyId().equals(keyId)).findFirst().orElseThrow();
     }
@@ -171,7 +208,7 @@ public class PackageSignatureService implements DevicePackageSignatures {
         jdbc.update("update devicesec.signing_key set status = 'REVOKED', revoked_at = ?, revoked_by = ? where key_id = ?",
                 EndpointRepository.ts(now), actor, keyId);
         if ("ACTIVE".equals(k.status())) {
-            createKey(actor, "Ed25519", now);
+            createKey(actor, "Ed25519", now, k.tenantCode());
         }
         audit.record("DEVICE_SIGNING_KEY_REVOKE", "DEVICE_SIGNING_KEY", keyId, AuditService.Outcome.SUCCESS, "revoked");
         events.record("SIGNING_KEY_REVOKED", DeviceCodes.Severity.HIGH, null, null, actor, "key_revoked", Map.of("keyId", keyId));
@@ -191,23 +228,35 @@ public class PackageSignatureService implements DevicePackageSignatures {
         return new Verification(false, keyId, algorithm, code);
     }
 
-    private StoredKey activeKey(String actor) {
-        Optional<StoredKey> active = jdbc.query("select key_id, algorithm, public_key, private_key, status from devicesec.signing_key "
-                + "where status = 'ACTIVE'", (rs, i) -> new StoredKey(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
-                rs.getString(5))).stream().findFirst();
+    private StoredKey activeKey(String actor, String tenant) {
+        Optional<StoredKey> active = jdbc.query("select " + KEY_COLUMNS + " from devicesec.signing_key where status = 'ACTIVE' and tenant_code = ?",
+                PackageSignatureService::stored, tenant).stream().findFirst();
         if (active.isPresent()) {
             return active.get();
         }
         try {
-            createKey(actor, "Ed25519", settings.now());
+            createKey(actor, "Ed25519", settings.now(), tenant);
         } catch (DuplicateKeyException e) {
             // created concurrently
         }
-        return jdbc.query("select key_id, algorithm, public_key, private_key, status from devicesec.signing_key where status = 'ACTIVE'",
-                (rs, i) -> new StoredKey(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5))).get(0);
+        return jdbc.query("select " + KEY_COLUMNS + " from devicesec.signing_key where status = 'ACTIVE' and tenant_code = ?",
+                PackageSignatureService::stored, tenant).get(0);
     }
 
-    private String createKey(String actor, String algorithm, Instant now) {
+    private static StoredKey stored(java.sql.ResultSet rs, int i) throws java.sql.SQLException {
+        return new StoredKey(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6));
+    }
+
+    /** A known tenant of the engine's directory ({@code GROUP} when omitted); unknown tenants are refused. */
+    String tenant(String tenantCode) {
+        String t = DeviceTenantDirectory.normalise(tenantCode);
+        if (!TENANT.matcher(t).matches() || spis.tenants().tenant(t).isEmpty()) {
+            throw ApiException.badRequest("validation_failed", "Unknown tenant");
+        }
+        return t;
+    }
+
+    private String createKey(String actor, String algorithm, Instant now, String tenant) {
         try {
             KeyPair pair;
             if ("Ed25519".equals(algorithm)) {
@@ -222,8 +271,8 @@ public class PackageSignatureService implements DevicePackageSignatures {
             String keyId = "PKS-" + DateTimeFormatter.ofPattern("yyyyMMdd").withZone(ZoneOffset.UTC).format(now) + "-" + HexFormat.of().formatHex(rnd);
             String pub = Base64.getEncoder().encodeToString(pair.getPublic().getEncoded());
             String priv = encryptor.encrypt(Base64.getEncoder().encodeToString(pair.getPrivate().getEncoded()), "devsec:signing-key:" + keyId);
-            jdbc.update("insert into devicesec.signing_key (key_id, algorithm, public_key, private_key, status, created_by, created_at) "
-                    + "values (?,?,?,?,'ACTIVE',?,?)", keyId, algorithm, pub, priv, actor, EndpointRepository.ts(now));
+            jdbc.update("insert into devicesec.signing_key (key_id, algorithm, public_key, private_key, status, created_by, created_at, tenant_code) "
+                    + "values (?,?,?,?,'ACTIVE',?,?,?)", keyId, algorithm, pub, priv, actor, EndpointRepository.ts(now), tenant);
             return keyId;
         } catch (GeneralSecurityException e) {
             throw new ApiException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "signing_unavailable", "Key generation failed");
@@ -231,8 +280,7 @@ public class PackageSignatureService implements DevicePackageSignatures {
     }
 
     private Optional<StoredKey> find(String keyId) {
-        return jdbc.query("select key_id, algorithm, public_key, private_key, status from devicesec.signing_key where key_id = ?",
-                (rs, i) -> new StoredKey(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5)), keyId)
+        return jdbc.query("select " + KEY_COLUMNS + " from devicesec.signing_key where key_id = ?", PackageSignatureService::stored, keyId)
                 .stream().findFirst();
     }
 

@@ -53,6 +53,57 @@ describe('Engine health', () => {
   });
 });
 
+describe('Engine health – vendor cloud connectors and historic retrieval', () => {
+  const base = {
+    'GET /device-engine/ops/connectors': [],
+    'GET /device-engine/ops/metrics': { window: 'PT1H', messages: 0, perSecondPeak: 0, latencyP50Ms: null, latencyP95Ms: null, parseErrorRate: 0, validationBlockRate: 0, unmatchedRate: 0, unmatchedOpen: 0, slaBreaches: 0, deadLettersOpen: 0 },
+    'GET /device-engine/ops/alerts': [],
+    'GET /device-engine/unmatched/count': { open: 0, overdue: 0 },
+    'GET /device-engine/ops/cloud-connectors': [
+      { deviceInstanceId: 'DEV-000021', siteCode: 'LHR', tenantCode: 'GROUP', driverPackageId: 'wear.cloud.daily-poll', pollEnabled: true, intervalSeconds: 900, rateLimitPerMinute: 60,
+        apiHost: 'api.vendor.example', hostAllowed: true, consentPurpose: 'WEARABLE_DATA', residencyRegion: 'UK', state: 'RATE_LIMITED', lastError: 'vendor_rate_limited',
+        lastPollAt: '2026-11-01T08:00:00Z', nextPollAt: '2026-11-01T08:02:00Z', consecutiveFailures: 1, recordsTotal: 42, recordsLastRun: 0, duplicatesTotal: 3, skippedNoConsent: 5, highWaterMarkSet: true },
+    ],
+    'GET /device-engine/historic-retrievals': [
+      { id: 'h1000000-0000-4000-8000-000000000001', deviceInstanceId: 'DEV-000007', from: '2026-10-01T00:00:00Z', to: '2026-10-31T00:00:00Z', method: 'HL7_QUERY', status: 'COMPLETED',
+        requestedBy: 'deviceadmin1', requestedAt: '2026-11-01T07:00:00Z', received: 4, accepted: 2, duplicates: 2, failed: 0 },
+    ],
+    'POST /device-engine/ops/cloud-connectors/DEV-000021/poll': { deviceInstanceId: 'DEV-000021', status: 'OK', records: 3, accepted: 2, duplicates: 1, skippedNoConsent: 0 },
+    'POST /device-engine/historic-retrievals': { id: 'h2000000-0000-4000-8000-000000000002', deviceInstanceId: 'DEV-000007', from: '2026-10-01T00:00:00Z', to: '2026-10-02T00:00:00Z',
+      method: 'HL7_QUERY', status: 'REQUESTED', requestedBy: 'deviceadmin1', requestedAt: '2026-11-01T09:00:00Z', received: 0, accepted: 0, duplicates: 0, failed: 0 },
+  };
+  it('DEVICE_ADMIN sees the P6 connector status, polls now and requests historic results', async () => {
+    const user = userEvent.setup();
+    const api = mockApi(base);
+    render(<EngineHealth {...props(api, 'DEVICE_ADMIN')} />);
+    expect(await screen.findByText('Rate limited – backing off')).toBeTruthy();
+    const table = screen.getByRole('table', { name: 'Vendor cloud connectors' });
+    expect(within(table).getByText('api.vendor.example')).toBeTruthy();
+    expect(within(table).getByText('every 900 s · 60/min')).toBeTruthy();
+    expect(within(table).getByText('5')).toBeTruthy(); // skipped without consent
+    await user.click(within(table).getByRole('button', { name: 'Poll now' }));
+    expect(await screen.findByText(/2 new, 1 duplicate\(s\), 0 without consent/)).toBeTruthy();
+    expect(screen.getByText(/4 received · 2 new · 2 duplicate/)).toBeTruthy();
+    await user.type(screen.getByLabelText(/Device instance/, { selector: 'input[maxlength="64"][required]' }), 'DEV-000007');
+    await user.type(screen.getByLabelText(/Results from/), '2026-10-01T00:00');
+    await user.type(screen.getByLabelText(/Results to/), '2026-10-02T00:00');
+    await user.click(screen.getByRole('button', { name: 'Request results' }));
+    await waitFor(() => expect(api.find('POST', '/device-engine/historic-retrievals')).toHaveLength(1));
+    const body = api.find('POST', '/device-engine/historic-retrievals')[0]!.body as { deviceInstanceId: string; from: string; to: string };
+    expect(body.deviceInstanceId).toBe('DEV-000007');
+    expect(body.from < body.to).toBe(true);
+    expect(await screen.findByText(/Historic retrieval h2000000 requested/)).toBeTruthy();
+  });
+  it('NURSING_HEAD reads the connector status but cannot poll or request historic results', async () => {
+    const api = mockApi(base);
+    render(<EngineHealth {...props(api, 'NURSING_HEAD')} />);
+    expect(await screen.findByText('Rate limited – backing off')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Poll now' })).toBeNull();
+    expect(screen.queryByText('Historic retrieval from a device or data manager')).toBeNull();
+    expect(api.find('GET', '/device-engine/historic-retrievals')).toHaveLength(0);
+  });
+});
+
 describe('Dead letters', () => {
   const dl = { id: 'd1', messageId: 'm1000000-0000-4000-8000-000000000001', deviceInstanceId: 'DEV-000003', stage: 'PARSE', code: 'parse_failed', detailMasked: 'PID-5 «masked» unexpected segment', attempts: 1, firstFailedAt: '2026-11-01T08:00:00Z', lastFailedAt: '2026-11-01T08:00:00Z', status: 'OPEN' };
   it('replays with an optional pinned driver version and discards with a reason', async () => {

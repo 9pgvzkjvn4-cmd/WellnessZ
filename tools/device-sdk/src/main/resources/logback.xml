@@ -1,0 +1,8 @@
+<configuration>
+  <!-- command line: library logging only for warnings, on standard error -->
+  <appender name="ERR" class="ch.qos.logback.core.ConsoleAppender">
+    <target>System.err</target>
+    <encoder><pattern>%level %logger{0}: %msg%n</pattern></encoder>
+  </appender>
+  <root level="WARN"><appender-ref ref="ERR"/></root>
+</configuration>

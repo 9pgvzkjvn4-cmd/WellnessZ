@@ -8,6 +8,7 @@ import { ToneBadge } from '../../components/Tone';
 import { ActionFeedback, Alert, Empty, ErrorAlert, Loading, SelectOptions } from '../../components/ui';
 import { useAction, useAsync } from '../../components/useAsync';
 import { STATE_TEXT, acceptState, blockFlags, isFinal, pathUsed, previewFlags } from '../../domain/capture';
+import { engineApi, type OutboundMessage } from '../../api/deviceEngine';
 import { ComparisonBlock, MarkingTag, PreviewValues, ProvenanceDetails, QualityFlags } from './CapturePreview';
 import { FallbackChain } from './FallbackChain';
 import { StationPicker } from './StationPicker';
@@ -198,6 +199,9 @@ function SessionView({ client, session: auth, onSessionExpired, s, channel, prog
         </div>
         {s.contextPush && s.state === 'LISTENING' && <div className="small muted">{humanise(s.contextPush)}</div>}
       </div>
+      {s.contextPush && s.contextPush !== 'NONE' && can(auth.roles, 'captureOutbound') && (
+        <OutboundOrderStatus client={client} onSessionExpired={onSessionExpired} sessionId={s.sessionId} state={s.state} />
+      )}
 
       {s.state === 'LISTENING' && (
         <p className="capture-hint">
@@ -294,6 +298,34 @@ function SessionView({ client, session: auth, onSessionExpired, s, channel, prog
         </div>
       )}
       <ActionFeedback error={action.error} message={action.message} />
+    </div>
+  );
+}
+
+const OUTBOUND_TEXT: Record<OutboundMessage['status'], string> = { SENT: 'Sent to the device', ACKED: 'Accepted by the device', REJECTED: 'Rejected by the device', FAILED: 'Not delivered' };
+const OUTBOUND_TONE: Record<OutboundMessage['status'], 'green' | 'amber' | 'red' | 'muted'> = { SENT: 'amber', ACKED: 'green', REJECTED: 'red', FAILED: 'red' };
+
+/**
+ * Outbound order status in the capture panel (E31-HLR-08, E31-BL-019): the order / demographics / start command the engine sent
+ * to the device for this session and the device's acknowledgement – status only, never the message content.
+ */
+function OutboundOrderStatus({ client, onSessionExpired, sessionId, state }: { client: AuthClient; onSessionExpired: () => void; sessionId: string; state: string }) {
+  const status = useAsync(() => engineApi(client).outbound({ sessionId }), onSessionExpired, [sessionId, state]);
+  const messages = status.data?.messages ?? [];
+  const pending = (status.data?.pending ?? []).filter((p) => p.status === 'PENDING' || p.status === 'SENT');
+  if (status.error || (!messages.length && !pending.length)) return null;
+  return (
+    <div className="capture-outbound small" aria-live="polite">
+      {pending.length > 0 && messages.length === 0 && <div className="muted">Order queued for the device gateway…</div>}
+      {messages.map((m) => (
+        <div key={m.id}>
+          <ToneBadge tone={OUTBOUND_TONE[m.status]}>{OUTBOUND_TEXT[m.status]}</ToneBadge>{' '}
+          {m.transport === 'SERIAL' ? 'Start command' : m.transport === 'GDT' ? 'Worklist file' : m.messageType}
+          {m.orderRef && <> · order <span className="mono">{m.orderRef}</span></>}
+          {m.ackCode && <span className="muted"> · {m.ackCode}</span>}
+          {m.status === 'REJECTED' && <span className="muted"> – start the measurement on the device manually.</span>}
+        </div>
+      ))}
     </div>
   );
 }

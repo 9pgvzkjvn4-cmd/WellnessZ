@@ -49,6 +49,7 @@
     <module>apps/wz-core-app</module>
     <module>apps/wz-bff</module>
     <module>apps/wz-device-gateway</module>
+    <module>tools/device-sdk</module>
   </modules>
 
   <properties>

@@ -94,6 +94,24 @@ public class ModelStore {
                 posture, actor, Timestamp.from(support.now()), modelCode);
     }
 
+    /** Tenant owning a model ({@code null} = shared group catalogue, E31-HLR-12). */
+    public String tenantOf(String modelCode) {
+        return support.jdbc().query("select tenant_code from devicecat.model where model_code = ?", rs -> rs.next() ? rs.getString(1) : null, modelCode);
+    }
+
+    /** Model code → owning tenant, for tenant-scoped models only. */
+    public Map<String, String> tenantScoped() {
+        Map<String, String> out = new java.util.HashMap<>();
+        support.jdbc().query("select model_code, tenant_code from devicecat.model where tenant_code is not null",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> out.put(rs.getString(1), rs.getString(2)));
+        return out;
+    }
+
+    public void setTenant(String modelCode, String tenantCode, String actor) {
+        support.jdbc().update("update devicecat.model set tenant_code = ?, updated_by = ?, updated_at = ?, row_version = row_version + 1 where model_code = ?",
+                tenantCode, actor, java.sql.Timestamp.from(support.now()), modelCode);
+    }
+
     private ModelRow map(ResultSet rs, int i) throws SQLException {
         return new ModelRow(rs.getString("model_code"), rs.getString("inventory_id"), Family.valueOf(rs.getString("family")),
                 rs.getString("family_label"), rs.getString("manufacturer"), rs.getString("model"), rs.getString("oh_use"), rs.getString("connectivity"),

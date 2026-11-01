@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.wellnessz.casekernel.device.DeviceCodes;
 import com.wellnessz.casekernel.device.DevicePackageSignatures;
 import com.wellnessz.common.error.ApiException;
+import com.wellnessz.e32.catalogue.CatalogueRoutes;
 import com.wellnessz.e32.catalogue.ModelStore;
 import com.wellnessz.e32.config.Configuration;
 import com.wellnessz.e32.config.ConfigurationStore;
@@ -44,7 +45,12 @@ public class DriverRegistryService {
         this.tx = tx;
     }
 
-    public record RegisterCommand(Map<String, Object> packageJson, String conformanceRunId, String conformanceEvidenceSha256) {
+    /** @param tenantCode owner of a tenant-scoped package (signed with that tenant's key); {@code null} = shared group catalogue */
+    public record RegisterCommand(Map<String, Object> packageJson, String conformanceRunId, String conformanceEvidenceSha256, String tenantCode) {
+
+        public RegisterCommand(Map<String, Object> packageJson, String conformanceRunId, String conformanceEvidenceSha256) {
+            this(packageJson, conformanceRunId, conformanceEvidenceSha256, null);
+        }
     }
 
     // ------------------------------------------------------------------ reads
@@ -91,6 +97,9 @@ public class DriverRegistryService {
         if (d.statusReason() != null) {
             m.put("statusReason", d.statusReason());
         }
+        if (d.tenantCode() != null) {
+            m.put("tenantCode", d.tenantCode());
+        }
         return m;
     }
 
@@ -99,7 +108,7 @@ public class DriverRegistryService {
     public DriverPackageRules.Report validate(Map<String, Object> pkg) {
         Map<String, List<String>> modelOptions = new LinkedHashMap<>();
         for (String code : Docs.strings(pkg.get("models"))) {
-            models.find(code).ifPresent(m -> modelOptions.put(code, m.options()));
+            models.find(code).ifPresent(m -> modelOptions.put(code, CatalogueRoutes.offered(m.modelCode(), m.options())));
         }
         return DriverPackageRules.validate(pkg, modelOptions);
     }
@@ -121,8 +130,15 @@ public class DriverRegistryService {
         if (Docs.str(sig.get("value")) == null || Docs.str(sig.get("keyId")) == null) {
             throw E32Support.unprocessable("signature_invalid", "The package must be signed (signature.keyId and signature.value)");
         }
-        DevicePackageSignatures.Verification v = support.spis().signatures().verify(report.canonical().getBytes(StandardCharsets.UTF_8),
-                Docs.str(sig.get("value")), Docs.str(sig.get("keyId")));
+        String tenant = cmd.tenantCode() == null || cmd.tenantCode().isBlank() ? null : support.tenant(cmd.tenantCode()).code();
+        if (com.wellnessz.casekernel.device.DeviceTenantDirectory.GROUP.equals(tenant)) {
+            tenant = null;
+        }
+        // per-tenant signing keys: a tenant package must carry the tenant's (or a group) signature; group packages a group signature
+        byte[] canonical = report.canonical().getBytes(StandardCharsets.UTF_8);
+        DevicePackageSignatures.Verification v = tenant == null
+                ? support.spis().signatures().verify(canonical, Docs.str(sig.get("value")), Docs.str(sig.get("keyId")))
+                : support.spis().signatures().verify(canonical, Docs.str(sig.get("value")), Docs.str(sig.get("keyId")), tenant);
         if (v == null || !v.valid()) {
             support.securityEvent("PACKAGE_SIGNATURE_INVALID", DeviceCodes.Severity.HIGH, null, null, null, user.username(),
                     v == null ? "signature_invalid" : v.failureCode(), Map.of("keyId", Docs.str(sig.get("keyId"))));
@@ -130,7 +146,7 @@ public class DriverRegistryService {
                     "signature_invalid");
             throw E32Support.unprocessable("signature_invalid", "The package signature could not be verified");
         }
-        return store(user.username(), pkg, report, sig, "REGISTERED", cmd.conformanceRunId(), cmd.conformanceEvidenceSha256());
+        return store(user.username(), pkg, report, sig, "REGISTERED", cmd.conformanceRunId(), cmd.conformanceEvidenceSha256(), tenant);
     }
 
     /**
@@ -160,12 +176,17 @@ public class DriverRegistryService {
 
     private Map<String, Object> store(String actor, Map<String, Object> pkg, DriverPackageRules.Report report, Map<String, Object> sig, String status,
                                       String runId, String evidence) {
+        return store(actor, pkg, report, sig, status, runId, evidence, null);
+    }
+
+    private Map<String, Object> store(String actor, Map<String, Object> pkg, DriverPackageRules.Report report, Map<String, Object> sig, String status,
+                                      String runId, String evidence, String tenant) {
         String packageId = Docs.str(pkg.get("packageId"));
         String version = Docs.str(pkg.get("version"));
         if (drivers.exists(packageId, version)) {
             throw ApiException.conflict("package_version_exists", "This package version is already registered (versions are immutable)");
         }
-        drivers.insert(pkg, report.canonical(), report.sha256(), sig, status, runId, evidence, actor);
+        drivers.insert(pkg, report.canonical(), report.sha256(), sig, status, runId, evidence, actor, tenant);
         support.history("DRIVER", packageId + "@" + version, null, actor, "REGISTER", null,
                 Docs.of("status", status, "sha256", report.sha256(), "conformanceRunId", runId), null);
         support.audit("DEVICE_DRIVER_REGISTER", "DEVICE_DRIVER", packageId + "@" + version);

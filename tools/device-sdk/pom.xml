@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.wellnessz</groupId>
+    <artifactId>wellnessz-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+  <artifactId>wz-device-sdk</artifactId>
+  <name>WellnessZ OHCM :: Device driver SDK command line</name>
+  <description>Scaffold, validate, run conformance offline, sign and diff driver packages (E31-BL-011)</description>
+
+  <!-- The SDK runs the engine's own parser, validator, simulator (DryRun) and golden datasets offline: it depends on E31 only.
+       The terminology comes from the shipped V22 migration (copied into the jar as sdk/V22__e31_device_engine.sql). -->
+  <dependencies>
+    <dependency><groupId>com.wellnessz</groupId><artifactId>wz-e31-device-engine</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+  </dependencies>
+
+  <build>
+    <finalName>wz-device-sdk</finalName>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <directory>../../apps/wz-core-app/src/main/resources/db/migration</directory>
+        <includes><include>V22__e31_device_engine.sql</include></includes>
+        <targetPath>sdk</targetPath>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration><mainClass>com.wellnessz.sdk.DeviceSdk</mainClass></configuration>
+        <executions><execution><goals><goal>repackage</goal></goals></execution></executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

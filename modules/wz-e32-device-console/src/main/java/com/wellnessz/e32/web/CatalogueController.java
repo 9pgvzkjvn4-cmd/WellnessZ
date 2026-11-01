@@ -59,8 +59,9 @@ public class CatalogueController {
                                             @RequestParam(required = false) @Pattern(regexp = "[\\p{L}\\p{N} .&/+\\-]{1,80}") String q,
                                             @RequestParam(required = false) @Pattern(regexp = "P([1-9]|10)") String option,
                                             @RequestParam(required = false) @Pattern(regexp = Spel.CODE) String lifecycle,
-                                            @RequestParam(required = false) @Pattern(regexp = Spel.CODE) String posture) {
-        return catalogue.search(family, q, option, lifecycle, posture);
+                                            @RequestParam(required = false) @Pattern(regexp = Spel.CODE) String posture,
+                                            @RequestParam(required = false) @Pattern(regexp = "[A-Z0-9_]{2,30}") String tenantCode) {
+        return catalogue.search(family, q, option, lifecycle, posture, tenantCode);
     }
 
     @GetMapping("/models/{modelCode}")
@@ -74,6 +75,17 @@ public class CatalogueController {
     @PreAuthorize(Spel.ADMIN)
     public Map<String, Object> create(@RequestBody CatalogueService.ModelCommand cmd) {
         return catalogue.create(users.require(), cmd);
+    }
+
+    public record TenantRequest(@Pattern(regexp = "[A-Z0-9_]{2,30}") String tenantCode) {
+    }
+
+    /** Scopes a model to one tenant's catalogue ({@code tenantCode} null / GROUP = shared group catalogue; E31-HLR-12). */
+    @PutMapping("/models/{modelCode}/tenant")
+    @PreAuthorize("hasAnyRole('DEVICE_ADMIN','PLATFORM_ADMIN')")
+    public Map<String, Object> modelTenant(@PathVariable @Pattern(regexp = Spel.MODEL_CODE) String modelCode,
+                                           @RequestBody @jakarta.validation.Valid TenantRequest r) {
+        return catalogue.setTenant(users.require(), modelCode, r.tenantCode());
     }
 
     @PutMapping("/models/{modelCode}")

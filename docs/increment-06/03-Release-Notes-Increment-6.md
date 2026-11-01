@@ -1,6 +1,6 @@
 # WellnessZ OHCM – Release Notes, Increment 6 (E31 Device Integration Engine + E32 Device Console + E33 Module-Embedded Capture + E34 Endpoint & Integration Security)
 
-**Version 1.0**
+**Version 1.1**
 
 *WellnessZ OHCM platform – increment 6 (Medical Device Integration Engine)*
 
@@ -9,8 +9,9 @@
 | **Document** | Increment 6 – 03 Release Notes |
 | **Release content** | E31 Medical Device Integration Engine · E32 Device Catalogue, Administration & Connectivity Provisioning Console · E33 Module-Embedded Device Capture · E34 Endpoint & Integration Security · edge application `wz-device-gateway` · device security test pack |
 | **Audience** | CIO, CMO, Nursing Head, device administrators, integration testers, CISO / Security Operations, Cyber GRC, DPO, platform operations, developers |
-| **Database** | Flyway V21, V22, V23, V24, V25 (+ repeatable demo data `R__demo_e32_device_console.sql`, `R__demo_e34_device_security.sql` and four demo seeders – `local` / test profiles only) |
+| **Database** | Flyway V21, V22, V23, V24, V25, V26 (+ repeatable demo data `R__demo_e32_device_console.sql`, `R__demo_e34_device_security.sql` and four demo seeders – `local` / test profiles only) |
 | **Applications** | **New:** `apps/wz-device-gateway` (edge – clinic gateway and Device Host agent). Four new backend modules inside `wz-core-app`; new screens in the OH workspace, employee app and manager workspace |
+| **Revision 1.1** | Second build round (1 November 2026): P6 vendor-cloud polling (OAuth2 client credentials), outbound orders / worklist (ORM^O01, OML^O21, ADT^A04 / A08) over MLLP, start-from-form, historic retrieval, tenant-scoped catalogue / configurations / signing keys and per-tenant connector limits, driver SDK command line, data fixes (BLE pairing, GE MAC catalogue route), web screens; V26. See Section 2.6 |
 | **Companion documents** | [01 – Solution Design](01-Solution-Design-E31-E34.md) · [02 – Requirements Traceability Matrix](02-Requirements-Traceability-Matrix.md) · [04 – Device Administrator Guide](04-Device-Administrator-Guide.md) · [05 – Integration Tester Guide](05-Integration-Tester-Guide.md) · [API contract](API-Contract-E31-E34.md) · [device security pack](device-security/) · [gateway README](../../apps/wz-device-gateway/README.md) |
 
 ---
@@ -45,17 +46,17 @@
 | Feature | Delivered |
 |---|---|
 | F01 Pipeline | Acquire → parse → normalise → associate → validate → route → persist → acknowledge; raw payload stored first (AES-GCM, SHA-256); deterministic UUIDv5 observation ids; dead letters and replay (item, range, pinned driver version) |
-| F02 Adapters | HL7 v2 ORU^R01 PCD-01, FHIR R4, POCT1-A, CSV / XML / GDT + PDF pairing, BLE GATT (BLP, HTP, PLX, WSS, BCS), serial templates, webhooks (HMAC, timestamp, nonce), DICOMweb JSON + attachments, OCR / manual fallback, batch store-and-forward |
-| F03 Driver SDK | Package format `wellnessz.device-driver/1`, validation, conformance against test vectors, signing workflow; 18 packages, 94 golden datasets |
+| F02 Adapters | HL7 v2 ORU^R01 PCD-01 **and outbound ORM^O01 / OML^O21 / ADT^A04 / ADT^A08 / QRY^R02 (HAPI) with device ACK**, FHIR R4, POCT1-A, CSV / XML / GDT + PDF pairing, BLE GATT (BLP, HTP, PLX, WSS, BCS), serial templates, webhooks (HMAC, timestamp, nonce), **P6 vendor-cloud polling (OAuth2 client credentials, schedule, rate limit, back-off, high-water mark, consent scope, egress allow-list, residency)**, DICOMweb JSON + attachments, OCR / manual fallback, batch store-and-forward |
+| F03 Driver SDK | Package format `wellnessz.device-driver/1`, validation, conformance against test vectors, signing workflow; **SDK command line `tools/device-sdk` (scaffold, validate, offline conformance, sign with E34 or a dev key, diff)**; 19 packages, 99 golden datasets |
 | F04 Normalisation | MDC → LOINC / UCUM, unit conversion, reference ranges, BMI, GLI-2012 predicted values, OSHA App. F age correction, clock-skew correction |
 | F05 Association | Worklist → session → badge → vendor id; thresholds 0.95 / 0.60; unmatched queue with suggestions and reason codes |
 | F06 Quality gates | 15 gates incl. calibration lockout via E14, QC lots, ATS/ERS, test-retest, BP cuff, plausibility, consent, attestation, clock skew, verify-before-post |
 | F07 Bindings | Default bindings in packages, overridable in the wizard; routing adapters inside E03, E07, E10, E12, E14 |
-| F08 Bidirectional | Worklist endpoint; GDT 6302 worklist files at the gateway (other push types later) |
+| F08 Bidirectional | Worklist endpoint; GDT 6302 worklist files; **HL7 order / ADT push over MLLP with acknowledgements, start-from-form (`START_ACQUISITION` – serial start bytes or MLLP order, where the driver declares a start command), historic retrieval (`RETRIEVE_HISTORY` – HL7 query or vendor-database range query, deterministic de-duplication)** |
 | F09 Store-and-forward | Gateway encrypted journal; `/device-ingest/batch` reconciliation in sequence order |
 | F10 Simulators | Golden-dataset replay per adapter as virtual endpoints; dry-run conformance |
 | F11 Observability | Micrometer meters, operations API, connector alerts (`STALE`, `SILENT`, error rate, latency, unmatched SLA, queue capacity, calibration due) |
-| F12 Tenancy | `tenant_code`, tenant-partitioned work queue, quotas (429) |
+| F12 Tenancy | `tenant_code`, tenant-partitioned work queue, quotas (429); **tenants with catalogue scope and residency (`PUT /device-engine/tenants/{code}/quota`), per-tenant connector limit (429 `tenant_connector_limit`), tenant-scoped catalogue and configurations (E32), per-tenant signing keys (E34)** |
 
 ### 2.2 E32 – Device Catalogue, Administration & Connectivity Provisioning Console
 
@@ -92,6 +93,19 @@ readiness gate; security test pack.
   outbound allow-lists `siem-device-security` and `itsm-tickets`; 28 ArchUnit rules.
 * **Edge:** `apps/wz-device-gateway` – one Java 21 / Spring Boot 4.1 agent for the clinic gateway and the Windows / Linux
   Device Host agent (Section 8).
+
+### 2.6 Second build round – software gaps of the traceability matrix (revision 1.1)
+
+| Item | Delivered | Where |
+|---|---|---|
+| P6 vendor-cloud polling (E31-BL-008) | OAuth2 client-credentials poller per published P6 connector: per-connector schedule (`poll.intervalSeconds` ≥ 60, claimed with compare-and-set so instances never poll the same connector twice), rate limit (`poll.rateLimitPerMinute`), exponential back-off (to 1 h) and vendor `Retry-After`; client secret through `DeviceSecretStore` (purpose `CLOUD_POLL`), token cached in memory; API and token hosts must be on `device.cloud.allowed-hosts` and HTTPS; `residencyRegion` must equal the tenant's residency; high-water mark persisted after durable ingest; records enter the pipeline with `CP:<connector>:<record id>` (repeats are `DUPLICATE`); consent-scoped wearables (records of employees without the mapped consent are not stored). New sample package `wear.cloud.daily-poll` (MD-121, CLOUD_POLL_JSON) | E31 `cloud/` (`CloudPollService`, `CloudPollJob`); `GET /device-engine/ops/cloud-connectors`, `POST …/{id}/poll`; E32 P6 option pack (`poll.path`, wizard defaults from the package) |
+| Outbound orders / worklist (E31-BL-004, -016) | `ORM^O01`, `OML^O21`, `ADT^A04`, `ADT^A08` built with HAPI from the E03 / E14 worklist (minimised: date of birth / sex only when the driver needs them); gateway command `PUSH_WORKLIST` fetches them (`GET /device-ingest/commands/{id}/outbound`), sends each over MLLP to the device's **locally configured** `wz.gateway.mllp-outbound` target (TLS unless loopback / segmented-VLAN exception) and reports one acknowledgement per message (`acks[]` in the command result); GDT 6302 import files unchanged | E31 `outbound/`; gateway `DeviceCommandService`, `MllpClient`; `GET /device-engine/outbound?sessionId=|deviceInstanceId=` |
+| Start from form (E31-BL-019) | E33 session start → `START_ACQUISITION` only where the driver declares `protocol.startCommand` (SERIAL bytes for serial-over-TCP connectors with an optional expected reply; MLLP order for the session's employee); otherwise the worklist push the driver supports (GDT 6302) – the documented fallback is the manual start on the device. Packages `ecg.ge.mac-hl7` (MLLP) and `da.lifeloc.fc20-serial` (serial; command bytes to be confirmed with the vendor) declare start commands | E31 `CaptureSessionListener`, `OutboundService`; gateway `SerialConnector.command` |
+| Historic retrieval (E31-HLR-08) | `POST /device-engine/historic-retrievals {deviceInstanceId, from, to}` (≤ 31 days; drivers with `historicRetrieval`) → gateway command `RETRIEVE_HISTORY` → `QRY^R02` over MLLP (result frames ORU / ORF) or the vendor-database connector's read-only query bounded by the range → `POST /device-ingest/retrievals/{id}/batch`; deterministic keys `HR:<UUIDv5(device, content without MSH-7 / MSH-10)>` and raw-hash matching – overlapping retrievals and results already pushed live are never stored twice | E31 `HistoricRetrievalService`; gateway `DeviceCommandService`, `VendorDbPoller.history` |
+| Tenant scoping (E31-HLR-12) | Tenants (`deviceint.tenant_quota`) with catalogue scope `GROUP` (shared + own) / `TENANT` (own only) and residency; kernel SPI `DeviceTenantDirectory`; tenant-scoped models and driver packages (`devicecat.model.tenant_code`, `driver_package.tenant_code`, `PUT /device-catalogue/models/{code}/tenant`, `?tenantCode=` filters), configurations created for a tenant must use a model of its catalogue (`model_not_in_tenant_catalogue`); per-tenant signing keys (one active key per tenant; another tenant's key → `key_not_for_tenant` at registry import and at engine load; group keys sign the shared catalogue); per-tenant connector limit enforced at ingest | E31 `TenantService`; E32; E34 `PackageSignatureService` (`/device-security/signing-keys {tenantCode}`, `/packages/sign?tenantCode=`) |
+| Driver SDK command line (E31-BL-011) | `tools/device-sdk` – Java, runs the engine's parser, validator, simulator and golden datasets offline with the V22 terminology: `scaffold`, `validate`, `conformance`, `keygen`, `sign` (local `DEV-` key or E34), `verify`, `diff` | `tools/device-sdk/README.md` |
+| Data fixes | **BLE pairing:** the Tanita WSS and Withings BCS / HTP packages declared `LE_SECURE_CONNECTIONS_JUST_WORKS`, which is not a P3 schema value and is unauthenticated pairing; following the solution document (LE Secure Connections with passkey where supported, *Just Works* only by security exception) they now declare `LE_SECURE_CONNECTIONS_PASSKEY` (device displays the passkey, the bonding owner enters it – to be confirmed per model in the device lab; a model that cannot do it is configured with `JUST_WORKS_EXCEPTION` and a SECURITY_OPS exception). E31 validator and E32 registry reject other pairing values; demo pack regenerated. **GE MAC (MD-045):** inventory row kept as provided (P1 / P4); catalogue route `e32/catalogue-routes.json` adds P2 via the GE MUSE XML export for driver `ecg.ge.muse-xml` (inventory options and contract totals unchanged) | E31 packages, `DriverValidator`; E32 `DriverPackageRules`, `CatalogueRoutes`; `demo-devices` |
+| Web | Engine health: vendor-cloud connector status with *Poll now*, historic retrieval request and list; capture panel: outbound order status (sent / accepted / rejected by the device) | `web/oh-workspace` |
 
 ## 3. What is new, by application
 
@@ -161,6 +175,7 @@ release.
 | `V23__e32_device_console.sql` | `devicecat` (new) | 20 tables (seed state, models, posture exceptions, driver packages, stations, configurations, change history, approvals, certifications, calibration schedules, QC checks, lockouts, fleet alerts, consumables, on-duty, model requests, governance exports / imports, templates, batches); 7 calibration schedules |
 | `V24__e33_device_capture.sql` | `devicecap` (new) | 10 tables (form rules, batches, sessions, observations, events, annotations, OCR images, observation notices, employee summaries, device consents); 16 form rules |
 | `V25__e34_device_security.sql` | `devicesec` (new) | 27 tables (endpoints and instances, enrolment tokens, zones, conduits, zone CIDRs, site hours, signing keys, secrets, security events – append-only with trigger, anomaly rules, alerts, traffic, isolation, incidents with alerts / evidence / timeline, compensating controls, threat models, SBOM, vulnerabilities, pen-test findings, responsibility agreement, DPIA, test-pack runs / results); 5 zones, 9 conduits, 15 anomaly rules; token settings |
+| `V26__increment6_device_round2.sql` | deviceint, devicecat, devicesec | Second build round (V22–V25 unchanged – a development database may already have run them): `cloud_poll_state`, `outbound_message` (no message bodies), `historic_retrieval`; gateway command `RETRIEVE_HISTORY`; tenant residency and catalogue-scope check; `tenant_code` on catalogue models and driver packages; per-tenant signing keys (one active key per tenant) |
 | `db/demo/R__demo_e32_device_console.sql`, `R__demo_e34_device_security.sql` + `DeviceEngineDemoSeeder`, `E32DemoSeeder`, `DeviceCaptureDemoSeeder`, `E34DemoSeeder` | as above | Demo stations, instances, endpoints, zone CIDRs (loopback and RFC 1918 – **demo only**), clinic hours, governance samples. **Loaded only with the `local` / test profiles** |
 
 Platform first, then one migration per module – the same pattern as increments 3–5. Grants are table-level; append-only
@@ -180,12 +195,13 @@ restoring the pre-upgrade backup with the previous images.
 | `WZ_DEVICE_CERT_HEADER` → `wellnessz.device.ingest.certificate-header` | Default `X-Client-Cert-Sha256` – the header the mTLS ingress sets with the hex SHA-256 of the DER client certificate (the ingress must strip client-supplied values) |
 | `WZ_DEVICE_REQUIRE_CLIENT_CERT` → `wellnessz.device.ingest.require-client-certificate` | Default `true`; never `false` outside a developer machine |
 | Zone CIDRs | **Must be configured by SECURITY_OPS before any gateway / agent can authenticate**: `POST /device-security/zone-cidrs {siteCode, zone: GATEWAY_ZONE, cidr}`. Demo CIDRs exist only in the `local` / test profiles |
-| `device.cloud.allowed-hosts` (E18) | Empty – egress allow-list for P6 vendor clouds checked by the wizard |
+| `device.cloud.allowed-hosts` (E18) | Empty – egress allow-list for P6 vendor clouds, checked by the wizard and **enforced by the engine's poller** before every outbound call (exact hosts or `.domain` suffixes) |
+| `wellnessz.device.cloud.poll-tick-ms` / `poll-initial-delay-ms` | 30 s / 60 s – scheduler tick of the P6 poller (each connector keeps its own interval); `wellnessz.device.cloud.allow-loopback-http` `false` (tests only: plain HTTP to a loopback mock cloud) |
 | `device.pipeline.inline` (E18) | `true` – process accepted messages in the request thread (workers retry) |
 | Engine thresholds (E18, V21) | `device.association.auto-file-threshold` 0.95, `suggest-threshold` 0.60, `session-window-seconds` 900, `device.clock.max-skew-seconds` 120, `device.capture.session-timeout-minutes` 10, `device.unmatched.resolution-sla-hours` 8, `device.ocr.min-confidence` 0.90, `device.ingest.max-payload-bytes` 52428800, `device.dlq.max-attempts` 5, `device.security.isolation-sla-minutes` 15, `revocation-sla-minutes` 5, `cert-expiry-warning-days` 30 |
 | Token settings (E18, V25) | `device.security.enrolment-token-hours` 72, `endpoint-token-days` 90, `token-grace-minutes` 15, `device.security.soc-email` (**set per environment**) |
 | Module flags | `modules.e31..e34.enabled` (`true`) |
-| `wellnessz.device.console.tenant-residency` | Default `UK` – residency compared with P6 vendor regions |
+| `wellnessz.device.console.tenant-residency` | Default `UK` – fallback residency; the tenant's own `residencyRegion` (`/device-engine/tenants`) is compared with P6 vendor regions by the wizard and the poller |
 | Outbound allow-lists | **New:** `siem-device-security` (`messageId, eventId, type, severity, endpointId, deviceInstanceId, siteCode, zone, sourceModule, reasonCode, actor, remoteAddress, protocol, port, rate, keyId, chainHash`) and `itsm-tickets` (`messageId, ticketRef, deviceInstanceId, siteCode, alertType, severity, raisedAt`) |
 | Job schedules | `wellnessz.device.worker.poll-interval-ms` (5 s), `housekeeping-interval-ms` (10 min), `alert-interval-ms` (5 min), `wellnessz.device.retention-cron` (02:40); `wellnessz.device.console.hourly-cron` (:07), `daily-cron` (02:17); `wellnessz.device-capture.expiry-cron` (every 5 min); `wellnessz.device.security.isolation-sweep` (30 s), `traffic-flush` (60 s), `cert-expiry-cron` (03:10), `retention-cron` (03:40) |
 | OCR (optional) | `wellnessz.documents.ocr.tesseract-path` – without it OCR proposes no values and the clinician types them |
@@ -195,13 +211,13 @@ restoring the pre-upgrade backup with the previous images.
 | Topic | Summary |
 |---|---|
 | Roles | `GATEWAY` (clinic / outstation industrial PC, Linux – MLLP, POCT1-A, BLE relay, DICOM drop) and `DEVICE_HOST_AGENT` (vendor PC, Windows service or Linux systemd – export folders, vendor DB, serial) |
-| Build | `./mvnw -pl apps/wz-device-gateway -am install` (65 tests); container `docker build -f deploy/docker/Dockerfile.gateway -t wellnessz/wz-device-gateway:<ver> .` (non-root uid 10001) |
+| Build | `./mvnw -pl apps/wz-device-gateway -am install` (71 tests); container `docker build -f deploy/docker/Dockerfile.gateway -t wellnessz/wz-device-gateway:<ver> .` (non-root uid 10001) |
 | Linux | `service/linux/wellnessz-gateway.service` (account `wellnessz`, `StateDirectory` 0700, `ProtectSystem=strict`, `NoNewPrivileges`, `UMask=0077`); configuration `/etc/wellnessz/gateway/application.yml`; `gateway.env` with `WZ_MASTER_KEY_FILE`, `WZ_GATEWAY_ENROLMENT_TOKEN_FILE` |
 | Windows | Java 21 runtime; WinSW with `service/windows/wellnessz-gateway.xml`; dedicated low-privilege account (gMSA) with read access to the vendor export folder / database only |
 | Enrolment | Create the endpoint (wizard publish or `POST /device-security/endpoints`) → one-time token (≤ 72 h); install the client certificate from the group PKI (PKCS12 key store); start with `wz.gateway.enrolment.token[-file]` and `wz.gateway.tls.key-store`. Without identity and token the gateway refuses to start; the identity is stored encrypted in `data-dir/identity.enc` |
 | Network | Outbound HTTPS only to the core ingest host (mTLS); inbound only from the device VLAN on the configured listener ports (MLLP 2575 TLS, POCT, DICOM drop share); status page bound to `127.0.0.1:8095` |
 | Queue | `data-dir/queue` on a persistent, encrypted disk; 72 h / 2 GB default (never below 48 h); full queue refuses new messages (MLLP `AR`) |
-| Commands | `RELOAD_CONFIG`, `ROTATE_TOKEN`, `ISOLATE`, `PUSH_WORKLIST` (GDT 6302); `RESEND_LAST` / `START_ACQUISITION` not supported |
+| Commands | `RELOAD_CONFIG`, `ROTATE_TOKEN`, `ISOLATE`, `PUSH_WORKLIST` (HL7 over MLLP with ACKs, or GDT 6302), `START_ACQUISITION` (serial-over-TCP start bytes, or MLLP order), `RETRIEVE_HISTORY` (HL7 query / vendor DB); `RESEND_LAST` not supported. Outbound MLLP targets only from the local `wz.gateway.mllp-outbound` list (the core names the device instance, never a host) |
 | Release after isolation | SECURITY_OPS releases the endpoint (after re-certification); then start once with `wz.gateway.release-quarantine=true` |
 | Local development | `--spring.profiles.active=local` (core `http://localhost:8080`, **ingress simulation** – the gateway sends the thumbprint itself; reported as hardening finding `INGRESS_SIMULATION_ENABLED`) |
 
@@ -212,6 +228,7 @@ Deployment Architecture §22.
 
 | Check | Result |
 |---|---|
+| Second build round (1 November 2026, `./mvnw -o -B test`, fresh PostgreSQL 16 database) | **782 tests, 0 failures, 0 errors** – new: `Increment6DeviceRound2IntegrationTest` (4: P6 polling against a mock vendor cloud, outbound orders / start from the form with ACKs, historic retrieval with deterministic de-duplication, tenant isolation of catalogue / configurations / signing keys / connector limits), `Hl7OutboundBuilderTest` (4), `CloudConnectorTest` (3), `CatalogueRoutesTest` (2), `DriverPackageTest` protocol rules, gateway `DeviceCommandServiceTest` (6 – gateway total 71), `DeviceSdkTest` (2); SpotBugs + FindSecBugs (`-Psecurity install`) **0 findings**; OH workspace lint, **907** vitest tests and build clean; demo pack `codecs` 179 / `engine` 35 passed |
 | Java build and tests (`./mvnw verify`) | **744 tests, 0 failures, 0 errors** – including `Increment6EngineIntegrationTest` (7), `Increment6ConsoleIntegrationTest` (9), `Increment6CaptureIntegrationTest` (12), `Increment6SecurityIntegrationTest` (11), `Increment6EndToEndIntegrationTest` (3) on PostgreSQL 16, `ArchitectureTest` (28 rules), the E31–E34 unit tests and the 65 gateway tests |
 | SAST (SpotBugs + FindSecBugs, `-Psecurity`) | **0 findings**; new justified exclusions: device-ingest chain CSRF / XSS false positives (stateless machine traffic), XPath from signed packages, SHA-1 for UUIDv5 (RFC 9562) |
 | Web unit tests (vitest) | OH workspace console and security screens **83**; capture, engine, employee and manager device screens and app totals: **<WEB TESTS>** |
@@ -226,16 +243,16 @@ Deployment Architecture §22.
 
 | Area | Limitation / decision | Planned handling |
 |---|---|---|
-| Hardware | No native serial / USB library (no VID/PID allow-list, no HID wedge); BLE via relay only (no radio in the agent); DICOM drop folder, not C-STORE / MWL / Q-R; worklist push GDT only; certificate renewal not automated in the gateway | Follow-on stories with the device lab (document 02 §9) |
+| Hardware | No native serial / USB library (no VID/PID allow-list, no HID wedge; start-from-form for serial devices needs serial-over-TCP); BLE via relay only (no radio in the agent); DICOM drop folder, not C-STORE / MWL / Q-R; outbound orders, start commands and historic queries tested against simulated devices only; certificate renewal not automated in the gateway | Follow-on stories with the device lab (document 02 §9) |
 | Device lab | Device lab and vendor demonstration units were not available – **no real device was connected**; vendor interface specifications must confirm inventory rows not marked *High* confidence | Procurement; wizard prerequisite `INTERFACE_SPEC_CONFIRMED` |
 | Clinical reference data | GLI-2012 coefficients / approximations, OSHA Appendix F female table, plausibility ranges and the gate rule set need **Clinical Governance sign-off** (`signOff PENDING`) | CMO, Nursing Head |
 | Retention | Five device retention classes are **proposed** | DPO / CMO approval |
 | Privacy | DPIA for device data flows pending | DPO (`/device-security/privacy/dpia/approve`) |
 | Security assurance | Independent penetration test and the Cyber Review test-pack run **must be executed in staging before go-live**; CIS golden images not built; CRL / OCSP left to the ingress / PKI | CISO, infrastructure |
 | Zone CIDRs (**go-live item**) | Production gateway zone CIDRs must be configured by SECURITY_OPS – until then no gateway or agent can authenticate (`zone_violation`) | Upgrade step 6 |
-| 401 vs 403 (**decision**) | At the verified baseline, endpoint path violations (`endpoint_forbidden`) reached the device as **401** through the filter while the kernel access-denied handler answered **403** | Rule being implemented: authentication failures 401, authenticated-but-forbidden 403 (kernel filter and E34, in progress at the time of writing) – confirm in the regression run before release |
+| 401 vs 403 (**decided**) | One rule for the kernel filter, the ingest access-denied handler and the module controllers: an authenticated endpoint calling a path its kind may not use gets **403 `endpoint_forbidden`**; every authentication failure (missing / wrong token or credentials, missing client-certificate thumbprint `mtls_required`, unknown / isolated / revoked endpoint, zone violation) gets **401** with its `failureCode` | Implemented and covered by `DeviceEndpointAuthenticationFilterTest` and the E34 / engine integration tests (contract §7, §15.3) |
 | Drug-screen readers (**decision**) | Instrumented drug-screen readers are rejected in this increment (`E10.DRUG_SCREEN` refused) | MRO / Legal to confirm |
-| Engine gaps | No OAuth2 cloud polling, no SDK command line, catalogue / keys not tenant-scoped, no performance test | Document 02 §9 |
+| Engine gaps | No performance / soak test; no tenant onboarding template; no stop-acquisition command; vendor clouds, data managers and order-accepting devices not validated with real systems | Document 02 §9 |
 | Capture gaps | No native tablet app with on-device queue; no respirator clearance register; WCAG audit and time-and-motion study outstanding | Mobile team, UX, Nursing Head |
 | E35 | Kafka / NATS, Kubernetes topologies, deployment options and cost model are **not** in this increment | E35 |
 | Gateway image | Not yet built by the container workflow; edge sites install the JAR / systemd / WinSW or build the image locally | DevSecOps |

@@ -30,7 +30,7 @@ secret-handling model (contract §0). Further deviations are listed at the end o
 ## Build and test
 
 ```bash
-./mvnw -o -q -pl apps/wz-device-gateway -am install            # build + 65 unit / integration tests
+./mvnw -o -q -pl apps/wz-device-gateway -am install            # build + 71 unit / integration tests
 ./mvnw -o -pl apps/wz-device-gateway -Psecurity verify -DskipTests -Ddependency-check.skip=true   # SpotBugs + FindSecBugs
 ```
 
@@ -280,9 +280,21 @@ identifiers; no pixel data). The forwarder uploads the instance to `POST /device
   > 2 s is a hardening finding. Items carry the edge `capturedAt`; every call carries `X-Edge-Clock`.
 * **Commands** (executed once per `commandId`, result to `/device-ingest/commands/{id}/result`):
   `RELOAD_CONFIG` (pull config), `ROTATE_TOKEN` (`payload.endpointToken`, `tokenExpiresAt` – stored encrypted, used at
-  once), `ISOLATE` (quarantine the queue, stop forwarding, keep data as evidence), `PUSH_WORKLIST` (pull
-  `/device-ingest/worklist`, write GDT 6302 files to `worklist.gdt-folder`); `RESEND_LAST` / `START_ACQUISITION`
-  answer `FAILED not_supported_by_connector`.
+  once), `ISOLATE` (quarantine the queue, stop forwarding, keep data as evidence), and the device-bound commands of
+  `DeviceCommandService`, which first fetch their content from `GET /device-ingest/commands/{id}/outbound`:
+  `PUSH_WORKLIST` – transport `MLLP`: each HAPI-built ORM^O01 / OML^O21 / ADT^A04 / ADT^A08 to the device's
+  `mllp-outbound` target, one ACK per message in the result (`acks[{controlId, code}]`); transport `GDT`: pull
+  `/device-ingest/worklist`, write GDT 6302 files to `worklist.gdt-folder`. `START_ACQUISITION` – `SERIAL`: the
+  driver's start bytes to the device's serial-over-TCP connector, waiting up to 10 s for the expected reply (control
+  traffic, not forwarded as a reading); `MLLP`: the session order to the outbound target. `RETRIEVE_HISTORY` –
+  `HL7_QUERY`: QRY^R02 to the outbound target, ORU / ORF response frames collected until `query-idle-timeout`;
+  `VENDOR_DB`: the vendor-database connector's read-only query bounded by the range (watermark untouched); results to
+  `POST /device-ingest/retrievals/{id}/batch`. `RESEND_LAST` answers `FAILED not_supported_by_connector`, as does a
+  start command for a connector without a transmit path (file / stdin simulation).
+* **Outbound MLLP targets** (`wz.gateway.mllp-outbound[]`: `id`, `device-instance-id`, `host`, `port`,
+  `tls.enabled` / `trust-store` / `key-store`, `ack-timeout` PT10S, `query-idle-timeout` PT3S, `max-query-messages` 500):
+  configured at the edge per device instance – the core only names the device instance, never a host. TLS 1.2 / 1.3
+  with host-name verification; plaintext only to a loopback target or under `allow-plaintext-listeners`.
 * **Configuration**: `GET /device-ingest/config` on start, on `RELOAD_CONFIG` and when the heartbeat reports another
   `configVersion`. Stored encrypted (`config/current.enc`, previous kept for rollback) and applied atomically:
   heartbeat interval, queue limits, BLE peripheral allow-list, log level.
@@ -380,8 +392,9 @@ The `local` profile targets `http://localhost:8080` with the ingress simulation 
 | Serial / USB | native RS-232 / USB-CDC, HID keyboard wedge, USB VID/PID allow-list | serial-over-TCP and file / stdin simulation behind the `SerialSource` abstraction; VID/PID allow-list and HID wedge not implemented | no native serial library in the offline build and no hardware in the test environment |
 | BLE | BlueZ / OS BLE stack on gateways | relay intake endpoint (hash of MAC, bonded allow-list); BLE radio access is left to a local helper or the tablet / kiosk | no BLE stack in the JVM |
 | DICOM | C-STORE SCP, MWL | drop folder + minimal Part 10 header reader or JSON sidecar → `/attachments` + `/dicomweb` | dcm4che not on Maven Central (contract §0) |
-| Worklist push | ORM / ADT over MLLP, GDT 6302, vendor import file | GDT 6302 files only | first device families use GDT; MLLP worklist follows with the drivers that need it |
+| Worklist push | ORM / ADT over MLLP, GDT 6302, vendor import file | ORM^O01 / OML^O21 / ADT^A04 / A08 over MLLP with ACKs (round 2) and GDT 6302 files; vendor import file not built | tested against simulated devices only |
 | Connector topology | `GatewayConfig.instances[]` from the core | connectors declared locally; the core's config applies heartbeat interval, queue limits, BLE allow-list and log level | instance-level hot reconfiguration of listeners follows with E32 publishing |
 | Batch item bodies | "base64 for binary" | text kinds as strings; `FILE` and binary content types always base64 (keeps `X-File-Sha256` verifiable) | contract leaves the encoding rule open |
-| `RESEND_LAST`, `START_ACQUISITION` | gateway commands | answered `FAILED not_supported_by_connector` | no connector in this increment can re-trigger a device |
+| `RESEND_LAST` | gateway command | answered `FAILED not_supported_by_connector` | no connector can re-trigger a device |
+| `START_ACQUISITION` | gateway command | serial-over-TCP start bytes and MLLP orders (round 2); not for the file / stdin simulation | native serial ports not available (see Serial / USB) |
 | Certificate renewal | `POST /device-ingest/certificate-renewal` | not automated: the gateway reports `CERTIFICATE_EXPIRING` 30 days ahead; the new thumbprint must be bound through E34 before the renewed key store is installed | renewal flow belongs to the E34 PKI work |

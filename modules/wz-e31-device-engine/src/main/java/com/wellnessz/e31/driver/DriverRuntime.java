@@ -70,6 +70,12 @@ public class DriverRuntime {
         return pkg;
     }
 
+    /** Group packages through the single-tenant call (every SPI implementation), tenant packages through the tenant-aware one. */
+    static DevicePackageSignatures.Verification verify(DevicePackageSignatures s, String manifest, String signature, String keyId, String tenant) {
+        byte[] bytes = manifest.getBytes(StandardCharsets.UTF_8);
+        return EngineSettings.DEFAULT_TENANT.equals(tenant) ? s.verify(bytes, signature, keyId) : s.verify(bytes, signature, keyId, tenant);
+    }
+
     static String tenantOf(DeviceCatalogueLookup.DeviceInstance instance) {
         return instance == null || instance.tenantCode() == null ? EngineSettings.DEFAULT_TENANT : instance.tenantCode();
     }
@@ -106,13 +112,13 @@ public class DriverRuntime {
         String tenant = tenantOf(instance); // per-tenant signing keys (E31-HLR-12): the tenant's key or a group key
         String reason = "signature_invalid";
         if (signature != null && keyId != null) {
-            DevicePackageSignatures.Verification v = signatures.verify(published.manifestJson().getBytes(StandardCharsets.UTF_8), signature, keyId, tenant);
-            valid = v.valid();
+            DevicePackageSignatures.Verification v = verify(signatures, published.manifestJson(), signature, keyId, tenant);
+            valid = v != null && v.valid();
             if (!valid && !published.manifestJson().equals(pkg.canonicalJson())) {
-                v = signatures.verify(pkg.canonicalJson().getBytes(StandardCharsets.UTF_8), signature, keyId, tenant);
-                valid = v.valid();
+                v = verify(signatures, pkg.canonicalJson(), signature, keyId, tenant);
+                valid = v != null && v.valid();
             }
-            if (!valid && v.failureCode() != null) {
+            if (!valid && v != null && v.failureCode() != null) {
                 reason = v.failureCode();
             }
         }

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { CONNECTOR_STATES, DLQ_STATUSES, PIPELINE_STAGES, engineApi, type DeadLetter } from '../../api/deviceEngine';
+import { CONNECTOR_STATES, DLQ_STATUSES, PIPELINE_STAGES, engineApi, type CloudConnectorStatus, type DeadLetter } from '../../api/deviceEngine';
 import { can } from '../../auth/roles';
 import { formatDate, humanise, localToIso } from '../../components/format';
 import { KpiTile } from '../../components/Tone';
@@ -118,8 +118,128 @@ export function EngineHealth({ client, session, onSessionExpired }: ScreenProps)
           </table>
         </div>
       )}
+      <CloudConnectors {...{ client, session, onSessionExpired }} />
+      {can(session.roles, 'engineHistoric') && <HistoricRetrievals {...{ client, session, onSessionExpired }} />}
       {can(session.roles, 'engineRangeReplay') && <RangeReplay {...{ client, session, onSessionExpired }} />}
     </section>
+  );
+}
+
+const CLOUD_TEXT: Record<string, string> = {
+  OK: 'Polling', NEVER_POLLED: 'Not polled yet', DISABLED: 'Polling off', AUTH_FAILED: 'Authentication failed', HOST_NOT_ALLOWED: 'Host not on the egress allow-list',
+  RESIDENCY_MISMATCH: 'Residency does not match the tenant', RATE_LIMITED: 'Rate limited – backing off', ERROR: 'Error', CONFIGURATION_INCOMPLETE: 'Configuration incomplete',
+};
+
+/** P6 vendor-cloud connectors (OAuth2 polling): schedule, last run, high-water mark, consent skips – PHI-free (E31-BL-008). */
+function CloudConnectors({ client, session, onSessionExpired }: ScreenProps) {
+  const api = engineApi(client);
+  const list = useAsync(() => api.cloudConnectors(), onSessionExpired, []);
+  const action = useAction(onSessionExpired);
+  const canPoll = can(session.roles, 'engineCloudPoll');
+  async function poll(c: CloudConnectorStatus) {
+    if (await action.run(async () => {
+      const r = await api.pollCloud(c.deviceInstanceId);
+      return `${c.deviceInstanceId}: ${CLOUD_TEXT[r.status] ?? humanise(r.status)} – ${r.records} record(s), ${r.accepted} new, ${r.duplicates} duplicate(s), ${r.skippedNoConsent} without consent (not stored).`;
+    })) list.reload();
+  }
+  const rows = list.data ?? [];
+  if (list.error && isForbidden(list.error)) return null;
+  return (
+    <>
+      <h2>Vendor cloud connectors (P6)</h2>
+      <p className="small muted">OAuth2 client-credentials polling per connector: schedule, rate limit and back-off; hosts from the egress allow-list only; records ingested once (high-water mark, idempotent).</p>
+      <ActionFeedback error={action.error} message={action.message} />
+      {list.loading && !list.data && <Loading />}
+      {!!list.error && <ErrorAlert error={list.error} />}
+      {list.data && rows.length === 0 && <Empty>No vendor cloud connectors are published.</Empty>}
+      {rows.length > 0 && (
+        <div className="table-wrap">
+          <table>
+            <caption className="visually-hidden">Vendor cloud connectors</caption>
+            <thead>
+              <tr>
+                <th scope="col">Connector</th>
+                <th scope="col">State</th>
+                <th scope="col">Host · residency</th>
+                <th scope="col">Schedule</th>
+                <th scope="col">Last poll · next</th>
+                <th scope="col" className="num">Records</th>
+                <th scope="col" className="num">Duplicates</th>
+                <th scope="col" className="num">No consent</th>
+                {canPoll && <th scope="col"><span className="visually-hidden">Actions</span></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((c) => (
+                <tr key={c.deviceInstanceId}>
+                  <th scope="row"><span className="mono">{c.deviceInstanceId}</span><div className="small muted">{c.driverPackageId ?? '–'} · {c.tenantCode}</div></th>
+                  <td>
+                    <span className={c.state === 'OK' ? '' : c.state === 'NEVER_POLLED' || c.state === 'DISABLED' ? 'muted' : 'text-red'}>{CLOUD_TEXT[c.state] ?? humanise(c.state)}</span>
+                    {c.lastError && <div className="small mono">{c.lastError}</div>}
+                    {c.consecutiveFailures > 0 && <div className="small muted">{c.consecutiveFailures} failure(s) in a row</div>}
+                  </td>
+                  <td>
+                    <span className="mono">{c.apiHost ?? '–'}</span> {!c.hostAllowed && <span className="text-red small">not allowed</span>}
+                    <div className="small muted">{c.residencyRegion ?? '–'}{c.consentPurpose ? ` · consent ${humanise(c.consentPurpose)}` : ''}</div>
+                  </td>
+                  <td>{c.pollEnabled ? `every ${c.intervalSeconds ?? '–'} s · ${c.rateLimitPerMinute ?? '–'}/min` : 'off'}</td>
+                  <td>{formatDate(c.lastPollAt)}<div className="small muted">{c.nextPollAt ? `next ${formatDate(c.nextPollAt)}` : ''}</div></td>
+                  <td className="num">{c.recordsTotal}</td>
+                  <td className="num">{c.duplicatesTotal}</td>
+                  <td className="num">{c.skippedNoConsent}</td>
+                  {canPoll && <td><button type="button" className="secondary" disabled={action.busy || !c.pollEnabled} onClick={() => void poll(c)}>Poll now</button></td>}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Historic retrieval (E31-HLR-08): results a device or data manager holds for a range, fetched through the gateway, de-duplicated. */
+function HistoricRetrievals({ client, onSessionExpired }: ScreenProps) {
+  const api = engineApi(client);
+  const list = useAsync(() => api.historicRetrievals(), onSessionExpired, []);
+  const action = useAction(onSessionExpired);
+  const [f, setF] = useState({ deviceInstanceId: '', from: '', to: '' });
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    const from = localToIso(f.from);
+    const to = localToIso(f.to);
+    if (!from || !to || !f.deviceInstanceId.trim()) return;
+    if (await action.run(async () => {
+      const r = await api.requestHistoric({ deviceInstanceId: f.deviceInstanceId.trim(), from, to });
+      return `Historic retrieval ${r.id.slice(0, 8)} requested (${humanise(r.method)}) – the gateway runs it at its next heartbeat; results already held are recognised as duplicates.`;
+    })) list.reload();
+  }
+  const rows = list.data ?? [];
+  return (
+    <details className="tile" open={rows.length > 0}>
+      <summary>Historic retrieval from a device or data manager</summary>
+      <form className="inline-form" onSubmit={submit}>
+        <Field label="Device instance" required>{(id) => <input id={id} required maxLength={64} value={f.deviceInstanceId} onChange={(e) => setF({ ...f, deviceInstanceId: e.target.value })} />}</Field>
+        <Field label="Results from" required>{(id) => <input id={id} type="datetime-local" required value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} />}</Field>
+        <Field label="Results to" required hint="at most 31 days">{(id) => <input id={id} type="datetime-local" required value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} />}</Field>
+        <button type="submit" disabled={action.busy}>Request results</button>
+      </form>
+      <ActionFeedback error={action.error} message={action.message} />
+      {!!list.error && !isForbidden(list.error) && <ErrorAlert error={list.error} />}
+      {rows.length > 0 && (
+        <ul className="card-list">
+          {rows.map((r) => (
+            <li key={r.id} className="card">
+              <StateBadge code={r.status} /> <span className="mono">{r.deviceInstanceId}</span> · {humanise(r.method)} · {formatDate(r.from)} – {formatDate(r.to)}
+              <div className="small muted">
+                {r.received} received · {r.accepted} new · {r.duplicates} duplicate(s){r.failed > 0 ? ` · ${r.failed} failed` : ''} · requested by {r.requestedBy} {formatDate(r.requestedAt)}
+                {r.detail && <> · {r.detail}</>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </details>
   );
 }
 

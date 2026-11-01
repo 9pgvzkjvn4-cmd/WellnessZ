@@ -61,6 +61,8 @@ logs, traces, metrics labels, security events or notifications.
 classes, the E03 provenance columns). `V22`–`V25` exist as base files (`create schema if not exists …;` + `grant usage`); each
 developer appends tables, indexes, seed rows and **table-level** grants (`grant select, insert[, update]` per table – append-only
 tables get no update grant) in their own file only. Demo data goes to `db/demo/R__demo_e3x_*.sql` (local / test only).
+**Round 2:** `V26__increment6_device_round2.sql` (cross-module, E31 / E32 / E34 sections) – V22–V25 are not edited again because a
+development database may already have run them (Flyway checksums).
 Schema lists are already updated in `application.yml`, `deploy/local/postgres/01-init-wellnessz.sh`,
 `deploy/sql/bootstrap-managed-postgres.sql`, `deploy/hybrid/cnpg/03-cluster.yaml`, `deploy/helm/wellnessz/values.yaml`
 (test DB: Flyway `create-schemas` from `application.yml`).
@@ -254,6 +256,19 @@ are flagged `locally_modified`). Brand = manufacturer; `modelCode` = inventory i
 (confidence other than `High` adds a prerequisite "confirm interface specification with the vendor"). Totals after seeding:
 133 models; options P1 73, P2 66, P4 40, P6 32, P3 22, P10 13, P9 12, P5 12, P7 7, P8 4 (asserted by the E32 integration test).
 
+**Catalogue routes (round 2).** The inventory file stays exactly as the client provided it. Where a model is integrated through a
+vendor system its row names in the connectivity column, the catalogue adds a documented **route** in
+`modules/wz-e32-device-console/src/main/resources/e32/catalogue-routes.json` (`{modelCode, option, via, driverPackageId, reason}`):
+**MD-045 GE MAC** – inventory P1 / P4 ("P4 Ethernet/Wi-Fi to MUSE (HL7, XML, DICOM, PDF); P1 serial"), route **P2** via the GE MUSE XML
+export for driver `ecg.ge.muse-xml` (the direct P4 route is `ecg.ge.mac-hl7`). Inventory options drive search, counts and the totals
+above; the wizard (step 2 options) and the driver registry (`option_not_supported_by_model`) accept inventory options **plus** routes.
+The model record shows `inventoryOptions[]` and `catalogueRoutes[]`.
+
+**Tenant-scoped catalogue (round 2, E31-HLR-12).** `devicecat.model.tenant_code` / `driver_package.tenant_code` – `null` = the shared
+group catalogue; a tenant code = visible to that tenant only. A tenant sees the shared catalogue plus its own rows when its
+`catalogueScope` is `GROUP`, only its own rows when `TENANT` (§12). `GET /device-catalogue/models?tenantCode=` filters (without it the
+group-level view lists every model); `PUT /device-catalogue/models/{modelCode}/tenant {tenantCode|null}` (DEVICE_ADMIN, PLATFORM_ADMIN).
+
 **Lifecycle (model):** `CANDIDATE → CERTIFIED → DEPRECATED → RETIRED`; `CERTIFIED` requires at least one signed driver package in
 the registry for the model, a passing conformance run and an acceptable posture (or an approved exception, §13.8).
 
@@ -287,6 +302,12 @@ package **without** the `signature` member), and contain **no secrets** (E34-HLR
 | `engineCompatibility` | range, e.g. `">=1.0 <2.0"` | engine refuses to load outside the range |
 | `vendorSoftware` | `{name, versions[]}` | optional |
 | `capabilities` | `{worklistPush: NONE\|HL7_ORM\|HL7_ADT\|GDT_6302\|DICOM_MWL\|VENDOR_IMPORT_FILE, startFromForm: bool, historicRetrieval: bool}` | E31-HLR-08 |
+| `protocol.worklist` | `{messageType ORM^O01\|OML^O21\|ADT^A04\|ADT^A08, push MLLP_OUT}` | HL7 worklist push; default by capability (HL7_ORM → ORM^O01, HL7_ADT → ADT^A04); the P4 instance parameter `worklist.messageType` overrides |
+| `protocol.worklistFields` | `["dateOfBirth", "sex", "badgeId"]` subset | minimisation: demographics pushed only when listed |
+| `protocol.startCommand` | `{transport SERIAL, encoding TEXT\|HEX, payload, expectPattern?}` or `{transport MLLP, messageType ORM^O01\|OML^O21}` | start from the form (E31-BL-019); requires `capabilities.startFromForm` (validator) |
+| `protocol.historicQuery` | `{method HL7_QUERY\|VENDOR_DB, messageType QRY^R02, maxResults}` | historic retrieval; requires `capabilities.historicRetrieval`; without it HL7V2 drivers default to HL7_QUERY, `source DB_QUERY` drivers to VENDOR_DB |
+| `protocol.pairing` (BLE) | `LE_SECURE_CONNECTIONS_PASSKEY \| LE_SECURE_CONNECTIONS_NUMERIC \| JUST_WORKS_EXCEPTION` | P3 schema values only (E31 validator, E32 registry); *Just Works* only as a SECURITY_OPS exception (E34-HLR-04) |
+| `protocol.poll` (P6) | `{enabled, url, path, oauth2{tokenUrl, clientId, secretRef, scopes[]}, intervalSeconds, rateLimitPerMinute, recordsPointer, cursorParam, nextCursorPointer, recordIdPointer, recordTimePointer?, pageSize, maxPagesPerRun}` | defaults of the P6 poller; `PARAMETER:x` resolves against the instance parameters (flat or in the `oauth2` / `poll` / `webhook` groups) |
 | `protocol` | adapter-specific defaults (the §13.3 parameter schemas use them as wizard defaults) | required |
 | `parse` | `{type, identity{employee?, badge?, deviceSerial?, orderRef?, effectiveTime{selector, format, timeZone?}}, records?, fields[{key, selector, type QUANTITY\|STRING\|CODE\|BOOLEAN, unit?, required?}]}` | `type` ∈ `HL7_SEGMENTS \| FHIR_PATH \| POCT1A_XPATH \| CSV_COLUMNS \| XPATH \| GDT_FIELDS \| JSON_POINTER \| GATT_STRUCT \| REGEX_LINES \| DICOM_JSON \| FORM` |
 | `mappings` | `[{key, mdc?, loinc, display, ucum?, convert?{fromUnit, factor, offset?}, bodySite?, method?, decimals?, plausible?{min, max}}]` | every `parse.fields.key` mapped; LOINC mandatory; UCUM mandatory for QUANTITY |
@@ -542,8 +563,10 @@ NTP offset reported in the heartbeat); `X-Device-Instance` (optional when the me
 | POST | `/device-ingest/fallback` | `application/json` – same body as `POST /device-capture/sessions/{id}/fallback` (§14.3) + `capturedAt`, `operator` | 202 receipt | tablet batch mode offline OCR / manual entries replayed on reconnection; operator must match the batch session operator |
 | POST | `/device-ingest/batch` | `application/json` `{items:[{kind:"HL7V2"|"FHIR"|"POCT1A"|"FILE"|"BLE"|"SERIAL"|"FALLBACK", idempotencyKey, sequence, capturedAt, contentType, headers{}, body (base64 for binary)}]}` (≤ 100 items, ≤ 10 MB) | `200 {results:[{idempotencyKey, httpStatus, receipt|problem, ack?}]}` | reconciliation after store-and-forward; items processed in `sequence` order per device instance |
 | GET | `/device-ingest/config` | – | `200 GatewayConfig` (§16.3) | pulled on start, on `RELOAD_CONFIG`, and when the heartbeat reports a stale `configVersion` |
-| POST | `/device-ingest/heartbeat` | `{gatewayVersion, configVersion, uptimeSeconds, ntpOffsetMillis, queue:{depth, oldestCapturedAt, bytes, capacityPct}, diskFreePct, devices:[{deviceInstanceId, lastSeenAt, state CONNECTED|IDLE|ERROR|PAIRING, signalDbm?}], hardening:{baseline, status PASS|DRIFT|FAIL, findings[]}}` | `200 {serverTime, configVersion, commands:[{commandId, type RELOAD_CONFIG|RESEND_LAST|ROTATE_TOKEN|ISOLATE|PUSH_WORKLIST|START_ACQUISITION, deviceInstanceId?, payload?}]}` | every 60 s; missing for 5 min → connector `STALE`, 30 min → `SILENT` alert |
-| POST | `/device-ingest/commands/{commandId}/result` | `{status DONE|FAILED, detail?}` | 204 | |
+| POST | `/device-ingest/heartbeat` | `{gatewayVersion, configVersion, uptimeSeconds, ntpOffsetMillis, queue:{depth, oldestCapturedAt, bytes, capacityPct}, diskFreePct, devices:[{deviceInstanceId, lastSeenAt, state CONNECTED|IDLE|ERROR|PAIRING, signalDbm?}], hardening:{baseline, status PASS|DRIFT|FAIL, findings[]}}` | `200 {serverTime, configVersion, commands:[{commandId, type RELOAD_CONFIG|RESEND_LAST|ROTATE_TOKEN|ISOLATE|PUSH_WORKLIST|START_ACQUISITION|RETRIEVE_HISTORY, deviceInstanceId?, payload?}]}` | every 60 s; missing for 5 min → connector `STALE`, 30 min → `SILENT` alert |
+| POST | `/device-ingest/commands/{commandId}/result` | `{status DONE|FAILED, detail?, acks?[{controlId, code AA|AE|AR|CA|CE|CR, text?}]}` | 204 | `acks` = one device acknowledgement per outbound message (AA/CA → ACKED, AE/AR/CE/CR → REJECTED; unacknowledged messages of a FAILED command → FAILED) |
+| GET | `/device-ingest/commands/{commandId}/outbound` | – | `200 {commandId, transport MLLP|SERIAL|GDT|VENDOR_DB, messages[{controlId, messageType, orderRef?, er7}], payloadBase64?, expectPattern?, retrievalId?, method?, from?, to?}` (no-store) | content of `PUSH_WORKLIST` (HL7 orders / ADT built with HAPI from the minimised worklist), `START_ACQUISITION` (serial start bytes or the session order) and `RETRIEVE_HISTORY` (QRY^R02); only the endpoint the command was queued for; 409 `command_completed`; the gateway sends to its **locally configured** target only |
+| POST | `/device-ingest/retrievals/{retrievalId}/batch` | as `/batch` + `last: bool` | `200 {results[], retrieval}` | historic results of a `RETRIEVE_HISTORY` command; each item keyed `HR:<UUIDv5(device, content without MSH-7 / MSH-10)>`; items whose bytes were already ingested for the device answer `DUPLICATE` without being stored; 404 for another endpoint's retrieval, 409 `retrieval_closed` |
 | GET | `/device-ingest/worklist?deviceInstanceId=&date=` | – | `200 [{orderRef, employeeId, displayName, badgeId?, dateOfBirth?, sex?, scheduledAt}]` | only for instances with `capabilities.worklistPush ≠ NONE`; minimised to what the driver declares it needs; gateway converts to ORM/ADT, GDT 6302 or the vendor import file |
 | GET | `/device-ingest/secrets/{ref}` | – | `200 {reference, value}` (no-store) | only references bound to this endpoint's instances (P2 vendor-database credentials for the Device Host agent); resolution audited by E34 |
 | POST | `/device-webhooks/{connectorId}` | vendor JSON as sent; headers per driver (`X-Signature` = hex HMAC-SHA256 over `timestamp + "." + rawBody`, `X-Timestamp`) | `202 {messageId}`; 401 `signature_invalid` / `timestamp_out_of_window` (security event `WEBHOOK_SIGNATURE_FAILED`) | **no client certificate** (vendor clouds cannot present one); `connectorId` = a published P6 instance id; per-connector rate limit 600/min; replay window 300 s, nonce = `X-Timestamp`+hash |
@@ -688,11 +711,31 @@ authored; routing to an undeployed target dead-letters with `route_target_unavai
 | GET | `/device-engine/terminology/maps?system=MDC&code=` · `/device-engine/terminology/predicted?equation=GLI_2012&age=&sex=&heightCm=` | INTEGRATION_TESTER, clinicians | reference data; versions listed at `/device-engine/terminology/versions` |
 | GET | `/device-engine/gates` | all device roles + clinicians | gate catalogue with sign-off status |
 | GET | `/device-engine/archive/{archiveId}/verify` | DEVICE_ADMIN, AUDITOR | `{sha256Stored, sha256Computed, intact}` – no content (archive ids from the provenance-only view; observation readers use `/observations/{id}/archive/verify`) |
-| GET | `/device-engine/tenants` · PUT `/device-engine/tenants/{code}/quota` | PLATFORM_ADMIN | `{code, messagesPerMinute, maxConnectors, catalogueScope}` (E31-F12; quota exceeded → 429 for that tenant's endpoints) |
+| GET | `/device-engine/tenants` · PUT `/device-engine/tenants/{code}/quota` | PLATFORM_ADMIN | `{code, messagesPerMinute, maxConnectors, catalogueScope GROUP|TENANT, residencyRegion}` – PUT creates or updates the tenant (E31-F12; message quota exceeded → 429 `rate_limited`; a new device beyond `maxConnectors` → 429 `tenant_connector_limit`) |
+| POST | `/device-engine/historic-retrievals` | DEVICE_ADMIN, INTEGRATION_TESTER | `{deviceInstanceId, from, to}` (range in the past, ≤ 31 days) → `201 HistoricRetrieval {id, deviceInstanceId, from, to, method HL7_QUERY|VENDOR_DB, status REQUESTED|SENT|RECEIVING|COMPLETED|FAILED, received, accepted, duplicates, failed, requestedBy, requestedAt, completedAt?, detail?}`; queues `RETRIEVE_HISTORY` for the device's gateway; 422 `historic_retrieval_not_supported`; audited `DEVICE_HISTORIC_RETRIEVAL` |
+| GET | `/device-engine/historic-retrievals?deviceInstanceId=` · `/{id}` | operations roles | list / one retrieval (counts only) |
+| GET | `/device-engine/ops/cloud-connectors` | operations roles | P6 connectors `{deviceInstanceId, siteCode, tenantCode, driverPackageId, pollEnabled, intervalSeconds, rateLimitPerMinute, apiHost, hostAllowed, consentPurpose, residencyRegion, state NEVER_POLLED|OK|DISABLED|AUTH_FAILED|HOST_NOT_ALLOWED|RESIDENCY_MISMATCH|RATE_LIMITED|ERROR|CONFIGURATION_INCOMPLETE, lastError?, lastPollAt?, nextPollAt?, consecutiveFailures, recordsTotal, recordsLastRun, duplicatesTotal, skippedNoConsent, highWaterMarkSet}` – PHI-free |
+| POST | `/device-engine/ops/cloud-connectors/{deviceInstanceId}/poll` | DEVICE_ADMIN | polls now → `{status, error?, records, accepted, duplicates, skippedNoConsent, highWaterMark?, nextPollAt}` |
+| GET | `/device-engine/outbound?sessionId=|deviceInstanceId=` | DEVICE_ADMIN, INTEGRATION_TESTER, clinicians, COLLECTOR | `{messages[{id, commandType, deviceInstanceId, sessionId?, orderRef?, transport, messageType, controlId, status SENT|ACKED|REJECTED|FAILED, ackCode?, detail?, createdAt, updatedAt}], pending[]}` – status only, never the message content (capture panel) |
 
 **Multi-tenancy (E31-HLR-12).** Every engine row carries `tenant_code` (`GROUP` for the airline group; partner tenants from E20
-onwards). Endpoints are bound to one tenant (E34); catalogue visibility per tenant (E32 `catalogue_scope`); queues are partitioned by
-`tenant_code` in the work-table polling; negative isolation tests are part of `Increment6EngineIntegrationTest`.
+onwards). Endpoints are bound to one tenant (E34); queues are partitioned by `tenant_code` in the work-table polling. **Round 2:** the
+engine is the tenant directory (kernel SPI `DeviceTenantDirectory`, read by E32 and E34): catalogue scope `GROUP` (shared group
+catalogue plus own rows) or `TENANT` (own rows only), data residency (P6 `residency_check`), per-tenant connector limit; tenant-scoped
+catalogue rows and configurations (§5, §13.2); **per-tenant signing keys** (§15.5) – the engine loads a package for an instance only
+when its signing key belongs to the instance's tenant or the group (`key_not_for_tenant` otherwise). Negative isolation tests:
+`Increment6EngineIntegrationTest`, `Increment6DeviceRound2IntegrationTest.tenantScopedCatalogueConfigurationsAndSigningKeysAreIsolated`.
+
+**P6 vendor-cloud polling (E31-BL-008, round 2).** `CloudPollService` polls every published P6 instance whose effective
+`poll.enabled` is true: schedule per connector (`poll.intervalSeconds` ≥ 60; claim by compare-and-set on `cloud_poll_state.next_poll_at`),
+OAuth2 client credentials (`oauth2.tokenUrl`, `clientId`, `clientSecretRef` resolved through `DeviceSecretStore` with purpose
+`CLOUD_POLL`; HTTP Basic client authentication; token cached until 30 s before expiry; one refresh on 401), rate limit
+`poll.rateLimitPerMinute` over all calls of the connector, back-off interval × 2^failures (≤ 1 h) or the vendor's `Retry-After`; API and
+token hosts on `device.cloud.allowed-hosts` and HTTPS (else `HOST_NOT_ALLOWED`, security event `CLOUD_POLL_REFUSED`); the connector's
+`residencyRegion` must equal the tenant's (`RESIDENCY_MISMATCH`); records from `recordsPointer` enter the pipeline as kind `WEBHOOK`
+from the virtual endpoint `CLOUD:<instance>` with idempotency key `CP:<instance>:<record id>`; the high-water mark (vendor cursor, else
+the last record time / id) is persisted after each durably ingested page; with `consentMapping.purpose` records of employees without
+that active consent are dropped before ingest (counted, never stored).
 
 ## 13. E32 – Device catalogue, administration & provisioning console
 
@@ -741,7 +784,7 @@ step invalidates later steps (e.g. a new option resets 3–8). Every write is ve
 | 7 | Certify & approve | `POST /device-configurations/{id}/submit` (DEVICE_ADMIN) → AWAITING_APPROVAL (+ `device.approval-required`); `POST …/approve {note}` / `POST …/reject {reason}` (DEVICE_APPROVER) | **four-eyes**: approver ≠ submitter and ≠ anyone who changed steps 4–6 of this version (409 `four_eyes_violation`); posture exception recorded; on approval → CERTIFIED, certification record + signed PDF (§13.5), `device.certified` |
 | 8 | Publish & monitor | `POST …/publish {}` (DEVICE_ADMIN) → `{deviceInstanceId, configVersion, endpointId, enrolmentToken?, enrolmentExpiresAt?}` | status CERTIFIED; calls `DeviceEndpointProvisioning.provision` (token shown **once**); instance becomes visible through `DeviceCatalogueLookup` (status PUBLISHED) and in nurses' capture lists; calibration / QC schedule and monitoring active; `POST …/clone {siteCode, stationCode}` creates a new DRAFT at step 5 with `clonedFrom` (steps 6–8 required again; LIVE test at the new station) |
 
-Other endpoints: `POST /device-configurations {modelCode, siteCode?, templateId?}` → DRAFT; `GET /device-configurations?status=&siteCode=&modelCode=`;
+Other endpoints: `POST /device-configurations {modelCode, siteCode?, templateId?, tenantCode?}` → DRAFT (round 2: the instance's tenant, `GROUP` by default, 400 `unknown_tenant`; step 1 refuses a model outside the tenant's catalogue – `model_not_in_tenant_catalogue`; step 2 offers driver packages visible to the tenant); `GET /device-configurations?status=&siteCode=&modelCode=&tenantCode=`;
 `GET /device-configurations/{id}` (full, secrets as `{set}`); `POST …/pause` · `/resume`; `POST …/revise` (new DRAFT version of a
 PUBLISHED config; the published version keeps running until the new one is published – atomic switch); `POST …/suspend {reason}` ·
 `/resume-service`; `GET …/history` (change history with diffs, E32-F06); `GET …/data-flow` (§13.5); `GET …/certification` ·
@@ -757,10 +800,10 @@ the driver package `protocol`. Secret-typed fields (`format: "secret"`) are writ
 |---|---|
 | **P1 Serial / USB** | `connection` `RS232|USB_CDC|USB_HID_WEDGE`; `port` string (`COM3`, `/dev/ttyUSB0`, or `AUTO` with discovery); `baud` enum 1200…115200 (9600); `dataBits` 7|8 (8); `parity` `NONE|EVEN|ODD` (NONE); `stopBits` 1|2 (1); `flowControl` `NONE|RTS_CTS|XON_XOFF`; `framing{type LINE|STX_ETX|LENGTH|FIXED, terminator, maxFrameBytes ≤ 65536}`; `mode` `PUSH|POLL`, `pollCommand?`, `pollSeconds?`; `usbAllowList[{vid hex4, pid hex4}]` (required for USB); `serialServer{host, port, authRef (secret)}` for serial-over-TCP (authenticated, E34-HLR-04); `hostEndpointId` (Device Host agent) |
 | **P2 Vendor software DB / file** | `source` `DB_QUERY|FOLDER_WATCH`; DB: `dialect SQLSERVER|SQLITE|ACCESS`, `connection{host?, port?, database|path}`, `dbCredentialRef` (secret; **read-only** account, E34), `query` (from package, read-only `select` only – validated), `watermarkColumn`, `pollSeconds` 10–3600 (30); folder: `path`, `pattern`, `encoding`, `pollSeconds` (10), `stabilitySeconds` (5, file unchanged before read), `afterRead` `KEEP|MOVE_TO_ARCHIVE` (KEEP – vendor folder is read-only), `attachmentRule`; `dedupKey` (package default); `hostEndpointId` |
-| **P3 Bluetooth LE / Classic** | `transport` `BLE|CLASSIC_SPP`; `pairing` `LE_SECURE_CONNECTIONS_PASSKEY|LE_SECURE_CONNECTIONS_NUMERIC|JUST_WORKS_EXCEPTION` (JUST_WORKS only with SECURITY_OPS exception, E34-HLR-04); `bondingOwner` `GATEWAY|TABLET|KIOSK`; `bondingOwnerEndpointId`; `service` UUID, `characteristics[]` UUIDs; `peripheralAllowList[{name?, addressHash}]`; `reconnect` `AUTO|ON_DEMAND`; `rssiMinDbm` (−80) |
+| **P3 Bluetooth LE / Classic** | `transport` `BLE|CLASSIC_SPP`; `pairing` `LE_SECURE_CONNECTIONS_PASSKEY|LE_SECURE_CONNECTIONS_NUMERIC|JUST_WORKS_EXCEPTION` (JUST_WORKS only with SECURITY_OPS exception, E34-HLR-04; packages may declare only these values – round 2 corrected the Tanita / Withings packages from the non-schema value `LE_SECURE_CONNECTIONS_JUST_WORKS` to `LE_SECURE_CONNECTIONS_PASSKEY`, to be confirmed per model in the device lab); `bondingOwner` `GATEWAY|TABLET|KIOSK`; `bondingOwnerEndpointId`; `service` UUID, `characteristics[]` UUIDs; `peripheralAllowList[{name?, addressHash}]`; `reconnect` `AUTO|ON_DEMAND`; `rssiMinDbm` (−80) |
 | **P4 LAN / Wi-Fi HL7 v2 MLLP** | `deviceAddress{ip|dns}`; `mllp{listenerEndpointId (gateway), port 1024–65535 (2575), tls REQUIRED|EXCEPTION_SEGMENTED_VLAN, tlsVersion 1.2|1.3 (1.3), cipherPolicy MODERN|COMPATIBLE, clientCertRequired bool}`; `msh{sendingApplication, sendingFacility, receivingApplication (WELLNESSZ), receivingFacility}`; `ackMode ORIGINAL`; `messageProfile IHE_PCD_01|VENDOR`; `timeZone`; `worklist{enabled, messageType ADT^A04|ORM^O01, push MLLP_OUT|NONE, outboundPort?}`; plaintext only via a documented exception inside a segmented device VLAN behind the gateway (E34-HLR-01) |
 | **P5 POCT1-A2 data manager** | `dms{vendor INFO_HQ|RALS|COBAS_INFINITY_POC|POCCELERATOR|CONNECT_801|CLINITEK_CONNECT|OTHER, endpoint (gateway listener or HTTP), deviceIds[], dmsId}`; `transport POCT1A_XML|HL7_ORU` (data-manager HL7 bridge); `operatorList` `SYNC_FROM_DMS|MANUAL`; `qcLotPolicy{requirePassingQc true, qcWindowHours 24, newLotRequiresQc true}`; `resultMapping` (package); `pollSeconds?` |
-| **P6 Vendor cloud API / webhook** | `apiBaseUrl` (https, host must be in `device.cloud.allowed-hosts`); `oauth2{tokenUrl, clientId, clientSecretRef (secret), scopes[]}`; `webhook{enabled, webhookSecretRef (secret), signatureHeader, timestampHeader, replayWindowSeconds 300}`; `poll{enabled, intervalSeconds ≥ 60, rateLimitPerMinute}`; `consentMapping{purpose WEARABLE_DATA|PROGRAMME, scopes[]}`; `residencyRegion` (must match the tenant's residency – `residency_check`) |
+| **P6 Vendor cloud API / webhook** | `apiBaseUrl` (https, host must be in `device.cloud.allowed-hosts`); `oauth2{tokenUrl, clientId, clientSecretRef (secret), scopes[]}`; `webhook{enabled, webhookSecretRef (secret), signatureHeader, timestampHeader, replayWindowSeconds 300}`; `poll{enabled, intervalSeconds ≥ 60, rateLimitPerMinute, path?}` (enforced by the engine's poller, §12); `consentMapping{purpose WEARABLE_DATA|PROGRAMME, scopes[]}`; `residencyRegion` (must match the tenant's residency – `residency_check`) |
 | **P7 DICOM** | `aeTitles{calling, called (WZ_GATEWAY)}`; `port` (11112); `tls` REQUIRED; `storageClasses[]` (SOP class UIDs); `mwl{enabled, filters{modality, stationAeTitle}}`; `routing{pacsDestination?}`; `iloReadingWorklist` bool; `maxInstanceBytes` ≤ 52428800 |
 | **P8 HL7 FHIR R4** | `clientEndpointId`; `auth` `MTLS_TOKEN|SMART_BACKEND` (`smartScopes[]` e.g. `system/Observation.write`); `profiles[]`; `subjectIdentifierSystem`; `tenantMapping`; `bundleMaxEntries` (100) |
 | **P9 Image capture & OCR / barcode** | `ocrTemplate`; `regions[{key, box[x1,y1,x2,y2] relative, pattern}]`; `minConfidence` 0.5–1.0 (0.90); `barcode{enabled, symbology QR|CODE128|DATAMATRIX, payloadMapping}`; `verification` const `MANDATORY`; `imageRetention` `DEVICE_RAW_PAYLOAD|DEVICE_RAW_UNFILED` |
@@ -1045,6 +1088,13 @@ reference). `GET /device-security/signing-keys` (SECURITY_OPS, INTEGRATION_TESTE
 instances SUSPENDED). Canonical form: UTF-8 JSON, object keys sorted lexicographically, no whitespace, numbers as written, `signature`
 member removed.
 
+**Per-tenant signing keys (round 2, E31-HLR-12).** Every key carries `tenantCode` (default `GROUP`); one ACTIVE key per tenant.
+`POST /device-security/signing-keys {algorithm?, tenantCode?}` rotates the tenant's key; `POST /device-security/packages/sign?tenantCode=`
+and `/packages/verify?tenantCode=` sign / verify for a tenant (unknown tenant → 400). Kernel SPI additions (default methods, existing
+signatures unchanged): `verify(canonical, signature, keyId, tenantCode)` – a tenant key verifies only that tenant's packages, group keys
+verify for every tenant, otherwise `key_not_for_tenant`; the three-argument `verify` is the group case; `sign(actor, tenantCode, canonical)`.
+E32 verifies a tenant package (`RegisterCommand.tenantCode`) with the tenant-aware call; E31 verifies at load with the instance's tenant.
+
 ### 15.6 Secrets (E34-HLR-05, E34-F04)
 
 `DeviceSecretStore` – values encrypted with `FieldEncryptor` (context `devsec:<ref>`), never logged, never returned to browsers;
@@ -1152,7 +1202,9 @@ Built by the E31 developer; the hardening baseline, enrolment client behaviour a
 | Serial / USB (P1) | RS-232 / USB-CDC framing; HID keyboard-wedge capture in agent mode; serial-over-TCP and **stdin simulation** (`--simulate-serial <file>`) for tests; USB VID/PID allow-list enforced | `/device-ingest/serial` |
 | BLE intake (P3) | BlueZ / OS BLE stack on gateways; payloads from the nurse tablet and kiosk go direct (they are endpoints themselves); bonded-device allow-list from config | `/device-ingest/ble` |
 | DICOM metadata (P7) | instances placed in a drop folder by the modality / PACS export → metadata JSON + instance upload | `/device-ingest/attachments` + `/device-ingest/dicomweb` |
-| Worklist push (E31-HLR-08) | pulls `/device-ingest/worklist`, converts to ORM / ADT over MLLP, GDT 6302 files or the vendor import file | – |
+| Worklist push (E31-HLR-08) | `PUSH_WORKLIST`: fetches `/device-ingest/commands/{id}/outbound`; transport `MLLP` – sends each HAPI-built ORM^O01 / OML^O21 / ADT^A04 / ADT^A08 to the device's `wz.gateway.mllp-outbound` target (configured at the edge per device instance; TLS 1.2/1.3 with host-name verification, plaintext only to loopback or under the segmented-VLAN exception) and returns one ACK per message; transport `GDT` – pulls `/device-ingest/worklist` and writes GDT 6302 files | command result `acks[]` |
+| Start from form (E31-BL-019) | `START_ACQUISITION`: `SERIAL` – the start bytes written to the device's serial-over-TCP connector, waiting up to 10 s for `expectPattern` (the reply is control traffic, not a reading); `MLLP` – the session order to the outbound target; otherwise `not_supported_by_connector` | command result |
+| Historic retrieval (E31-HLR-08) | `RETRIEVE_HISTORY`: `HL7_QUERY` – QRY^R02 to the outbound target, response frames collected until `queryIdleTimeout`, ORU / ORF frames returned; `VENDOR_DB` – the vendor-database connector's read-only query bound to the range start, rows after the range end skipped, one CSV file per row; the poll watermark is not touched | `/device-ingest/retrievals/{id}/batch` |
 
 ### 16.2 Store-and-forward (≥ 48 h, E31-F09)
 
@@ -1342,7 +1394,11 @@ token cannot call `/device-ingest`; another tenant's endpoint → 403 / 404. `Ar
 `attestation_incomplete`, `qc_due`, `qc_failed`, `qc_lot_invalid`, `device_out_of_calibration`, `device_out_of_service`, `device_not_registered`,
 `device_available` (device-less capture while a device is available), `dataset_device_mismatch` (simulator dataset vs the device's driver adapter),
 `enrolment_invalid`, `enrolment_token_invalid`, `enrolment_token_expired`, `already_enrolled`, `certificate_untrusted`,
-`certificate_key_usage`, `proof_invalid`, `thumbprint_mismatch`, `module_disabled`.
+`certificate_key_usage`, `proof_invalid`, `thumbprint_mismatch`, `module_disabled`; round 2: `historic_retrieval_not_supported`,
+`start_not_supported`, `worklist_not_supported`, `no_outbound_content`, `outbound_build_failed`, `command_completed`, `session_not_active`,
+`retrieval_closed`, `key_not_for_tenant`, `tenant_connector_limit`, `unknown_tenant`, `model_not_in_tenant_catalogue`, `pairing` enum
+violation (`protocol.pairing`); P6 poll states `host_not_allowed`, `https_required`, `residency_check`, `token_request_refused`,
+`token_rejected`, `vendor_rate_limited`, `connector_rate_limit`, `configuration_incomplete` (in `cloud_poll_state.last_error`).
 
 ## Appendix A – Traceability (every HLR and feature of E31–E34)
 

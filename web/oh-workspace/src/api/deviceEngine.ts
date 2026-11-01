@@ -309,6 +309,79 @@ export interface ArchiveVerification {
   intact: boolean;
 }
 
+/** P6 vendor-cloud connector status (contract §12 `/device-engine/ops/cloud-connectors`) – PHI-free. */
+export interface CloudConnectorStatus {
+  deviceInstanceId: string;
+  siteCode?: string | null;
+  tenantCode: string;
+  driverPackageId?: string | null;
+  driverStatus?: string;
+  pollEnabled: boolean;
+  intervalSeconds?: number | null;
+  rateLimitPerMinute?: number | null;
+  apiHost?: string | null;
+  hostAllowed: boolean;
+  consentPurpose?: string | null;
+  residencyRegion?: string | null;
+  state: string;
+  lastError?: string | null;
+  lastPollAt?: string | null;
+  nextPollAt?: string | null;
+  consecutiveFailures: number;
+  recordsTotal: number;
+  recordsLastRun: number;
+  duplicatesTotal: number;
+  skippedNoConsent: number;
+  highWaterMarkSet: boolean;
+}
+export interface CloudPollRun {
+  deviceInstanceId: string;
+  status: string;
+  error?: string | null;
+  records: number;
+  accepted: number;
+  duplicates: number;
+  skippedNoConsent: number;
+  nextPollAt?: string | null;
+}
+export const HISTORIC_STATUSES = ['REQUESTED', 'SENT', 'RECEIVING', 'COMPLETED', 'FAILED'] as const;
+/** Historic retrieval (contract §12 `/device-engine/historic-retrievals`). */
+export interface HistoricRetrieval {
+  id: string;
+  deviceInstanceId: string;
+  from: string;
+  to: string;
+  method: 'HL7_QUERY' | 'VENDOR_DB';
+  status: (typeof HISTORIC_STATUSES)[number];
+  requestedBy: string;
+  requestedAt: string;
+  completedAt?: string | null;
+  received: number;
+  accepted: number;
+  duplicates: number;
+  failed: number;
+  detail?: string | null;
+}
+/** Outbound order / worklist / start message of a capture session or device – status only, never content. */
+export interface OutboundMessage {
+  id: string;
+  commandType: 'PUSH_WORKLIST' | 'START_ACQUISITION';
+  deviceInstanceId: string;
+  orderRef?: string | null;
+  transport: 'MLLP' | 'SERIAL' | 'GDT';
+  messageType: string;
+  controlId: string;
+  status: 'SENT' | 'ACKED' | 'REJECTED' | 'FAILED';
+  ackCode?: string | null;
+  detail?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface OutboundStatus {
+  messages: OutboundMessage[];
+  pending: { commandId: string; commandType: string; status: string; createdAt: string }[];
+}
+
 export function engineApi(client: AuthClient) {
   const base = '/device-engine';
   return {
@@ -329,6 +402,12 @@ export function engineApi(client: AuthClient) {
     connectors: (q: { siteCode?: string; state?: string }) => client.api<ConnectorHealth[]>(`${base}/ops/connectors${buildQuery(q)}`),
     metrics: (window: 'PT1H' | 'P1D') => client.api<EngineMetrics>(`${base}/ops/metrics${buildQuery({ window })}`),
     alerts: () => client.api<EngineAlert[]>(`${base}/ops/alerts`),
+    cloudConnectors: () => client.api<CloudConnectorStatus[]>(`${base}/ops/cloud-connectors`),
+    pollCloud: (deviceInstanceId: string) => client.api<CloudPollRun>(`${base}/ops/cloud-connectors/${seg(deviceInstanceId)}/poll`, { method: 'POST' }),
+    historicRetrievals: (deviceInstanceId?: string) => client.api<HistoricRetrieval[]>(`${base}/historic-retrievals${buildQuery({ deviceInstanceId })}`),
+    requestHistoric: (body: { deviceInstanceId: string; from: string; to: string }) =>
+      client.api<HistoricRetrieval>(`${base}/historic-retrievals`, { method: 'POST', body }),
+    outbound: (q: { sessionId?: string; deviceInstanceId?: string }) => client.api<OutboundStatus>(`${base}/outbound${buildQuery(q)}`),
     drivers: () => client.api<DriverSample[]>(`${base}/drivers`),
     driverSource: (packageId: string, version: string) => client.api<unknown>(`${base}/drivers/${seg(packageId)}/${seg(version)}`),
     validate: (packageJson: unknown) => client.api<DriverReport>(`${base}/drivers/validate`, { method: 'POST', body: packageJson }),

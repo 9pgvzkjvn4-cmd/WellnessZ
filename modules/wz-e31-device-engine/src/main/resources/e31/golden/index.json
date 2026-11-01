@@ -1270,8 +1270,10 @@
   "kind": "TIME_SKEW",
   "resource": "golden/wearable/cloud-daily/time-skew.json",
   "contentType": "application/json",
-  "description": "Day end with a far-off offset",
-  "headers": {},
+  "description": "Edge clock 5 minutes fast",
+  "headers": {
+   "edgeClockOffsetSeconds": "300"
+  },
   "expect": {}
  },
  {

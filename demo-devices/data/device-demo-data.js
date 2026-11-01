@@ -2823,7 +2823,8 @@ window.WZ_DEVICE_DEMO_SEED = {
    "lifecycle": "ACTIVE",
    "posture": "ACCEPTABLE",
    "drivers": [
-    "wear.aggregator.fhir-pcha@1.0.0"
+    "wear.aggregator.fhir-pcha@1.0.0",
+    "wear.cloud.daily-poll@1.0.0"
    ]
   },
   {
@@ -4287,6 +4288,11 @@ window.WZ_DEVICE_DEMO_SEED = {
          "minimum": 1,
          "maximum": 6000,
          "default": 60
+        },
+        "path": {
+         "type": "string",
+         "pattern": "^/[A-Za-z0-9._~/\\-]{0,200}$",
+         "description": "records path below apiBaseUrl (default: the driver package poll.path)"
         }
        }
       },
@@ -5242,7 +5248,13 @@ window.WZ_DEVICE_DEMO_SEED = {
      "terminator": "\r\n",
      "endOfFrame": "^SN "
     },
-    "mode": "PUSH"
+    "mode": "PUSH",
+    "startCommand": {
+     "transport": "SERIAL",
+     "encoding": "TEXT",
+     "payload": "START\r\n",
+     "expectPattern": "^(READY|BLOW)"
+    }
    },
    "parse": {
     "type": "REGEX_LINES",
@@ -5360,11 +5372,16 @@ window.WZ_DEVICE_DEMO_SEED = {
    ],
    "schema": "wellnessz.device-driver/1",
    "engineCompatibility": ">=1.0 <2.0",
+   "capabilities": {
+    "worklistPush": "NONE",
+    "startFromForm": true,
+    "historicRetrieval": false
+   },
    "signature": {
     "keyId": "wz-dev-sign-2026-01",
     "algorithm": "Ed25519",
-    "value": "YDu9J2WtO/zCKYcDxbzAjHI09gd4a1tNCnMcNCTK51CERjnGpiRccryQCBe5wzNwlQBx3VOocvxhrZvkkI3LCA==",
-    "canonicalSha256": "5891f44e9c332302f129b6b656ee979d692e66ba27605e179c42cfc965cfaf52"
+    "value": "oTc/mstY4MHr7/anz8gn2weDtEtYKcep5sQhAbf1WrpfkZV9LAU6Y3YmIo3Iku8HurEQmRYHxFuONSBRbL7KAA==",
+    "canonicalSha256": "460167a36e673d46091ad292e7c57e3edefbc83d3b17db0513d9f6d4badddfbe"
    },
    "registry": {
     "status": "CERTIFIED",
@@ -5396,7 +5413,7 @@ window.WZ_DEVICE_DEMO_SEED = {
    "capabilities": {
     "worklistPush": "HL7_ORM",
     "startFromForm": true,
-    "historicRetrieval": false
+    "historicRetrieval": true
    },
    "protocol": {
     "hl7Version": "2.5",
@@ -5406,7 +5423,24 @@ window.WZ_DEVICE_DEMO_SEED = {
     "profile": "VENDOR",
     "ackMode": "ORIGINAL",
     "mllpPort": 2576,
-    "tls": "REQUIRED"
+    "tls": "REQUIRED",
+    "worklist": {
+     "messageType": "ORM^O01",
+     "push": "MLLP_OUT"
+    },
+    "worklistFields": [
+     "dateOfBirth",
+     "sex"
+    ],
+    "startCommand": {
+     "transport": "MLLP",
+     "messageType": "ORM^O01"
+    },
+    "historicQuery": {
+     "method": "HL7_QUERY",
+     "messageType": "QRY^R02",
+     "maxResults": 100
+    }
    },
    "parse": {
     "type": "HL7_SEGMENTS",
@@ -5560,8 +5594,8 @@ window.WZ_DEVICE_DEMO_SEED = {
    "signature": {
     "keyId": "wz-dev-sign-2026-01",
     "algorithm": "Ed25519",
-    "value": "A9zutltLfLdk2kd7mxumVdyIY58L7HeQWi0FOwCJID9AwNZv0mSRJmBqbZpLe1xbPCoe+NxRgPLTSa53nTM5CA==",
-    "canonicalSha256": "c0adf5730de9a79b2835af5224faca7a5d81f35f0189553188a0a4cdf737af70"
+    "value": "OjJxgukAi6mGhgVehZJehzn4vJ/KrniZYk9kq3Jcw/shz7ICxEwt2Cj0jxvZHZ/gHtv8AePz0Tqrlzns1WIuDQ==",
+    "canonicalSha256": "d3de0b2745dd7f10c8aaf008abcc661d18742bd8a37899eeff6cf6c6cfae740a"
    },
    "registry": {
     "status": "CERTIFIED",
@@ -7174,7 +7208,7 @@ window.WZ_DEVICE_DEMO_SEED = {
    "protocol": {
     "service": "0x181D",
     "characteristic": "0x2A9D",
-    "pairing": "LE_SECURE_CONNECTIONS_JUST_WORKS",
+    "pairing": "LE_SECURE_CONNECTIONS_PASSKEY",
     "bonding": "REQUIRED",
     "indications": true
    },
@@ -7318,8 +7352,8 @@ window.WZ_DEVICE_DEMO_SEED = {
    "signature": {
     "keyId": "wz-dev-sign-2026-01",
     "algorithm": "Ed25519",
-    "value": "H3wVdcmPrfAAmrkfH4S2RGK/QtQPaPL0whelYn+Lb5U4i346Cfgy8Grv5cjt+y1wBK9LgpCkRtdYMgK9SZHqAg==",
-    "canonicalSha256": "7ab6b9a5b864284ff93f3b3d9d367736102eab94e153fed99f817cb950b61ac4"
+    "value": "lQs9HOeLAW/jdr9H8MFH5sH8D5nSMMI8wl0I3dl8Kunmzo4tLJLbkPcEuDlfeuRYRXjXlJIizXKIrmbAADqrBQ==",
+    "canonicalSha256": "d156050c6ba31cf9d612ab994bce48972c43e0de59a39e7db2b39be64052d423"
    },
    "registry": {
     "status": "CERTIFIED",
@@ -7573,7 +7607,7 @@ window.WZ_DEVICE_DEMO_SEED = {
    "protocol": {
     "service": "0x181B",
     "characteristic": "0x2A9C",
-    "pairing": "LE_SECURE_CONNECTIONS_JUST_WORKS",
+    "pairing": "LE_SECURE_CONNECTIONS_PASSKEY",
     "bonding": "REQUIRED",
     "indications": true
    },
@@ -7774,8 +7808,8 @@ window.WZ_DEVICE_DEMO_SEED = {
    "signature": {
     "keyId": "wz-dev-sign-2026-01",
     "algorithm": "Ed25519",
-    "value": "1MgZff36lZeWFtOdbSNQ/+y8na/3NyQLmZCyFBOLQj7hvXk/UpyyJxWAOX5fGEuBHs9fXqn4twoQhMJpwXyNDA==",
-    "canonicalSha256": "721ea224e03065dffeb7381a454af9c9ab70ebd0e2176cbf9d08b60a7191c6dc"
+    "value": "KO+wCuuhC07dsL/8x5L24owi5M4S1ks9Q6X7YPojZgervVWSl7e0YY013Es87y6Jpux7Sk60jxPNZibr1drDCQ==",
+    "canonicalSha256": "a66aacf6f38cc6863857f43be9f2f0a8ec9f1c95d1ff0de3786bb481ca466936"
    },
    "registry": {
     "status": "CERTIFIED",
@@ -7798,7 +7832,7 @@ window.WZ_DEVICE_DEMO_SEED = {
    "protocol": {
     "service": "0x1809",
     "characteristic": "0x2A1C",
-    "pairing": "LE_SECURE_CONNECTIONS_JUST_WORKS",
+    "pairing": "LE_SECURE_CONNECTIONS_PASSKEY",
     "bonding": "REQUIRED",
     "indications": true
    },
@@ -7896,8 +7930,8 @@ window.WZ_DEVICE_DEMO_SEED = {
    "signature": {
     "keyId": "wz-dev-sign-2026-01",
     "algorithm": "Ed25519",
-    "value": "sLv8UiIgabMo4TsxFCcL5nGHtL7O8lzv/O0c0LcDCnWxBQhgZmTUKkr1XrryZw18BYvmGQPL22Eh35kK1ZqOBA==",
-    "canonicalSha256": "789abe6c2a8d7edb89089194a4303d84c9a756ee0180d856558555269aa2b9dc"
+    "value": "YCz48fhGFSs++hPlgFHJMDnIeKoBNTThz4lRCqljebnjofOTHrGIWumJczXaszjkLB7lzuQ6L/ELvxzilPmkBQ==",
+    "canonicalSha256": "8e6a0a45235e49527aaca91e61eaa6f93b14809ccf7d5a371431b538a28f92e5"
    },
    "registry": {
     "status": "CERTIFIED",
@@ -8031,6 +8065,154 @@ window.WZ_DEVICE_DEMO_SEED = {
     "certifiedBy": "deviceapprover1",
     "certifiedAt": "2026-10-20T10:00:00Z",
     "source": "modules/wz-e31-device-engine/src/main/resources/e31/drivers/wear.aggregator.fhir-pcha-1.0.0.json"
+   }
+  },
+  {
+   "packageId": "wear.cloud.daily-poll",
+   "version": "1.0.0",
+   "family": "WEARABLE",
+   "models": [
+    "MD-121"
+   ],
+   "adapter": "CLOUD_POLL_JSON",
+   "options": [
+    "P6"
+   ],
+   "vendorSoftware": "Vendor wellness cloud (daily summaries, OAuth2 client credentials)",
+   "protocol": {
+    "poll": {
+     "enabled": true,
+     "url": "PARAMETER:apiBaseUrl",
+     "path": "/v1/daily-summaries",
+     "oauth2": {
+      "tokenUrl": "PARAMETER:tokenUrl",
+      "clientId": "PARAMETER:clientId",
+      "secretRef": "PARAMETER:clientSecretRef",
+      "scopes": [
+       "summaries.read"
+      ]
+     },
+     "intervalSeconds": 900,
+     "rateLimitPerMinute": 60,
+     "recordsPointer": "/items",
+     "cursorParam": "since",
+     "nextCursorPointer": "/nextCursor",
+     "recordIdPointer": "/id",
+     "recordTimePointer": "/day/end",
+     "pageSize": 100,
+     "maxPagesPerRun": 10
+    },
+    "consentPurpose": "WEARABLE_DATA"
+   },
+   "parse": {
+    "type": "JSON_POINTER",
+    "identity": {
+     "employee": "/subject/employeeNumber",
+     "effectiveTime": {
+      "selector": "/day/end",
+      "format": "ISO_OFFSET"
+     }
+    },
+    "fields": [
+     {
+      "key": "steps",
+      "selector": "/summary/steps",
+      "type": "QUANTITY",
+      "unit": "{steps}",
+      "required": true
+     },
+     {
+      "key": "sleepMinutes",
+      "selector": "/summary/sleepMinutes",
+      "type": "QUANTITY",
+      "unit": "min"
+     }
+    ]
+   },
+   "mappings": [
+    {
+     "key": "steps",
+     "loinc": "55423-8",
+     "display": "Number of steps",
+     "ucum": "{steps}",
+     "plausible": {
+      "min": 0,
+      "max": 100000
+     }
+    },
+    {
+     "key": "sleepMinutes",
+     "loinc": "93832-4",
+     "display": "Sleep duration",
+     "ucum": "min",
+     "plausible": {
+      "min": 0,
+      "max": 1440
+     }
+    }
+   ],
+   "qualityGates": [
+    "CONSENT",
+    "PLAUSIBILITY"
+   ],
+   "bindings": [
+    {
+     "formCode": "E12.WEARABLE_DAILY",
+     "formVersion": "1",
+     "category": "WEARABLE",
+     "target": "E12.WEARABLE",
+     "fields": {
+      "steps": "STEPS",
+      "sleepMinutes": "SLEEP_MINUTES"
+     },
+     "verifyBeforePost": false
+    }
+   ],
+   "capabilities": {
+    "worklistPush": "NONE",
+    "startFromForm": false,
+    "historicRetrieval": false
+   },
+   "testVectors": [
+    {
+     "name": "normal",
+     "input": "golden/wearable/cloud-daily/normal.json",
+     "expect": {
+      "steps": 9120,
+      "sleepMinutes": 431,
+      "gates": {
+       "PLAUSIBILITY": "PASS"
+      }
+     }
+    },
+    {
+     "name": "malformed",
+     "input": "golden/wearable/cloud-daily/malformed.json",
+     "expect": {
+      "error": "parse_failed"
+     }
+    },
+    {
+     "name": "edge-zero",
+     "input": "golden/wearable/cloud-daily/edge.json",
+     "expect": {
+      "steps": 0
+     }
+    }
+   ],
+   "schema": "wellnessz.device-driver/1",
+   "engineCompatibility": ">=1.0 <2.0",
+   "signature": {
+    "keyId": "wz-dev-sign-2026-01",
+    "algorithm": "Ed25519",
+    "value": "U0tGBriIoIF7Y+0fs5aqf9Bg+RHPduy817p0JxK/Btc2WdSSg5RZtsehmy+lQY9edMFXSp/fDy1SZkL5ItKMBw==",
+    "canonicalSha256": "27bd746f1aa7159f19d6ee91347fd427f05d0294d6a0b1b30d4238489be9e217"
+   },
+   "registry": {
+    "status": "CERTIFIED",
+    "certifiedBy": "deviceapprover1",
+    "certifiedAt": "2026-10-20T10:00:00Z",
+    "source": "modules/wz-e31-device-engine/src/main/resources/e31/drivers/wear.cloud.daily-poll-1.0.0.json"
    }
   }
  ],
@@ -9272,6 +9454,68 @@ window.WZ_DEVICE_DEMO_SEED = {
    "headers": {},
    "expect": {},
    "payload": "MSH|^~\\&|MUSE|LHR-OH-ROOM-2|WELLNESSZ|WZ|20261030113000||ORU^R01^ORU_R01|ECG0005|P|2.5\rPID|||E1001^^^WZ^PI||Employee^Erin||19850412|F\rOBR|1|ECG-ECG0005^MUSE||11524-6^EKG study^LN|||20261030113000\rOBX|1|ST|DEVICE_SERIAL^Device serial^L||MAC5500-77120||||||F\rOBX|2|NM|8867-4^Heart rate^LN||71|/min^^UCUM|||||F\rOBX|3|NM|8625-6^PR interval^LN||159|ms^^UCUM|||||F\rOBX|4|NM|8633-0^QRS duration^LN||91|ms^^UCUM|||||F\rOBX|5|NM|8636-3^QTc interval^LN||407|ms^^UCUM|||||F\rOBX|6|ST|18844-1^ECG interpretation^LN||Sinus rhythm||||||F\r"
+  },
+  {
+   "datasetId": "wearable/cloud-daily/normal",
+   "family": "WEARABLE",
+   "adapter": "CLOUD_POLL_JSON",
+   "packageId": "wear.cloud.daily-poll",
+   "kind": "NORMAL",
+   "contentType": "application/json",
+   "description": "Daily summary record (steps, sleep) for E1001 from the vendor cloud – consented wearables",
+   "headers": {},
+   "expect": {},
+   "payload": "{\n \"id\": \"ds-1001-20261030\",\n \"subject\": {\n  \"employeeNumber\": \"E1001\"\n },\n \"day\": {\n  \"start\": \"2026-10-30T00:00:00Z\",\n  \"end\": \"2026-10-30T23:59:59Z\"\n },\n \"summary\": {\n  \"steps\": 9120,\n  \"sleepMinutes\": 431\n }\n}\n"
+  },
+  {
+   "datasetId": "wearable/cloud-daily/edge",
+   "family": "WEARABLE",
+   "adapter": "CLOUD_POLL_JSON",
+   "packageId": "wear.cloud.daily-poll",
+   "kind": "EDGE",
+   "contentType": "application/json",
+   "description": "A day without data (zeros)",
+   "headers": {},
+   "expect": {},
+   "payload": "{\n \"id\": \"ds-1001-20261031\",\n \"subject\": {\n  \"employeeNumber\": \"E1001\"\n },\n \"day\": {\n  \"start\": \"2026-10-31T00:00:00Z\",\n  \"end\": \"2026-10-31T23:59:59Z\"\n },\n \"summary\": {\n  \"steps\": 0,\n  \"sleepMinutes\": 0\n }\n}\n"
+  },
+  {
+   "datasetId": "wearable/cloud-daily/malformed",
+   "family": "WEARABLE",
+   "adapter": "CLOUD_POLL_JSON",
+   "packageId": "wear.cloud.daily-poll",
+   "kind": "MALFORMED",
+   "contentType": "application/json",
+   "description": "Steps is not a number",
+   "headers": {},
+   "expect": {},
+   "payload": "{\"id\": \"ds-x\", \"subject\": {\"employeeNumber\": \"E1001\"}, \"day\": {\"end\": \"2026-10-30T23:59:59Z\"}, \"summary\": {\"steps\": \"many\"}}\n"
+  },
+  {
+   "datasetId": "wearable/cloud-daily/time-skew",
+   "family": "WEARABLE",
+   "adapter": "CLOUD_POLL_JSON",
+   "packageId": "wear.cloud.daily-poll",
+   "kind": "TIME_SKEW",
+   "contentType": "application/json",
+   "description": "Edge clock 5 minutes fast",
+   "headers": {
+    "edgeClockOffsetSeconds": "300"
+   },
+   "expect": {},
+   "payload": "{\n \"id\": \"ds-1001-20261029\",\n \"subject\": {\n  \"employeeNumber\": \"E1001\"\n },\n \"day\": {\n  \"start\": \"2026-10-29T00:00:00Z\",\n  \"end\": \"2026-10-29T23:59:59Z\"\n },\n \"summary\": {\n  \"steps\": 7800,\n  \"sleepMinutes\": 402\n }\n}\n"
+  },
+  {
+   "datasetId": "wearable/cloud-daily/duplicate",
+   "family": "WEARABLE",
+   "adapter": "CLOUD_POLL_JSON",
+   "packageId": "wear.cloud.daily-poll",
+   "kind": "DUPLICATE",
+   "contentType": "application/json",
+   "description": "The same vendor record id again (idempotent ingest)",
+   "headers": {},
+   "expect": {},
+   "payload": "{\n \"id\": \"ds-1001-20261030\",\n \"subject\": {\n  \"employeeNumber\": \"E1001\"\n },\n \"day\": {\n  \"start\": \"2026-10-30T00:00:00Z\",\n  \"end\": \"2026-10-30T23:59:59Z\"\n },\n \"summary\": {\n  \"steps\": 9120,\n  \"sleepMinutes\": 431\n }\n}\n"
   }
  ],
  "signingKeys": [

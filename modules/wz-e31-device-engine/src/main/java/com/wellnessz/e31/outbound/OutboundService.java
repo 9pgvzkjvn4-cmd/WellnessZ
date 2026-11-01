@@ -182,7 +182,8 @@ public class OutboundService {
     }
 
     Map<String, Object> message(Command c, DeviceCatalogueLookup.DeviceInstance i, String type, Hl7OutboundBuilder.Order o, Instant now) {
-        int index = jdbc.queryForObject("select count(*) from deviceint.outbound_message where command_id = ?", Integer.class, c.id());
+        Integer sent = jdbc.queryForObject("select count(*) from deviceint.outbound_message where command_id = ?", Integer.class, c.id());
+        int index = sent == null ? 0 : sent;
         String control = controlId(c.id(), index);
         String er7;
         try {
@@ -253,14 +254,17 @@ public class OutboundService {
         if (sessionId == null && (deviceInstanceId == null || deviceInstanceId.isBlank())) {
             throw ApiException.badRequest("validation_failed", "sessionId or deviceInstanceId is required");
         }
-        String where = sessionId != null ? "session_id = ?" : "device_instance_id = ?";
-        Object arg = sessionId != null ? sessionId : deviceInstanceId;
-        return jdbc.queryForList("""
+        int max = Math.max(1, Math.min(200, limit));
+        return sessionId != null
+                ? jdbc.queryForList(OUTBOUND_COLUMNS + " where session_id = ? order by created_at desc limit ?", sessionId, max)
+                : jdbc.queryForList(OUTBOUND_COLUMNS + " where device_instance_id = ? order by created_at desc limit ?", deviceInstanceId, max);
+    }
+
+    static final String OUTBOUND_COLUMNS = """
                 select id, command_id as "commandId", command_type as "commandType", device_instance_id as "deviceInstanceId", session_id as "sessionId",
                        order_ref as "orderRef", transport, message_type as "messageType", control_id as "controlId", status, ack_code as "ackCode",
                        detail, created_at as "createdAt", updated_at as "updatedAt"
-                  from deviceint.outbound_message where """ + where + " order by created_at desc limit ?", arg, Math.max(1, Math.min(200, limit)));
-    }
+                  from deviceint.outbound_message""";
 
     /** Pending (not yet fetched) commands of a session – shown as QUEUED until the gateway picks them up. */
     public List<Map<String, Object>> pendingForSession(UUID sessionId) {

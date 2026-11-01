@@ -68,6 +68,9 @@ public final class DriverPackageRules {
     /**
      * @param modelOptions catalogue model code → supported options (models missing from the map do not exist)
      */
+    /** P3 pairing values (option pack schema, contract §13.3). */
+    static final java.util.Set<String> P3_PAIRING = java.util.Set.of("LE_SECURE_CONNECTIONS_PASSKEY", "LE_SECURE_CONNECTIONS_NUMERIC", "JUST_WORKS_EXCEPTION");
+
     public static Report validate(Map<String, Object> pkg, Map<String, List<String>> modelOptions) {
         List<Issue> e = new ArrayList<>();
         List<Issue> w = new ArrayList<>();
@@ -124,6 +127,11 @@ public final class DriverPackageRules {
         }
         if (!(pkg.get("protocol") instanceof Map<?, ?>)) {
             e.add(new Issue("protocol", "required", "adapter protocol defaults are required"));
+        }
+        // the package's BLE pairing becomes the wizard default of the P3 schema: it must be one of its values (Just Works only by exception)
+        String pairing = Docs.str(Docs.at(pkg, "protocol.pairing"));
+        if (pairing != null && !P3_PAIRING.contains(pairing)) {
+            e.add(new Issue("protocol.pairing", "enum", "pairing must be LE_SECURE_CONNECTIONS_PASSKEY, LE_SECURE_CONNECTIONS_NUMERIC or JUST_WORKS_EXCEPTION"));
         }
         Map<String, Object> parse = Docs.map(pkg.get("parse"));
         if (!PARSE_TYPES.contains(Docs.str(parse.get("type")))) {

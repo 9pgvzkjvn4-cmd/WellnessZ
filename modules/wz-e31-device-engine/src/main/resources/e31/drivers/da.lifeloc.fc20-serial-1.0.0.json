@@ -20,7 +20,13 @@
    "terminator": "\r\n",
    "endOfFrame": "^SN "
   },
-  "mode": "PUSH"
+  "mode": "PUSH",
+  "startCommand": {
+   "transport": "SERIAL",
+   "encoding": "TEXT",
+   "payload": "START\r\n",
+   "expectPattern": "^(READY|BLOW)"
+  }
  },
  "parse": {
   "type": "REGEX_LINES",
@@ -137,5 +143,10 @@
   }
  ],
  "schema": "wellnessz.device-driver/1",
- "engineCompatibility": ">=1.0 <2.0"
+ "engineCompatibility": ">=1.0 <2.0",
+ "capabilities": {
+  "worklistPush": "NONE",
+  "startFromForm": true,
+  "historicRetrieval": false
+ }
 }

@@ -276,7 +276,8 @@
             "replayWindowSeconds": {"type": "integer", "minimum": 30, "maximum": 300, "default": 300}}},
           "poll": {"type": "object", "properties": {"enabled": {"type": "boolean", "default": false},
             "intervalSeconds": {"type": "integer", "minimum": 60, "maximum": 86400, "default": 300},
-            "rateLimitPerMinute": {"type": "integer", "minimum": 1, "maximum": 6000, "default": 60}}},
+            "rateLimitPerMinute": {"type": "integer", "minimum": 1, "maximum": 6000, "default": 60},
+          "path": {"type": "string", "pattern": "^/[A-Za-z0-9._~/\\-]{0,200}$", "description": "records path below apiBaseUrl (default: the driver package poll.path)"}}},
           "consentMapping": {"type": "object", "properties": {"purpose": {"type": "string", "enum": ["WEARABLE_DATA", "PROGRAMME"]},
             "scopes": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 100}}}},
           "residencyRegion": {"type": "string", "pattern": "^[A-Z]{2,10}$"}

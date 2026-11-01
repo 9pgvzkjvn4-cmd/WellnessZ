@@ -21,6 +21,7 @@ import ca.uhn.hl7v2.model.v25.segment.ORC;
 import ca.uhn.hl7v2.model.v25.segment.PID;
 import ca.uhn.hl7v2.model.v25.segment.PV1;
 import ca.uhn.hl7v2.parser.CanonicalModelClassFactory;
+import ca.uhn.hl7v2.util.idgenerator.InMemoryIDGenerator;
 import ca.uhn.hl7v2.validation.impl.ValidationContextFactory;
 
 /**
@@ -49,6 +50,8 @@ public final class Hl7OutboundBuilder {
     public Hl7OutboundBuilder() {
         this.context = new DefaultHapiContext(new CanonicalModelClassFactory("2.5"));
         this.context.setValidationContext(ValidationContextFactory.noValidation());
+        // control ids come from the engine; HAPI's default file-based id generator would write an id_file into the working directory
+        this.context.getParserConfiguration().setIdGenerator(new InMemoryIDGenerator());
     }
 
     /** @param messageType ORM^O01 | OML^O21 | ADT^A04 | ADT^A08 */

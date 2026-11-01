@@ -99,6 +99,9 @@ public class IngestService {
         String tenant = a.source().tenantCode() == null ? EngineSettings.DEFAULT_TENANT : a.source().tenantCode();
         quota(tenant);
         DeviceCatalogueLookup.DeviceInstance instance = a.source().virtual() ? null : resolve(a, tenant);
+        if (instance != null && !a.testTraffic()) {
+            connectorLimit(tenant, instance.deviceInstanceId());
+        }
         String instanceId = instance != null ? instance.deviceInstanceId() : a.instanceHint();
         String site = instance != null ? instance.siteCode() : a.source().siteCode();
         Instant now = clock.instant();
@@ -154,6 +157,9 @@ public class IngestService {
         String tenant = a.source().tenantCode() == null ? EngineSettings.DEFAULT_TENANT : a.source().tenantCode();
         quota(tenant);
         DeviceCatalogueLookup.DeviceInstance instance = a.source().virtual() ? null : resolve(a, tenant);
+        if (instance != null && !a.testTraffic()) {
+            connectorLimit(tenant, instance.deviceInstanceId());
+        }
         String instanceId = instance != null ? instance.deviceInstanceId() : a.instanceHint();
         Instant now = clock.instant();
         UUID id = UUID.randomUUID();
@@ -189,6 +195,25 @@ public class IngestService {
         Integer limit = jdbc.query("select messages_per_minute from deviceint.tenant_quota where code = ?", rs -> rs.next() ? rs.getInt(1) : null, tenant);
         if (limit != null && limit > 0 && messages.countForTenantSince(tenant, clock.instant().minusSeconds(60)) >= limit) {
             throw new RateLimitedException("Tenant message quota exceeded", 60);
+        }
+    }
+
+    /**
+     * Per-tenant connector limit (E31-HLR-12, {@code tenant_quota.max_connectors}): a device instance the tenant has not used yet is
+     * refused with 429 {@code tenant_connector_limit} once the tenant's connector count reached its limit.
+     */
+    void connectorLimit(String tenant, String deviceInstanceId) {
+        if (DriverRuntime.virtual(deviceInstanceId)) {
+            return;
+        }
+        Integer known = jdbc.queryForObject("select count(*) from deviceint.connector_state where device_instance_id = ?", Integer.class, deviceInstanceId);
+        if (known != null && known > 0) {
+            return;
+        }
+        Integer limit = jdbc.query("select max_connectors from deviceint.tenant_quota where code = ?", rs -> rs.next() ? rs.getInt(1) : null, tenant);
+        Integer used = jdbc.queryForObject("select count(*) from deviceint.connector_state where tenant_code = ?", Integer.class, tenant);
+        if (limit != null && used != null && used >= limit) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "tenant_connector_limit", "The tenant's connector limit is reached");
         }
     }
 

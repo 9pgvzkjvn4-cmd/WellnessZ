@@ -24,6 +24,19 @@ public interface SerialSource extends AutoCloseable {
     @Override
     void close() throws IOException;
 
+    /**
+     * Writes bytes to the device (start-from-form command, E31-BL-019). Sources without a transmit path (the replay simulation)
+     * refuse; a native port implementation writes to the port.
+     */
+    default void write(byte[] bytes) throws IOException {
+        throw new IOException("the serial source has no transmit path");
+    }
+
+    /** {@code true} when {@link #write(byte[])} can reach the device. */
+    default boolean writable() {
+        return false;
+    }
+
     /** Serial-over-TCP client. */
     final class Tcp implements SerialSource {
         private final String host;
@@ -51,6 +64,21 @@ public interface SerialSource extends AutoCloseable {
         @Override
         public boolean finite() {
             return false;
+        }
+
+        @Override
+        public synchronized void write(byte[] bytes) throws IOException {
+            Socket s = socket;
+            if (s == null || s.isClosed()) {
+                throw new IOException("serial terminal server not connected");
+            }
+            s.getOutputStream().write(bytes);
+            s.getOutputStream().flush();
+        }
+
+        @Override
+        public boolean writable() {
+            return true;
         }
 
         @Override

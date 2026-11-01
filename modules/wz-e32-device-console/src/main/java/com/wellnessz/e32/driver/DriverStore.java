@@ -22,7 +22,7 @@ public class DriverStore {
     private static final String COLUMNS = """
             select package_id, version, family, adapter, models, options, engine_range, manifest, sha256, signature_key_id, signature_algorithm,
                    signature_value, status, conformance_run_id, conformance_evidence_sha256, registered_by, registered_at, certified_by, certified_at,
-                   status_changed_by, status_changed_at, status_reason from devicecat.driver_package""";
+                   status_changed_by, status_changed_at, status_reason, tenant_code from devicecat.driver_package""";
 
     private final E32Support support;
 
@@ -34,7 +34,7 @@ public class DriverStore {
                             String engineRange, String manifestJson, String sha256, String signatureKeyId, String signatureAlgorithm,
                             String signatureValue, String status, String conformanceRunId, String conformanceEvidenceSha256, String registeredBy,
                             Instant registeredAt, String certifiedBy, Instant certifiedAt, String statusChangedBy, Instant statusChangedAt,
-                            String statusReason) {
+                            String statusReason, String tenantCode) {
 
         public DriverRow {
             models = List.copyOf(models);
@@ -68,8 +68,14 @@ public class DriverStore {
 
     /** Best package for (model, option): newest CERTIFIED, else (if allowed) newest REGISTERED. */
     public Optional<DriverRow> best(String modelCode, String option, boolean allowRegistered) {
+        return best(modelCode, option, allowRegistered, null);
+    }
+
+    /** As {@link #best(String, String, boolean)}, limited to packages visible to a tenant (shared or its own). */
+    public Optional<DriverRow> best(String modelCode, String option, boolean allowRegistered, java.util.function.Predicate<String> tenantVisible) {
         Comparator<DriverRow> byVersion = (a, b) -> DriverPackageRules.compareVersions(a.version(), b.version());
-        List<DriverRow> candidates = forModel(modelCode).stream().filter(d -> d.options().contains(option)).toList();
+        List<DriverRow> candidates = forModel(modelCode).stream().filter(d -> d.options().contains(option))
+                .filter(d -> tenantVisible == null || tenantVisible.test(d.tenantCode())).toList();
         Optional<DriverRow> certified = candidates.stream().filter(d -> "CERTIFIED".equals(d.status())).max(byVersion);
         if (certified.isPresent() || !allowRegistered) {
             return certified;
@@ -83,17 +89,23 @@ public class DriverStore {
 
     public void insert(Map<String, Object> pkg, String canonical, String sha256, Map<String, Object> signature, String status, String conformanceRunId,
                        String evidenceSha, String actor) {
+        insert(pkg, canonical, sha256, signature, status, conformanceRunId, evidenceSha, actor, null);
+    }
+
+    /** @param tenantCode owning tenant of a tenant-scoped package ({@code null} = shared group catalogue) */
+    public void insert(Map<String, Object> pkg, String canonical, String sha256, Map<String, Object> signature, String status, String conformanceRunId,
+                       String evidenceSha, String actor, String tenantCode) {
         Instant now = support.now();
         support.jdbc().update("""
                 insert into devicecat.driver_package (package_id, version, family, adapter, models, options, engine_range, manifest, sha256,
                     signature_key_id, signature_algorithm, signature_value, status, conformance_run_id, conformance_evidence_sha256, registered_by,
-                    registered_at, certified_by, certified_at)
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    registered_at, certified_by, certified_at, tenant_code)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 Docs.str(pkg.get("packageId")), Docs.str(pkg.get("version")), Docs.str(pkg.get("family")), Docs.str(pkg.get("adapter")),
                 Docs.joinCsv(Docs.strings(pkg.get("models"))), Docs.joinCsv(Docs.strings(pkg.get("options"))), Docs.str(pkg.get("engineCompatibility")),
                 canonical, sha256, Docs.str(signature.get("keyId")), Docs.str(signature.get("algorithm")), Docs.str(signature.get("value")), status,
                 conformanceRunId, evidenceSha, actor, Timestamp.from(now), "CERTIFIED".equals(status) ? actor : null,
-                "CERTIFIED".equals(status) ? Timestamp.from(now) : null);
+                "CERTIFIED".equals(status) ? Timestamp.from(now) : null, tenantCode);
     }
 
     public void certify(DriverRow d, String actor) {
@@ -128,6 +140,6 @@ public class DriverStore {
                 rs.getString("sha256"), rs.getString("signature_key_id"), rs.getString("signature_algorithm"), rs.getString("signature_value"),
                 rs.getString("status"), rs.getString("conformance_run_id"), rs.getString("conformance_evidence_sha256"), rs.getString("registered_by"),
                 inst(rs, "registered_at"), rs.getString("certified_by"), inst(rs, "certified_at"), rs.getString("status_changed_by"),
-                inst(rs, "status_changed_at"), rs.getString("status_reason"));
+                inst(rs, "status_changed_at"), rs.getString("status_reason"), rs.getString("tenant_code"));
     }
 }

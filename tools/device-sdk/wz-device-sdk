@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+# WellnessZ device driver SDK – launcher. Build once: ./mvnw -o -q -pl tools/device-sdk -am -DskipTests install
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+JAR="$DIR/target/wz-device-sdk.jar"
+if [ ! -f "$JAR" ]; then
+  echo "wz-device-sdk.jar not built – run: ./mvnw -o -q -pl tools/device-sdk -am -DskipTests install" >&2
+  exit 2
+fi
+exec java -jar "$JAR" "$@"

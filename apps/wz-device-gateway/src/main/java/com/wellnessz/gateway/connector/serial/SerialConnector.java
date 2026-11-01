@@ -35,6 +35,11 @@ public class SerialConnector extends AbstractConnector {
     private final SerialSource source;
     private final JsonMapper json = JsonMapper.builder().build();
     private Thread worker;
+    private final java.util.List<Waiter> waiters = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    /** A pending device response to a sent command (matched frames are control traffic, not forwarded as readings). */
+    private record Waiter(java.util.regex.Pattern pattern, java.util.concurrent.CompletableFuture<String> reply) {
+    }
 
     public SerialConnector(GatewayProperties.Serial cfg, SerialSource source, IngestSink sink, Clock clock) {
         super(cfg.id(), cfg.deviceInstanceId(), sink, clock);
@@ -71,6 +76,40 @@ public class SerialConnector extends AbstractConnector {
         }
         if (worker != null) {
             worker.interrupt();
+        }
+    }
+
+    /** Whether the connector can transmit to the device (serial-over-TCP or a native port). */
+    public boolean writable() {
+        return source.writable();
+    }
+
+    /**
+     * Sends a command to the device (start-from-form, E31-BL-019) and, when {@code expect} is given, waits up to {@code timeout}
+     * for a frame matching it. Returns the matched frame, {@code ""} when nothing is expected.
+     */
+    public String command(byte[] bytes, java.util.regex.Pattern expect, java.time.Duration timeout) throws IOException {
+        Waiter w = expect == null ? null : new Waiter(expect, new java.util.concurrent.CompletableFuture<>());
+        if (w != null) {
+            waiters.add(w);
+        }
+        try {
+            source.write(bytes);
+            if (w == null) {
+                return "";
+            }
+            return w.reply().get(timeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (java.util.concurrent.TimeoutException e) {
+            throw new IOException("no device response within " + timeout.toSeconds() + " s");
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new IOException("device response failed", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("interrupted", e);
+        } finally {
+            if (w != null) {
+                waiters.remove(w);
+            }
         }
     }
 
@@ -115,6 +154,14 @@ public class SerialConnector extends AbstractConnector {
         while (running && (frame = framer.next()) != null) {
             if (frame.length == 0) {
                 continue;
+            }
+            if (!waiters.isEmpty()) {
+                String text = new String(frame, StandardCharsets.ISO_8859_1).strip();
+                Waiter matched = waiters.stream().filter(x -> x.pattern().matcher(text).find()).findFirst().orElse(null);
+                if (matched != null) {
+                    matched.reply().complete(text);
+                    continue;
+                }
             }
             try {
                 sink.capture(type(), ItemKind.SERIAL, deviceInstanceId, "application/json", Map.of(), body(frame), null);

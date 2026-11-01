@@ -35,7 +35,8 @@ public record GatewayProperties(
         List<Serial> serial,
         @DefaultValue Ble ble,
         List<DicomDrop> dicom,
-        @DefaultValue Worklist worklist) {
+        @DefaultValue Worklist worklist,
+        List<MllpOutbound> mllpOutbound) {
 
     public enum Role { GATEWAY, DEVICE_HOST_AGENT }
 
@@ -53,6 +54,7 @@ public record GatewayProperties(
         dbPollers = dbPollers == null ? List.of() : List.copyOf(dbPollers);
         serial = serial == null ? List.of() : List.copyOf(serial);
         dicom = dicom == null ? List.of() : List.copyOf(dicom);
+        mllpOutbound = mllpOutbound == null ? List.of() : List.copyOf(mllpOutbound);
     }
 
     /** Zero-touch enrolment: the one-time token handed out by the core (§15.2), inline or as a file reference. */
@@ -156,6 +158,22 @@ public record GatewayProperties(
     /** Worklist push (E31-HLR-08): GDT 6302 request files written into the vendor's import folder. */
     public record Worklist(Path gdtFolder, @DefaultValue("WZGW") String gdtSenderId,
                            @DefaultValue("DEVICE") String gdtReceiverId) {
+    }
+
+    /**
+     * Outbound MLLP target of a device that accepts orders / worklists / queries (E31-HLR-08, contract §16.1): orders
+     * ({@code ORM^O01}, {@code OML^O21}), demographics ({@code ADT^A04/A08}), start-from-form and historic queries
+     * ({@code QRY^R02}) are sent only to targets configured here at the edge – the core names the device instance, never a host.
+     * TLS is required unless the target is on loopback or {@code wz.gateway.allow-plaintext-listeners} (segmented device VLAN).
+     */
+    public record MllpOutbound(String id, String deviceInstanceId, String host, int port, @DefaultValue ClientTarget tls,
+                               @DefaultValue("PT10S") Duration ackTimeout, @DefaultValue("PT3S") Duration queryIdleTimeout,
+                               @DefaultValue("500") int maxQueryMessages, @DefaultValue("2097152") int maxMessageBytes) {
+    }
+
+    /** TLS of an outbound connection: trust store of the device certificate (and optionally the gateway's client key). */
+    public record ClientTarget(boolean enabled, String trustStore, String trustStorePassword, @DefaultValue("PKCS12") String trustStoreType,
+                               String keyStore, String keyStorePassword) {
     }
 
     private static String blankToDefault(String value, String fallback) {

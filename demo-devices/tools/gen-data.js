@@ -7,7 +7,7 @@
  * Sources (read-only, from the repository):
  *   modules/wz-e32-device-console/src/main/resources/e32/device-inventory.json   133 catalogue models (client inventory)
  *   modules/wz-e32-device-console/src/main/resources/e32/option-packs.json       P1–P10 option packs (JSON Schema 2020-12)
- *   modules/wz-e31-device-engine/src/main/resources/e31/drivers/*.json            18 driver packages
+ *   modules/wz-e31-device-engine/src/main/resources/e31/drivers/*.json            19 driver packages
  *   modules/wz-e31-device-engine/src/main/resources/e31/golden/**                 golden datasets (real sample payloads)
  *
  * Everything else (people, users, sites, configurations, endpoints, calibration records) is synthetic and defined below.

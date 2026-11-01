@@ -70,6 +70,7 @@ public final class DriverValidator {
         if (pkg.engineCompatibility() != null && !SemVer.satisfies(EngineSettings.ENGINE_VERSION, pkg.engineCompatibility())) {
             errors.add("engineCompatibility: engine " + EngineSettings.ENGINE_VERSION + " is outside " + pkg.engineCompatibility());
         }
+        protocolRules(pkg, errors, warnings);
         int fields = 0;
         int mapped = 0;
         int coded = 0;
@@ -177,6 +178,55 @@ public final class DriverValidator {
     }
 
     /** UCUM unit of E10's breath screen result (e-CCF field in g/210 L). */
+    /** P3 pairing values of the E32 option schema (contract §13.3) – "Just Works" only as a security exception (E34-HLR-04). */
+    public static final Set<String> P3_PAIRING = Set.of("LE_SECURE_CONNECTIONS_PASSKEY", "LE_SECURE_CONNECTIONS_NUMERIC", "JUST_WORKS_EXCEPTION");
+
+    /**
+     * Protocol rules shared with the E32 option packs: BLE pairing must be a P3 schema value; a start command needs
+     * {@code startFromForm} and a SERIAL (payload) or MLLP (order message type) transport; historic retrieval needs a method the
+     * gateway can run.
+     */
+    static void protocolRules(DriverPackage pkg, List<String> errors, List<String> warnings) {
+        tools.jackson.databind.JsonNode p = pkg.protocol();
+        if (p == null) {
+            return;
+        }
+        String pairing = p.path("pairing").asString(null);
+        if (pairing != null && !P3_PAIRING.contains(pairing)) {
+            errors.add("protocol.pairing: " + pairing + " is not a P3 pairing method (LE_SECURE_CONNECTIONS_PASSKEY | LE_SECURE_CONNECTIONS_NUMERIC | "
+                    + "JUST_WORKS_EXCEPTION)");
+        }
+        if ("JUST_WORKS_EXCEPTION".equals(pairing)) {
+            warnings.add("protocol.pairing: Just Works needs a security exception approved by Security Operations for every instance");
+        }
+        tools.jackson.databind.JsonNode start = p.get("startCommand");
+        if (start != null) {
+            String transport = start.path("transport").asString("");
+            if (!pkg.capabilities().startFromForm()) {
+                errors.add("protocol.startCommand: declared without capabilities.startFromForm");
+            }
+            if ("SERIAL".equals(transport)) {
+                String payload = start.path("payload").asString("");
+                if (payload.isEmpty() || payload.length() > 256 || "HEX".equals(start.path("encoding").asString("TEXT")) && !payload.matches("([0-9A-Fa-f]{2})+")) {
+                    errors.add("protocol.startCommand.payload: 1–256 characters (HEX: pairs of hex digits) required");
+                }
+            } else if ("MLLP".equals(transport)) {
+                if (!Set.of("ORM^O01", "OML^O21").contains(start.path("messageType").asString("ORM^O01"))) {
+                    errors.add("protocol.startCommand.messageType: ORM^O01 or OML^O21");
+                }
+            } else {
+                errors.add("protocol.startCommand.transport: SERIAL or MLLP");
+            }
+        }
+        tools.jackson.databind.JsonNode history = p.get("historicQuery");
+        if (history != null && !Set.of("HL7_QUERY", "VENDOR_DB").contains(history.path("method").asString(""))) {
+            errors.add("protocol.historicQuery.method: HL7_QUERY or VENDOR_DB");
+        }
+        if (history != null && !pkg.capabilities().historicRetrieval()) {
+            errors.add("protocol.historicQuery: declared without capabilities.historicRetrieval");
+        }
+    }
+
     public static final String E10_BREATH_UNIT = "g/(210.L)";
 
     /**

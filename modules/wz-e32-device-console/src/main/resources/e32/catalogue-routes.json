@@ -1,0 +1,12 @@
+{
+ "description": "Catalogue-owned integration routes in addition to the options of the client's device inventory (e32/device-inventory.json is kept exactly as the client provided it). A route lets a certified driver serve a model through a vendor system the inventory row names in its connectivity column. The inventory options (and the contract option totals) are unchanged; the wizard and the driver registry accept inventory options plus these routes.",
+ "routes": [
+  {
+   "modelCode": "MD-045",
+   "option": "P2",
+   "via": "GE MUSE v9 / MUSE NX – XML (+ PDF) export folder",
+   "driverPackageId": "ecg.ge.muse-xml",
+   "reason": "The inventory row lists P1 / P4 ('P4 Ethernet/Wi-Fi to MUSE (HL7, XML, DICOM, PDF); P1 serial'): the MAC carts send to the GE MUSE system over P4. The engine reads MUSE's XML export, which from WellnessZ's side is the vendor-software option P2 (driver ecg.ge.muse-xml). The direct P4 route is served by ecg.ge.mac-hl7."
+  }
+ ]
+}

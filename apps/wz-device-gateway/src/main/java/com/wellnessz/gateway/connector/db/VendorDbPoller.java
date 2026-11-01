@@ -166,6 +166,55 @@ public class VendorDbPoller extends AbstractConnector {
         return queued;
     }
 
+    /** One row of a historic retrieval: one-row CSV file, its SHA-256 and the row's watermark. */
+    public record HistoricRow(byte[] content, String sha256, String fileName) {
+    }
+
+    /**
+     * Historic retrieval (E31-HLR-08): runs the connector's read-only query with the watermark bound to {@code from} and keeps the
+     * rows whose watermark lies at or before {@code to}. The persisted high-water mark is not touched; rows already sent by the
+     * regular poll produce the same bytes and therefore the same content hash (the core recognises them as duplicates).
+     */
+    @SuppressFBWarnings(value = {"SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING", "SQL_INJECTION_JDBC"},
+            justification = "Same operator-configured, validated read-only SELECT as poll(); the range bound is a JDBC parameter.")
+    public synchronized java.util.List<HistoricRow> history(java.time.Instant from, java.time.Instant to) throws SQLException, IOException {
+        java.util.List<HistoricRow> out = new java.util.ArrayList<>();
+        try (Connection c = DriverManager.getConnection(cfg.url(), cfg.username(), password())) {
+            c.setReadOnly(true);
+            c.setAutoCommit(false);
+            try (PreparedStatement ps = c.prepareStatement(cfg.query())) {
+                ps.setMaxRows(cfg.maxRows());
+                ps.setTimestamp(1, java.sql.Timestamp.from(from));
+                try (ResultSet rs = ps.executeQuery()) {
+                    ResultSetMetaData md = rs.getMetaData();
+                    StringBuilder header = new StringBuilder();
+                    for (int i = 1; i <= md.getColumnCount(); i++) {
+                        header.append(i > 1 ? "," : "").append(csv(md.getColumnLabel(i)));
+                    }
+                    while (rs.next()) {
+                        java.sql.Timestamp mark = rs.getTimestamp(cfg.watermarkColumn());
+                        if (mark != null && mark.toInstant().isAfter(to)) {
+                            continue;
+                        }
+                        StringBuilder row = new StringBuilder();
+                        for (int i = 1; i <= md.getColumnCount(); i++) {
+                            row.append(i > 1 ? "," : "").append(csv(rs.getString(i)));
+                        }
+                        byte[] content = (header + "\r\n" + row + "\r\n").getBytes(StandardCharsets.UTF_8);
+                        out.add(new HistoricRow(content, Hashes.sha256Hex(content), id + "-" + safe(rs.getString(cfg.watermarkColumn())) + ".csv"));
+                    }
+                }
+            } finally {
+                c.rollback();
+            }
+        }
+        return out;
+    }
+
+    public String sourceHash() {
+        return sourceHash;
+    }
+
     private String password() throws IOException {
         if (cfg.credentialRef() != null && !cfg.credentialRef().isBlank()) {
             return secrets.resolve(cfg.credentialRef());

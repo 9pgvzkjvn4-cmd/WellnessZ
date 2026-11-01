@@ -57,6 +57,10 @@ public final class MockEngine implements AutoCloseable {
     public final ConcurrentLinkedQueue<ObjectNode> pendingCommands = new ConcurrentLinkedQueue<>();
     public final Set<String> validTokens = Collections.synchronizedSet(new LinkedHashSet<>());
     public final AtomicInteger batchCalls = new AtomicInteger();
+    /** Outbound content per command id ({@code GET /device-ingest/commands/{id}/outbound}). */
+    public final Map<String, String> outbound = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Historic result batches ({@code POST /device-ingest/retrievals/{id}/batch}). */
+    public final List<JsonNode> retrievalBatches = new CopyOnWriteArrayList<>();
     public volatile Mode mode = Mode.UP;
     public volatile int enrolFailuresBeforeSuccess;
     public volatile String enrolRefusalCode;
@@ -117,8 +121,28 @@ public final class MockEngine implements AutoCloseable {
                         + "\"instances\":[],\"queue\":{\"maxBytes\":1073741824,\"retentionHours\":72},"
                         + "\"logLevel\":\"INFO\"}");
                 case "/device-ingest/batch" -> batch(ex, headers, body);
+                case "/device-ingest/worklist" -> send(ex, 200, "application/json",
+                        "[{\"orderRef\":\"ORD-1\",\"employeeId\":\"E1001\",\"displayName\":\"Jane Doe\",\"scheduledAt\":\"2026-11-01T09:00:00Z\"}]");
                 default -> {
-                    if (path.startsWith("/device-ingest/commands/")) {
+                    if (path.startsWith("/device-ingest/commands/") && path.endsWith("/outbound")) {
+                        String id = path.substring("/device-ingest/commands/".length(), path.length() - "/outbound".length());
+                        String content = outbound.get(id);
+                        send(ex, content == null ? 404 : 200, "application/json", content == null ? "{\"code\":\"not_found\"}" : content);
+                    } else if (path.startsWith("/device-ingest/retrievals/") && path.endsWith("/batch")) {
+                        JsonNode req = json.readTree(body);
+                        retrievalBatches.add(req);
+                        int n = 0;
+                        int dup = 0;
+                        for (JsonNode item : req.path("items")) {
+                            if (record(pathOf(item.path("kind").asString()), item.path("idempotencyKey").asString(), Map.of(),
+                                    item.path("body").asString().getBytes(StandardCharsets.UTF_8), true)) {
+                                dup++;
+                            } else {
+                                n++;
+                            }
+                        }
+                        send(ex, 200, "application/json", "{\"results\":[],\"retrieval\":{\"accepted\":" + n + ",\"duplicates\":" + dup + "}}");
+                    } else if (path.startsWith("/device-ingest/commands/")) {
                         commandResults.add(path + " " + new String(body, StandardCharsets.UTF_8));
                         send(ex, 204, null, "");
                     } else if (path.startsWith("/device-ingest/")) {

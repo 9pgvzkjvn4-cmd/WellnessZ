@@ -55,4 +55,9 @@ public abstract class AbstractConnector implements Connector {
     public ConnectorStatus status() {
         return new ConnectorStatus(id, type(), deviceInstanceId, state, lastSeenAt, received.get(), errors.get(), detail);
     }
+
+    /** Device instance served by this connector ({@code null} when the messages identify it). */
+    public String deviceInstanceId() {
+        return deviceInstanceId;
+    }
 }

@@ -27,7 +27,7 @@ class BundledPackagesConformanceTest {
     @Test
     void everySamplePackageValidatesWithFullCoverage() {
         BundledDrivers bundled = TestSupport.bundled();
-        assertThat(bundled.all()).hasSize(18);
+        assertThat(bundled.all()).hasSize(19);
         for (DriverPackage p : bundled.all()) {
             DriverValidator.Report r = DriverValidator.validate(p, TestSupport.terminology(), TARGETS, List.of());
             assertThat(r.errors()).as(p.ref()).isEmpty();

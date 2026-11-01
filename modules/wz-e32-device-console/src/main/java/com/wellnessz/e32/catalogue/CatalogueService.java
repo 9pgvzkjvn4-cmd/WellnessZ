@@ -75,10 +75,22 @@ public class CatalogueService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> search(String family, String q, String option, String lifecycle, String posture) {
+        return search(family, q, option, lifecycle, posture, null);
+    }
+
+    /**
+     * Catalogue search; with {@code tenantCode} only the models visible to that tenant (E31-HLR-12: the shared group catalogue unless
+     * the tenant's scope is {@code TENANT}, plus the tenant's own models – never another tenant's).
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> search(String family, String q, String option, String lifecycle, String posture, String tenantCode) {
         support.requireEnabled();
         String needle = q == null ? null : q.toLowerCase(Locale.ROOT);
         List<DriverStore.DriverRow> all = drivers.all();
+        Map<String, String> owners = models.tenantScoped();
+        // without a tenant the group-level view lists every model (device administrators of the group operate all tenants)
         return models.all().stream()
+                .filter(m -> tenantCode == null || support.visible(tenantCode, owners.get(m.modelCode())))
                 .filter(m -> family == null || m.family().name().equals(family))
                 .filter(m -> option == null || m.supports(option))
                 .filter(m -> lifecycle == null || lifecycle.equals(m.lifecycle()))
@@ -127,6 +139,12 @@ public class CatalogueService {
             drv.add(Docs.of("packageId", x.packageId(), "version", x.version(), "status", x.status(), "options", x.options(), "certifiedAt", x.certifiedAt()));
         }
         r.put("drivers", drv);
+        r.put("inventoryOptions", m.options());
+        List<Map<String, Object>> routes = CatalogueRoutes.view(m.modelCode());
+        if (!routes.isEmpty()) {
+            r.put("catalogueRoutes", routes);
+        }
+        r.put("tenantCode", models.tenantOf(m.modelCode()));
         r.put("lifecycle", m.lifecycle());
         r.put("sprint", m.sprint());
         r.put("confidence", m.confidence());
@@ -135,6 +153,20 @@ public class CatalogueService {
         r.put("modifiedFields", m.modifiedFields());
         r.values().removeIf(java.util.Objects::isNull);
         return r;
+    }
+
+    /** Scopes a model to one tenant ({@code null} = back to the shared group catalogue). */
+    @Transactional
+    public Map<String, Object> setTenant(CurrentUser user, String modelCode, String tenantCode) {
+        support.requireEnabled();
+        models.require(modelCode);
+        String tenant = tenantCode == null || tenantCode.isBlank() ? null : support.tenant(tenantCode).code();
+        if (com.wellnessz.casekernel.device.DeviceTenantDirectory.GROUP.equals(tenant)) {
+            tenant = null;
+        }
+        models.setTenant(modelCode, tenant, user.username());
+        support.audit("DEVICE_MODEL_UPDATE", "DEVICE_MODEL", modelCode);
+        return record(models.require(modelCode));
     }
 
     @Transactional(readOnly = true)

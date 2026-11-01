@@ -54,7 +54,7 @@ public class ProtectionController {
                               @NotNull @Size(max = 64) String cidr) {
     }
 
-    public record KeyRequest(@Pattern(regexp = "Ed25519|SHA256withECDSA") String algorithm) {
+    public record KeyRequest(@Pattern(regexp = "Ed25519|SHA256withECDSA") String algorithm, @Pattern(regexp = "[A-Z0-9_]{2,30}") String tenantCode) {
     }
 
     public record SignatureMember(String keyId, String algorithm, String value) {
@@ -158,7 +158,7 @@ public class ProtectionController {
     @PreAuthorize(Spel.SECOPS)
     @ResponseStatus(HttpStatus.CREATED)
     public PackageSignatureService.KeyView rotateKey(@Valid @RequestBody(required = false) KeyRequest r) {
-        return signatures.rotate(users.require().username(), r == null ? null : r.algorithm());
+        return signatures.rotate(users.require().username(), r == null ? null : r.algorithm(), r == null ? null : r.tenantCode());
     }
 
     @PostMapping("/signing-keys/{keyId}/revoke")
@@ -170,7 +170,8 @@ public class ProtectionController {
     /** Signs a driver-package manifest (raw JSON) after the secret scan; returns the {@code signature} member to add. */
     @PostMapping(path = "/packages/sign", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize(Spel.SIGNERS)
-    public SignResult sign(@RequestBody String manifestJson) {
+    public SignResult sign(@RequestBody String manifestJson,
+                           @RequestParam(required = false) @Pattern(regexp = "[A-Z0-9_]{2,30}") String tenantCode) {
         JsonNode manifest = parse(manifestJson);
         List<SecretScanner.Finding> findings = SecretScanner.scan(manifest);
         if (!findings.isEmpty()) {
@@ -178,14 +179,15 @@ public class ProtectionController {
                     "The package contains literal secrets (" + findings.size() + " findings) – use devsec: / vault: references");
         }
         byte[] canonical = Canonicaliser.canonical(manifest);
-        DevicePackageSignatures.Signature s = signatures.sign(users.require().username(), canonical);
+        DevicePackageSignatures.Signature s = signatures.sign(users.require().username(), tenantCode == null ? "GROUP" : tenantCode, canonical);
         return new SignResult(new SignatureMember(s.keyId(), s.algorithm(), s.signatureBase64()), TokenHasher.sha256Hex(canonical));
     }
 
     /** Verifies a signed manifest (its {@code signature} member) – unsigned or tampered packages are reported invalid. */
     @PostMapping(path = "/packages/verify", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize(Spel.VERIFIERS)
-    public VerifyResult verify(@RequestBody String manifestJson) {
+    public VerifyResult verify(@RequestBody String manifestJson,
+                               @RequestParam(required = false) @Pattern(regexp = "[A-Z0-9_]{2,30}") String tenantCode) {
         settings.requireEnabled();
         JsonNode manifest = parse(manifestJson);
         byte[] canonical = Canonicaliser.canonical(manifest);
@@ -196,7 +198,7 @@ public class ProtectionController {
             return new VerifyResult(false, null, null, "signature_missing", sha, findings);
         }
         String keyId = sig.get("keyId").asString();
-        DevicePackageSignatures.Verification v = signatures.verify(canonical, sig.get("value").asString(), keyId);
+        DevicePackageSignatures.Verification v = signatures.verify(canonical, sig.get("value").asString(), keyId, tenantCode == null ? "GROUP" : tenantCode);
         String declared = sig.get("algorithm") == null ? null : sig.get("algorithm").asString();
         if (v.valid() && declared != null && !declared.equals(v.algorithm())) {
             return new VerifyResult(false, keyId, v.algorithm(), "algorithm_not_allowed", sha, findings);

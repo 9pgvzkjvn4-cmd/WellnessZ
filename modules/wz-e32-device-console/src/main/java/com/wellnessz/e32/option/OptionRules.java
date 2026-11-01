@@ -298,7 +298,11 @@ public final class OptionRules {
                 if (!poll.isEmpty()) {
                     putIfPresent(out, "poll.enabled", poll.get("enabled"));
                     putIfPresent(out, "poll.intervalSeconds", poll.get("intervalSeconds"));
+                    putIfPresent(out, "poll.rateLimitPerMinute", poll.get("rateLimitPerMinute"));
+                    putIfPresent(out, "poll.path", poll.get("path"));
                 }
+                // consent-scoped wearables: the package's consent purpose becomes the connector's consent mapping
+                putIfPresent(out, "consentMapping.purpose", protocol.get("consentPurpose"));
             }
             case "P7" -> {
                 if (protocol.get("sopClasses") != null) {

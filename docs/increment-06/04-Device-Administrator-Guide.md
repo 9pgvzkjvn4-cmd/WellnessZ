@@ -180,8 +180,31 @@ The examples use the demo data of the local stack; replace site, station, addres
    residency region equal to the tenant's residency.
 3. Give the vendor the webhook URL `https://<api host>/api/v1/device-webhooks/<DEV id>` and the shared secret through a
    secure channel. Each call must carry an HMAC-SHA256 signature over `timestamp + "." + body`.
-4. *Bind*: `E03.DEVICE_RESULT.FIT_TEST`; gate `FIT_EXERCISES_COMPLETE`. OAuth2 polling of vendor clouds is not available in
-   this release – use webhooks.
+4. *Bind*: `E03.DEVICE_RESULT.FIT_TEST`; gate `FIT_EXERCISES_COMPLETE`.
+5. **Polling instead of (or with) the webhook** (revision 1.1): enable *poll*, set the interval (≥ 60 s) and the rate limit, the
+   OAuth2 token URL, client id and the **client secret** (write-only; the platform asks the vendor's token endpoint with
+   client credentials). Both the API host and the token host must be on `device.cloud.allowed-hosts`, and the residency region
+   must equal the tenant's residency – otherwise the connector shows *Host not on the egress allow-list* or *Residency does not
+   match the tenant* on *Engine health → Vendor cloud connectors (P6)* and makes no outbound call. Records are taken once
+   (high-water mark); for wearables map the consent purpose `WEARABLE_DATA` – readings of employees without that consent are
+   never stored. *Poll now* runs a connector outside its schedule.
+
+### 6.7a Ordering, start from the form and historic results (revision 1.1)
+
+* Devices whose driver declares an HL7 worklist (e.g. GE MAC `ecg.ge.mac-hl7`) receive the day's orders / demographics as
+  ORM^O01 (or OML^O21, ADT^A04 / A08 – P4 parameter `worklist.messageType`) over MLLP. The gateway sends them only to the
+  outbound target configured on the gateway for that device (`wz.gateway.mllp-outbound`); the capture panel shows whether the
+  device accepted or rejected the order.
+* *Start from the form*: drivers with a start command (GE MAC over MLLP, Lifeloc FC20 over a serial terminal server) start the
+  measurement when the nurse opens the capture; other devices get the worklist (GDT 6302) – otherwise the nurse starts on the
+  device.
+* *Engine health → Historic retrieval*: ask a device or data manager for the results of a period (≤ 31 days); results already
+  in the platform are recognised and not stored twice.
+* **GE MAC (MD-045):** the catalogue keeps the client's inventory options P1 / P4 and adds the documented route **P2 – MUSE XML
+  export** (driver `ecg.ge.muse-xml`); the wizard therefore offers P2 for this model, marked as a catalogue route.
+* **BLE pairing:** packages declare LE Secure Connections with passkey. If a model turns out to support only *Just Works*,
+  configure `JUST_WORKS_EXCEPTION` with a Security Operations exception reference (and no bonding requirement).
+* **Tenants:** a configuration can be created for a tenant (`tenantCode`); only models of that tenant's catalogue are offered.
 
 ### 6.8 P7, P8, P9, P10 in brief
 

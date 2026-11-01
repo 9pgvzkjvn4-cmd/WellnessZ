@@ -21,7 +21,7 @@
  "capabilities": {
   "worklistPush": "HL7_ORM",
   "startFromForm": true,
-  "historicRetrieval": false
+  "historicRetrieval": true
  },
  "protocol": {
   "hl7Version": "2.5",
@@ -31,7 +31,24 @@
   "profile": "VENDOR",
   "ackMode": "ORIGINAL",
   "mllpPort": 2576,
-  "tls": "REQUIRED"
+  "tls": "REQUIRED",
+  "worklist": {
+   "messageType": "ORM^O01",
+   "push": "MLLP_OUT"
+  },
+  "worklistFields": [
+   "dateOfBirth",
+   "sex"
+  ],
+  "startCommand": {
+   "transport": "MLLP",
+   "messageType": "ORM^O01"
+  },
+  "historicQuery": {
+   "method": "HL7_QUERY",
+   "messageType": "QRY^R02",
+   "maxResults": 100
+  }
  },
  "parse": {
   "type": "HL7_SEGMENTS",

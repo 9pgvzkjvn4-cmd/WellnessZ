@@ -19,7 +19,7 @@ public final class EndpointPolicy {
 
     /** Ingest resources (first path segment after {@code /api/v1/device-ingest/}) that carry device data. */
     public static final Set<String> DATA_PATHS = Set.of("hl7v2", "fhir", "poct1a", "files", "ble", "serial", "dicomweb", "attachments",
-            "fallback", "batch", "kiosk");
+            "fallback", "batch", "kiosk", "retrievals");
 
     private static final Set<String> CONTROL = Set.of("config", "heartbeat", "commands", "certificate-renewal");
 
@@ -27,12 +27,12 @@ public final class EndpointPolicy {
 
     static {
         ALLOWED.put(EndpointKind.GATEWAY, union(Set.of("hl7v2", "fhir", "poct1a", "files", "ble", "serial", "dicomweb", "attachments",
-                "fallback", "batch", "worklist", "secrets")));
+                "fallback", "batch", "worklist", "secrets", "retrievals")));
         ALLOWED.put(EndpointKind.DEVICE_HOST_AGENT, union(Set.of("hl7v2", "files", "serial", "attachments", "dicomweb", "batch", "worklist",
-                "secrets")));
+                "secrets", "retrievals")));
         ALLOWED.put(EndpointKind.MOBILE_APP, union(Set.of("ble", "fallback", "batch", "attachments", "worklist")));
         ALLOWED.put(EndpointKind.KIOSK, union(Set.of("kiosk", "ble")));
-        ALLOWED.put(EndpointKind.DATA_MANAGER, union(Set.of("hl7v2", "poct1a", "fhir", "attachments", "batch")));
+        ALLOWED.put(EndpointKind.DATA_MANAGER, union(Set.of("hl7v2", "poct1a", "fhir", "attachments", "batch", "retrievals")));
         ALLOWED.put(EndpointKind.DEVICE, union(Set.of("fhir", "hl7v2", "attachments")));
         ALLOWED.put(EndpointKind.VENDOR_CLOUD, Set.of()); // webhooks (HMAC) and OAuth2 pulls only – never the ingest API
     }

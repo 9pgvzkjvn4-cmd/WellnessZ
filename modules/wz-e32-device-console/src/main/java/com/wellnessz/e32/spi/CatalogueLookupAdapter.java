@@ -73,6 +73,24 @@ public class CatalogueLookupAdapter implements DeviceCatalogueLookup {
         return out;
     }
 
+    /** Published instances of one connectivity option (the engine's P6 vendor-cloud poller enumerates its connectors with it). */
+    @Override
+    @Transactional(readOnly = true)
+    public List<DeviceInstance> publishedInstances(DeviceCodes.Option option) {
+        if (option == null || !support.enabled()) {
+            return List.of();
+        }
+        List<DeviceInstance> out = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        for (Configuration c : configurations.latestAll()) {
+            if (c.deviceInstanceId() != null && seen.add(c.deviceInstanceId())) {
+                configurations.live(c.deviceInstanceId()).filter(l -> option.code().equals(l.option()) && Configuration.PUBLISHED.equals(l.status()))
+                        .map(this::toInstance).ifPresent(out::add);
+            }
+        }
+        return out;
+    }
+
     private static boolean dmsDevice(Configuration c, String serial) {
         return Docs.strings(Docs.at(c.parameters(), "dms.deviceIds")).stream().anyMatch(serial::equalsIgnoreCase);
     }

@@ -307,3 +307,37 @@ describe('Embedded capture control', () => {
     await waitFor(() => expect(api.find('GET', '/device-capture/devices?formCode=E03.DEVICE_RESULT.SPIROMETRY')).toHaveLength(1));
   });
 });
+
+describe('Capture from device – outbound order status', () => {
+  const msg = (status: string, ackCode: string | null) => ({ id: 'o1', commandType: 'START_ACQUISITION', deviceInstanceId: 'DEV-000003', orderRef: 'ORD-7001', transport: 'MLLP',
+    messageType: 'ORM^O01', controlId: 'WZ1-0', status, ackCode, createdAt: '2026-11-01T09:00:00Z', updatedAt: '2026-11-01T09:00:01Z' });
+  it('shows the order sent to the device for this session and its acknowledgement – no message content', async () => {
+    const user = userEvent.setup();
+    const listening = { ...baseSession(), contextPush: 'START_ACQUISITION' };
+    const api = mockApi(routes({ 'POST /device-capture/sessions': listening, [`GET ${S}`]: listening,
+      'GET /device-engine/outbound': { messages: [msg('ACKED', 'AA')], pending: [] } }));
+    render(panel(api));
+    await user.click(within(await screen.findByRole('list', { name: 'Devices at this station' })).getByRole('button', { name: 'Start capture' }));
+    expect(await screen.findByText('Accepted by the device')).toBeTruthy();
+    expect(screen.getByText('ORD-7001')).toBeTruthy();
+    expect(api.find('GET', '/device-engine/outbound')[0]!.path).toBe(`/device-engine/outbound?sessionId=${SID}`);
+  });
+  it('a rejected order tells the clinician to start on the device; without a push nothing is fetched', async () => {
+    const user = userEvent.setup();
+    const listening = { ...baseSession(), contextPush: 'PUSH_WORKLIST' };
+    const api = mockApi(routes({ 'POST /device-capture/sessions': listening, [`GET ${S}`]: listening,
+      'GET /device-engine/outbound': { messages: [msg('REJECTED', 'AE')], pending: [] } }));
+    render(panel(api));
+    await user.click(within(await screen.findByRole('list', { name: 'Devices at this station' })).getByRole('button', { name: 'Start capture' }));
+    expect(await screen.findByText('Rejected by the device')).toBeTruthy();
+    expect(screen.getByText(/start the measurement on the device manually/)).toBeTruthy();
+    cleanup();
+    const none = { ...baseSession(), contextPush: 'NONE' };
+    const api2 = mockApi(routes({ 'POST /device-capture/sessions': none, [`GET ${S}`]: none }));
+    render(panel(api2));
+    await user.click(within(await screen.findByRole('list', { name: 'Devices at this station' })).getByRole('button', { name: 'Start capture' }));
+    expect(await screen.findByText('Waiting for the device…')).toBeTruthy();
+    expect(api2.find('GET', '/device-engine/outbound')).toHaveLength(0);
+  });
+});
+

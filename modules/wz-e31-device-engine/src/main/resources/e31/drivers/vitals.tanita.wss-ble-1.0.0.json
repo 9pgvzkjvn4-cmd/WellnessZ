@@ -12,7 +12,7 @@
  "protocol": {
   "service": "0x181D",
   "characteristic": "0x2A9D",
-  "pairing": "LE_SECURE_CONNECTIONS_JUST_WORKS",
+  "pairing": "LE_SECURE_CONNECTIONS_PASSKEY",
   "bonding": "REQUIRED",
   "indications": true
  },

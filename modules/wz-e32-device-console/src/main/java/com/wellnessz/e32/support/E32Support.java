@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import com.wellnessz.casekernel.device.DeviceCodes;
 import com.wellnessz.casekernel.device.DeviceSecurityEventPublisher;
 import com.wellnessz.casekernel.device.DeviceSpis;
+import com.wellnessz.casekernel.device.DeviceTenantDirectory;
 import com.wellnessz.casekernel.module.ModuleRegistry;
 import com.wellnessz.common.error.ApiException;
 import com.wellnessz.notification.Channel;
@@ -103,6 +104,24 @@ public class E32Support {
 
     public String tenantResidency() {
         return tenantResidency;
+    }
+
+    /** Data residency of a tenant from the engine's tenant directory (E31), else the configured default. */
+    public String tenantResidency(String tenantCode) {
+        return spis().tenants().tenant(DeviceTenantDirectory.normalise(tenantCode)).map(DeviceTenantDirectory.Tenant::residencyRegion)
+                .filter(r -> r != null && !r.isBlank()).orElse(tenantResidency);
+    }
+
+    /** A known tenant (E31 {@code /device-engine/tenants}); unknown codes → 400 {@code unknown_tenant}. */
+    public DeviceTenantDirectory.Tenant tenant(String tenantCode) {
+        String code = DeviceTenantDirectory.normalise(tenantCode);
+        return spis().tenants().tenant(code).orElseThrow(() -> ApiException.badRequest("unknown_tenant", "Unknown tenant " + code));
+    }
+
+    /** Whether a catalogue row owned by {@code ownerTenant} ({@code null} = shared) is visible to {@code tenantCode}. */
+    public boolean visible(String tenantCode, String ownerTenant) {
+        String code = DeviceTenantDirectory.normalise(tenantCode);
+        return spis().tenants().tenant(code).map(t -> t.sees(ownerTenant)).orElse(false);
     }
 
     public List<String> cloudAllowedHosts() {

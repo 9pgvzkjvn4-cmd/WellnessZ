@@ -27,6 +27,7 @@ import com.wellnessz.gateway.identity.EnrolmentClient;
 import com.wellnessz.gateway.identity.IdentityStore;
 import com.wellnessz.gateway.ops.CommandProcessor;
 import com.wellnessz.gateway.ops.ConfigService;
+import com.wellnessz.gateway.ops.DeviceCommandService;
 import com.wellnessz.gateway.ops.HardeningCheck;
 import com.wellnessz.gateway.ops.HeartbeatService;
 import com.wellnessz.gateway.ops.RuntimeSettings;
@@ -137,10 +138,16 @@ public class GatewayConfiguration {
     }
 
     @Bean
+    DeviceCommandService deviceCommandService(CoreClient core, WorklistService worklist, GatewayProperties p,
+                                              ConnectorRegistry connectors) {
+        return new DeviceCommandService(core, worklist, p.mllpOutbound(), p.allowPlaintextListeners(), connectors::all);
+    }
+
+    @Bean
     CommandProcessor commandProcessor(CoreClient core, ConfigService config, IdentityStore ids,
                                       EncryptedJournal journal, Forwarder forwarder, WorklistService worklist,
-                                      Clock clock) {
-        return new CommandProcessor(core, config, ids, journal, forwarder, worklist, clock);
+                                      DeviceCommandService devices, Clock clock) {
+        return new CommandProcessor(core, config, ids, journal, forwarder, worklist, devices, clock);
     }
 
     @Bean

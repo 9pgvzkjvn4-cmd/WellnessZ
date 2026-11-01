@@ -21,6 +21,7 @@ import com.wellnessz.casekernel.device.DeviceEquipmentRegister;
 import com.wellnessz.casekernel.support.DeviceCalibrationCheck;
 import com.wellnessz.common.error.ApiException;
 import com.wellnessz.e32.calibration.CalibrationService;
+import com.wellnessz.e32.catalogue.CatalogueRoutes;
 import com.wellnessz.e32.catalogue.ModelStore;
 import com.wellnessz.e32.catalogue.PosturePolicy;
 import com.wellnessz.e32.driver.DriverStore;
@@ -74,7 +75,12 @@ public class ConfigurationService {
 
     // ------------------------------------------------------------------ commands records
 
-    public record CreateCommand(String modelCode, String siteCode, UUID templateId) {
+    /** @param tenantCode tenant of the instance (E31-HLR-12; {@code GROUP} when omitted) – the model must be in its catalogue */
+    public record CreateCommand(String modelCode, String siteCode, UUID templateId, String tenantCode) {
+
+        public CreateCommand(String modelCode, String siteCode, UUID templateId) {
+            this(modelCode, siteCode, templateId, null);
+        }
     }
 
     public record CloneCommand(String siteCode, String stationCode) {
@@ -93,8 +99,15 @@ public class ConfigurationService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> list(String status, String siteCode, String modelCode) {
+        return list(status, siteCode, modelCode, null);
+    }
+
+    /** Configurations, optionally of one tenant only (tenant-scoped configurations, E31-HLR-12). */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> list(String status, String siteCode, String modelCode, String tenantCode) {
         support.requireEnabled();
         return store.latestAll().stream()
+                .filter(c -> tenantCode == null || tenantCode.equals(c.tenantCode()))
                 .filter(c -> status == null || status.equals(c.status()))
                 .filter(c -> siteCode == null || siteCode.equals(c.siteCode()))
                 .filter(c -> modelCode == null || modelCode.equals(c.modelCode()))
@@ -217,8 +230,11 @@ public class ConfigurationService {
 
     private List<Map<String, Object>> comparison(ModelStore.ModelRow m, boolean testSite) {
         List<Map<String, Object>> out = new ArrayList<>();
-        for (String o : m.options()) {
+        for (String o : CatalogueRoutes.offered(m.modelCode(), m.options())) {
             Map<String, Object> row = packs.comparison(o);
+            if (!m.supports(o)) {
+                row.put("catalogueRoute", true); // integration route of the catalogue (vendor system), not an inventory option
+            }
             Optional<DriverStore.DriverRow> d = drivers.best(m.modelCode(), o, true);
             row.put("driverAvailable", d.isPresent());
             d.ifPresent(x -> row.put("driver", Docs.of("packageId", x.packageId(), "version", x.version(), "status", x.status())));
@@ -237,7 +253,9 @@ public class ConfigurationService {
             throw ApiException.badRequest("validation_failed", "modelCode is required");
         }
         requireWriter(user, cmd.siteCode());
+        String tenant = support.tenant(cmd.tenantCode()).code(); // 400 unknown_tenant
         Configuration c = ConfigurationStore.draft(support.nextConfigurationId(), 1, support.nextInstanceId(), cmd.modelCode(), user.username());
+        c.setTenantCode(tenant);
         c.setSiteCode(cmd.siteCode());
         c.setTemplateId(cmd.templateId());
         List<String> warnings = applyStep1(c, Docs.of("modelCode", cmd.modelCode()), user.username());
@@ -335,6 +353,9 @@ public class ConfigurationService {
             if ("BLOCKED".equals(m.posture())) {
                 issues.add(new FieldIssue("modelCode", "posture_blocked", "The model's security posture is blocked and no exception is approved"));
             }
+            if (!support.visible(c.tenantCode(), models.tenantOf(m.modelCode()))) {
+                issues.add(new FieldIssue("modelCode", "model_not_in_tenant_catalogue", "The model is not in the catalogue of tenant " + c.tenantCode()));
+            }
         }
         if (!issues.isEmpty()) {
             throw new FieldIssue.Invalid("step_invalid", "Step 1 is not valid", issues);
@@ -368,10 +389,10 @@ public class ConfigurationService {
         List<FieldIssue> issues = new ArrayList<>();
         boolean testSite = stations.testSite(c.siteCode());
         Optional<DriverStore.DriverRow> driver = Optional.empty();
-        if (option == null || !m.supports(option)) {
+        if (option == null || !CatalogueRoutes.offers(m, option)) {
             issues.add(new FieldIssue("option", "option_not_supported", "The model does not support this connectivity option"));
         } else {
-            driver = drivers.best(m.modelCode(), option, true);
+            driver = drivers.best(m.modelCode(), option, true, owner -> support.visible(c.tenantCode(), owner));
             if (driver.isEmpty()) {
                 issues.add(new FieldIssue("option", "no_driver_for_option", "No registered or certified driver package exists for this model and option"));
             }
@@ -645,7 +666,7 @@ public class ConfigurationService {
             // semantic rules see the secrets as (future) references
             Map<String, Object> probe = Docs.copyMap(params);
             secretsIn.keySet().forEach(k -> Docs.put(probe, k, "devsec:pending"));
-            OptionRules.semantic(option, probe, new OptionRules.Context(support.cloudAllowedHosts(), support.tenantResidency(), c.zone()))
+            OptionRules.semantic(option, probe, new OptionRules.Context(support.cloudAllowedHosts(), support.tenantResidency(c.tenantCode()), c.zone()))
                     .forEach(i -> issues.add(new FieldIssue("parameters." + i.field(), i.code(), i.message())));
         }
         List<FieldIssue> commonSchemaIssues = ParameterValidator.validate(packs.commonSchema(), common);

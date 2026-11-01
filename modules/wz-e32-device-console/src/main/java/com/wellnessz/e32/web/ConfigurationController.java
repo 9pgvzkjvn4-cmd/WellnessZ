@@ -57,8 +57,9 @@ public class ConfigurationController {
     @PreAuthorize(Spel.CONFIG_READ)
     public List<Map<String, Object>> list(@RequestParam(required = false) @Pattern(regexp = Spel.CODE) String status,
                                           @RequestParam(required = false) @Pattern(regexp = Spel.SITE) String siteCode,
-                                          @RequestParam(required = false) @Pattern(regexp = Spel.MODEL_CODE) String modelCode) {
-        return configurations.list(status, siteCode, modelCode);
+                                          @RequestParam(required = false) @Pattern(regexp = Spel.MODEL_CODE) String modelCode,
+                                          @RequestParam(required = false) @Pattern(regexp = "[A-Z0-9_]{2,30}") String tenantCode) {
+        return configurations.list(status, siteCode, modelCode, tenantCode);
     }
 
     @GetMapping("/{id}")

@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -31,14 +32,34 @@ public class CommandProcessor {
     private static final Logger log = LoggerFactory.getLogger(CommandProcessor.class);
     private static final int REMEMBERED = 256;
 
-    /** Result reported to the core. */
-    public record Result(String status, String detail) {
+    /**
+     * Result reported to the core.
+     *
+     * @param acks per-message acknowledgements of outbound messages ({@code controlId}, {@code code}, {@code text?})
+     */
+    public record Result(String status, String detail, List<Map<String, String>> acks) {
+        public Result {
+            acks = acks == null ? List.of() : List.copyOf(acks);
+        }
+
+        public Result(String status, String detail) {
+            this(status, detail, List.of());
+        }
+
         static Result done(String detail) {
             return new Result("DONE", detail);
         }
 
         static Result failed(String detail) {
             return new Result("FAILED", detail);
+        }
+
+        static Result done(String detail, List<Map<String, String>> acks) {
+            return new Result("DONE", detail, acks);
+        }
+
+        static Result failed(String detail, List<Map<String, String>> acks) {
+            return new Result("FAILED", detail, acks);
         }
     }
 
@@ -48,6 +69,7 @@ public class CommandProcessor {
     private final EncryptedJournal journal;
     private final Forwarder forwarder;
     private final WorklistService worklist;
+    private final DeviceCommandService devices;
     private final Clock clock;
     private final JsonMapper json = JsonMapper.builder().build();
     private final Map<String, Result> executed = new LinkedHashMap<>(16, 0.75f, false) {
@@ -61,12 +83,18 @@ public class CommandProcessor {
 
     public CommandProcessor(CoreClient core, ConfigService config, IdentityStore identities, EncryptedJournal journal,
                             Forwarder forwarder, WorklistService worklist, Clock clock) {
+        this(core, config, identities, journal, forwarder, worklist, null, clock);
+    }
+
+    public CommandProcessor(CoreClient core, ConfigService config, IdentityStore identities, EncryptedJournal journal,
+                            Forwarder forwarder, WorklistService worklist, DeviceCommandService devices, Clock clock) {
         this.core = core;
         this.config = config;
         this.identities = identities;
         this.journal = journal;
         this.forwarder = forwarder;
         this.worklist = worklist;
+        this.devices = devices;
         this.clock = clock;
     }
 
@@ -99,11 +127,19 @@ public class CommandProcessor {
                 }
                 case "PUSH_WORKLIST" -> {
                     String date = cmd.path("payload").path("date").asString(null);
-                    int n = worklist.push(cmd.path("deviceInstanceId").asString(null),
-                            date == null ? LocalDate.now(clock.withZone(ZoneOffset.UTC)) : LocalDate.parse(date));
-                    yield Result.done(n + " worklist entries written");
+                    LocalDate day = date == null ? LocalDate.now(clock.withZone(ZoneOffset.UTC)) : LocalDate.parse(date);
+                    String instance = cmd.path("deviceInstanceId").asString(null);
+                    if (devices == null) {
+                        int n = worklist.push(instance, day);
+                        yield Result.done(n + " worklist entries written");
+                    }
+                    yield devices.pushWorklist(cmd.path("commandId").asString(""), instance, day);
                 }
-                case "RESEND_LAST", "START_ACQUISITION" -> Result.failed("not_supported_by_connector");
+                case "START_ACQUISITION" -> devices == null ? Result.failed("not_supported_by_connector")
+                        : devices.startAcquisition(cmd.path("commandId").asString(""), cmd.path("deviceInstanceId").asString(null));
+                case "RETRIEVE_HISTORY" -> devices == null ? Result.failed("not_supported_by_connector")
+                        : devices.retrieveHistory(cmd.path("commandId").asString(""), cmd.path("deviceInstanceId").asString(null));
+                case "RESEND_LAST" -> Result.failed("not_supported_by_connector");
                 default -> Result.failed("unknown_command");
             };
         } catch (IOException | RuntimeException e) {
@@ -125,10 +161,13 @@ public class CommandProcessor {
 
     private void report(String id, Result result) {
         try {
-            Map<String, String> body = new LinkedHashMap<>();
+            Map<String, Object> body = new LinkedHashMap<>();
             body.put("status", result.status());
             if (result.detail() != null) {
                 body.put("detail", result.detail());
+            }
+            if (!result.acks().isEmpty()) {
+                body.put("acks", result.acks());
             }
             core.send("POST", "/device-ingest/commands/" + id + "/result", "application/json", Map.of(),
                     json.writeValueAsString(body).getBytes(StandardCharsets.UTF_8));
