@@ -11,6 +11,9 @@ final class Spel {
     static final String APPROVE = "hasAnyRole('DEVICE_ADMIN','DEVICE_APPROVER','SECURITY_OPS')";
     static final String APPROVER = "hasAnyRole('DEVICE_APPROVER','SECURITY_OPS')";
     static final String NURSE_REVIEW = "hasAnyRole('OH_CLINICIAN','NURSING_HEAD')";
+    /** The secret-free review view: the reviewers plus the console roles that read configurations anyway. */
+    static final String REVIEW_READ = "hasAnyRole('OH_CLINICIAN','NURSING_HEAD','DEVICE_ADMIN','DEVICE_APPROVER','INTEGRATION_TESTER','SECURITY_OPS',"
+            + "'PLATFORM_ADMIN','AUDITOR')";
     static final String ADMIN = "hasRole('DEVICE_ADMIN')";
     static final String TESTER = "hasRole('INTEGRATION_TESTER')";
     static final String DRIVER_CERTIFY = "hasRole('DEVICE_APPROVER')";

@@ -138,6 +138,9 @@ public class ConfigurationService {
         v.put("decommissionRequest", c.data().get("decommissionRequest"));
         v.put("disposal", c.data().get("disposal"));
         v.put("secretsToRebind", c.data().get("secretsToRebind"));
+        // who changed steps 4–6 of this version (with the submitter excluded from approving – four-eyes, enforced on the server)
+        v.put("stepEditors", new ArrayList<>(c.stepEditors()));
+        v.put("stepEditorsByStep", stepEditorsByStep(c));
         v.put("approvedBy", c.approvedBy());
         v.put("coApprovedBy", c.coApprovedBy());
         v.put("approvedAt", c.approvedAt());
@@ -147,6 +150,42 @@ public class ConfigurationService {
         v.put("serial", c.serial());
         v.put("firmware", c.firmware());
         v.put("softwareVersion", c.softwareVersion());
+        v.values().removeIf(java.util.Objects::isNull);
+        return v;
+    }
+
+    /** Last editor of each of steps 4–6 ({@code "4" → username}); steps never edited are omitted. */
+    static Map<String, Object> stepEditorsByStep(Configuration c) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (int n = 4; n <= 6; n++) {
+            Object by = c.step(n).get("updatedBy");
+            if (by != null) {
+                out.put(String.valueOf(n), by);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Read-only view for the OH clinician / nursing head doing the step-6 test-form review (contract §18): the device, station,
+     * forms and bound fields, the test runs and the review – no connectivity parameters, secrets (not even references), endpoint
+     * identity or checklist evidence.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> review(String id) {
+        support.requireEnabled();
+        Configuration c = store.requireLatest(id);
+        Map<String, Object> step5 = Docs.copyMap(Docs.map(c.step(5).get("data")));
+        Map<String, Object> v = Docs.of("configurationId", c.configurationId(), "version", c.version(), "deviceInstanceId", c.deviceInstanceId(),
+                "status", c.status(), "currentStep", c.currentStep(), "modelCode", c.modelCode(), "option", c.option(), "siteCode", c.siteCode(),
+                "stationCode", c.stationCode(), "driverPackageId", c.driverPackageId(), "driverVersion", c.driverVersion(),
+                "formCodes", new ArrayList<>(c.formCodes()), "association", step5, "testStep", Docs.of("status", c.stepStatus(6),
+                        "errors", c.step(6).get("errors")), "tests", Docs.copy(c.tests()), "nurseReview", c.data().get("nurseReview"),
+                "reviewOpen", Configuration.DRAFT.equals(c.status()) && !c.paused() && !c.tests().isEmpty());
+        models.find(c.modelCode()).ifPresent(m -> {
+            v.put("manufacturer", m.manufacturer());
+            v.put("model", m.model());
+        });
         v.values().removeIf(java.util.Objects::isNull);
         return v;
     }

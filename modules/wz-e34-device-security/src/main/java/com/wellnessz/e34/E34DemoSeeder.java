@@ -28,7 +28,9 @@ import com.wellnessz.e34.support.TokenHasher;
  *
  * <p>Demo tokens (documented non-secrets, local stack only): {@code wzdemo-<endpoint id in lower case>-not-a-secret}, e.g.
  * {@code wzdemo-ep-lhr-gw-01-not-a-secret}; demo thumbprint: {@code SHA-256("wellnessz-demo-certificate:" + endpointId)} in hex.
- * The pending endpoint {@code EP-LHR-GW-02} has the one-time enrolment token {@code wzdemo-enrol-ep-lhr-gw-02-not-a-secret}.</p>
+ * The pending endpoint {@code EP-LHR-GW-02} has the one-time enrolment token {@code wzdemo-enrol-ep-lhr-gw-02-not-a-secret}.
+ * {@code EP-DXB-GW-01} is ISOLATED (its device {@code DEV-000008} is QUARANTINED in the console); the kiosk certificate of
+ * {@code EP-LHR-KSK-01} expires in 20 days (certificate-expiry demo).</p>
  */
 @Component
 @Profile({"local", "test"})
@@ -43,8 +45,15 @@ public class E34DemoSeeder {
             new DemoEndpoint("EP-LHR-GW-01", EndpointKind.GATEWAY, "LHR", "GATEWAY_ZONE", List.of("DEV-000003", "DEV-000006"), 365),
             new DemoEndpoint("EP-LHR-AGT-01", EndpointKind.DEVICE_HOST_AGENT, "LHR", "GATEWAY_ZONE", List.of("DEV-000001", "DEV-000002", "DEV-000005"), 365),
             new DemoEndpoint("EP-LHR-TAB-01", EndpointKind.MOBILE_APP, "LHR", "CLINIC_LAN", List.of("DEV-000004"), 365),
-            new DemoEndpoint("EP-LHR-KSK-01", EndpointKind.KIOSK, "LHR", "CLINIC_LAN", List.of(), 365),
-            new DemoEndpoint("EP-DXB-GW-01", EndpointKind.GATEWAY, "DXB", "GATEWAY_ZONE", List.of(), 20));
+            new DemoEndpoint("EP-LHR-KSK-01", EndpointKind.KIOSK, "LHR", "CLINIC_LAN", List.of(), 20),
+            new DemoEndpoint("EP-DXB-GW-01", EndpointKind.GATEWAY, "DXB", "GATEWAY_ZONE", List.of("DEV-000008"), 365));
+
+    /**
+     * The Dubai gateway was isolated by the failed-authentication-burst rule; the console demo shows its vital-signs monitor
+     * {@code DEV-000008} QUARANTINED for the same reason (E32 demo seed), and release waits for re-certification.
+     */
+    public static final String ISOLATED_ENDPOINT = "EP-DXB-GW-01";
+    static final String ISOLATION_REASON = "ANOMALY_FAILED_AUTH_BURST";
 
     public static final String PENDING_ENDPOINT = "EP-LHR-GW-02";
 
@@ -90,6 +99,13 @@ public class E34DemoSeeder {
                             d.id().toLowerCase(Locale.ROOT) + ".demo.local", d.kind() == EndpointKind.DEVICE_HOST_AGENT ? "Windows" : "Linux",
                             d.kind() == EndpointKind.DEVICE_HOST_AGENT ? "10 IoT LTSC" : "Debian 12", "0.6.0", "CIS-L1-2026.1", "PASS", false);
                     jdbc.update("update devicesec.endpoint set status_reason = 'DEMO', created_by = 'demo' where endpoint_id = ?", d.id());
+                    if (ISOLATED_ENDPOINT.equals(d.id())) {
+                        Instant isolated = now.minus(2, ChronoUnit.DAYS);
+                        repo.setStatus(d.id(), EndpointStatus.ISOLATED, ISOLATION_REASON, isolated);
+                        jdbc.update("insert into devicesec.isolation (id, endpoint_id, reason_code, actor, detected_at, isolated_at) values (?,?,?,?,?,?)",
+                                UUID.randomUUID(), d.id(), ISOLATION_REASON, "system:anomaly", EndpointRepository.ts(isolated.minus(4, ChronoUnit.MINUTES)),
+                                EndpointRepository.ts(isolated));
+                    }
                     n++;
                 }
                 if (!repo.exists(PENDING_ENDPOINT)) {

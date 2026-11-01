@@ -618,9 +618,13 @@ class Increment6SecurityIntegrationTest extends IntegrationTestBase {
         mvc.perform(post("/api/v1/device-security/alerts/" + alertId + "/close").with(secops()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"resolution\":\"Baseline re-applied\"}")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CLOSED"));
 
-        // certificate expiry (demo gateway EP-DXB-GW-01 expires in 20 days)
+        // certificate expiry (demo kiosk EP-LHR-KSK-01 expires in 20 days); the isolated demo gateway EP-DXB-GW-01 is not warned
         assertThat(jobs.certificateExpiry()).isGreaterThanOrEqualTo(1);
-        assertThat(count("select count(*) from devicesec.alert where rule_code = 'CERTIFICATE_EXPIRING' and subject_key = 'EP-DXB-GW-01'")).isEqualTo(1);
+        assertThat(count("select count(*) from devicesec.alert where rule_code = 'CERTIFICATE_EXPIRING' and subject_key = 'EP-LHR-KSK-01'")).isEqualTo(1);
+        assertThat(endpointStatus("EP-DXB-GW-01")).isEqualTo("ISOLATED");
+        assertThat(count("select count(*) from devicesec.endpoint_instance where endpoint_id = 'EP-DXB-GW-01' and device_instance_id = 'DEV-000008'"))
+                .isEqualTo(1);
+        assertThat(spis.catalogue().instance("DEV-000008").orElseThrow().status()).isEqualTo("QUARANTINED");
         assertThat(count("select count(*) from platform.notification where template_key = 'device.certificate-expiring'")).isGreaterThanOrEqualTo(1);
 
         // message-rate spike: ceiling lowered to 5 per minute for the demo agent

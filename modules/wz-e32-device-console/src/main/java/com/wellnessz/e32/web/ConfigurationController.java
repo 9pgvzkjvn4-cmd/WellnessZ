@@ -107,6 +107,13 @@ public class ConfigurationController {
         return configurations.runTest(users.require(), id, cmd);
     }
 
+    /** Read-only, secret-free view for the OH reviewer of the step-6 test form (they have no configuration read access). */
+    @GetMapping("/{id}/review")
+    @PreAuthorize(Spel.REVIEW_READ)
+    public Map<String, Object> review(@PathVariable @Pattern(regexp = Spel.CONFIG_ID) String id) {
+        return configurations.review(id);
+    }
+
     @PostMapping("/{id}/steps/6/nurse-review")
     @PreAuthorize(Spel.NURSE_REVIEW)
     public Map<String, Object> nurseReview(@PathVariable @Pattern(regexp = Spel.CONFIG_ID) String id, @RequestBody ConfigurationService.ReviewCommand cmd) {
