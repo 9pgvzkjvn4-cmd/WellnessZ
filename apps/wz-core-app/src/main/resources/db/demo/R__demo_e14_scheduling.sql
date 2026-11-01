@@ -124,9 +124,11 @@ on conflict do nothing;
 insert into scheduling.appointment (id, employee_id, appointment_type, site_code, starts_at, ends_at, status, clinician_username, room_code,
                                     device_id, campaign_id, source_type, telehealth, ticket, checked_in_at, called_at, started_at, completed_at,
                                     booked_by, created_at, updated_at) values
-    -- E1001 (employee1): vaccination at HQ today, 30 minutes after the demo load → app check-in is open
+    -- E1001 (employee1): vaccination at HQ today, 30 minutes after the demo load (never past midnight) → app check-in is open
     ('e14a0000-0000-4000-8000-000000000001', 'E1001', 'VACCINATION', 'HQ-MC',
-     date_trunc('minute', now()) + interval '30 minutes', date_trunc('minute', now()) + interval '40 minutes', 'BOOKED', 'nurse1', 'HQ-VAC',
+     -- clamped to the same calendar day so the 'today' check-in also works when the data is loaded just before midnight
+     least(date_trunc('minute', now()) + interval '30 minutes', date_trunc('day', now()) + interval '23 hours 59 minutes'),
+     least(date_trunc('minute', now()) + interval '40 minutes', date_trunc('day', now()) + interval '23 hours 59 minutes 59 seconds'), 'BOOKED', 'nurse1', 'HQ-VAC',
      null, null, 'MANUAL', false, null, null, null, null, null, 'scheduler1', now() - interval '3 days', now()),
     -- other HQ appointments today
     ('e14a0000-0000-4000-8000-000000000002', 'E1005', 'GENERAL_OH', 'HQ-MC',
