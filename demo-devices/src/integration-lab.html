@@ -96,12 +96,12 @@
     } catch (e) { extra = h`<p class="wz-small wz-muted">Byte view unavailable: ${e.message}</p>`; }
     return h`${extra}`;
   }
-  function resultPanel(res, rawText, d) {
+  function resultPanel(res, rawText, d, opts) {
     if (!res) return UI.empty('No message sent yet', 'Generate a message on the left (or load a golden dataset) and send it through the pipeline.');
     return h`<div data-test="result" data-status="${res.status}"><div class="wz-card-head"><h2 style="margin:0">Pipeline result <code>${res.messageId}</code></h2>${B('message', res.status)}</div>
       ${res.duplicateOf ? UI.alert('warn', 'Duplicate', h`<p>Same endpoint and idempotency key as ${res.duplicateOf} – receipt DUPLICATE, nothing re-processed.</p>`) : ''}
       <p class="wz-small wz-muted">Raw payload SHA-256 (stored before parsing)</p><div class="dx-hash" data-test="raw-sha">${res.sha256}</div>
-      ${DXUI.pipeline(res)}${res.ack ? h`<h3>Acknowledgement returned to the device</h3><pre class="dx-code" data-test="ack">${res.ack.replace(/\r/g, '\n')}</pre>` : ''}${rawView(res, rawText, d)}
+      ${DXUI.pipeline(res, opts)}${res.ack ? h`<h3>Acknowledgement returned to the device</h3><pre class="dx-code" data-test="ack">${res.ack.replace(/\r/g, '\n')}</pre>` : ''}${rawView(res, rawText, d)}
       ${res.unmatchedIds && res.unmatchedIds.length ? h`<p><a href="#/unmatched" data-test="go-unmatched">Open the unmatched queue</a></p>` : ''}${res.deadLetterId ? h`<p><a href="#/dead-letters">Open dead letters (${res.deadLetterId})</a></p>` : ''}
       ${res.status === 'PENDING_VERIFICATION' ? h`<p><a href="#/capture">Open the capture preview</a></p>` : ''}</div>`;
   }
@@ -128,7 +128,7 @@
   function vMessage(p) {
     var m = S().messages.filter(function (x) { return x.id === p.id; })[0]; if (!m) return UI.empty('Message not found', p.id);
     var d = DX.driver(m.packageId, m.driverVersion);
-    return h`<div class="wz-breadcrumb"><a href="#/messages">Message log</a> › ${m.id}</div>${resultPanel({ messageId: m.id, status: m.status, stages: m.trace, sha256: m.sha256, ack: m.ack, duplicateOf: m.duplicateOf }, m.raw, d)}<h3>Raw payload</h3><pre class="dx-code wrap">${m.raw}</pre>`;
+    return h`<div class="wz-breadcrumb"><a href="#/messages">Message log</a> › ${m.id}</div>${resultPanel({ messageId: m.id, status: m.status, stages: m.trace, sha256: m.sha256, ack: m.ack, duplicateOf: m.duplicateOf }, m.raw, d, { open: true })}<h3>Raw payload</h3><pre class="dx-code wrap">${m.raw}</pre>`;
   }
   function readings(o, masked) {
     if (masked) return h`<div class="dx-restricted" data-test="restricted-mask">🔒 Restricted reading – visible to the collector and the MRO only</div>`;

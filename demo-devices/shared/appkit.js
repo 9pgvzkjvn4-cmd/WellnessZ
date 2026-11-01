@@ -46,7 +46,8 @@
     var router = UI.router(o.routes, { default: o.defaultRoute });
     function render(evt) {
       var path = router.current(), m = router.match(path) || router.match(o.defaultRoute);
-      if (evt && evt.type === 'change' && state.dirty) return; // do not wipe a form in progress
+      var ae = document.activeElement;
+      if (evt && (evt.type === 'change' || evt.type === 'sync') && state.dirty && ae && ae.closest && ae.closest('#main form[data-keep]')) return; // do not wipe a form in progress
       var key = m.key, params = m.params; var q = {};
       (path.split('?')[1] || '').split('&').forEach(function (kv) { if (kv) { var p = kv.split('='); q[decodeURIComponent(p[0])] = decodeURIComponent(p[1] || ''); } });
       params.query = q;
@@ -62,13 +63,14 @@
     root.DX.subscribe(function (evt) { render(evt); });
     document.addEventListener('input', function (e) { if (e.target.closest && e.target.closest('form[data-keep]')) state.dirty = true; });
     render();
-    return { render: function () { state.dirty = false; render(); } };
+    state.render = function () { state.dirty = false; render(); };
+    return { render: state.render };
   }
   function clean() { state.dirty = false; }
 
   // ---------------------------------------------------------------- errors on forms
   function attempt(fn, ok, form) {
-    try { var r = fn(); clearErrors(form); if (ok) UI.toast(typeof ok === 'function' ? ok(r) : ok, 'success'); state.dirty = false; return r; }
+    try { var r = fn(); clearErrors(form); if (ok) UI.toast(typeof ok === 'function' ? ok(r) : ok, 'success'); state.dirty = false; if (state.render) state.render(); return r; }
     catch (e) {
       if (form && e.errors) showErrors(form, e.errors);
       UI.toast(e.name === 'DXError' ? e.message : 'Something went wrong: ' + e.message, 'danger');
@@ -173,7 +175,7 @@
       var rec = s.data.records && s.data.records[0];
       return h`<details ${raw(opts.open ? 'open' : '')}><summary>Parsed identity and values</summary>${rec && rec.annotations ? bytes(rec.annotations) : ''}${s.data.hl7 ? h`<div class="wz-small">Segments: ${s.data.hl7.join(' · ')}</div>` : ''}<pre class="dx-code">${JSON.stringify(s.data.records.map(function (r) { return { identity: r.identity, values: r.values }; }), null, 1)}</pre></details>`;
     }
-    if (s.stage === 'NORMALISE') return h`<details ${raw(opts.open ? 'open' : '')}><summary>Canonical components (LOINC / UCUM)</summary>${components(s.data.components)}${s.data.predicted ? h`<p class="wz-small">Predicted (${s.data.predicted.method}): FEV1 ${s.data.predicted.fev1PredictedL} L, FVC ${s.data.predicted.fvcPredictedL} L – age ${s.data.predicted.age}, height ${s.data.predicted.heightCm} cm, sex ${s.data.predicted.sex}</p>` : ''}</details>`;
+    if (s.stage === 'NORMALISE') return h`<details ${raw(opts.openAll ? 'open' : '')}><summary>Canonical components (LOINC / UCUM)</summary>${components(s.data.components)}${s.data.predicted ? h`<p class="wz-small">Predicted (${s.data.predicted.method}): FEV1 ${s.data.predicted.fev1PredictedL} L, FVC ${s.data.predicted.fvcPredictedL} L – age ${s.data.predicted.age}, height ${s.data.predicted.heightCm} cm, sex ${s.data.predicted.sex}</p>` : ''}</details>`;
     if (s.stage === 'ASSOCIATE') return s.data.candidates && s.data.candidates.length ? h`<details><summary>Candidates (${s.data.candidates.length})</summary>${UI.table([{ label: 'Method', key: 'method' }, { label: 'Employee', key: 'employeeId' }, { label: 'Confidence', render: function (c) { return c.confidence.toFixed(2); } }, { label: 'Detail', key: 'detail' }], s.data.candidates)}</details>` : '';
     if (s.stage === 'VALIDATE') return h`<ul class="wz-list">${s.data.map(function (f) { return h`<li data-gate="${f.gate}" data-outcome="${f.outcome}">${badge('gate', f.outcome)} <code>${f.gate}</code>${f.code ? h` <code class="wz-muted">${f.code}</code>` : ''} – ${f.message}</li>`; })}</ul>`;
     if (s.stage === 'ROUTE' && s.data.fields) return h`<div class="wz-small">${Object.keys(s.data.fields).map(function (k) { return k + ' = ' + s.data.fields[k]; }).join(' · ')}</div>`;

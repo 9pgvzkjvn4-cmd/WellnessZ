@@ -38,7 +38,7 @@ window.WZ_DEVICE_SCENARIOS = {
      "user": "deviceadmin1",
      "action": "createConfiguration",
      "action_label": "Find the A&D UA-651BLE in the catalogue and start provisioning",
-     "expected": "A new DRAFT configuration with a fixed device instance id; step 1 valid; the model shows options P1–P3 and the certified driver vitals.and.ua651ble-blp@1.0.0.",
+     "expected": "A new DRAFT configuration with a fixed device instance id; step 1 valid; the model detail shows its only option P3 (Bluetooth LE) and the certified, signed driver vitals.and.ua651ble-blp@1.0.0.",
      "data": {
       "search": "UA-651",
       "modelCode": "MD-037"
@@ -49,7 +49,7 @@ window.WZ_DEVICE_SCENARIOS = {
      "user": "deviceadmin1",
      "action": "saveStep",
      "action_label": "Step 2 – choose P3 Bluetooth LE",
-     "expected": "Only the options the model supports are offered, with security level, reliability and effort; P3 selects the certified driver and generates the prerequisites.",
+     "expected": "Only the options the model supports are offered (here P3), with security level, reliability and effort; P3 selects the certified driver and generates the prerequisites.",
      "data": {
       "step": 2,
       "option": "P3"
@@ -939,7 +939,7 @@ window.WZ_DEVICE_SCENARIOS = {
      "user": "secops1",
      "action": "runIsolationDrill",
      "action_label": "Run the isolation drill on tablet EP-LHR-TAB-01 (message-rate spike)",
-     "expected": "Alert at the first minute above 5 × p95; throttle; playbook isolation 10 minutes after detection (≤ 15-minute SLA); incident DSI-2026-… with evidence hashes; DEV-000004 QUARANTINED.",
+     "expected": "Alert at the first minute above 5 × p95; throttle; playbook isolation 8 minutes after detection (≤ 15-minute SLA); incident DSI-2026-… with evidence hashes; DEV-000004 QUARANTINED.",
      "data": {
       "endpointId": "EP-LHR-TAB-01"
      }
