@@ -56,7 +56,7 @@ class IntiMedCapture extends HTMLElement {
     if (!pendBox) return;
     try {
       const pend = (await api('GET', '/api/capture/pending')).filter(o => !subject || o.subject?.ref === subject);
-      clear(pendBox).append(pend.length ? h('h4', null, 'Waiting for your review') : null, pend.map(o => this.review(o, tpl, subject)));
+      clear(pendBox); if (pend.length) pendBox.append(h('h4', null, 'Waiting for your review'), ...pend.map(o => this.review(o, tpl, subject)));
       const inst = await api('GET', '/api/templates/' + encodeURIComponent(tpl) + '/instances?subject=' + encodeURIComponent(subject));
       clear(filedBox);
       if (inst.length) {
