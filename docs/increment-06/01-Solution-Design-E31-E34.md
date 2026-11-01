@@ -920,7 +920,7 @@ in staging.
 | Production zone CIDRs | SECURITY_OPS | `/device-security/zone-cidrs` – **gateways cannot authenticate before this is done** |
 | IEC 80001-1 responsibility agreement (E34-BL-013) | OH, group IT, Security, vendors | `/device-security/responsibility-agreement` |
 | Independent penetration test and Cyber Review test-pack run in staging (E34-BL-010, -012) | CISO | Go-live readiness gate |
-| 401 vs 403 for endpoint path violations | Engineering lead | At the verified baseline E34's `endpoint_forbidden` reached the device as **401** through the filter while the kernel access-denied handler answered **403**. Rule being implemented at the time of writing: authentication failures **401**, `endpoint_forbidden` (authenticated but path not allowed) **403** – confirm with the regression run |
+| 401 vs 403 for endpoint path violations | Engineering lead | At the verified baseline E34's `endpoint_forbidden` reached the device as **401** through the filter while the kernel access-denied handler answered **403**. **Decided and implemented:** authentication failures **401**, `endpoint_forbidden` (authenticated but path not allowed) **403** – confirmed by the end-to-end regression (increment 6 check 33) |
 | Vendor interface specifications for inventory rows not marked *High* | Procurement, vendors | Wizard prerequisite `INTERFACE_SPEC_CONFIRMED` |
 | Epic renumbering of the strategy pack (proposed E20–E31) | PMO | Document 03, Section 10 |
 
@@ -951,15 +951,16 @@ Document 02 traces every item of the four workbooks. Summary:
 
 | Level | Items | Implemented | Implemented – needs sign-off | Partially | Not in scope (E35) |
 |---|---|---|---|---|---|
-| High-level requirements | 48 | 29 | 5 | 14 | 0 |
-| Features | 46 | 30 | 7 | 9 | 0 |
-| Backlog items | 71 | 31 | 13 | 27 | 0 |
-| **Total** | **165** | **90 (55 %)** | **25 (15 %)** | **50 (30 %)** | **0** |
+| High-level requirements | 48 | 30 | 5 | 13 | 0 |
+| Features | 46 | 31 | 7 | 8 | 0 |
+| Backlog items | 71 | 33 | 13 | 25 | 0 |
+| **Total** | **165** | **94 (57 %)** | **25 (15 %)** | **46 (28 %)** | **0** |
 
 Partial items fall into four groups: **hardware-dependent adapters** not verifiable without devices (native serial / USB,
 BLE radio, DICOM C-STORE / MWL, real vendor exports and data managers, the ≥ 40 certified models target);
-**functions not built** in this increment (OAuth2 cloud polling, outbound HL7 worklists, start-from-form, the native
-tablet app, tenant-scoped catalogues, respirator clearance register, SDK command line, performance and soak tests); **infrastructure and governance work** outside the software (CIS golden images, the
+**functions not built** in this increment (the native tablet app, respirator clearance register, DICOM worklists, TPM
+attestation, performance and soak tests – OAuth2 cloud polling, outbound HL7 orders, start-from-form, historic retrieval,
+tenant scoping and the SDK command line were added in the second build round); **infrastructure and governance work** outside the software (CIS golden images, the
 reference network design validated in two sites, the first staging run of the security test pack, penetration test,
 IEC 80001-1 agreement); and **user studies** (time-and-motion study, WCAG audit, training videos). No item belongs to E35; where an
 acceptance criterion touches E35 (for example horizontal scaling across nodes), the item is reported as partial with that

@@ -241,12 +241,12 @@ Supporting material:
 
 | Check | Result |
 |---|---|
-| Java build & tests (`./mvnw verify`) | 744 tests, 0 failures, 0 errors – adds `Increment6EngineIntegrationTest` (7), `Increment6ConsoleIntegrationTest` (9), `Increment6CaptureIntegrationTest` (12), `Increment6SecurityIntegrationTest` (11), `Increment6EndToEndIntegrationTest` (3), the E31–E34 unit tests and 65 gateway tests; 28 ArchUnit rules (new: earlier modules independent of the device modules, device modules depend only on platform and kernel SPIs, E31 / E32 / E33 / E34 mutually independent) |
+| Java build & tests (`./mvnw verify`) | 790 tests, 0 failures, 0 errors (final regression, 1 November 2026) – adds `Increment6EngineIntegrationTest` (7), `Increment6ConsoleIntegrationTest` (9), `Increment6CaptureIntegrationTest` (12), `Increment6SecurityIntegrationTest` (11), `Increment6EndToEndIntegrationTest` (3), the E31–E34 unit tests and 65 gateway tests; 28 ArchUnit rules (new: earlier modules independent of the device modules, device modules depend only on platform and kernel SPIs, E31 / E32 / E33 / E34 mutually independent) |
 | SAST (SpotBugs + FindSecBugs, `-Psecurity`) | 0 findings; new justified exclusions for the stateless device-ingest chain, XPath from signed driver packages and SHA-1 for UUIDv5 (RFC 9562) |
-| Web apps (`npm run lint && npm test && npm run build`) | Console and security screens 83 tests; totals <WEB TESTS> |
-| End-to-end (`tools/e2e/e2e-increment6.js`) | <E2E> (21 checks planned) |
+| Web apps (`npm run lint && npm test && npm run build`) | 1,531 tests, 0 failures – OH 907, employee 301, manager 192, partner 131 |
+| End-to-end (`tools/e2e/e2e-increment6.js`) | Increment 6 33 / 33; regression increments 1–5 121 / 121 (154 / 154 in total, each on a fresh database); security verification suite 61 / 61; OpenAPI 860 paths |
 | Integration hardening | 10 cross-module defects found when merging the four modules, all fixed and covered by `Increment6EndToEndIntegrationTest` |
-| Not yet exercised / decisions needed | **No real device connected** (no device lab or vendor units – simulators and synthetic golden datasets only); performance and availability targets not load-tested; security test pack and independent penetration test to run in staging; mTLS ingress and zone CIDRs per environment; clinical tables (GLI-2012, OSHA female table), gate rule set, retention classes and DPIA pending sign-off; native serial / USB, BLE radio, DICOM C-STORE / MWL and OAuth2 cloud polling not built; 401 vs 403 for endpoint path violations to be decided; epic renumbering of the strategy pack (PMO) |
+| Not yet exercised / decisions needed | **No real device connected** (no device lab or vendor units – simulators and synthetic golden datasets only); performance and availability targets not load-tested; security test pack and independent penetration test to run in staging; mTLS ingress and zone CIDRs per environment; clinical tables (GLI-2012, OSHA female table), gate rule set, retention classes and DPIA pending sign-off; native serial / USB, BLE radio, DICOM C-STORE / MWL and epic renumbering of the strategy pack (PMO) |
 
 ## Security assessment 2026-10 (summary)
 
