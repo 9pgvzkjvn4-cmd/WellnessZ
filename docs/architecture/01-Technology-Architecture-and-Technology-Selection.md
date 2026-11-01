@@ -1,6 +1,6 @@
 # WellnessZ OHCM – Technology Architecture and Technology Selection
 
-**Version 1.0** – *WellnessZ OHCM platform – increments 1–5*
+**Version 1.0** – *WellnessZ OHCM platform – increments 1–5; increment 6 (Medical Device Integration Engine) in Section 24*
 
 | | |
 |---|---|
@@ -15,6 +15,7 @@
 | **Increment 3 documents** | [Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md) · [Requirements Traceability Matrix](../increment-03/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-03/03-Release-Notes-Increment-3.md) · [API Contract](../increment-03/API-Contract-E06-E07-E14.md) |
 | **Increment 4 documents** | [Solution Design E04/E08](../increment-04/01-Solution-Design-E04-E08.md) · [Requirements Traceability Matrix](../increment-04/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-04/03-Release-Notes-Increment-4.md) · [API Contract](../increment-04/API-Contract-E04-E08.md) |
 | **Increment 5 documents** | [API Contract E09/E10/E11/E12](../increment-05/API-Contract-E09-E10-E11-E12.md) · environment matrix [`deploy/environments/README.md`](../../deploy/environments/README.md) |
+| **Increment 6 documents** | [Solution Design E31–E34](../increment-06/01-Solution-Design-E31-E34.md) · [Requirements Traceability Matrix](../increment-06/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-06/03-Release-Notes-Increment-6.md) · [API Contract](../increment-06/API-Contract-E31-E34.md) · Section 24 (Device Integration Layer, ADR-28…ADR-35) |
 | **Companion documents** | 02 – Security and SOC 2 Control Mapping · 03 – Developer Guide · [04 – Technology Standards Comparison by Layer](04-Technology-Standards-Comparison-by-Layer.md) · [Deployment Architecture](../deployment/Deployment-Architecture.md) |
 
 > **How to read this document.** Every statement about the platform was checked against the source code in the
@@ -2277,6 +2278,14 @@ section.
 | ADR-25 | Client customisation through values, feature-flag environment variables and client SQL migrations in their own schema | Accepted (extension JARs Open – D22) | 5 | chart fork | no fork for configuration and SQL | 14.38 |
 | ADR-26 | OpenTelemetry and Micrometer as the only instrumentation APIs | Accepted | 0 | vendor agents | back end chosen per hosting set-up | 14.35 |
 | ADR-27 | Managed Kubernetes on Azure / GCP, RKE2 / OpenShift with CloudNativePG for hybrid | Accepted (primary hosting Open – D1) | 0 | PaaS runtimes, VMs | same chart and controls on all set-ups | 14.8, document 04 |
+| ADR-28 | Device Integration Layer as four monolith modules plus one edge agent | Accepted (board approval pending) | 6 | separate engine service, commercial engine | kernel SPIs only between device modules | 24.4 |
+| ADR-29 | Plain Spring pipeline on a Postgres work table and outbox (no Camel, Kafka / NATS) | Accepted | 6 | Camel, Kafka / Redpanda, NATS | brokers move to E35; throughput not yet verified | 24.4 |
+| ADR-30 | FHIR R4 as validated JSON in PostgreSQL (no HAPI JPA server) | Accepted | 6 | HAPI JPA, Firely, cloud FHIR | no IG-package validation yet | 24.4 |
+| ADR-31 | DICOMweb JSON + archived instances, gateway drop folder (no C-STORE / MWL SCP) | Accepted (interim) | 6 | dcm4che, Orthanc | C-STORE / MWL later | 24.4 |
+| ADR-32 | One Java edge agent for gateway and Device Host roles (no .NET 8 agent) | Accepted | 6 | .NET 8 worker, appliances | one SBOM and test suite | 24.4 |
+| ADR-33 | Group-PKI certificate bound by thumbprint at enrolment + peppered token; mTLS at the ingress; JDK crypto | Accepted | 6 | step-ca / Vault PKI, Bouncy Castle, OAuth2 only | ingress must strip and set the thumbprint header | 24.4 |
+| ADR-34 | Declarative Ed25519-signed driver packages; Java gate implementations | Accepted | 6 | Drools, JSONata / JOLT, code per model | new models by configuration | 24.4 |
+| ADR-35 | Versioned terminology and clinical tables in `deviceint` | Accepted (clinical verification pending) | 6 | Snowstorm / Ontoserver, online RTMMS | Clinical Governance sign-off | 24.4 |
 
 ## 18. Roadmap of increments
 
@@ -2920,6 +2929,144 @@ database after the earlier scripts.
   `flyway_schema_history_client`; job mode: extra `flyway-client` step; app mode: `ClientMigrationsConfig`),
   `core.extraEnv` / `bff.extraEnv`; per-client values in `deploy/clients/<client>/values.yaml` through
   `EXTRA_VALUES_FILES`. Not implemented: mounting extension JARs into the core image.
+
+## 24. Increment 6 – the Device Integration Layer (E31–E34) on the framework
+
+Increment 6 implements the client's *Device Integration Engine* enhancement pack (solution document v1.0, 31 October 2026)
+as a **Device Integration Layer** below the OH modules: E31 engine, E32 console, E33 module-embedded capture, E34 endpoint
+and integration security, plus the edge application `apps/wz-device-gateway`. E35 (deployment options, Kafka / NATS,
+Kubernetes topologies, cost model) is not part of this increment. Design: [Solution Design E31–E34](../increment-06/01-Solution-Design-E31-E34.md);
+endpoints and rules: [API Contract E31–E34](../increment-06/API-Contract-E31-E34.md); coverage:
+[Requirements Traceability Matrix](../increment-06/02-Requirements-Traceability-Matrix.md); changes and limitations:
+[Release Notes](../increment-06/03-Release-Notes-Increment-6.md). Statements were checked against the code at the increment-6
+baseline (2026-11-01).
+
+### 24.1 Module map
+
+| Layer | Component | Increment-6 content |
+|---|---|---|
+| Device modules (`modules/`) | `wz-e31-device-engine` | Ingest API, pipeline, driver runtime, terminology, association, quality gates, router, FHIR store, raw archive, simulators, operations; schema `deviceint` (V22) |
+| | `wz-e32-device-console` | Catalogue (133-model seed), option packs P1–P10, driver registry, eight-step wizard, calibration / QC, fleet, governance, posture, model requests, diagnostics; schema `devicecat` (V23) |
+| | `wz-e33-device-capture` | Form registry, capture sessions, fallback chain, batch, kiosk, employee summaries, consents; schema `devicecap` (V24) |
+| | `wz-e34-device-security` | Endpoint identity and enrolment, authenticator, zoning, package signatures, secrets, security events, anomaly rules, isolation, governance records; schema `devicesec` (V25) |
+| Routing adapters (in existing modules) | E03 `ResultDeviceSink`, `OrderWorklistSource`, `InterpretationSignOffListener`; E07 `ExposureMeasurementSink`; E10 `BreathAlcoholSink`; E12 `ScreeningResultSink`, `WearableDailySink`; E14 `AppointmentWorklistSource`, `EquipmentRegisterAdapter` | Depend on the kernel only; run the module's own clinical logic |
+| Case kernel | `wz-case-kernel` (`casekernel.device`, `.ingest`) | 15 device SPIs with safe defaults (`DeviceSpis`); `DeviceIngestSecurityConfig` and `DeviceEndpointAuthenticationFilter` – a separate filter chain for machine traffic |
+| Platform | V21 | E03 provenance columns, five proposed retention classes, thresholds; roles `DEVICE_ADMIN`, `DEVICE_APPROVER`, `INTEGRATION_TESTER`, `SECURITY_OPS` + machine role `DEVICE_ENDPOINT`; 13 `device.*` templates; allow-lists `siem-device-security`, `itsm-tickets` |
+| Edge | `apps/wz-device-gateway` (Java 21 / Spring Boot 4.1) | Clinic gateway and Device Host agent roles; encrypted store-and-forward journal; MLLP, POCT1-A, folder, vendor DB, serial, BLE relay, DICOM drop connectors; `deploy/docker/Dockerfile.gateway`, systemd unit, WinSW |
+| Front ends | OH workspace, employee app, manager workspace | Devices console, Security → Devices, engine operations, capture embedded in E03 / E07 / E10 / E12 screens; employee device results, consents, kiosk page; manager fleet counts |
+
+### 24.2 The Device Integration Layer in the architecture
+
+```mermaid
+flowchart TB
+  subgraph OH["OH modules (unchanged logic)"]
+    E03["E03 record"]
+    E07["E07 surveillance"]
+    E10["E10 substance"]
+    E12["E12 promotion"]
+    E14["E14 equipment / scheduling"]
+  end
+  subgraph DIL["Device Integration Layer (increment 6)"]
+    E33["E33 capture (in the forms)"]
+    E31["E31 engine"]
+    E32["E32 console"]
+    E34["E34 endpoint security"]
+  end
+  subgraph EDGE["Edge"]
+    GW["wz-device-gateway (gateway / Device Host agent)"]
+    TAB["Tablets, kiosks"]
+  end
+  DEV["Devices and vendor software (P1-P10)"] --> GW
+  GW -- "mTLS + DeviceToken" --> E34
+  TAB -- "mTLS + DeviceToken" --> E34
+  E34 -- "authenticated" --> E31
+  E31 -- "DeviceObservationSink" --> E03
+  E31 --> E07
+  E31 --> E10
+  E31 --> E12
+  E14 -- "DeviceCalibrationCheck, worklists" --> E31
+  E32 -- "DeviceCatalogueLookup" --> E31
+  E33 -- "DeviceCaptureSessions / Gateway" --> E31
+  E15["E15 enterprise integration (wz-integration)"] -. "enterprise APIs stay here" .- E03
+```
+
+The device modules depend only on the platform and the kernel device SPIs, never on each other or on business modules;
+business modules never depend on them (six new ArchUnit rules, now **28**).
+
+### 24.3 Technology choices for the device layer (with alternatives)
+
+| Concern | Chosen | Alternatives considered | Rationale |
+|---|---|---|---|
+| Engine runtime | Java 21, Spring Boot 4.1 modules in the monolith | Separate engine service; Spring Boot 3 (solution document); Kotlin; .NET 8 workers with NHapi / Firely; Go adapters | One runtime, one audit chain, one security model; the code base is on Boot 4.1 |
+| Routing / pipeline | Plain Spring components, Postgres work table (`for update skip locked`), outbox events | Apache Camel; commercial engines (Rhapsody, InterSystems IRIS); Mirth Connect (commercial since 2025) | The stage contract is small; no extra framework or licence; transactional hand-off with the data |
+| Messaging | Postgres work table + outbox; encrypted journal at the edge | Kafka / Redpanda, NATS JetStream (solution document) | Kafka / NATS bindings are E35; current volumes are within PostgreSQL capacity (not yet load-tested) |
+| HL7 v2 | HAPI `hapi-structures-v25` (generic parser for 2.3–2.6) | NHapi; hand-written parser | Already managed in the root pom; mature |
+| FHIR | HAPI FHIR R4 structures, strict parsing + hand-written PoCD / vital-signs rules; resources as validated JSON in PostgreSQL | HAPI FHIR JPA server; Firely / Medplum / cloud FHIR services | No second database server; `hapi-fhir-validation` not available offline |
+| DICOM | DICOMweb-style JSON metadata + instance archived as raw payload; gateway drop folder | dcm4che / Orthanc SCP; commercial PACS gateway | dcm4che is not on Maven Central; C-STORE / MWL are a later edge capability |
+| Driver model and rules | Declarative JSON packages (`wellnessz.device-driver/1`), Ed25519-signed; Java gate implementations | JSONata / JOLT transforms; Drools / DSL rule engine; code per model | Auditable, testable artefacts; no code per model; small rule set |
+| Terminology and calculations | Versioned tables in `deviceint` (MDC → LOINC / UCUM, GLI-2012, OSHA App. F) | Snowstorm / Ontoserver; RTMMS online | Deterministic and offline; SNOMED CT only where free to use |
+| PKI and identity | Group-PKI client certificates; thumbprint bound at enrolment; JDK `CertPathValidator` / `Signature`; peppered HMAC tokens | step-ca / Vault PKI; Bouncy Castle; OAuth2 client credentials only | No new crypto dependency; EST / SCEP and CRL / OCSP stay with the PKI and ingress |
+| Secrets | `DeviceSecretStore` on wz-secrets field encryption; `vault:` references from a vault agent mount | HashiCorp Vault API; cloud KMS SDKs | Reuse of wz-secrets; vault optional |
+| Edge agent | One Java 21 agent for gateway and Windows / Linux Device Host roles | .NET 8 Windows worker (solution document); vendor appliances; agentless share polling | One code base, SBOM and test suite; cross-platform |
+| Observability | Micrometer meters with PHI-free labels; operations API | OpenTelemetry collector + Grafana dashboards (solution document) | Already in the app; dashboards per deployment option are E35 |
+| Security test pack | Node 18+ and Bash scripts (`tools/device-security/`) | Python / PowerShell scripts (solution document) | No third-party packages; runs on the CI image and on gateways |
+
+### 24.4 Architecture decision records added in increment 6
+
+| ADR | Decision | Status | Increment | Alternatives rejected | Consequence | Reference |
+|---|---|---|---|---|---|---|
+| ADR-28 | Device Integration Layer as four modules of the modular monolith plus one edge agent; module boundaries enforced by ArchUnit | Accepted (architecture board approval pending, E31-BL-001) | 6 | Separate engine service; commercial integration engine in front | Shared transaction, audit and security model; extraction later possible because modules talk only through kernel SPIs | 24.1, 24.2 |
+| ADR-29 | Pipeline as plain Spring components on a Postgres work table and the outbox, not Apache Camel and Kafka / NATS (deviation from solution document §8) | Accepted | 6 | Camel routes; Kafka / Redpanda; NATS JetStream | No broker to operate now; throughput target (50 msg/s) **not yet verified**; broker bindings move to E35 | Solution design §4.6, §13 |
+| ADR-30 | FHIR R4 resources stored as validated JSON in PostgreSQL (`deviceint.fhir_resource`) instead of a HAPI FHIR JPA server; validation = strict HAPI parse + hand-written profile rules | Accepted | 6 | HAPI JPA server; Firely / Medplum; cloud FHIR | No second server; no IG-package validation until `hapi-fhir-validation` is available | Solution design §5.6 |
+| ADR-31 | DICOM via DICOMweb-style JSON metadata and archived instances; gateway drop folder instead of a C-STORE / MWL SCP | Accepted (interim) | 6 | dcm4che / Orthanc SCP | No C-STORE / MWL / Q-R or PACS routing yet (E31-BL-009 partial) | Solution design §9 (P7) |
+| ADR-32 | One Java 21 edge agent (`wz-device-gateway`) for clinic gateway and Device Host agent roles, on Linux and Windows, instead of a .NET 8 Windows worker | Accepted | 6 | .NET 8 worker + signed MSI; separate gateway product | One code base / SBOM / test suite; no native serial / USB / BLE libraries in this increment | Gateway README |
+| ADR-33 | Device identity = group-PKI client certificate bound by thumbprint at zero-touch enrolment (verified with JDK PKIX, proof of possession) **plus** a peppered 256-bit token; mTLS terminated at the ingress, which forwards the SHA-256 thumbprint; no Bouncy Castle | Accepted | 6 | step-ca / Vault PKI inside the platform; OAuth2 client credentials only; mTLS in the application server | Ingress must strip client-supplied thumbprint headers; CRL / OCSP at the ingress / PKI; revocation via endpoint status (no cache) | Solution design §8, §11 |
+| ADR-34 | Device variety in declarative, signed (Ed25519, optional ECDSA P-256), secret-free driver packages; quality gates as Java implementations selected by the package | Accepted | 6 | Drools / DSL; JSONata / JOLT; code per model | New models by configuration; signature verified at registration and load | Solution design §5.2 |
+| ADR-35 | Terminology and clinical calculations (MDC → LOINC / UCUM, GLI-2012, OSHA App. F) as versioned reference tables in `deviceint` | Accepted (clinical verification pending – E31-BL-013) | 6 | Snowstorm / Ontoserver; online RTMMS | Deterministic and offline; tables need Clinical Governance sign-off | Solution design §5.3 |
+
+### 24.5 Main runtime flows
+
+* **Device → record.** Device → gateway (journal, fsync) → mTLS ingress → kernel filter → E34 authenticator → E31 ACQUIRE
+  (raw payload stored) → pipeline → E33 preview → clinician accept → sink in E03 / E07 / E10 / E12 → FHIR final + Provenance.
+* **Provisioning.** E32 wizard → four-eyes certification → publish → `DeviceEndpointProvisioning.provision` (E34) → gateway
+  enrolment → `GatewayConfig` from E31.
+* **Compromise.** E34 anomaly rule → isolation (≤ 15 min) → `DeviceEndpointStatusListener` → E32 quarantines the instances,
+  E31 parks messages, gateway quarantines its queue → re-certification in E32 → release by SECURITY_OPS.
+
+### 24.6 Scheduled jobs added
+
+| Job | Module | Schedule (property) |
+|---|---|---|
+| Pipeline workers, housekeeping, connector alerts, retention | E31 `EngineJobs` | `wellnessz.device.worker.poll-interval-ms` (5 s), `housekeeping-interval-ms` (10 min), `alert-interval-ms` (5 min), `wellnessz.device.retention-cron` (02:40) |
+| Calibration reminders with lockout sweep and fleet health sweep (hourly); posture-exception expiry (daily) | E32 `E32Jobs` | `wellnessz.device.console.hourly-cron` (:07), `daily-cron` (02:17) |
+| Capture-session and kiosk expiry | E33 `CaptureJobs` | `wellnessz.device-capture.expiry-cron` (every 5 min) |
+| Isolation sweep, traffic flush, certificate expiry, retention | E34 `DeviceSecurityJobs` | `wellnessz.device.security.isolation-sweep` (30 s), `traffic-flush` (60 s), `cert-expiry-cron` (03:10), `retention-cron` (03:40) |
+
+### 24.7 Configuration keys added
+
+`modules.e31..e34.enabled`; association thresholds 0.95 / 0.60, session window 900 s, clock skew 120 s, capture timeout
+10 min, unmatched SLA 8 h, OCR confidence 0.90, payload 50 MB, dead-letter attempts 5, isolation SLA 15 min, revocation SLA
+5 min, certificate warning 30 days (V21); `device.cloud.allowed-hosts`, `device.pipeline.inline` (V22); enrolment-token
+hours 72, endpoint-token days 90, token grace 15 min, SOC mailbox (V25); application properties
+`wellnessz.device.ingest.certificate-header` (`WZ_DEVICE_CERT_HEADER`), `wellnessz.device.ingest.require-client-certificate`
+(`WZ_DEVICE_REQUIRE_CLIENT_CERT`), `wellnessz.device.pki.trust-anchors` (`WZ_DEVICE_TRUST_ANCHORS`),
+`wellnessz.device.security.token-pepper` (`WZ_DEVICE_TOKEN_PEPPER`), `wellnessz.device.console.tenant-residency`.
+
+### 24.8 Risks, open items and testing note
+
+| ID | Item | Handling |
+|---|---|---|
+| O39 | Performance targets (5 s p95, 50 msg/s) and availability targets not measured | Performance test and soak (E31-BL-024) before go-live |
+| O40 | No real device tested; native serial / USB, BLE radio, DICOM SCP, OAuth2 polling not built | Device lab and follow-on stories (document 02 §9) |
+| O41 | Clinical tables (GLI-2012, OSHA female table), gate rule set, retention classes, DPIA pending sign-off | Clinical Governance, DPO |
+| O42 | mTLS ingress for `/device-ingest/**` must be built per environment (none in the Helm chart yet) | Setup guides 02–04, increment-6 sections |
+| O43 | Gateway image not built by the container workflow; no Helm chart for edge sites (edge installs by JAR / systemd / WinSW / local image) | E35 / DevSecOps |
+| O44 | 401 vs 403 for endpoint path violations inconsistent | Engineering decision |
+| D25 | Epic renumbering of the strategy pack (its proposed E31 clashes with the client's E31) | PMO |
+
+The five increment-6 integration tests run on the shared integration base; `Increment6EndToEndIntegrationTest` covers the
+chain E32 → E34 → E31 → E33 → E03. Full suite 744 tests, 0 failures; 28 ArchUnit rules; SpotBugs 0. The gateway has its own
+65 tests, including a whole-application test against a mock engine.
 
 ## Appendix A – API surface of the base framework
 
