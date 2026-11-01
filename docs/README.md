@@ -2,12 +2,18 @@
 
 **Version 1.0**
 
-*WellnessZ OHCM platform – increments 1–5*
+*WellnessZ OHCM platform – increments 1–5; increment 6 (Medical Device Integration Engine)*
 
 > **Programme status: increments 1–5 complete.** All five planned increments are delivered: 13 epic modules (E01–E08,
 > E09–E12, E14), 10 platform modules, four web apps (employee app, manager workspace, OH workspace, partner portal), the
 > BFF and 20 Flyway versions. Increment 5 (E09 mental health & peer support, E10 drug & alcohol testing, E11 travel
 > health & communicable disease, E12 health promotion) was the final increment.
+>
+> **Increment 6 – Medical Device Integration Engine (enhancement pack).** Built from the client's *Device Integration
+> Engine* solution document and epic workbooks E31–E34: E31 engine, E32 device console, E33 module-embedded capture,
+> E34 endpoint & integration security, and the new edge application `apps/wz-device-gateway` – now 17 epic modules and
+> 25 Flyway versions. E35 (deployment options of the engine) is not part of increment 6. The client's E31–E34 numbering is
+> authoritative; the strategy pack's proposed E20–E31 (document 42) is to be renumbered by the PMO.
 
 Reading order for review with Cyber GRC, the CIO and the project sponsor. Rendered PDF/DOCX copies are
 generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
@@ -58,6 +64,15 @@ generated into `docs/dist/` (git-ignored) and shipped in the documents bundle.
 | 42 | Epic catalogue and roadmap (E01–E31) and new epic workbooks E20–E31 in the client's format | Product owners, PMO, architects | `strategy/epics/Epic-Catalogue-and-Roadmap.xlsx`, `strategy/epics/E2x_*.xlsx`, `strategy/epics/E3x_*.xlsx`, `strategy/epics/README.md` | – |
 | 43 | Remaining Epics Build Plan (what is left, dependencies to generate code, build order and module scaffold blueprint) | Developers, architects, PMO | `strategy/Remaining-Epics-Build-Plan.md`, `strategy/epics/Remaining-Epics-Dependency-Matrix.xlsx` | – |
 | 44 | Demo Pack – four standalone HTML apps with synthetic data in one shared session, demo guide workbook, recorder | Sales, product, trainers, client stakeholders | `../demo/README.md` (shipped as `WellnessZ-Demo-Pack.zip`) | – |
+| 45 | Increment 6 – Solution Design E31/E32/E33/E34 (architecture v3.0 with the Device Integration Layer, connectivity options P1–P10, zero trust, NFR mapping, deviations) | Architects, CIO, CMO, CISO, DPO, engineering | `increment-06/01-Solution-Design-E31-E34.md` | – |
+| 46 | Increment 6 – Requirements Traceability Matrix | Project sponsor, QA, OH governance, Cyber GRC | `increment-06/02-Requirements-Traceability-Matrix.md` | – |
+| 47 | Increment 6 – Release Notes | All | `increment-06/03-Release-Notes-Increment-6.md` | – |
+| 48 | Increment 6 – API Contract E31/E32/E33/E34 | Engineering, integrators, device vendors | `increment-06/API-Contract-E31-E34.md` | – |
+| 49 | Increment 6 – Device Administrator Guide (catalogue, wizard with worked examples per connectivity option, calibration / QC, fleet, troubleshooting) | Device administrators, approvers, Nursing Heads | `increment-06/04-Device-Administrator-Guide.md` | – |
+| 50 | Increment 6 – Integration Tester Guide (simulators, golden datasets, conformance, dead letters and replay, unmatched queue, security test pack) | Integration testers, QA, Cyber team | `increment-06/05-Integration-Tester-Guide.md` | – |
+| 51 | Device security pack – test plan and rules of engagement, evidence template, control mapping SC-01…SC-16 (IEC 62443, NIST SP 800-53, FDA §524B, IEC 81001-5-1, OWASP, ISO 27001) and the 15-script test pack | CISO, Security Operations, Cyber GRC, auditors | `increment-06/device-security/test-plan.md`, `increment-06/device-security/evidence-template.md`, `increment-06/device-security/control-mapping.csv`, `../tools/device-security/README.md` | – |
+| 52 | Device integration demo pack – demonstration of the device console, capture from device and endpoint security with synthetic data | Sales, product, trainers, client stakeholders | `../demo-devices/` (standalone HTML device console with synthetic devices, scenarios and players – **in progress**; shipped as a separate zip when complete) | – |
+| 53 | Edge gateway and Device Host agent – installation and configuration reference | Infrastructure, device administrators | `../apps/wz-device-gateway/README.md` | – |
 | – | Design brief (contract between components) | Engineering | `00-design-brief.md` | – |
 | – | OpenAPI 3 contract of the core API | Integrators | `api/openapi.json` | – |
 
@@ -93,6 +108,17 @@ the customisation guide; the CI/CD Guide for the DEV → UAT → PROD promotion 
 reviewers, release tagging `vX.Y.Z-rc.N` / `vX.Y.Z`, the checklist for new modules and features (section 10.5) and
 client customisation pipelines (section 10.6); new documents 30–32. Rendered copies in `docs/dist/` must be
 regenerated.
+
+Documents for increment 6 (E31 Medical Device Integration Engine, E32 device console, E33 module-embedded capture, E34
+endpoint & integration security – the Medical Device Integration Engine): the increment-6 solution design, RTM, release notes,
+API contract, device administrator guide, integration tester guide and the device security pack (documents 45–53). Documents
+1–8 gained increment-6 sections: doc 01 Section 24 (Device Integration Layer, technology choices with alternatives,
+ADR-28…ADR-35), doc 02 Section 16 (device security controls SC-01…SC-16 mapped to `control-mapping.csv`, residual risks
+RR44–RR51), doc 03 Section 19 (adding a driver package or device model, the device SPIs, simulators and the test pack), doc 04
+Section 22 (edge gateway placement per setup, device VLAN, zones and conduits, mTLS ingress), setup guide 01 Section 14
+(gateway locally, simulators, dev CA `tools/device/dev-ca.sh`), setup guides 02 / 03 Section 19 and 04 Section 15 (gateway
+enrolment, `WZ_DEVICE_TRUST_ANCHORS`, `WZ_DEVICE_TOKEN_PEPPER`, zone CIDRs, the ingress mTLS header). Rendered copies in
+`docs/dist/` must be regenerated.
 
 Supporting material:
 
@@ -210,6 +236,17 @@ Supporting material:
 | API contract | `api/openapi.json` regenerated – 647 paths (was 509) |
 | Delivery pipeline | DEV → UAT → PROD promotion by signed digest (`cd.yml`, `deploy-env.yml`, `deploy/scripts/helm-release.sh`); every cloud / environment overlay linted and rendered in CI; client customisation hooks (`customisation:` values, `EXTRA_VALUES_FILES`, client Flyway migrations) |
 | Not yet exercised / decisions needed | Increment-5 changes and the promotion workflows on real AKS / GKE / hybrid environments; GitHub Environments' required reviewers (repository setting – cannot be set from code); MFA enrolment in the production IdP; real EAP, toxicology LIMS, campaign app, wearable, public-health submission and SMS connectors (simulated / default); Clinical Governance / MRO / Legal sign-off of screening instruments, cut-offs, testing policies, travel recommendations and PEP timers; MRO access to `RESTRICTED_CLINICAL` documents through the generic `/documents` API (follow-up); feature flags `WZ_FEATURE_*` are plumbing only; mounting client extension JARs is not implemented; whether to commit `.devcontainer/` at the repository root |
+
+## Verification summary (increment 6 – E31, E32, E33, E34)
+
+| Check | Result |
+|---|---|
+| Java build & tests (`./mvnw verify`) | 744 tests, 0 failures, 0 errors – adds `Increment6EngineIntegrationTest` (7), `Increment6ConsoleIntegrationTest` (9), `Increment6CaptureIntegrationTest` (12), `Increment6SecurityIntegrationTest` (11), `Increment6EndToEndIntegrationTest` (3), the E31–E34 unit tests and 65 gateway tests; 28 ArchUnit rules (new: earlier modules independent of the device modules, device modules depend only on platform and kernel SPIs, E31 / E32 / E33 / E34 mutually independent) |
+| SAST (SpotBugs + FindSecBugs, `-Psecurity`) | 0 findings; new justified exclusions for the stateless device-ingest chain, XPath from signed driver packages and SHA-1 for UUIDv5 (RFC 9562) |
+| Web apps (`npm run lint && npm test && npm run build`) | Console and security screens 83 tests; totals <WEB TESTS> |
+| End-to-end (`tools/e2e/e2e-increment6.js`) | <E2E> (21 checks planned) |
+| Integration hardening | 10 cross-module defects found when merging the four modules, all fixed and covered by `Increment6EndToEndIntegrationTest` |
+| Not yet exercised / decisions needed | **No real device connected** (no device lab or vendor units – simulators and synthetic golden datasets only); performance and availability targets not load-tested; security test pack and independent penetration test to run in staging; mTLS ingress and zone CIDRs per environment; clinical tables (GLI-2012, OSHA female table), gate rule set, retention classes and DPIA pending sign-off; native serial / USB, BLE radio, DICOM C-STORE / MWL and OAuth2 cloud polling not built; 401 vs 403 for endpoint path violations to be decided; epic renumbering of the strategy pack (PMO) |
 
 ## Security assessment 2026-10 (summary)
 

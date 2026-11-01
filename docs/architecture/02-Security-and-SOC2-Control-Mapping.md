@@ -1,6 +1,6 @@
 # WellnessZ OHCM – Security and SOC 2 Control Mapping
 
-**Version 1.0** – *WellnessZ OHCM platform – increments 1–5*
+**Version 1.0** – *WellnessZ OHCM platform – increments 1–5; increment 6 (Medical Device Integration Engine) in Section 16*
 
 | | |
 |---|---|
@@ -9,6 +9,7 @@
 | **System** | WellnessZ Airline Occupational Health Case Management (OHCM) – complete platform (13 business modules, 10 platform modules, BFF, four web front ends) |
 | **Audience** | Cyber GRC team, CISO, internal audit, Data Protection Officer, CIO |
 | **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`; updated for **increment 1** (E01, E02 – Section 11), **increment 2** (E03, E05 – Section 12), **increment 3** (E06, E07, E14 – Section 13), **increment 4** (E04, E08, partner portal – Section 14) and **increment 5** (E09, E10, E11, E12, restricted classes, DEV / UAT / PROD promotion, client customisation – Section 15) |
+| **Increment 6 documents** | [Solution Design E31–E34](../increment-06/01-Solution-Design-E31-E34.md) · [RTM](../increment-06/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-06/03-Release-Notes-Increment-6.md) · [Device security pack](../increment-06/device-security/) (test plan, evidence template, `control-mapping.csv`) · Section 16 |
 | **Increment 5 documents** | [API Contract E09/E10/E11/E12](../increment-05/API-Contract-E09-E10-E11-E12.md) · [Environment matrix](../../deploy/environments/README.md) |
 | **Companion documents** | 01 – Technology Architecture and Technology Selection · 03 – Developer Guide · [04 – Technology Standards Comparison by Layer](04-Technology-Standards-Comparison-by-Layer.md) |
 | **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
@@ -1542,3 +1543,85 @@ flowchart LR
 | RR41 | GitHub Environment protection not configured; pipeline not yet run on real clouds | Tag policy, signature verification and digests enforced by the workflows | Configure protection (doc 01, O33); first DEV / UAT deployment as acceptance test |
 | RR42 | Category of restricted kernel cases visible to database readers | Content encrypted; DBA access IdP-authenticated and audited; API exposes a count only | Encrypt the category of restricted rows (doc 01, R28) |
 | RR43 | E09 / E11 / E12 do not enforce `modules.eXX.enabled` (E10 does) | Modules deployed together | `requireEnabled` (doc 01, O17 / O36) |
+
+## 16. Increment 6 – device security controls (E34) and the Medical Device Integration Engine
+
+Increment 6 adds `modules/wz-e31-device-engine` (schema `deviceint`), `modules/wz-e32-device-console` (`devicecat`),
+`modules/wz-e33-device-capture` (`devicecap`), `modules/wz-e34-device-security` (`devicesec`), the platform migration V21
+(E03 provenance columns, five proposed device retention classes, thresholds), a separate device-ingest security filter chain,
+four console roles and the machine role `DEVICE_ENDPOINT`, the outbound destinations `siem-device-security` and
+`itsm-tickets`, and the edge application `apps/wz-device-gateway`. Design and evidence:
+[Solution Design E31–E34](../increment-06/01-Solution-Design-E31-E34.md) §8, §11; traceability:
+[RTM](../increment-06/02-Requirements-Traceability-Matrix.md) §7; controls matrix:
+[`docs/increment-06/device-security/control-mapping.csv`](../increment-06/device-security/control-mapping.csv); test plan and
+evidence template in the same folder; scripts in `tools/device-security/`. Statements were checked against the code at the
+increment-6 baseline (2026-11-01).
+
+### 16.1 Device security controls SC-01 … SC-16
+
+The control ids, titles, scripts and framework references are those of `control-mapping.csv` (columns `iec62443`,
+`nist_800_53`, `fda`, `iec81001_5_1`, `owasp`, `iso27001`). The table adds how each control is implemented in the code, the
+automated verification in the build, and its status.
+
+| Control | Title (CSV) | Implementation | Automated verification | Pack script(s) | Frameworks (CSV, abbreviated) | Status |
+|---|---|---|---|---|---|---|
+| SC-01 | Unique endpoint identity and mTLS; plaintext refused | `EndpointService`, `EnrolmentService`, `CertificateVerifier` (PKIX, `clientAuth`, proof of possession), `TokenHasher` (peppered HMAC, constant time), kernel filter (`mtls_required`), `EndpointAuthenticatorService` (no cache) | `Increment6SecurityIntegrationTest.endpointIdentityEnrolmentAndFailClosedAuthentication`, `EndpointAuthenticatorServiceTest`, `DeviceEndpointAuthenticationFilterTest`, `CryptoPrimitivesTest`, gateway `EnrolmentClientTest` | 02, 03 | 62443-3-3 SR 1.2/1.8/4.1; NIST IA-3, IA-5(2), SC-8, SC-23; FDA §524B(b)(2); 81001-5-1 §5.3/§5.7; ASVS V9, API2; ISO A.8.5, A.8.24 | Implemented – mTLS is terminated at the ingress, which must be configured per environment |
+| SC-02 | Device VLAN segmentation, deny-by-default conduits | `ZoneService`, `EndpointPolicy` (gateway-zone CIDRs, no direct `DEVICE` identity in `DEVICE_VLAN`), 5 zones, 9 conduits, CSV / JSON firewall export | `Increment6SecurityIntegrationTest.zoningPoliciesAndConduitExport`, `EndpointPolicyTest` | 01 | 62443-3-2 zones / conduits, 3-3 SR 5.1/5.2; NIST SC-7, AC-4; SP 800-207 | Implemented in software; **reference network design approval and site validation pending** (E34-BL-002); production CIDRs to be configured by SECURITY_OPS |
+| SC-03 | Hardened gateway and Device Host images | Gateway `HardeningCheck` findings in every heartbeat → `HARDENING_DRIFT`; systemd unit hardening; non-root container (uid 10001); management port on loopback (`LoopbackOnlyFilter`) | `GatewayIntegrationTest.statusPageIsServedOnLocalhostWithoutPhi`, `heartbeatReportsStateAndExecutesRotateTokenCommand`; `AnomalyRulesTest` | 05, 05b | 62443-3-3 SR 7.6/7.7; NIST CM-6, CM-7, SI-2/3/4; ISO A.8.8, A.8.9 | **Partially** – CIS golden images, disk encryption, secure boot, EDR, patching are infrastructure not built |
+| SC-04 | BLE LE Secure Connections / bonding; USB VID/PID allow-list | P3 option rules (LE Secure Connections; Just Works only with an exception reference); BLE relay with salted MAC hash and allow-list; P1 schema field `usbAllowList` | `OptionPacksTest.bluetoothPairingMllpTlsAndPoctQc`, `serialFramingAndUsbAllowList`; gateway `ConnectorsTest.bleRawMacAddressIsReplacedByItsSaltedHashBeforeQueuing`, `bleAllowListAndValidationAreEnforced` | 06, 05 | 62443-3-3 SR 1.1/2.3; NIST AC-18, AC-19, MP-7; ISO A.8.1, A.7.10 | **Partially** – no BLE radio or native USB in the agent; pairing and USB policy must be enforced by the OS image |
+| SC-05 | Secrets in vault / KMS; none in configs or packages | `SecretStoreService` (write-only, `devsec:` field-encrypted or `vault:` agent mount; resolution audited with purpose), `SecretScanner` (console import, driver validation, pack); gitleaks in CI | `Increment6SecurityIntegrationTest.connectorSecretsAreNeverReturned`, `SecretScannerAndPoliciesTest`, `DriverPackageTest.validatorFindsSecretsUnmappedFieldsUnknownGatesAndMissingVectors`, `Increment6ConsoleIntegrationTest.pausedDraftResumesSecretsAreReferencesAndTheEnrolmentTokenIsShownOnce` | 08 | 62443-3-3 SR 1.5/4.3; NIST IA-5, SC-12, SC-28; ASVS V6.4, API8; ISO A.5.17, A.8.24 | Implemented |
+| SC-06 | Secure life-cycle: SBOM, vulnerability thresholds, signed artefacts | CI: SpotBugs / FindSecBugs, CycloneDX SBOM, gitleaks, signed images; Ed25519 package signatures (`PackageSignatureService`, key rotation / revocation); `/device-security/sdlc` (due dates 7 / 30 days) | `Increment6SecurityIntegrationTest.driverPackageSignaturesAndKeyRotation`, `Increment6EndToEndIntegrationTest.signingKeyRevokedInE34RevokesItsPackagesInTheE32Registry`, `CryptoPrimitivesTest.ed25519AndEcdsaSignaturesDetectTampering` | 07 | 62443-4-1; NIST SA-8, SA-11, SR-3/4/11, RA-5; FDA §524B(b)(1)/(b)(3); 81001-5-1 §5–§8 | **Partially** – DAST not in CI; threat-model documents to be written |
+| SC-07 | Vendor posture gate (MDS2 / SBOM), isolation of legacy PCs | E32 `PosturePolicy` (blocks unsupported OS, no patch path, direct remote access, missing MDS2), exceptions approved by SECURITY_OPS only, compensating-control register | `PosturePolicyTest`, `Increment6ConsoleIntegrationTest.blockedPostureNeedsASecurityApprovedExceptionAndModelRequestsAreTracked` | 12, 01 | 62443-2-4; NIST SR-6, SA-9, SA-4(10); ISO A.5.19–A.5.21 | Implemented |
+| SC-08 | Tamper-evident audit, SIEM forwarding, PHI masking | `SecurityEventService` / `SecurityEventChain` (SHA-256 chain, append-only table with trigger, allow-listed attributes), outbox `siem-device-security`, `/events/verify`; platform audit for person-level reads; `TraceMasker`, `Masking` | `Increment6SecurityIntegrationTest.eventChainSiemAndItsmAllowLists`, `SecurityEventChainTest`, `TraceMaskerTest`, `SupportTest.masksValuesButKeepsStructure` | 09 | 62443-3-3 SR 2.8/2.9/3.9/6.1; NIST AU-2/3/9/10/12; ISO A.8.15, A.8.16 | Implemented – SIEM parser acceptance by Security Operations pending |
+| SC-09 | Anomaly detection and compromise playbook (isolation < 15 min) | `AnomalyEngine` (15 rules), `TrafficMonitor`, `AlertService`, `IncidentService`; isolation sweep every 30 s; gateway `ISOLATE` command; release only after re-certification | `Increment6SecurityIntegrationTest.failedAuthBurstIsolatesWithinSlaAndReleaseNeedsRecertification`, `anomalyRulesAlertsAndEngineEvents`, `Increment6EndToEndIntegrationTest.e34IsolationMakesE32QuarantineTheDeviceAndE31AndE33RefuseIt`, `AnomalyRulesTest`, `TrafficMonitorTest` | 14 | 62443-3-3 SR 6.2, 5.1; NIST IR-4/5, SI-4; ISO A.5.24, A.5.26 | Implemented – tabletop drill with Security Operations outstanding |
+| SC-10 | Encryption at rest (DB, object storage, queues, backups) | Raw payloads AES-GCM per object; FHIR JSON, OCR photos, secrets and signing keys field-encrypted; gateway journal AES-256-GCM | `EncryptedJournalTest.recordsAreEncryptedAtRestAndAssignedIdempotencyKeys`, `wrongKeyCannotReadTheQueue`; `Increment6SecurityIntegrationTest.connectorSecretsAreNeverReturned` | 10 | 62443-3-3 SR 4.1; NIST SC-28, SC-13; ISO A.8.24 | Implemented (disk / backup encryption per environment) |
+| SC-11 | API authentication / authorisation, tenant isolation, object-level checks | Separate device filter chain (person tokens refused on device paths, device tokens elsewhere); ABAC on device observations; restricted categories; console roles without person data; tenant binding of endpoints | `Increment6EngineIntegrationTest.unknownDeviceTenantIsolationAndAuthorisationRules`, `Increment6CaptureIntegrationTest.restrictedBreathAlcoholVisibility`, `VerificationRuleTest`, `EndpointPolicyTest.pathsAreAllowedPerEndpointType` | 04, 11 | 62443-3-3 SR 2.1; NIST AC-3, AC-6, IA-2, SI-10; API1/2/5; ISO A.8.3, A.8.26 | Implemented |
+| SC-12 | Robustness against malformed device messages | Strict parsers, size limits (50 MB, MLLP frame limit), `SafeXml` (external entities refused), deterministic dead-lettering, AE / AR semantics | `ParsersTest.xmlParserRefusesExternalEntities`, `hl7AcknowledgementsAaAeAr`; gateway `MllpFramingTest.oversizedFrameIsRejected`, `localAckEchoesControlIdAndCannotBeUsedForSegmentInjection`; `BundledPackagesConformanceTest` (malformed datasets) | 03 | 62443-4-1 SVV-3; NIST SI-10, SC-5; 81001-5-1 §5.7.3; ASVS V5.1 | Implemented – fuzzing in staging with script 03 outstanding |
+| SC-13 | Rate limiting and quotas per connector / tenant | Per-endpoint integration budget, `MESSAGE_RATE_SPIKE` throttling, webhook 600 / min, tenant quotas (`/device-engine/tenants`, 429), enrolment throttle 10 / 15 min | `TrafficMonitorTest`, `EndpointAuthenticatorServiceTest.throttledEndpointsAreRefused`, `SecretScannerAndPoliciesTest.enrolmentThrottleAllowsTenAttemptsPerFifteenMinutes` | 14 | 62443-3-3 SR 7.1; NIST SC-5, SC-6; API4 | Implemented |
+| SC-14 | Time synchronisation and certificate life-cycle | Clock-skew gate and correction; gateway NTP offset in the heartbeat; certificate validity checked per request; `CERTIFICATE_EXPIRING` 30 days ahead; renewal endpoint `/device-ingest/certificate-renewal` | `NormaliserTest.clockSkewCorrection`, `GatesTest.clockSkewConsentAttestationOcrAndVerifyBeforePost`, `EndpointAuthenticatorServiceTest.thumbprintMustMatchTheBoundValidCertificate` | 13 | 62443-3-3 SR 2.11; NIST AU-8, SC-17, IA-5(2); ISO A.8.17 | Implemented – gateway certificate renewal not automated |
+| SC-15 | Privacy by design | BLE address hashing, minimised worklist, consent gates (`WEARABLE_DATA`, `KIOSK_SELF_MEASUREMENT`), retention classes and jobs, PHI-free labels and events, synthetic test data, DPIA record | `Increment6CaptureIntegrationTest.employeeWearableConsentGrantAndRevoke`, `kioskSelfMeasurementWithBadgeAndConsent`, `Increment6EngineIntegrationTest.fhirWearableConsentGateAndPoct1aAcknowledgement`, `TraceMaskerTest` | 08 | NIST PT-2/3, SI-12; ISO A.5.34, ISO 27701; 81001-5-1 §4.1.6 | Implemented – **DPIA and retention classes pending DPO approval** |
+| SC-16 | Independent penetration test and IEC 80001-1 agreement before go-live | Findings register, responsibility-agreement record, go-live readiness gate (`/device-security/go-live-readiness`), `15_report_builder.mjs` consolidation | `Increment6SecurityIntegrationTest.governanceRecordsAndGoLiveReadiness` | 15 | 62443-4-1 SVV-4; NIST CA-8, CA-2, SA-11(5); OWASP WSTG; ISO A.5.35, A.5.36 | **Partially** – penetration test not commissioned; agreement not signed |
+
+
+### 16.2 SOC 2 view of the increment-6 controls
+
+| Trust services criterion | Device-layer evidence |
+|---|---|
+| CC6.1 Logical access | Per-endpoint identity (certificate + token), console roles without person data, ABAC on observations, restricted categories |
+| CC6.2 / CC6.3 Provisioning and removal | Four-eyes certification, one-time enrolment tokens, decommissioning with revocation and secret destruction, token rotation |
+| CC6.6 Boundary protection | Zones and conduits, gateway-zone CIDRs, mTLS ingress, devices never reach the core directly |
+| CC6.7 Transmission | TLS listeners at the gateway, mTLS to the core, HMAC webhooks |
+| CC6.8 Malicious software / unauthorised change | Signed driver packages, secret scanner, gateway hardening self-check |
+| CC7.2 / CC7.3 Monitoring and incident evaluation | 15 anomaly rules, alerts, SIEM forwarding, ITSM tickets |
+| CC7.4 Incident response | Isolation playbook ≤ 15 min, incident evidence, re-certification before release |
+| CC8.1 Change management | Versioned configurations with diffs, approval records, sealed export / import with second-person approval |
+| A1.2 Availability | Store-and-forward ≥ 48 h at the edge; dead letters and replay without duplicates |
+| C1 / P-series Confidentiality and privacy | Masked traces, PHI-free events and metrics, consent gates, retention classes (pending approval) |
+
+### 16.3 Operating controls the organisation must run (device layer)
+
+* Configure the **mTLS ingress** for `/api/v1/device-ingest/**` and `/api/v1/device-enrolment/**` (client certificates from
+  the device CA, client-supplied `X-Client-Cert-Sha256` stripped, SHA-256 thumbprint set), CRL / OCSP at the ingress.
+* On the device ingress, **overwrite** `X-Forwarded-For` with the real client address: the core resolves the client address
+  through `server.forward-headers-strategy: framework`, and the gateway-zone CIDR check depends on it.
+* Set `WZ_DEVICE_TRUST_ANCHORS` and (optionally) `WZ_DEVICE_TOKEN_PEPPER` from the secret store; never rotate the pepper
+  without re-enrolling every endpoint.
+* Record the production **gateway-zone CIDRs** per site before go-live; review them quarterly.
+* Separate `DEVICE_ADMIN` and `DEVICE_APPROVER` holders; quarterly access review of all four console roles and of
+  SECURITY_OPS.
+* Monitor `siem-device-security` in the SIEM; triage HIGH / CRITICAL alerts; run the isolation drill twice a year.
+* Run the device security test pack before every production release and quarterly; archive the evidence (SHA-256).
+* Commission the independent penetration test and sign the IEC 80001-1 responsibility agreement before go-live.
+
+### 16.4 Residual risks (increment 6)
+
+| ID | Residual risk | Compensating control (now) | Target remediation |
+|---|---|---|---|
+| RR44 | No real device tested; formats validated only against synthetic datasets | LIVE test with nurse review before publish; verify-before-post; unmatched queue | Device lab, vendor interface specifications |
+| RR45 | Hardened gateway images (CIS, disk encryption, secure boot, EDR) not built | Gateway self-check and `HARDENING_DRIFT`; systemd / container hardening; outbound-only agent | Golden images (E34-BL-003) |
+| RR46 | BLE pairing and USB VID/PID policy not enforced by the agent | Allow-lists and hashed addresses; option rules; OS policy | OS-level policy in the images; native support |
+| RR47 | mTLS depends on correct ingress configuration (header stripping) | Thumbprint must match the bound certificate **and** token **and** zone; one failure → refusal and security event | Ingress configuration checked by pack script 02 |
+| RR48 | Penetration test and staging test-pack run outstanding | Automated security integration tests in every build | Before go-live (go-live readiness gate) |
+| RR49 | Clinical reference data, retention classes and DPIA unapproved | Values marked pending; verify-before-post | Clinical Governance and DPO sign-off |
+| RR50 | Inconsistent 401 / 403 for endpoint path violations at the verified baseline | Both refuse the request and raise a security event | 401 for authentication failures, 403 for `endpoint_forbidden` – change in progress; verify in the regression run |
+| RR51 | Performance and availability targets unmeasured – risk of backlog under load | Store-and-forward at the edge, dead letters, alerts | Load and soak test (E31-BL-024) |

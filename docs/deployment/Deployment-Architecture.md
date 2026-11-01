@@ -2,7 +2,7 @@
 
 **Version 1.0**
 
-*WellnessZ OHCM platform – increments 1–5*
+*WellnessZ OHCM platform – increments 1–5; increment 6 (Medical Device Integration Engine) in Section 22*
 
 | | |
 |---|---|
@@ -956,3 +956,107 @@ apply.
 | Local | `tools/e2e/e2e-increment5.js` – 24 checks, all `PASS` (after the four earlier scripts on a freshly purged database: 121 checks in total) |
 | Azure / GCP | `\dn` lists `mentalhealth`, `substance`, `travelhealth`, `promotion`; `GET /api/v1/modules` shows E09–E12 `IMPLEMENTED`; a general OH test account gets `404` on a restricted support case while the named psych clinician opens it; a TOXLAB-bound token posts lab results (`200`) while another gateway token gets `404`; an EAP partner guest with MFA sees *EAP referrals* and free-text feedback is refused (`422`); the E2E script with `WZ_E2E_*` pointing at a DEV environment prepared with demo data |
 | Hybrid | As above from the cloud edge; additionally confirm that the four new schemas exist only in the on-prem database |
+
+## 22. Increment 6 deployment changes (E31–E34, edge gateway, device zones)
+
+Increment 6 adds four modules inside the core image (E31 engine, E32 console, E33 capture, E34 endpoint security), new
+screens inside the existing web images, and – for the first time – an **edge application** that runs at clinics,
+outstations and on vendor PCs: `apps/wz-device-gateway`. It also adds a **machine ingress** for devices with mutual TLS.
+E35 (deployment options and topologies of the engine, Kafka / NATS, cost model) is not part of this increment; the
+placement below uses the existing four setups. Details: [Solution Design E31–E34](../increment-06/01-Solution-Design-E31-E34.md),
+[Release Notes](../increment-06/03-Release-Notes-Increment-6.md), [gateway README](../../apps/wz-device-gateway/README.md).
+
+| Change | What to deploy / configure | Artefact |
+|---|---|---|
+| Schemas `deviceint`, `devicecat`, `devicecap`, `devicesec` | Flyway V21–V25; `migrations.job.core.schemas` and the bootstrap scripts already list them | `deploy/helm/wellnessz/values.yaml`, `deploy/sql/bootstrap-managed-postgres.sql`, `deploy/hybrid/cnpg/03-cluster.yaml`, `deploy/local/postgres/01-init-wellnessz.sh` |
+| Roles | `DEVICE_ADMIN`, `DEVICE_APPROVER`, `INTEGRATION_TESTER`, `SECURITY_OPS` in the IdP and in the scope mappings of `wellnessz-bff` / `wellnessz-mobile`; `DEVICE_ENDPOINT` is **not** an IdP role | local realm, guides 02–04 |
+| Device trust anchors and token pepper | `WZ_DEVICE_TRUST_ANCHORS` (device CA PEM file) and optionally `WZ_DEVICE_TOKEN_PEPPER` (`file:` reference) from the secret store via `core.extraEnv` | guides 02–04 |
+| Machine ingress (mTLS) | Host / route for `/api/v1/device-ingest/**` and `/api/v1/device-enrolment/**` requiring a device client certificate, stripping client-supplied `X-Client-Cert-Sha256`, setting it to the hex SHA-256 of the DER certificate; `/api/v1/device-webhooks/**` on a TLS-only route; **none of these through the BFF** | per setup (below); not yet in the Helm chart |
+| Zone CIDRs | SECURITY_OPS records each site's gateway-zone ranges (`POST /api/v1/device-security/zone-cidrs`) – gateways cannot authenticate before | runtime configuration |
+| Outbound allow-lists | `siem-device-security` (SIEM), `itsm-tickets` (ITSM) | `application.yml` |
+| Edge gateway | `wz-device-gateway` JAR, container image (`deploy/docker/Dockerfile.gateway`), systemd unit, WinSW service definition | `apps/wz-device-gateway/service/` |
+| Demo data | `R__demo_e32_device_console.sql`, `R__demo_e34_device_security.sql` and four seeders – `local` / test profiles only (the demo zone CIDRs cover loopback and RFC 1918 and **must never** reach UAT / PROD) | `db/demo` |
+| Pipeline | Gateway image not yet built by `container.yml`; the gateway module is built and tested by `ci.yml` | CI/CD Guide |
+
+### 22.1 Security zones and conduits
+
+The device layer uses five zones (all default deny) and nine conduits, stored in `devicesec` and exported as a firewall
+template (`GET /api/v1/device-security/conduits/export?format=csv|json`).
+
+```mermaid
+flowchart LR
+  subgraph DV["DEVICE_VLAN (medical devices, vendor PCs) - deny by default, no internet"]
+    D1["Vitals / ECG (HL7 MLLP)"]
+    D2["POC data manager"]
+    D3["Modality / PACS export"]
+    D4["BLE and serial devices"]
+  end
+  subgraph GZ["GATEWAY_ZONE (clinic DMZ)"]
+    GW["wz-device-gateway / Device Host agent"]
+  end
+  subgraph CL["CLINIC_LAN (staff SSID, MDM)"]
+    T["Nurse tablets, kiosks"]
+  end
+  subgraph VC["VENDOR_CLOUD (internet)"]
+    V["Vendor clouds"]
+  end
+  subgraph CO["CORE"]
+    ING["mTLS ingress"] --> APP["wz-core-app"]
+    WH["TLS route /device-webhooks"] --> APP
+  end
+  D1 -- "C-DEV-GW-MLLP 2575 MLLP_TLS" --> GW
+  D2 -- "C-DEV-GW-POCT 5001 MLLP_TLS" --> GW
+  D3 -- "C-DEV-GW-DICOM 2762 DICOM_TLS" --> GW
+  D4 -- "C-DEV-GW-BLE / C-DEV-AGT-SER (local)" --> GW
+  GW -- "C-GW-CORE 443 HTTPS_MTLS (outbound)" --> ING
+  T -- "C-LAN-CORE 443 HTTPS_MTLS (outbound)" --> ING
+  V -- "C-VC-CORE 443 HTTPS_HMAC" --> WH
+  APP -- "C-CORE-VC 443 OAuth2 (egress allow-list)" --> V
+```
+
+Rules enforced by E34 at authentication: gateways and Device Host agents must call from their site's `GATEWAY_ZONE` CIDRs
+(`zone_violation` otherwise); an identity of kind `DEVICE` in `DEVICE_VLAN` can never authenticate – devices reach the core
+only through a gateway. Vendor remote support is allowed only through a brokered, recorded session (reference network design,
+E34-BL-002 – approval pending). Ports in the conduit table are the seeded reference values; align them with the listener
+ports configured on each gateway (the gateway README uses 2575 for MLLP and an example port for POCT1-A).
+
+### 22.2 Edge gateway placement per setup
+
+| Setup | Core and machine ingress | Gateway / agent placement | Device VLAN and zones |
+|---|---|---|---|
+| **Local (MacBook)** | Core on `http://localhost:8080`; **no mTLS ingress** – the gateway's `local` profile simulates the ingress (sends the thumbprint itself, reported as `INGRESS_SIMULATION_ENABLED`); test scripts send the header themselves | `java -jar wz-device-gateway.jar --spring.profiles.active=local` on the laptop; MLLP listener on `127.0.0.1`; serial simulation from a file / stdin | None; demo zone CIDRs cover loopback and RFC 1918 |
+| **Azure** | AKS core behind Application Gateway; a **separate listener / host** (e.g. `ingest.<domain>`) with mutual-authentication SSL profile trusting the device CA, or an NGINX / Envoy ingress inside AKS that terminates mTLS. The header carrying the SHA-256 thumbprint must be produced by the ingress (map it with a rewrite / header filter; some products expose only a SHA-1 fingerprint or the PEM – add a mapping step) | Clinic industrial PCs (Linux, systemd or container) and vendor PCs (Windows service) on-premises; outbound HTTPS to `ingest.<domain>` through ExpressRoute / VPN or the internet with mTLS | Device VLANs at each site behind the clinic firewall; gateway zone = clinic DMZ; the exported conduit template is applied to the site firewall and, for the core side, to NSGs / App Gateway rules |
+| **GCP** | GKE core behind the external HTTPS load balancer with **mTLS (Certificate Manager trust config)** on a dedicated host, or an in-cluster mTLS ingress; Cloud Armor allows only the ingest paths on that host | As Azure; outbound to the ingest host through Cloud Interconnect / VPN or the internet | As Azure; firewall rules and Cloud Armor policies from the conduit template |
+| **Hybrid** | Core on-premises (RKE2 / OpenShift); the mTLS ingress is the **on-prem** ingress controller (passthrough or terminate with client verification); clinics on the corporate WAN reach it directly; outstations through the DMZ path | Same gateway builds; outstations rely on store-and-forward (≥ 48 h, default 72 h / 2 GB) across WAN outages | Device VLANs per site; device data never leaves the on-prem database; vendor webhooks arrive through the DMZ TLS route |
+
+**Envoy / Istio note.** Envoy's `x-forwarded-client-cert` header carries the client certificate's SHA-256 in its `Hash`
+field – a header-mutation step can copy that value into `X-Client-Cert-Sha256` after removing any client-supplied value.
+
+### 22.3 Gateway sizing and operations
+
+* **Hardware.** Small industrial PC per clinic (the solution document estimates USD 900–1,500 per gateway); Linux with
+  disk encryption; persistent disk for the queue (default 2 GB, ≥ 48 h at 2× peak); the Device Host agent on the vendor PC
+  under a dedicated low-privilege account.
+* **Network.** Outbound HTTPS 443 to the ingest host only; inbound only from the device VLAN on the configured listener ports;
+  status page and metrics bound to `127.0.0.1:8095` (never published).
+* **Identity.** One endpoint per gateway / agent / tablet / kiosk (`EP-<SITE>-<KIND>-<NN>`), client certificate from the
+  group PKI, zero-touch enrolment with a one-time token (≤ 72 h). Certificate renewal is manual in this release (warning 30 days
+  ahead).
+* **Monitoring.** Heartbeat every 60 s (`STALE` after 5 min, `SILENT` after 30 min), queue capacity alerts at 70 % / 90 %
+  (`device.gateway-backlog`), `HARDENING_DRIFT` from the self-check, Prometheus metrics `wz_gateway_*` on the node.
+* **Hardening.** CIS golden images with disk encryption, secure boot, EDR and patching are infrastructure work still to do
+  (E34-BL-003); until then use the systemd hardening of the unit file, a non-root container (uid 10001) and the host firewall.
+
+### 22.4 Sizing notes (core)
+
+Growth drivers are `deviceint.raw_object` (every raw payload, up to 50 MB, retained 40 years for filed observations –
+`DEVICE_RAW_PAYLOAD`, proposed), `deviceint.fhir_resource` and `stage_log`, and `devicesec.security_event` (6 years). Plan
+database storage for raw payloads (DB-backed `RawPayloadStore`; an S3-compatible store is a later option). The default
+database tiers of Section 13 apply for pilot volumes; throughput targets (50 msg/s) have **not** been load-tested.
+
+### 22.5 Verification per environment
+
+| Setup | Verification |
+|---|---|
+| Local | `./mvnw verify` (744 tests); gateway `GatewayIntegrationTest`; `tools/e2e/e2e-increment6.js` (<E2E>) |
+| Azure / GCP / Hybrid | `\dn` lists the four device schemas; `GET /api/v1/modules` shows E31–E34; a call to the ingest host **without** a client certificate fails the handshake or answers 401 `mtls_required`; a client-supplied `X-Client-Cert-Sha256` is ignored by the ingress; a test gateway enrols and its heartbeat returns `configVersion`; a gateway outside its zone CIDRs gets 401 `zone_violation`; `GET /api/v1/device-security/events/verify` → `intact: true`; then the device security test pack in staging |

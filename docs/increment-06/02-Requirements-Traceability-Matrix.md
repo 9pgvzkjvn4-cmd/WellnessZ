@@ -167,11 +167,11 @@ Items not fully implemented, by cause:
 |---|---|
 | WEB-DEV | `web/oh-workspace/src/screens/devices/Devices.test.tsx`, `src/domain/deviceWizard.test.ts`, `src/auth/deviceRoles.test.ts` (console – part of the 83 console and security tests) |
 | WEB-SEC | `web/oh-workspace/src/screens/security/Security.test.tsx` (part of the 83) |
-| WEB-ENG | `web/oh-workspace/src/screens/engine/Engine.test.tsx` (count &lt;WEB TESTS&gt;) |
-| WEB-CAP | `web/oh-workspace/src/screens/capture/Capture.test.tsx`, `CaptureScreens.test.tsx`, `Embedding.test.tsx`, `src/domain/capture.test.ts` (count &lt;WEB TESTS&gt;) |
-| WEB-EMP | `web/employee-app/src/screens/Devices.test.tsx` (results, consents, kiosk – count &lt;WEB TESTS&gt;) |
-| WEB-MGR | `web/manager-workspace/src/screens/DeviceFleet.test.tsx` (count &lt;WEB TESTS&gt;) |
-| E2E | `tools/e2e/e2e-increment6.js` – the 21 checks of contract §20; result &lt;E2E&gt; (to be mapped per check by the delivery lead) |
+| WEB-ENG | `web/oh-workspace/src/screens/engine/Engine.test.tsx` (count <WEB TESTS>) |
+| WEB-CAP | `web/oh-workspace/src/screens/capture/Capture.test.tsx`, `CaptureScreens.test.tsx`, `Embedding.test.tsx`, `src/domain/capture.test.ts` (count <WEB TESTS>) |
+| WEB-EMP | `web/employee-app/src/screens/Devices.test.tsx` (results, consents, kiosk – count <WEB TESTS>) |
+| WEB-MGR | `web/manager-workspace/src/screens/DeviceFleet.test.tsx` (count <WEB TESTS>) |
+| E2E | `tools/e2e/e2e-increment6.js` – the 21 checks of contract §20; result <E2E> (to be mapped per check by the delivery lead) |
 | PACK | `tools/device-security/` scripts 01–15 and `docs/increment-06/device-security/` – **delivered, not yet executed in staging** |
 
 ## 4. E31 – Medical Device Integration Engine

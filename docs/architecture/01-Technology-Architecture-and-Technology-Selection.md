@@ -3061,7 +3061,7 @@ hours 72, endpoint-token days 90, token grace 15 min, SOC mailbox (V25); applica
 | O41 | Clinical tables (GLI-2012, OSHA female table), gate rule set, retention classes, DPIA pending sign-off | Clinical Governance, DPO |
 | O42 | mTLS ingress for `/device-ingest/**` must be built per environment (none in the Helm chart yet) | Setup guides 02–04, increment-6 sections |
 | O43 | Gateway image not built by the container workflow; no Helm chart for edge sites (edge installs by JAR / systemd / WinSW / local image) | E35 / DevSecOps |
-| O44 | 401 vs 403 for endpoint path violations inconsistent | Engineering decision |
+| O44 | 401 vs 403 for endpoint path violations inconsistent at the verified baseline | Rule 401 = authentication, 403 = `endpoint_forbidden` being implemented; verify in the regression run |
 | D25 | Epic renumbering of the strategy pack (its proposed E31 clashes with the client's E31) | PMO |
 
 The five increment-6 integration tests run on the shared integration base; `Increment6EndToEndIntegrationTest` covers the

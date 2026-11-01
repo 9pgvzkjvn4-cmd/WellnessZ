@@ -2,7 +2,7 @@
 
 **Version 1.0**
 
-*WellnessZ OHCM platform – increments 1–5*
+*WellnessZ OHCM platform – increments 1–5; increment 6 (Medical Device Integration Engine) in Section 15*
 
 | | |
 |---|---|
@@ -701,3 +701,61 @@ kubectl delete -f deploy/hybrid/cnpg/04-scheduled-backup.yaml -f deploy/hybrid/c
 
 PVCs and object-store backups are retained by design. Delete them only after the retention period, with an
 approved change. Disconnect Arc or the fleet membership, and remove the firewall rule and Vault roles.
+
+## 15. Increment 6 – device integration: trust anchors, token pepper, mTLS ingress, zone CIDRs and gateway enrolment
+
+In the hybrid setup the core and its database are **on-premises**, so device traffic stays inside the corporate network:
+clinic gateways and Device Host agents call the on-prem machine ingress directly; outstations use the WAN or the DMZ path and
+rely on the gateway's store-and-forward (≥ 48 h, default 72 h / 2 GB) during outages. Background:
+[Solution Design E31–E34](../increment-06/01-Solution-Design-E31-E34.md), Deployment Architecture §22.
+
+### 15.1 Roles
+
+Add `DEVICE_ADMIN`, `DEVICE_APPROVER`, `INTEGRATION_TESTER`, `SECURITY_OPS` to Keycloak / the corporate IdP and to the scope
+mappings of `wellnessz-bff` and `wellnessz-mobile`; never create `DEVICE_ENDPOINT`.
+
+### 15.2 Device trust anchors and token pepper (Vault)
+
+```bash
+vault kv patch kv/wellnessz/$ENV/core wz-device-ca=@/path/to/group-pki-device-ca-chain.pem wz-device-token-pepper="$(openssl rand -base64 32)"
+```
+
+Map them in `secrets.core.files` (`remoteName` = `path#key`; repeat the existing entries):
+
+```yaml
+secrets:
+  core:
+    files:
+      # … existing entries …
+      - { fileName: wz-device-ca, remoteName: "kv/data/wellnessz/<env>/core#wz-device-ca", env: WZ_DEVICE_TRUST_ANCHORS, format: path }
+      - { fileName: wz-device-token-pepper, remoteName: "kv/data/wellnessz/<env>/core#wz-device-token-pepper", env: WZ_DEVICE_TOKEN_PEPPER, format: fileRef }
+```
+
+The device CA is usually the internal PKI (`ClusterIssuer internal-pki` or AD CS) – issue device client certificates from a
+**separate** intermediate with extended key usage `clientAuth`, not from the server-certificate issuer. Never change the pepper
+while endpoints exist.
+
+### 15.3 mTLS ingress for device traffic (on-prem)
+
+Create a dedicated ingress host (for example `ingest.<internal domain>`) on the on-prem ingress controller that verifies client
+certificates against the device intermediate, routes only `/api/v1/device-ingest/*` and `/api/v1/device-enrolment/*`, removes
+any client-supplied `X-Client-Cert-Sha256` and sets it to the hex SHA-256 of the DER certificate (with Envoy / Istio: copy the
+`Hash` field of `x-forwarded-client-cert`). Add a firewall rule `site gateway zone → on-prem ingest VIP : 443/TCP` per site
+(the same pattern as the integration gateways of earlier increments). Vendor webhooks arrive through the **DMZ** TLS route to
+`/api/v1/device-webhooks/*` only. The cloud edge BFF never proxies machine paths (`ingress.api.enabled` stays `false` there).
+
+### 15.4 Zone CIDRs
+
+SECURITY_OPS records every site's gateway-zone subnet with `POST /api/v1/device-security/zone-cidrs` and applies the exported
+conduit template to the site and DMZ firewalls. The zone check uses the client address from `X-Forwarded-For` (`server.forward-headers-strategy: framework`), so the device ingress must overwrite that header with the real client address. Device VLANs have no route to the core or the internet – only to their gateway.
+
+### 15.5 Enrol a gateway
+
+Publish the configuration (one-time token ≤ 72 h), issue the client certificate from the device intermediate, install the
+gateway with `WZ_GATEWAY_CORE_URL=https://ingest.<internal domain>`, the internal root CA in its trust store
+(`wz.gateway.tls.trust-store`), the key store and the token file; check `ACTIVE`, heartbeat and the status page.
+
+### 15.6 Smoke tests and go-live checklist additions
+
+As setup guide 02, §19.6; additionally confirm that the four device schemas exist only in the on-prem database and that raw
+device payloads (`deviceint.raw_object`) are included in the on-prem backup and restore test (Section 11).

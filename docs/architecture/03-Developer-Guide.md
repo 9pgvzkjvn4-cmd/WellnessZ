@@ -2,13 +2,13 @@
 
 **Version 1.0**
 
-*WellnessZ OHCM platform – increments 1–5*
+*WellnessZ OHCM platform – increments 1–5; increment 6 (Medical Device Integration Engine) in Section 19*
 
 | | |
 |---|---|
 | **Document** | 03 – Developer Guide |
 | **Audience** | Developers and technical leads building business modules E01–E14 and integrations |
-| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increments 1–5 (E01, E02 – Section 14; E03, E05 – Section 15; E06, E07, E14 – Section 16; E04, E08 and the partner portal – Section 17; E09, E10, E11, E12, restricted classes and the duty-assignment feed – Section 18) |
+| **Baseline** | Repository working tree, Maven version `0.1.0-SNAPSHOT`, Java 21, Spring Boot 4.1.2; updated for increments 1–5 (E01, E02 – Section 14; E03, E05 – Section 15; E06, E07, E14 – Section 16; E04, E08 and the partner portal – Section 17; E09, E10, E11, E12, restricted classes and the duty-assignment feed – Section 18; E31–E34 Device Integration Layer, driver packages, device SPIs, simulators and the device security test pack – Section 19) |
 | **Increment 2 documents** | [Solution Design E03/E05](../increment-02/01-Solution-Design-E03-E05.md) · [Requirements Traceability Matrix](../increment-02/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-02/03-Release-Notes-Increment-2.md) · [API Contract](../increment-02/API-Contract-E03-E05.md) |
 | **Increment 3 documents** | [Solution Design E06/E07/E14](../increment-03/01-Solution-Design-E06-E07-E14.md) · [Requirements Traceability Matrix](../increment-03/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-03/03-Release-Notes-Increment-3.md) · [API Contract](../increment-03/API-Contract-E06-E07-E14.md) |
 | **Increment 4 documents** | [Solution Design E04/E08](../increment-04/01-Solution-Design-E04-E08.md) · [Requirements Traceability Matrix](../increment-04/02-Requirements-Traceability-Matrix.md) · [Release Notes](../increment-04/03-Release-Notes-Increment-4.md) · [API Contract](../increment-04/API-Contract-E04-E08.md) |
@@ -1687,3 +1687,205 @@ The 35 published screenshots are in `docs/images/screens/increment-05/` (for exa
 `inc5-oh-03-chart-restricted-placeholder.png`, `inc5-oh-12-testing-mro.png`, `inc5-mgr-02-hr-duty-status.png`,
 `inc5-partner-01-eap-referrals.png`). Like the earlier scripts it consumes demo state; run all five increment scripts
 in order 1 → 5 on a freshly purged database before a release (121 checks – CI/CD Guide, section 3.1).
+
+## 19. Worked example: the Device Integration Layer – driver packages, device models, SPIs, simulators and the test pack (increment 6)
+
+Increment 6 added the **Device Integration Layer** from the client's enhancement pack: E31 engine, E32 console, E33
+module-embedded capture, E34 endpoint and integration security, and the edge application `apps/wz-device-gateway`. The
+design point that matters for every developer is that **device variety is configuration**: a new device model is a signed,
+declarative driver package – no Java per model – and the four device modules talk to each other and to the OH modules only
+through kernel SPIs. Design background: [Solution Design E31–E34](../increment-06/01-Solution-Design-E31-E34.md); endpoints
+and rules: [API Contract E31–E34](../increment-06/API-Contract-E31-E34.md); coverage:
+[RTM](../increment-06/02-Requirements-Traceability-Matrix.md); tester workflow:
+[Integration Tester Guide](../increment-06/05-Integration-Tester-Guide.md).
+
+### 19.1 Module wiring
+
+| Step | E31 (`wz-e31-device-engine`) | E32 (`wz-e32-device-console`) | E33 (`wz-e33-device-capture`) | E34 (`wz-e34-device-security`) |
+|---|---|---|---|---|
+| Package | `com.wellnessz.e31` | `com.wellnessz.e32` | `com.wellnessz.e33` | `com.wellnessz.e34` |
+| Maven dependencies | platform + `wz-case-kernel` only | same | same | same |
+| Registration | `E31Module` | `E32Module` | `E33Module` | `E34Module` |
+| Schema / migration | `deviceint` (V22) | `devicecat` (V23) | `devicecap` (V24) | `devicesec` (V25) |
+| Platform migration | V21 – E03 provenance columns, retention classes, thresholds | | | |
+| Demo data | `DeviceEngineDemoSeeder` | `R__demo_e32_device_console.sql` + `E32DemoSeeder` | `DeviceCaptureDemoSeeder` | `R__demo_e34_device_security.sql` + `E34DemoSeeder` |
+| Integration test | `Increment6EngineIntegrationTest` (7) | `Increment6ConsoleIntegrationTest` (9) | `Increment6CaptureIntegrationTest` (12) | `Increment6SecurityIntegrationTest` (11) |
+| Cross-module test | `Increment6EndToEndIntegrationTest` (3) | | | |
+
+ArchUnit now has **28 rules**; the six new ones: `earlierModulesDoNotDependOnDeviceModules`,
+`deviceModulesDoNotDependOnBusinessModules`, `engineIsIndependentOfOtherDeviceModules`,
+`consoleIsIndependentOfOtherDeviceModules`, `captureIsIndependentOfOtherDeviceModules`,
+`securityIsIndependentOfOtherDeviceModules`. Routing adapters live in the **consuming** module (`com.wellnessz.e03.device`,
+`e07.device`, `e10.device`, `e12.device`, `e14.device`) and depend on the kernel only.
+
+### 19.2 The device SPIs (`com.wellnessz.casekernel.device`)
+
+Inject `DeviceSpis` rather than individual beans: it returns safe defaults when the implementing module is absent (empty
+catalogue, `DENY_ALL` authenticator, no sessions) and throws 503 `module_disabled` for commands that need it. Do **not**
+change SPI signatures without the platform owner – they are a contract between four teams.
+
+| SPI | Implemented by | You use it when … |
+|---|---|---|
+| `DeviceObservationSink` | E03 `ResultDeviceSink`, E07 `ExposureMeasurementSink`, E10 `BreathAlcoholSink`, E12 `ScreeningResultSink`, `WearableDailySink` | you want device results to reach a new module (19.5) |
+| `DeviceCatalogueLookup` | E32 | you need instances, packages, bindings or QC status |
+| `DeviceEndpointAuthenticator` | E34 (fail-closed) | never directly – the kernel filter calls it |
+| `DeviceSecurityEventPublisher` | E34 | you detect a security-relevant event (PHI-free attributes only) |
+| `DeviceCaptureSessions`, `DeviceObservationListener` | E33 | association by session; notification after commit |
+| `DeviceObservationGateway`, `DeviceDiagnostics` | E31 | preview / accept / reject / fallback; trace / health / test / re-send |
+| `DeviceEndpointProvisioning`, `DeviceEndpointStatusListener` | E34; E31 and E32 listen | provisioning at publish; isolation / revocation reactions |
+| `DevicePackageSignatures`, `DeviceSecretStore` | E34 | sign / verify packages; store / resolve / rotate / destroy secrets |
+| `DeviceEquipmentRegister`, `DeviceWorklistSource` | E14 / E03 adapters | E14 migration; worklists |
+| existing `DeviceCalibrationCheck` | E14 | the `CALIBRATION` gate (all beans, as E03 does) |
+
+Code lists live in `DeviceCodes` (`Family`, `Category`, `Option` P1–P10, `CaptureMethod`, `GateOutcome`, `EndpointKind`,
+`EndpointStatus`, `Severity`); the canonical record crossing module boundaries is `DeviceObservation`.
+
+### 19.3 Adding a device model with a driver package (no code)
+
+1. **Catalogue.** Check the model exists (`GET /device-catalogue/models?q=`); seeded models have codes `MD-001`…`MD-133`.
+   Missing models are added by a DEVICE_ADMIN (`POST /device-catalogue/models` → `WZ-000001`…) or through a model request.
+2. **Pick the adapter** from the vendor's interface specification: `HL7V2`, `FHIR`, `POCT1A`, `FILE_CSV`, `FILE_XML`,
+   `FILE_GDT`, `FILE_PDF`, `BLE_GATT`, `SERIAL`, `WEBHOOK_JSON`, `CLOUD_POLL_JSON`, `DICOMWEB`, `OCR`, `MANUAL`, and the matching
+   `parse.type` (`HL7_SEGMENTS`, `FHIR_PATH`, `POCT1A_XPATH`, `XPATH`, `CSV_COLUMNS`, `GDT_FIELDS`, `GATT_STRUCT`, `REGEX_LINES`,
+   `JSON_POINTER`, `DICOM_JSON`, `FORM`).
+3. **Start from the closest bundled package** in `modules/wz-e31-device-engine/src/main/resources/e31/drivers/` (18 samples,
+   one or more per adapter). Minimal shape (BLE pulse oximeter, abbreviated):
+
+```json
+{ "schema": "wellnessz.device-driver/1", "packageId": "vitals.nonin.plx-ble", "version": "1.0.0", "family": "VITALS", "models": ["MD-033"],
+  "adapter": "BLE_GATT", "options": ["P3"],
+  "protocol": { "service": "0x1822", "characteristic": "0x2A5E", "pairing": "LE_SECURE_CONNECTIONS_PASSKEY", "bonding": "REQUIRED" },
+  "parse": { "type": "GATT_STRUCT",
+             "identity": { "effectiveTime": { "selector": "timestamp", "format": "GATT_DATETIME" } },
+             "fields": [ { "key": "flags", "selector": "UINT8" },
+                         { "key": "spo2", "selector": "SFLOAT", "type": "QUANTITY", "unit": "%", "required": true },
+                         { "key": "pulse", "selector": "SFLOAT", "type": "QUANTITY", "unit": "/min" },
+                         { "key": "timestamp", "selector": "DATETIME:flagBit=0" } ] },
+  "mappings": [ { "key": "spo2", "mdc": "MDC_PULS_OXIM_SAT_O2", "loinc": "59408-5", "display": "Oxygen saturation by pulse oximetry",
+                  "ucum": "%", "plausible": { "min": 50, "max": 100 } },
+                { "key": "pulse", "mdc": "MDC_PULS_OXIM_PULS_RATE", "loinc": "8867-4", "display": "Heart rate", "ucum": "/min" } ],
+  "qualityGates": ["CALIBRATION", "PLAUSIBILITY", "VERIFY_BEFORE_POST"],
+  "bindings": [ { "formCode": "E03.DEVICE_RESULT.VITALS", "formVersion": "1", "category": "VITALS", "target": "E03.RESULT",
+                  "fields": { "spo2": "measurements.spo2", "pulse": "measurements.pulse" }, "verifyBeforePost": true } ],
+  "testVectors": [ { "name": "normal", "input": "golden/vitals/nonin-plx/normal.json", "expect": { "spo2": 97 } } ] }
+```
+
+   Rules: every parsed field is mapped; **LOINC is mandatory**, UCUM for every quantity, MDC where the nomenclature has a term;
+   binding keys must be mapping keys and fields must exist in the E33 form registry (`e33/form-registry.json`); gates are
+   codes from the catalogue (`GET /device-engine/gates`); **no secrets** (use `devsec:` / `vault:` references); semantic
+   versioning (MAJOR when mapping keys or bindings change incompatibly); `engineCompatibility` range.
+4. **Golden datasets.** Add at least `normal`, `edge`, `malformed`, `time-skew` and `duplicate` under
+   `e31/golden/<family>/<package>/` and index them in `golden/index.json` – synthetic data only.
+5. **Run the conformance tests locally** – the build fails if a bundled package does not validate with full coverage or a
+   test vector fails:
+
+```bash
+./mvnw -pl modules/wz-e31-device-engine -am test -Dtest='BundledPackagesConformanceTest,DriverPackageTest,ParsersTest,NormaliserTest' -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+6. **Register through the API** (environments): `POST /device-engine/drivers/validate` → `/conformance` (keep the evidence
+   SHA-256) → `/sign` (approved by a DEVICE_APPROVER) → `POST /device-catalogue/drivers` → certify. Details in the
+   [Integration Tester Guide](../increment-06/05-Integration-Tester-Guide.md) §4. There is no command-line SDK yet.
+7. **Provision** the device through the wizard (Device Administrator Guide §4); the package's `protocol` becomes the wizard
+   defaults and its `bindings` the default form bindings.
+
+Bundled packages are unsigned SDK samples used for simulators, conformance and the demo; production traffic always uses the
+signed package from the E32 registry.
+
+### 19.4 Adding a parser type or a quality gate (code)
+
+* **Parser type.** Implement `com.wellnessz.e31.adapter.RecordParser` (`parseType()`, `List<ParsedRecord> parse(ParseContext)`)
+  in a new `adapter.<name>` package, register it in `Adapters` (constructor list), add the adapter → ingest-kind mapping in
+  `Adapters` and `SimulatorService.KIND`, extend `DriverParser` / `DriverValidator` for the new `adapter` / `parse.type`
+  values, add an ingest endpoint in `IngestController` only if no existing kind fits, and add unit tests with golden vectors
+  (`ParsersTest` style). Parsers must be deterministic for a given driver version, must never log payload content, and XML
+  must go through `SafeXml` (external entities refused).
+* **Quality gate.** Add the gate to `Gates` / `GateCatalogue` with its parameters, families and outcomes (PASS / INFO / WARN /
+  BLOCK with a plain-language message), add a `gate_signoff` row in a new migration (status PENDING – clinical content needs
+  sign-off), and tests in `GatesTest`. Gates may be added or tightened per instance, never relaxed below the package set.
+
+### 19.5 Routing device results into a module (a new sink)
+
+1. In the consuming module create `com.wellnessz.<module>.device.<Name>Sink implements DeviceObservationSink` with a unique
+   `target()` (e.g. `E07.IH_MEASUREMENT`) and `categories()`.
+2. `deliver(actor, routed)` must be **idempotent on `routed.observation()` id** (store the observation id as a unique source
+   reference and return `Delivery.DUPLICATE` on a repeat) and must run the module's own logic – never write the engine's
+   tables, never let the engine write yours. Return `REJECTED` with a code (e.g. `no_open_test`, `consent_missing`) for
+   business refusals.
+3. Add the form to the E33 form registry and a binding with `target` = your target in the driver packages.
+4. Depend only on the kernel (ArchUnit); add a unit test like `DeviceEngineAdapterTest` and an integration case.
+5. A binding whose target is not deployed stays `ROUTE_PENDING`, is retried and then dead-lettered with
+   `route_target_unavailable` – no data is lost.
+
+### 19.6 Coding rules for the device layer
+
+* **Never import another device module** – use `DeviceSpis`. Ask the platform owner for a kernel SPI change instead of a
+  cross-module dependency (ArchUnit fails the build).
+* **Machine paths** (`/device-ingest/**`, `/device-enrolment/**`, `/device-webhooks/**`) belong to the kernel security chain;
+  do not add other unauthenticated paths. Read the endpoint principal with `DeviceEndpointPrincipal.current()`.
+* **PHI:** no employee ids, names, values or payload excerpts in logs, metric labels, exceptions, security events or
+  notifications. Traces for console roles go through the masking functions (`Masking`, `TraceMasker`).
+* **Audit volume:** `AuditService.record` takes a global lock (hash chain). Audit state changes and person-level reads; per
+  message history belongs in `deviceint.stage_log`.
+* **Restricted categories** (`BREATH_ALCOHOL`, `DRUG_SCREEN`) are `restricted=true`: enforce collector (own session) / MRO
+  visibility in every read path.
+* **Values are immutable** once captured – reject and re-measure, never edit.
+* **Module flags:** every entry point calls `requireEnabled` (`modules.e3x.enabled`).
+* **Synthetic data only** in golden datasets, simulators, tests and demo seeders.
+
+### 19.7 Running simulators locally
+
+With the core running (`local` profile, demo data):
+
+```bash
+# list golden datasets (bearer token of inttester1)
+curl -s -H "Authorization: Bearer $TOKEN" 'http://localhost:8080/api/v1/device-engine/golden-datasets?family=VITALS' | jq '.[].datasetId'
+# replay a dataset into the pipeline as SIM-HL7V2
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"datasetId":"vitals/csm-pcd01/normal","count":3}' http://localhost:8080/api/v1/device-engine/simulators/HL7V2/run | jq
+```
+
+Device-side calls in the dev stack carry the demo endpoint token and thumbprint themselves (no mTLS ingress) – see the
+Integration Tester Guide §1. For the edge, build and run the gateway with the `local` profile (setup guide 01, Section 14):
+`--simulate-serial=<file>` replays serial frames; a loopback MLLP listener accepts test messages.
+
+### 19.8 Running the tests
+
+```bash
+# device modules and kernel
+./mvnw -pl modules/wz-e31-device-engine,modules/wz-e32-device-console,modules/wz-e33-device-capture,modules/wz-e34-device-security -am test
+# increment-6 integration tests and the architecture rules (recreate a persistent test database first – Section 16.9)
+./mvnw -pl apps/wz-core-app -am verify -Dtest='Increment6*IntegrationTest,ArchitectureTest,PlatformIntegrationTest' -Dsurefire.failIfNoSpecifiedTests=false
+# gateway (65 tests) and its SAST profile
+./mvnw -pl apps/wz-device-gateway -am install
+./mvnw -pl apps/wz-device-gateway -Psecurity verify -DskipTests -Ddependency-check.skip=true
+# web
+(cd web/oh-workspace && npm test) && (cd web/employee-app && npm test) && (cd web/manager-workspace && npm test)
+```
+
+The full suite is 744 tests with 0 failures at the increment-6 baseline.
+
+### 19.9 Running the device security test pack
+
+The pack (`tools/device-security/`, Node 18+ and Bash) checks controls SC-01 … SC-16 against an environment. Locally:
+
+```bash
+tools/device/dev-ca.sh init && tools/device/dev-ca.sh client pack
+export WZ_DEVICE_TRUST_ANCHORS=$PWD/tools/device/dev-ca/ca.pem      # then restart the core
+cp tools/device-security/targets.example.json tools/device-security/targets.local.json   # edit hosts; secrets as env:NAME
+tools/device-security/run-all.sh --authorised --targets tools/device-security/targets.local.json --out ./device-security-evidence
+```
+
+Each script refuses to run without `--authorised` and a targets file, writes a JSON evidence file with a `.sha256` and exits
+0 / 1 / 2 (pass / fail / refused); `15_report_builder.mjs` consolidates the evidence against the control matrix. Rules of
+engagement: [`docs/increment-06/device-security/test-plan.md`](../increment-06/device-security/test-plan.md). In the targets
+example, adjust the gateway block to the delivered gateway (service `wellnessz-gateway`, status port `8095`, queue
+`/var/lib/wellnessz-gateway/queue`).
+
+### 19.10 Running the increment-6 end-to-end test
+
+`tools/e2e/e2e-increment6.js` covers the 21 checks of contract §20 (console, wizard, enrolment, capture, gates, unmatched,
+dead letters, fallback, restricted readings, webhooks, batch, isolation, decommissioning, manager and employee views, chain
+verification). A realm imported before increment 6 lacks the four new roles and the users `deviceadmin1`, `deviceapprover1`,
+`inttester1`, `secops1`: run `./deploy/local/down.sh --purge` and `./deploy/local/up.sh` once. Results are reported in the
+release notes (<E2E>).

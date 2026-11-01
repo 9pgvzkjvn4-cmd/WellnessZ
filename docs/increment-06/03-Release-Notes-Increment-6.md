@@ -214,13 +214,13 @@ Deployment Architecture §22.
 |---|---|
 | Java build and tests (`./mvnw verify`) | **744 tests, 0 failures, 0 errors** – including `Increment6EngineIntegrationTest` (7), `Increment6ConsoleIntegrationTest` (9), `Increment6CaptureIntegrationTest` (12), `Increment6SecurityIntegrationTest` (11), `Increment6EndToEndIntegrationTest` (3) on PostgreSQL 16, `ArchitectureTest` (28 rules), the E31–E34 unit tests and the 65 gateway tests |
 | SAST (SpotBugs + FindSecBugs, `-Psecurity`) | **0 findings**; new justified exclusions: device-ingest chain CSRF / XSS false positives (stateless machine traffic), XPath from signed packages, SHA-1 for UUIDv5 (RFC 9562) |
-| Web unit tests (vitest) | OH workspace console and security screens **83**; capture, engine, employee and manager device screens and app totals: **&lt;WEB TESTS&gt;** |
-| End-to-end (`tools/e2e/e2e-increment6.js`, real Keycloak logins, device calls with demo endpoint tokens) | Increment 6 **&lt;E2E&gt;** (21 checks planned – contract §20); regressions increments 1–5 **&lt;E2E&gt;** |
+| Web unit tests (vitest) | OH workspace console and security screens **83**; capture, engine, employee and manager device screens and app totals: **<WEB TESTS>** |
+| End-to-end (`tools/e2e/e2e-increment6.js`, real Keycloak logins, device calls with demo endpoint tokens) | Increment 6 **<E2E>** (21 checks planned – contract §20); regressions increments 1–5 **<E2E>** |
 | Integration hardening | 10 cross-module defects found when the modules were merged and fixed (QC event payload, simulator dataset ids, LIVE wizard test, endpoint zone at publish, signing-key revocation consumer, demo package signing, configured association methods, accept notified after commit, instance-only revocation on shared gateways, never-seen device health) |
 | Security test pack | Delivered (`tools/device-security/`); **not yet executed in staging** |
 | Hardware | **No real device tested** – simulators and synthetic golden datasets only |
 | Performance | **Not measured** (no load or soak test) |
-| API contract | `docs/api/openapi.json` to be regenerated (&lt;PATHS&gt;) |
+| API contract | `docs/api/openapi.json` to be regenerated (<PATHS>) |
 
 ## 10. Known limitations and decisions needed
 
@@ -233,7 +233,7 @@ Deployment Architecture §22.
 | Privacy | DPIA for device data flows pending | DPO (`/device-security/privacy/dpia/approve`) |
 | Security assurance | Independent penetration test and the Cyber Review test-pack run **must be executed in staging before go-live**; CIS golden images not built; CRL / OCSP left to the ingress / PKI | CISO, infrastructure |
 | Zone CIDRs (**go-live item**) | Production gateway zone CIDRs must be configured by SECURITY_OPS – until then no gateway or agent can authenticate (`zone_violation`) | Upgrade step 6 |
-| 401 vs 403 (**decision**) | Endpoint path violations: E34's `endpoint_forbidden` reaches the device as **401** through the filter, while the kernel access-denied handler answers **403** – inconsistent | Engineering lead to decide one status and align |
+| 401 vs 403 (**decision**) | At the verified baseline, endpoint path violations (`endpoint_forbidden`) reached the device as **401** through the filter while the kernel access-denied handler answered **403** | Rule being implemented: authentication failures 401, authenticated-but-forbidden 403 (kernel filter and E34, in progress at the time of writing) – confirm in the regression run before release |
 | Drug-screen readers (**decision**) | Instrumented drug-screen readers are rejected in this increment (`E10.DRUG_SCREEN` refused) | MRO / Legal to confirm |
 | Engine gaps | No OAuth2 cloud polling, no SDK command line, catalogue / keys not tenant-scoped, no performance test | Document 02 §9 |
 | Capture gaps | No native tablet app with on-device queue; no respirator clearance register; WCAG audit and time-and-motion study outstanding | Mobile team, UX, Nursing Head |
@@ -264,7 +264,8 @@ before further workbooks are produced.
    (through `core.extraEnv`). Different values per environment.
 5. **mTLS ingress** – publish a dedicated host or route for `/api/v1/device-ingest/**` and `/api/v1/device-enrolment/**`
    that requires a client certificate issued by the device CA, **strips any client-supplied `X-Client-Cert-Sha256`** and
-   sets it to the hex SHA-256 of the presented DER certificate. Keep `/api/v1/device-webhooks/**` on a TLS-only route (vendor
+   sets it to the hex SHA-256 of the presented DER certificate; it must also **overwrite** `X-Forwarded-For` with the real
+   client address (the zone-CIDR check uses it). Keep `/api/v1/device-webhooks/**` on a TLS-only route (vendor
    clouds authenticate by HMAC). The BFF must not proxy any of these paths (setup guides 02–04, increment-6 sections).
 6. **Zone CIDRs (go-live item)** – SECURITY_OPS records each site's gateway-zone address ranges with
    `POST /device-security/zone-cidrs`; verify with `GET /device-security/zones` and the conduit export.

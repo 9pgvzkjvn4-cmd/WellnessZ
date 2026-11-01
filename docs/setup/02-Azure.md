@@ -2,7 +2,7 @@
 
 **Version 1.0**
 
-*WellnessZ OHCM platform – increments 1–5*
+*WellnessZ OHCM platform – increments 1–5; increment 6 (Medical Device Integration Engine) in Section 19*
 
 | | |
 |---|---|
@@ -1547,3 +1547,93 @@ destroy PROD without a decommissioning decision and a final backup export.
 
 Key Vault remains soft-deleted for 90 days because of purge protection; this is expected and cannot be bypassed.
 Remove the Entra app registrations, groups and DNS records if they are not shared with other environments.
+
+## 19. Increment 6 – device integration: trust anchors, token pepper, mTLS ingress, zone CIDRs and gateway enrolment
+
+Increment 6 adds the Device Integration Layer (E31–E34) to the core image and an edge application, `wz-device-gateway`, that
+runs at clinics and on vendor PCs – **not** in AKS. Background: [Solution Design E31–E34](../increment-06/01-Solution-Design-E31-E34.md),
+[Release Notes](../increment-06/03-Release-Notes-Increment-6.md) §8 and §11, Deployment Architecture §22.
+
+### 19.1 Roles
+
+Create the app roles `DEVICE_ADMIN`, `DEVICE_APPROVER`, `INTEGRATION_TESTER`, `SECURITY_OPS` on `wellnessz-api-<env>` and assign
+them to groups (section 5.1–5.2). Keep `DEVICE_ADMIN` and `DEVICE_APPROVER` in different groups with different members. Do
+**not** create `DEVICE_ENDPOINT` – the core grants it to authenticated devices.
+
+### 19.2 Device trust anchors and token pepper (Key Vault, dual control)
+
+```bash
+az keyvault secret set --vault-name $KV -n wz-device-ca --file /path/to/group-pki-device-ca-chain.pem --query name -o tsv
+openssl rand -base64 32 | tr -d '\n' | az keyvault secret set --vault-name $KV -n wz-device-token-pepper --file /dev/stdin --query name -o tsv
+```
+
+Mount both through the CSI driver by extending `secrets.core.files` in the environment overlay (Helm replaces lists, so
+**repeat the existing entries** `wz-db-password`, `wz-master-key`, `wz-pseudonym-key`):
+
+```yaml
+secrets:
+  core:
+    files:
+      # … existing entries …
+      - { fileName: wz-device-ca, remoteName: wz-device-ca, env: WZ_DEVICE_TRUST_ANCHORS, format: path }
+      - { fileName: wz-device-token-pepper, remoteName: wz-device-token-pepper, env: WZ_DEVICE_TOKEN_PEPPER, format: fileRef }
+```
+
+`WZ_DEVICE_TRUST_ANCHORS` accepts a PEM file with one or more CA certificates (the group-PKI CA that issues device client
+certificates); empty means every enrolment fails with `certificate_untrusted`. The pepper is optional (without it a pepper is
+derived from `wz-master-key`), but **must not change** once endpoints exist – every endpoint token would become invalid.
+Use different values per environment.
+
+### 19.3 mTLS ingress for device traffic
+
+Publish a **separate host** for machine traffic, for example `ingest.<domain>`:
+
+1. Application Gateway: a listener for `ingest.<domain>` with an **SSL profile with mutual authentication** whose trusted client
+   CA is the device CA; path rules only for `/api/v1/device-ingest/*` and `/api/v1/device-enrolment/*` to the core service; all
+   other paths denied on this host. (Alternative: an NGINX / Envoy ingress inside AKS that terminates mTLS.)
+2. **Header.** The core expects `X-Client-Cert-Sha256` (`WZ_DEVICE_CERT_HEADER`) with the **hex SHA-256 of the DER client
+   certificate**. Configure a rewrite rule that first **removes** any client-supplied `X-Client-Cert-Sha256` and then sets it
+   from the verified certificate. If the gateway product exposes only a SHA-1 fingerprint or the PEM, add a mapping step (for
+   example an Envoy sidecar using the `Hash` field of `x-forwarded-client-cert`, which is SHA-256) – a SHA-1 value will never
+   match and every call is refused with `certificate_mismatch`.
+3. Keep `WZ_DEVICE_REQUIRE_CLIENT_CERT=true` (default).
+4. Vendor webhooks: `/api/v1/device-webhooks/*` on the normal TLS API host (HMAC-authenticated; no client certificate).
+5. The BFF must **not** proxy any machine path; leave the BFF routes unchanged.
+6. CRL / OCSP checking of device certificates belongs to the ingress / PKI; revoking an endpoint in E34 takes effect on the
+   next request anyway.
+
+### 19.4 Zone CIDRs and conduits (go-live item)
+
+Before any gateway can authenticate, `secops1`-equivalent users (SECURITY_OPS) record each site's gateway-zone ranges – the
+source addresses as the core sees them. The core runs with `server.forward-headers-strategy: framework`, so the zone check
+uses the address from `X-Forwarded-For`: on the device host the ingress must **overwrite** (not append to) that header with
+the real client address, otherwise a caller could claim a gateway-zone address:
+
+```bash
+curl -s -X POST https://api.<domain>/api/v1/device-security/zone-cidrs -H "Authorization: Bearer $SECOPS_TOKEN" \
+  -H 'Content-Type: application/json' -d '{"siteCode":"LHR","zone":"GATEWAY_ZONE","cidr":"10.20.30.0/27"}'
+```
+
+Export the conduit firewall template (`GET /api/v1/device-security/conduits/export?format=csv`) and apply it to the site
+firewalls and NSGs. Demo CIDRs exist only with the `local` / test profiles – keep `classpath:db/demo` out of `WZ_FLYWAY_LOCATIONS`.
+
+### 19.5 Enrol a gateway at a site
+
+1. Publish the device configuration in the console (or create the endpoint in *Security → Devices*) – copy the one-time
+   enrolment token (≤ 72 h).
+2. Issue the gateway's client certificate from the group PKI (extended key usage `clientAuth`) as PKCS12.
+3. Install the gateway (Linux systemd unit or container; Windows WinSW service – gateway README) with
+   `WZ_GATEWAY_CORE_URL=https://ingest.<domain>`, `wz.gateway.tls.key-store`, and the token in
+   `WZ_GATEWAY_ENROLMENT_TOKEN_FILE`; keep `tls.simulate-ingress=false`.
+4. Check: the endpoint is `ACTIVE` in *Security → Devices*, the heartbeat shows on the fleet screen, and the gateway status page
+   (`http://127.0.0.1:8095/` on the node) reports no `INGRESS_SIMULATION_ENABLED` or `CORE_URL_NOT_TLS` finding.
+
+### 19.6 Smoke tests and go-live checklist additions
+
+* `curl -s https://ingest.<domain>/api/v1/device-ingest/config` **without** a client certificate fails the handshake or answers
+  401 `mtls_required`; with a certificate but a forged `X-Client-Cert-Sha256` the forged value is ignored.
+* A gateway outside its CIDRs gets 401 `zone_violation`; inside, its heartbeat returns `configVersion`.
+* `GET /api/v1/device-security/events/verify` → `intact: true`; the SIEM receives `siem-device-security` events.
+* PROD go-live: device CA and pepper set; zone CIDRs recorded; signing key created (`POST /device-security/signing-keys`);
+  driver packages registered and certified; clinical tables, retention classes and DPIA signed off; device security test pack
+  and penetration test executed in UAT (go-live gate `GET /api/v1/device-security/go-live-readiness`).

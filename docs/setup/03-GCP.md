@@ -2,7 +2,7 @@
 
 **Version 1.0**
 
-*WellnessZ OHCM platform – increments 1–5*
+*WellnessZ OHCM platform – increments 1–5; increment 6 (Medical Device Integration Engine) in Section 19*
 
 | | |
 |---|---|
@@ -764,3 +764,65 @@ Never destroy PROD without a decommissioning decision and a final backup export.
 
 Cloud KMS keys cannot be deleted. Their versions are scheduled for destruction (30 days) and the key ring remains,
 which is expected. Secrets and audit logs follow their retention settings.
+
+## 19. Increment 6 – device integration: trust anchors, token pepper, mTLS ingress, zone CIDRs and gateway enrolment
+
+Increment 6 adds the Device Integration Layer (E31–E34) to the core image and the edge application `wz-device-gateway`, which
+runs at clinics and on vendor PCs – not in GKE. Background: [Solution Design E31–E34](../increment-06/01-Solution-Design-E31-E34.md),
+[Release Notes](../increment-06/03-Release-Notes-Increment-6.md) §8 and §11, Deployment Architecture §22. The steps mirror
+setup guide 02, Section 19.
+
+### 19.1 Roles
+
+Add `DEVICE_ADMIN`, `DEVICE_APPROVER`, `INTEGRATION_TESTER`, `SECURITY_OPS` to the IdP (Keycloak or Entra ID) and to the scope
+mappings of `wellnessz-bff` and `wellnessz-mobile`; separate admin and approver holders; never create `DEVICE_ENDPOINT`.
+
+### 19.2 Device trust anchors and token pepper (Secret Manager)
+
+```bash
+gcloud secrets create wz-device-ca --replication-policy=user-managed --locations=$REGION --data-file=/path/to/group-pki-device-ca-chain.pem
+openssl rand -base64 32 | tr -d '\n' | gcloud secrets create wz-device-token-pepper --replication-policy=user-managed --locations=$REGION --data-file=-
+```
+
+Grant the core workload identity `secretmanager.secretAccessor` on both and add them to `secrets.core.files` in the overlay
+(repeat the existing entries – Helm replaces lists):
+
+```yaml
+secrets:
+  core:
+    files:
+      # … existing entries …
+      - { fileName: wz-device-ca, remoteName: wz-device-ca, env: WZ_DEVICE_TRUST_ANCHORS, format: path }
+      - { fileName: wz-device-token-pepper, remoteName: wz-device-token-pepper, env: WZ_DEVICE_TOKEN_PEPPER, format: fileRef }
+```
+
+Never change the pepper while endpoints exist; different values per environment.
+
+### 19.3 mTLS ingress for device traffic
+
+Use a dedicated host such as `ingest.<domain>` on the external Application Load Balancer with **mTLS** (Certificate Manager
+trust config containing the device CA, client validation mode *reject invalid*), or an mTLS-terminating ingress inside GKE.
+Route only `/api/v1/device-ingest/*` and `/api/v1/device-enrolment/*` on that host; restrict it with Cloud Armor. Add a custom
+request header `X-Client-Cert-Sha256` carrying the **hex SHA-256 fingerprint** of the verified client certificate and make
+sure a client-supplied value is overwritten (verify the load balancer's header variable is the SHA-256 fingerprint; a SHA-1 or
+PEM value needs a mapping step). Keep `WZ_DEVICE_REQUIRE_CLIENT_CERT=true`; webhooks stay on the normal TLS API host; the BFF
+never proxies machine paths.
+
+### 19.4 Zone CIDRs
+
+SECURITY_OPS records each site's gateway-zone ranges with `POST /api/v1/device-security/zone-cidrs`
+(`{"siteCode":"LHR","zone":"GATEWAY_ZONE","cidr":"10.20.30.0/27"}`) – the addresses as seen by the core behind the load
+balancer. The zone check uses the client address from `X-Forwarded-For` (`server.forward-headers-strategy: framework`), so the device ingress must overwrite that header with the real client address. Apply the exported conduit template (`/api/v1/device-security/conduits/export`) to the site firewalls, VPC firewall
+rules and Cloud Armor. No demo data in shared environments.
+
+### 19.5 Enrol a gateway
+
+As setup guide 02, §19.5: publish (one-time token, ≤ 72 h), group-PKI client certificate (`clientAuth`), install with
+`WZ_GATEWAY_CORE_URL=https://ingest.<domain>`, key store and token file, `simulate-ingress=false`; check `ACTIVE`, heartbeat and
+the status page findings.
+
+### 19.6 Smoke tests and go-live checklist additions
+
+Same as setup guide 02, §19.6: no certificate → refused / `mtls_required`; forged header ignored; `zone_violation` outside the
+CIDRs; event chain intact; SIEM receives `siem-device-security`; PROD gate `GET /api/v1/device-security/go-live-readiness`
+after the security test pack and the penetration test in UAT.

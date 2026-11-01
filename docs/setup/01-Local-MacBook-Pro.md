@@ -2,7 +2,7 @@
 
 **Version 1.0**
 
-*WellnessZ OHCM platform – increments 1–5*
+*WellnessZ OHCM platform – increments 1–5; increment 6 (Medical Device Integration Engine) in Section 14*
 
 | | |
 |---|---|
@@ -1234,3 +1234,138 @@ Remove the generated secrets file (a new one is generated on the next `up.sh`):
 ```bash
 rm deploy/local/.env
 ```
+
+## 14. Increment 6 – medical device integration: gateway, simulators and the dev CA
+
+Increment 6 adds the Device Integration Layer (E31 engine, E32 console, E33 capture, E34 endpoint security) inside the core,
+and the edge application `apps/wz-device-gateway`. Everything below runs on the laptop with **synthetic data only** – no
+real device is needed (and none was used to verify this release). Background:
+[Solution Design E31–E34](../increment-06/01-Solution-Design-E31-E34.md); administrator and tester workflows:
+[Device Administrator Guide](../increment-06/04-Device-Administrator-Guide.md),
+[Integration Tester Guide](../increment-06/05-Integration-Tester-Guide.md).
+
+### 14.1 Realm, users and demo data
+
+The realm adds `DEVICE_ADMIN`, `DEVICE_APPROVER`, `INTEGRATION_TESTER`, `SECURITY_OPS` and the users `deviceadmin1`
+(S8901), `deviceapprover1` (S8902), `inttester1` (S8903), `secops1` (S8904) – temporary password as for the other demo users.
+A realm imported before increment 6 has none of them: run `./deploy/local/down.sh --purge` and `./deploy/local/up.sh` once.
+With the `local` profile the demo seeders create stations at `LHR` and `DXB`, published devices `DEV-000001`…`DEV-000008`,
+the draft `CFG-000009`, demo endpoints (`EP-LHR-GW-01`, `EP-LHR-AGT-01`, `EP-LHR-TAB-01`, `EP-LHR-KSK-01`, isolated
+`EP-DXB-GW-01`, pending `EP-LHR-GW-02`) and **demo gateway-zone CIDRs** covering loopback and the RFC 1918 ranges.
+
+### 14.2 Build and test
+
+```bash
+./mvnw verify                                      # 744 tests, 0 failures at the increment-6 baseline
+./mvnw -pl apps/wz-core-app -am verify -Dtest='Increment6*IntegrationTest,ArchitectureTest' -Dsurefire.failIfNoSpecifiedTests=false
+./mvnw -pl apps/wz-device-gateway -am install      # gateway: 65 tests, builds apps/wz-device-gateway/target/wz-device-gateway.jar
+```
+
+Recreate a persistent test database before every run (Section 4.2).
+
+### 14.3 The throw-away device CA (`tools/device/dev-ca.sh`)
+
+The core accepts device certificates only from the configured trust anchors. Locally create a CA and client certificates
+(EC P-256, valid 30 days; the directory `tools/device/dev-ca/` is git-ignored – never use these keys elsewhere):
+
+```bash
+tools/device/dev-ca.sh init                       # tools/device/dev-ca/ca.{key,pem}
+tools/device/dev-ca.sh client gw-lhr-03           # client certificate with extended key usage clientAuth
+tools/device/dev-ca.sh thumbprint gw-lhr-03       # hex SHA-256 of the DER certificate (what the ingress would forward)
+tools/device/dev-ca.sh client bad serverAuth      # optional: certificate without clientAuth to test certificate_key_usage
+```
+
+Start the core with the CA as trust anchor (restart if it is already running):
+
+```bash
+export WZ_DEVICE_TRUST_ANCHORS=$PWD/tools/device/dev-ca/ca.pem
+java -jar apps/wz-core-app/target/wz-core-app.jar
+```
+
+`WZ_DEVICE_TOKEN_PEPPER` is optional locally – without it the token pepper is derived from the master key. Do not change
+either the pepper or the master key while endpoints exist: every endpoint token would become invalid.
+
+### 14.4 Run the gateway locally
+
+1. **Create an endpoint** as `secops1` (or publish a configuration in the wizard as `deviceadmin1`). The response contains the
+   one-time enrolment token – shown once:
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/device-security/endpoints -H "Authorization: Bearer $SECOPS_TOKEN" \
+  -H 'Content-Type: application/json' -d '{"kind":"GATEWAY","siteCode":"LHR","zone":"GATEWAY_ZONE","deviceInstanceIds":["DEV-000003"]}' | jq
+```
+
+2. **Key store** for the gateway from the dev-CA certificate:
+
+```bash
+openssl pkcs12 -export -in tools/device/dev-ca/gw-lhr-03.pem -inkey tools/device/dev-ca/gw-lhr-03.key \
+  -name gw -out /tmp/gw-lhr-03.p12 -passout pass:changeit
+```
+
+3. **Start the gateway** with the `local` profile (core `http://localhost:8080`, **ingress simulation** – the gateway sends the
+   thumbprint of its certificate itself because the dev stack has no mTLS ingress; it reports the hardening finding
+   `INGRESS_SIMULATION_ENABLED`):
+
+```bash
+java -jar apps/wz-device-gateway/target/wz-device-gateway.jar --spring.profiles.active=local \
+  --wz.gateway.data-dir=/tmp/wz-gw-data \
+  --wz.gateway.enrolment.token=<token from step 1> \
+  --wz.gateway.tls.key-store=/tmp/gw-lhr-03.p12 --wz.gateway.tls.key-store-password=changeit \
+  --wz.gateway.mllp[0].id=mllp-dev --wz.gateway.mllp[0].device-instance-id=DEV-000003 \
+  --wz.gateway.mllp[0].bind-address=127.0.0.1 --wz.gateway.mllp[0].port=2575
+```
+
+   The gateway enrols (proof of possession over `"enrol:" + token + ":" + thumbprint`), stores its identity encrypted in
+   `/tmp/wz-gw-data/identity.enc` and starts heart-beating. Status page: <http://127.0.0.1:8095/> (identity, core
+   reachability, queue, connectors, hardening findings – no PHI). A plaintext listener is allowed on loopback only.
+
+4. **Send an HL7 message over MLLP** (frame `0x0B … 0x1C 0x0D`):
+
+```bash
+printf '\x0b%s\x1c\x0d' "$(tr '\n' '\r' < modules/wz-e31-device-engine/src/main/resources/e31/golden/vitals/csm-pcd01/normal.hl7)" \
+  | nc 127.0.0.1 2575 | tr '\r' '\n'
+```
+
+   You receive the engine's ACK (`MSA|AA`) relayed by the gateway. Stop the core and send again: the gateway answers `AA`
+   after the encrypted queue write and forwards the message when the core is back (store-and-forward).
+
+5. **Serial simulation:** `--simulate-serial=/path/to/capture.txt` (or `--simulate-serial=-` for stdin) with
+   `--simulate-serial-device=DEV-000005` replays serial frames through the serial connector.
+
+For folder watchers, the vendor database poller, POCT1-A, BLE relay and DICOM drop folder see the
+[gateway README](../../apps/wz-device-gateway/README.md).
+
+### 14.5 Simulators and direct device calls
+
+* **Simulators** (as `inttester1`): `GET /api/v1/device-engine/golden-datasets?family=VITALS`, then
+  `POST /api/v1/device-engine/simulators/HL7V2/run` with `{"datasetId":"vitals/csm-pcd01/normal","count":3}` – the dataset is
+  replayed into the pipeline as the virtual endpoint `SIM-HL7V2`, never into production sinks.
+* **Direct device calls with the demo endpoints** (documented non-secrets, local / test only): token
+  `wzdemo-<endpoint id in lower case>-not-a-secret`, thumbprint = SHA-256 of `wellnessz-demo-certificate:<endpoint id>`;
+  send `X-Device-Endpoint`, `Authorization: DeviceToken …`, `X-Client-Cert-Sha256` and an `Idempotency-Key` (example in the
+  Integration Tester Guide §1).
+* **OH workspace:** sign in as `deviceadmin1` (Devices menu, no chart), `secops1` (Security → Devices), `inttester1`
+  (Simulators, Dead letters) or `nurse1` (*Capture from device* in the results tab).
+
+### 14.6 Device security test pack against the local stack
+
+```bash
+tools/device/dev-ca.sh client pack
+cp tools/device-security/targets.example.json tools/device-security/targets.local.json   # point apiBase at http://localhost:8080/api/v1
+tools/device-security/run-all.sh --authorised --targets tools/device-security/targets.local.json --out ./device-security-evidence
+```
+
+Scripts that need a gateway host, a Windows Device Host, ZAP or `psql` report `NOT_RUN` when the target is absent. Adjust
+the gateway block of the targets file (service `wellnessz-gateway`, status port `8095`, queue
+`/var/lib/wellnessz-gateway/queue`).
+
+### 14.7 Troubleshooting (device layer)
+
+| Symptom | Fix |
+|---|---|
+| Enrolment `certificate_untrusted` | `WZ_DEVICE_TRUST_ANCHORS` not set or points to another CA – restart the core with the dev CA |
+| Enrolment `enrolment_token_invalid` / `expired` | Token used or older than 72 h – `POST /api/v1/device-security/endpoints/{id}/enrolment-token` as `secops1` |
+| Gateway refuses to start | No stored identity and no enrolment token – give `--wz.gateway.enrolment.token` |
+| Ingest 401 `mtls_required` | Missing thumbprint header (scripts) or the gateway not in the `local` profile |
+| Ingest 401 `zone_violation` | The caller address is outside the demo CIDRs (loopback / RFC 1918) – check `GET /api/v1/device-security/zone-cidrs` |
+| Tokens suddenly all `bad_token` | Master key or pepper changed – purge and recreate (`./deploy/local/down.sh --purge`) |

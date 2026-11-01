@@ -886,8 +886,8 @@ The ADRs for these deviations are ADR-28…ADR-35 in Architecture 01, Section 24
 | Kernel and adapters | `DeviceEndpointAuthenticationFilterTest` (6), `DeviceContractTypesTest` (3), `DeviceEngineAdapterTest` (4), `PlatformIntegrationTest#increment6DevicePlatformBase` | Filter chain, defaults, E03 adapter |
 | Gateway (`apps/wz-device-gateway`) | 65 | MLLP framing, journal (encryption, restart, tamper, torn write, capacity, retention), folder watcher, enrolment client, back-off, forwarder, connectors, `GatewayIntegrationTest` against a mock engine |
 | SAST (SpotBugs + FindSecBugs, `-Psecurity`) | **0 findings** | Justified exclusions: device-ingest chain CSRF / XSS false positives, XPath from signed packages, SHA-1 for UUIDv5 (RFC 9562) |
-| Web (vitest) | console and security screens 83; capture, engine, employee and manager screens: **&lt;WEB TESTS&gt;** | `Devices.test.tsx`, `Security.test.tsx`, `Engine.test.tsx`, `Capture.test.tsx`, `CaptureScreens.test.tsx`, `Embedding.test.tsx`, `deviceWizard.test.ts`, `capture.test.ts`, `deviceRoles.test.ts`, employee `Devices.test.tsx`, manager `DeviceFleet.test.tsx` |
-| End-to-end (`tools/e2e/e2e-increment6.js`) | **&lt;E2E&gt;** | Planned 21 checks (contract §20) – script and results supplied by the delivery lead |
+| Web (vitest) | console and security screens 83; capture, engine, employee and manager screens: **<WEB TESTS>** | `Devices.test.tsx`, `Security.test.tsx`, `Engine.test.tsx`, `Capture.test.tsx`, `CaptureScreens.test.tsx`, `Embedding.test.tsx`, `deviceWizard.test.ts`, `capture.test.ts`, `deviceRoles.test.ts`, employee `Devices.test.tsx`, manager `DeviceFleet.test.tsx` |
+| End-to-end (`tools/e2e/e2e-increment6.js`) | **<E2E>** | Planned 21 checks (contract §20) – script and results supplied by the delivery lead |
 
 ### 14.2 Integration hardening
 
@@ -918,7 +918,7 @@ in staging.
 | Production zone CIDRs | SECURITY_OPS | `/device-security/zone-cidrs` – **gateways cannot authenticate before this is done** |
 | IEC 80001-1 responsibility agreement (E34-BL-013) | OH, group IT, Security, vendors | `/device-security/responsibility-agreement` |
 | Independent penetration test and Cyber Review test-pack run in staging (E34-BL-010, -012) | CISO | Go-live readiness gate |
-| 401 vs 403 for endpoint path violations | Engineering lead | E34 returns `endpoint_forbidden` as **401** through the filter; the kernel access-denied handler returns **403** – decide and align |
+| 401 vs 403 for endpoint path violations | Engineering lead | At the verified baseline E34's `endpoint_forbidden` reached the device as **401** through the filter while the kernel access-denied handler answered **403**. Rule being implemented at the time of writing: authentication failures **401**, `endpoint_forbidden` (authenticated but path not allowed) **403** – confirm with the regression run |
 | Vendor interface specifications for inventory rows not marked *High* | Procurement, vendors | Wizard prerequisite `INTERFACE_SPEC_CONFIRMED` |
 | Epic renumbering of the strategy pack (proposed E20–E31) | PMO | Document 03, Section 10 |
 

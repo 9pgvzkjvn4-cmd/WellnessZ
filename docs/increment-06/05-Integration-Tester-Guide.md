@@ -243,7 +243,7 @@ demo endpoint tokens and the thumbprint header) covers the 21 checks of contract
 catalogue totals, wizard with four-eyes and certificate PDF, publish with one-time token, enrolment, authentication refusals
 and security events, capture → preview → accept → E03 result, duplicate, lockout and quick QC, unmatched resolution, dead letter
 and replay, OCR / manual fallback, restricted breath alcohol, webhook HMAC, batch store-and-forward, isolation and quarantine,
-decommissioning, manager counts, employee summary and consent, chain verification. Result: **&lt;E2E&gt;**. Run it on a freshly
+decommissioning, manager counts, employee summary and consent, chain verification. Result: **<E2E>**. Run it on a freshly
 purged local database after the increment 1–5 scripts.
 
 ## 11. Troubleshooting for testers
