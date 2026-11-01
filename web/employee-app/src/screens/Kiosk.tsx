@@ -197,7 +197,7 @@ export interface KioskViewProps {
 /** Hook-free kiosk screens (one per step). */
 export function KioskView({ t, uiLang, step, who, summary, badge, busy, error, remaining, onBadge, onIdentify, onConsent, onFinish, onClear, onTouch }: KioskViewProps) {
   return (
-    <main id="main" className={`kiosk kiosk-${step}`} lang={uiLang} dir={dirFor(uiLang)}>
+    <main id="main" className={`kiosk kiosk-step-${step}`} lang={uiLang} dir={dirFor(uiLang)}>
       <header className="kiosk-head">
         <span className="brand">WellnessZ</span> <span>{t.kioskTitle}</span>
       </header>

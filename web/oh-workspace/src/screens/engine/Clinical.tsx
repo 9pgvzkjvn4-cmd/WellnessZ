@@ -77,7 +77,7 @@ function UnmatchedCard({ item: u, client, onSessionExpired, onDone, open }: { it
     <li className="card">
       <div className="card-row">
         <strong>{humanise(u.category)}</strong> {u.restricted && <span className="badge badge-warning">Restricted</span>} {overdue && <span className="badge badge-overdue">SLA overdue</span>}
-        <span className="small muted"> · received {formatDate(u.receivedAt)} ({u.ageHours} h) · device <span className="mono">{u.deviceInstanceId ?? '–'}</span>{u.reasonCode && <> · {humanise(u.reasonCode)}</>}</span>
+        <span className="small muted"> received {formatDate(u.receivedAt)} ({u.ageHours} h) · device <span className="mono">{u.deviceInstanceId ?? '–'}</span>{u.reasonCode && <> · {humanise(u.reasonCode)}</>}</span>
       </div>
       {u.restricted && u.suggestions.length === 0 && <p className="small">Restricted reading – suggestions are shown to the MRO only.</p>}
       {u.suggestions.length > 0 && (

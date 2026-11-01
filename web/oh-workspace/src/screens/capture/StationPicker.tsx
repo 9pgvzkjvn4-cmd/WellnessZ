@@ -43,7 +43,7 @@ export function StationPicker({ client, onSessionExpired, idPrefix = 'station' }
   }
 
   return (
-    <form className="station-picker inline-form" onSubmit={submit} aria-label="Capture station">
+    <form className="station-picker inline-form" onSubmit={submit} aria-label="Choose the capture station">
       {list.length > 0 && !forbidden ? (
         <div className="field">
           <label htmlFor={`${idPrefix}-select`}>Capture station</label>
