@@ -253,7 +253,7 @@ public class HarnessService {
                     if (other != null) { filled = true; coveredByOthers.add(f.get("id").asString() + " ← " + other); }
                 }
                 if (f.path("mandatory").asBoolean()) { mand++; if (filled) mandFilled++; } else { opt++; if (filled) optFilled++; }
-                if (filled) {
+                if (filled && i.path("fields").has(f.get("id").asString())) {
                     JsonNode v = i.path("fields").get(f.get("id").asString());
                     if (f.has("unit") && v.has("unit") && !f.get("unit").asString().equals(v.get("unit").asString())) { units = false; mismatches.add(tid + "." + f.get("id").asString() + " unit"); }
                     if (f.has("range") && v.path("value").isNumber()) {

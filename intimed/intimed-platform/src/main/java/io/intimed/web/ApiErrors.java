@@ -39,6 +39,15 @@ public class ApiErrors {
     @ExceptionHandler(NoResourceFoundException.class)
     ResponseEntity<ProblemDetail> nf(NoResourceFoundException e) { return problem(HttpStatus.NOT_FOUND, "not-found", "not found"); }
 
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<ProblemDetail> method(Exception e) { return problem(HttpStatus.METHOD_NOT_ALLOWED, "method-not-allowed", "method not allowed"); }
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    ResponseEntity<ProblemDetail> media(Exception e) { return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported-media-type", "unsupported media type"); }
+
+    @ExceptionHandler({org.springframework.web.bind.MissingServletRequestParameterException.class, org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    ResponseEntity<ProblemDetail> param(Exception e) { return problem(HttpStatus.BAD_REQUEST, "invalid-parameter", "missing or invalid request parameter"); }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> other(Exception e) {
         String ref = io.intimed.common.Hashing.randomToken(6);

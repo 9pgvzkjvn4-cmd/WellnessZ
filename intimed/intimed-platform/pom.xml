@@ -49,12 +49,10 @@
         </executions>
       </plugin>
       <plugin>
-        <!-- SC-06: CycloneDX SBOM per build (IM-E06-BL-005) -->
+        <!-- SC-06: CycloneDX SBOM per build (IM-E06-BL-005) – Spring Boot parent binds it: META-INF/sbom/application.cdx.json in the jar, served at /actuator/sbom -->
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
         <version>${cyclonedx.version}</version>
-        <executions><execution><phase>package</phase><goals><goal>makeAggregateBom</goal></goals></execution></executions>
-        <configuration><outputFormat>json</outputFormat><outputName>intimed-sbom</outputName></configuration>
       </plugin>
     </plugins>
   </build>

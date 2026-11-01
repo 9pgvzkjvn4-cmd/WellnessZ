@@ -1,0 +1,28 @@
+# IntiMed (independent product under intimed/) – build, tests, SBOM, driver signature verification, secret scan.
+name: intimed-ci
+on:
+  push: { paths: ["intimed/**", ".github/workflows/intimed-ci.yml"] }
+  pull_request: { paths: ["intimed/**", ".github/workflows/intimed-ci.yml"] }
+permissions: { contents: read }
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    defaults: { run: { working-directory: intimed } }
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with: { distribution: temurin, java-version: "21", cache: maven }
+      - name: Build, unit + integration + architecture tests, SBOM
+        run: ./mvnw -B verify
+      - name: Driver packages valid and signed by a trusted publisher
+        run: |
+          for f in intimed-platform/src/main/resources/drivers/*.json; do
+            test -f "$f.sig" || { echo "unsigned driver $f"; exit 1; }
+            java -jar intimed-platform/target/intimed-platform.jar sdk test "$f"
+          done
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env: { GITLEAKS_CONFIG: .gitleaks.toml }
+        with: { args: "detect --source intimed --no-banner" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with: { name: intimed-sbom, path: intimed/intimed-platform/target/classes/META-INF/sbom/application.cdx.json }

@@ -426,6 +426,17 @@ public class ConfigService {
         return e;
     }
 
+    /** Clinical sign-off ends the shadow run (template owner / physician) – live filing starts. */
+    public ObjectNode signOffShadow(String tenant, String id, String actor) {
+        Current.require(Role.TEMPLATE_OWNER, Role.PHYSICIAN);
+        ObjectNode c = get(tenant, id);
+        if (!c.has("shadow")) throw ApiException.conflict("no-shadow", "configuration is not in shadow mode");
+        c.withObject("shadow").put("signedOff", true).put("signedOffBy", actor).put("signedOffAt", Instant.now().toString());
+        store.put(tenant, KIND, id, c, c.get("status").asString(), c.get("modelId").asString());
+        audit.record(tenant, actor, "config.shadow.signoff", "config/" + id, null);
+        return c;
+    }
+
     // ---------------------------------------------------------------- versions, clone, decommission
     public ObjectNode newVersion(String tenant, String id, String actor) {
         ObjectNode old = get(tenant, id);

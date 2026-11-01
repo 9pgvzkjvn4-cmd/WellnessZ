@@ -56,6 +56,11 @@ class Session:
         if s != 200:
             raise RuntimeError("login failed %s %s" % (s, r))
         if r.get("mfaRequired"):
+            if os.environ.get("INTIMED_TOTP_SECRET"):
+                s3, r3 = self.req("POST", "/api/auth/mfa", {"code": totp(os.environ["INTIMED_TOTP_SECRET"])})
+                if s3 != 200:
+                    raise RuntimeError("MFA failed %s" % r3)
+                return self
             s2, code = self.req("GET", "/api/auth/demo-mfa")
             if s2 != 200:
                 raise RuntimeError("MFA code unavailable (demo profile only): %s" % code)
@@ -77,3 +82,40 @@ def finish(script):
     fails = [r for r in RESULTS if r["result"] != "PASS"]
     print("%s: %d checks, %d failed" % (script, len(RESULTS), len(fails)))
     sys.exit(1 if fails else 0)
+
+
+def totp(secret_b32, step=None):
+    import base64, hmac, hashlib, struct
+    key = base64.b32decode(secret_b32 + "=" * (-len(secret_b32) % 8))
+    step = int(time.time() // 30) if step is None else step
+    h = hmac.new(key, struct.pack(">Q", step), hashlib.sha1).digest()
+    o = h[-1] & 15
+    return "%06d" % ((struct.unpack(">I", h[o:o + 4])[0] & 0x7fffffff) % 1000000)
+
+def mllp(sock, msg):
+    sock.sendall(b"\x0b" + msg.encode() + b"\x1c\x0d")
+    buf = b""
+    sock.settimeout(10)
+    while not buf.endswith(b"\x1c\x0d"):
+        chunk = sock.recv(4096)
+        if not chunk:
+            break
+        buf += chunk
+    return buf.strip(b"\x0b\x1c\x0d").decode(errors="replace")
+
+def enrol_test_endpoint(session, workdir, name="Security kit probe"):
+    """Registers an endpoint, creates key + CSR with the system openssl, enrols, returns (cert, key) paths."""
+    import subprocess, tempfile
+    os.makedirs(workdir, exist_ok=True)
+    s, r = session.req("POST", "/api/security/endpoints", {"name": name, "type": "GATEWAY", "site": "kit", "zone": "MDZ-KIT"})
+    if s != 200:
+        raise RuntimeError("endpoint registration failed %s %s" % (s, r))
+    key, csr = os.path.join(workdir, "probe.key"), os.path.join(workdir, "probe.csr")
+    subprocess.run(["openssl", "ecparam", "-name", "prime256v1", "-genkey", "-noout", "-out", key], check=True, capture_output=True)
+    subprocess.run(["openssl", "req", "-new", "-key", key, "-subj", "/CN=kit-probe", "-out", csr], check=True, capture_output=True)
+    s2, e = session.req("POST", "/api/enrol", {"token": r["enrolmentToken"], "csr": open(csr).read()})
+    if s2 != 200:
+        raise RuntimeError("enrolment failed %s %s" % (s2, e))
+    crt = os.path.join(workdir, "probe.crt")
+    open(crt, "w").write(e["certificate"] + e["chain"])
+    return crt, key, r["endpoint"]["id"], r["enrolmentToken"]

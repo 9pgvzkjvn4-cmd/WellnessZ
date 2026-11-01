@@ -202,8 +202,10 @@ public class Pipeline {
             obs.put("status", status).put("holdReason", q.hold());
             events.publish(tenant, "observation.held", Json.obj().put("observation", id).put("reason", q.hold()));
         } else {
-            router.route(tenant, config, obs, env.mode(), env.runId(), res);
-            status = res.routingErrors.isEmpty() ? "FILED" : "FILED";
+            String routeMode = shadowActive(config, env) ? "SHADOW" : env.mode();
+            if ("SHADOW".equals(routeMode)) obs.put("shadow", true);
+            router.route(tenant, config, obs, routeMode, env.runId(), res);
+            status = "FILED";
             obs.put("status", "FILED");
         }
         long t4 = System.nanoTime();
@@ -218,6 +220,13 @@ public class Pipeline {
             tenants.meter(tenant, "observations.filed", 1);
         }
         return status;
+    }
+
+    /** Shadow mode (IM-E04-F05): before clinical sign-off live data is filed into shadow copies of the template only. */
+    static boolean shadowActive(JsonNode config, Envelope env) {
+        JsonNode sh = config.path("shadow");
+        return "LIVE".equals(env.mode()) && sh.isObject() && !sh.path("signedOff").asBoolean(false)
+                && Instant.parse(sh.path("until").asString("1970-01-01T00:00:00Z")).isAfter(env.receivedAt());
     }
 
     /** Files a held observation after clinician verification (capture accept) – optionally with corrected values. */

@@ -169,6 +169,11 @@ public class ConsoleController {
     @PostMapping("/console/configs/{id}/promotion-approval") public ObjectNode promotionApproval(@PathVariable String id, @RequestParam String stage) { return configs.approvePromotion(t(), id, stage, a()); }
     @PostMapping("/console/configs/{id}/gate-exception") public ObjectNode gateExc(@PathVariable String id, @RequestBody JsonNode b) { return configs.requestGateException(t(), id, b.path("reason").asString(), b.path("days").asInt(7), a()); }
     @PostMapping("/console/configs/{id}/gate-exception/approve") public ObjectNode gateExcApprove(@PathVariable String id) { return configs.approveGateException(t(), id, a()); }
+    @PostMapping("/console/configs/{id}/shadow/sign-off") public ObjectNode shadowSignOff(@PathVariable String id) { return configs.signOffShadow(t(), id, a()); }
+    @GetMapping("/console/configs/{id}/shadow") public List<ObjectNode> shadow(@PathVariable String id) {
+        Current.require(Role.TEMPLATE_OWNER, Role.PHYSICIAN, Role.CLINICIAN);
+        return store.list(t(), "shadow").stream().filter(i -> id.equals(i.path("configId").asString())).toList();
+    }
     @PostMapping("/console/configs/{id}/new-version") public ObjectNode newVersion(@PathVariable String id) { return configs.newVersion(t(), id, a()); }
     @PostMapping("/console/configs/{id}/clone") public ObjectNode cloneCfg(@PathVariable String id, @RequestBody JsonNode b) { return configs.clone(t(), id, b.path("name").asString("Clone"), b.get("site"), a()); }
     @PostMapping("/console/configs/{id}/decommission") public ObjectNode decommission(@PathVariable String id, @RequestParam(defaultValue = "true") boolean revokeEndpoint) { return configs.decommission(t(), id, revokeEndpoint, a()); }

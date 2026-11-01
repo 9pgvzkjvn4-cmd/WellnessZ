@@ -291,4 +291,25 @@ class PlatformIntegrationTest {
         for (int i = 0; i < UserService.MAX_FAILURES; i++) assertThatThrownBy(() -> users.authenticate("it.nurse", "wrong-password-1A")).isInstanceOf(ApiException.class);
         assertThatThrownBy(() -> users.authenticate("it.nurse", PW)).hasMessageContaining("locked");
     }
+
+    @Test
+    @Order(11)
+    void pipelineThroughputForTheCapacityModel() throws Exception {
+        tenants.updateSettings(A, (ObjectNode) Json.parse("{\"quotas\":{\"messagesPerSecond\":100000,\"burst\":100000}}"), "test");
+        String id = provision("vitals.welchallyn.csm-pcd01@1.0.0", "IMD-027", Json.obj().put("site", "ED").put("station", "ED-PERF"));
+        DriverPackage d = drivers.require(A, "vitals.welchallyn.csm-pcd01@1.0.0");
+        var pipeline = org.springframework.test.util.ReflectionTestUtils.getField(capture, "pipeline");
+        int n = 2000;
+        Instant t0 = Instant.parse("2026-11-01T00:00:00Z");
+        long start = System.nanoTime();
+        for (int i = 0; i < n; i++) {
+            String msg = Simulator.render(d, Simulator.vary(Simulator.values(d), i), null, t0.plusSeconds(i), "CSM-100377");
+            ((io.intimed.engine.pipeline.Pipeline) pipeline).process(new io.intimed.engine.pipeline.Envelope(A, null, id, "P4", msg, "TEST", "PERF-SUBJECT", "perf", "local", Instant.now()));
+        }
+        double secs = (System.nanoTime() - start) / 1e9;
+        double rate = n / secs;
+        Files.writeString(Path.of(System.getProperty("intimed.home")).resolve("perf.txt"), String.format("%d messages in %.2f s = %.0f msg/s (single node, in-process, encrypted H2)%n", n, secs, rate));
+        System.out.printf("CAPACITY: %d HL7 PCD-01 messages in %.2f s = %.0f msg/s%n", n, secs, rate);
+        assertThat(rate).isGreaterThan(50);
+    }
 }
