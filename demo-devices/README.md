@@ -17,7 +17,7 @@ packs and golden datasets are the engine's own resources. Demo keys and tokens a
 | `security-console.html` | Security operations / auditor: endpoints and zero-touch enrolment, token rotation, zones and conduits (firewall template export), Ed25519 driver-signature check (WebCrypto), anomaly rules and the isolation drill, incidents, hash-chained security event log with verification |
 | `device-demo-data.js` | **The demo data file** (`window.WZ_DEVICE_DEMO_SEED`) |
 | `WellnessZ-Device-Integration-Demo-Guide.xlsx` | How to run, scenarios, demo users, one sheet per scenario (steps, expected result, Pass / Fail), connectivity options P1–P10, demo devices |
-| `recording/` | Screenshots + `manifest.json` (narration per shot) for a narrated video |
+| `WellnessZ-Device-Integration-Demo.mp4` (+ `.srt`) | Narrated video walkthrough recorded from these apps (download pack only; built from `dist/recording/`) |
 
 ## How to run
 
