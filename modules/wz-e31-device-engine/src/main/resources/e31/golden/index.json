@@ -1225,5 +1225,65 @@
   "description": "Performance profile: mixed spot measurements, 50 msg/s",
   "headers": {},
   "expect": {}
+ },
+ {
+  "datasetId": "wearable/cloud-daily/normal",
+  "family": "WEARABLE",
+  "adapter": "CLOUD_POLL_JSON",
+  "packageId": "wear.cloud.daily-poll",
+  "kind": "NORMAL",
+  "resource": "golden/wearable/cloud-daily/normal.json",
+  "contentType": "application/json",
+  "description": "Daily summary record (steps, sleep) for E1001 from the vendor cloud \u2013 consented wearables",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "wearable/cloud-daily/edge",
+  "family": "WEARABLE",
+  "adapter": "CLOUD_POLL_JSON",
+  "packageId": "wear.cloud.daily-poll",
+  "kind": "EDGE",
+  "resource": "golden/wearable/cloud-daily/edge.json",
+  "contentType": "application/json",
+  "description": "A day without data (zeros)",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "wearable/cloud-daily/malformed",
+  "family": "WEARABLE",
+  "adapter": "CLOUD_POLL_JSON",
+  "packageId": "wear.cloud.daily-poll",
+  "kind": "MALFORMED",
+  "resource": "golden/wearable/cloud-daily/malformed.json",
+  "contentType": "application/json",
+  "description": "Steps is not a number",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "wearable/cloud-daily/time-skew",
+  "family": "WEARABLE",
+  "adapter": "CLOUD_POLL_JSON",
+  "packageId": "wear.cloud.daily-poll",
+  "kind": "TIME_SKEW",
+  "resource": "golden/wearable/cloud-daily/time-skew.json",
+  "contentType": "application/json",
+  "description": "Day end with a far-off offset",
+  "headers": {},
+  "expect": {}
+ },
+ {
+  "datasetId": "wearable/cloud-daily/duplicate",
+  "family": "WEARABLE",
+  "adapter": "CLOUD_POLL_JSON",
+  "packageId": "wear.cloud.daily-poll",
+  "kind": "DUPLICATE",
+  "resource": "golden/wearable/cloud-daily/duplicate.json",
+  "contentType": "application/json",
+  "description": "The same vendor record id again (idempotent ingest)",
+  "headers": {},
+  "expect": {}
  }
 ]

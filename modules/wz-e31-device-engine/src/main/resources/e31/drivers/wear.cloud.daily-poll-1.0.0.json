@@ -1,0 +1,136 @@
+{
+ "packageId": "wear.cloud.daily-poll",
+ "version": "1.0.0",
+ "family": "WEARABLE",
+ "models": [
+  "MD-121"
+ ],
+ "adapter": "CLOUD_POLL_JSON",
+ "options": [
+  "P6"
+ ],
+ "vendorSoftware": "Vendor wellness cloud (daily summaries, OAuth2 client credentials)",
+ "protocol": {
+  "poll": {
+   "enabled": true,
+   "url": "PARAMETER:apiBaseUrl",
+   "path": "/v1/daily-summaries",
+   "oauth2": {
+    "tokenUrl": "PARAMETER:tokenUrl",
+    "clientId": "PARAMETER:clientId",
+    "secretRef": "PARAMETER:clientSecretRef",
+    "scopes": [
+     "summaries.read"
+    ]
+   },
+   "intervalSeconds": 900,
+   "rateLimitPerMinute": 60,
+   "recordsPointer": "/items",
+   "cursorParam": "since",
+   "nextCursorPointer": "/nextCursor",
+   "recordIdPointer": "/id",
+   "recordTimePointer": "/day/end",
+   "pageSize": 100,
+   "maxPagesPerRun": 10
+  },
+  "consentPurpose": "WEARABLE_DATA"
+ },
+ "parse": {
+  "type": "JSON_POINTER",
+  "identity": {
+   "employee": "/subject/employeeNumber",
+   "effectiveTime": {
+    "selector": "/day/end",
+    "format": "ISO_OFFSET"
+   }
+  },
+  "fields": [
+   {
+    "key": "steps",
+    "selector": "/summary/steps",
+    "type": "QUANTITY",
+    "unit": "{steps}",
+    "required": true
+   },
+   {
+    "key": "sleepMinutes",
+    "selector": "/summary/sleepMinutes",
+    "type": "QUANTITY",
+    "unit": "min"
+   }
+  ]
+ },
+ "mappings": [
+  {
+   "key": "steps",
+   "loinc": "55423-8",
+   "display": "Number of steps",
+   "ucum": "{steps}",
+   "plausible": {
+    "min": 0,
+    "max": 100000
+   }
+  },
+  {
+   "key": "sleepMinutes",
+   "loinc": "93832-4",
+   "display": "Sleep duration",
+   "ucum": "min",
+   "plausible": {
+    "min": 0,
+    "max": 1440
+   }
+  }
+ ],
+ "qualityGates": [
+  "CONSENT",
+  "PLAUSIBILITY"
+ ],
+ "bindings": [
+  {
+   "formCode": "E12.WEARABLE_DAILY",
+   "formVersion": "1",
+   "category": "WEARABLE",
+   "target": "E12.WEARABLE",
+   "fields": {
+    "steps": "STEPS",
+    "sleepMinutes": "SLEEP_MINUTES"
+   },
+   "verifyBeforePost": false
+  }
+ ],
+ "capabilities": {
+  "worklistPush": "NONE",
+  "startFromForm": false,
+  "historicRetrieval": false
+ },
+ "testVectors": [
+  {
+   "name": "normal",
+   "input": "golden/wearable/cloud-daily/normal.json",
+   "expect": {
+    "steps": 9120,
+    "sleepMinutes": 431,
+    "gates": {
+     "PLAUSIBILITY": "PASS"
+    }
+   }
+  },
+  {
+   "name": "malformed",
+   "input": "golden/wearable/cloud-daily/malformed.json",
+   "expect": {
+    "error": "parse_failed"
+   }
+  },
+  {
+   "name": "edge-zero",
+   "input": "golden/wearable/cloud-daily/edge.json",
+   "expect": {
+    "steps": 0
+   }
+  }
+ ],
+ "schema": "wellnessz.device-driver/1",
+ "engineCompatibility": ">=1.0 <2.0"
+}

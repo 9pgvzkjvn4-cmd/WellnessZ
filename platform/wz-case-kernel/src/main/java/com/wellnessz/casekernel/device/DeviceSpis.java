@@ -27,6 +27,7 @@ public class DeviceSpis {
     private final ObjectProvider<DevicePackageSignatures> signatures;
     private final ObjectProvider<DeviceSecretStore> secrets;
     private final ObjectProvider<DeviceEquipmentRegister> equipment;
+    private final ObjectProvider<DeviceTenantDirectory> tenants;
     private final List<DeviceObservationSink> sinks;
     private final List<DeviceObservationListener> observationListeners;
     private final List<DeviceEndpointStatusListener> endpointListeners;
@@ -38,6 +39,7 @@ public class DeviceSpis {
                       ObjectProvider<DeviceObservationGateway> gateway, ObjectProvider<DeviceDiagnostics> diagnostics,
                       ObjectProvider<DeviceEndpointProvisioning> provisioning, ObjectProvider<DevicePackageSignatures> signatures,
                       ObjectProvider<DeviceSecretStore> secrets, ObjectProvider<DeviceEquipmentRegister> equipment,
+                      ObjectProvider<DeviceTenantDirectory> tenants,
                       List<DeviceObservationSink> sinks, List<DeviceObservationListener> observationListeners,
                       List<DeviceEndpointStatusListener> endpointListeners, List<DeviceWorklistSource> worklists, AuditService audit) {
         this.catalogue = catalogue;
@@ -50,6 +52,7 @@ public class DeviceSpis {
         this.signatures = signatures;
         this.secrets = secrets;
         this.equipment = equipment;
+        this.tenants = tenants;
         this.sinks = List.copyOf(sinks);
         this.observationListeners = List.copyOf(observationListeners);
         this.endpointListeners = List.copyOf(endpointListeners);
@@ -78,6 +81,11 @@ public class DeviceSpis {
 
     public DeviceEquipmentRegister equipment() {
         return equipment.getIfAvailable(() -> DeviceEquipmentRegister.NONE);
+    }
+
+    /** Tenants (E31); without the engine only the group tenant exists. */
+    public DeviceTenantDirectory tenants() {
+        return tenants.getIfAvailable(() -> DeviceTenantDirectory.GROUP_ONLY);
     }
 
     public DeviceObservationGateway gateway() {

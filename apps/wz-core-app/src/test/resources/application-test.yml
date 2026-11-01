@@ -26,3 +26,8 @@ wellnessz:
       initial-delay-ms: 3600000
     housekeeping-interval-ms: 3600000
     alert-interval-ms: 3600000
+    cloud:
+      poll-tick-ms: 3600000
+      poll-initial-delay-ms: 3600000
+      # the mock vendor cloud of the tests is a plain-HTTP JDK HttpServer on 127.0.0.1 (production: HTTPS only)
+      allow-loopback-http: true

@@ -56,7 +56,8 @@ public class DriverRuntime {
         DeviceCatalogueLookup.DriverPackage published = spis.catalogue().driverPackage(instance.driverPackageId(), version)
                 .orElseThrow(() -> new EngineException("no_driver_for_option", "Driver package " + instance.driverPackageId() + "@" + version
                         + " is not in the registry", true));
-        DriverPackage cached = verified.get(published.sha256());
+        String cacheKey = published.sha256() + "|" + tenantOf(instance);
+        DriverPackage cached = verified.get(cacheKey);
         if (cached != null) {
             return cached;
         }
@@ -65,8 +66,12 @@ public class DriverRuntime {
         if (pkg.engineCompatibility() != null && !SemVer.satisfies(EngineSettings.ENGINE_VERSION, pkg.engineCompatibility())) {
             throw new EngineException("no_driver_for_option", "Driver package is not compatible with engine " + EngineSettings.ENGINE_VERSION, true);
         }
-        verified.put(published.sha256(), pkg);
+        verified.put(cacheKey, pkg);
         return pkg;
+    }
+
+    static String tenantOf(DeviceCatalogueLookup.DeviceInstance instance) {
+        return instance == null || instance.tenantCode() == null ? EngineSettings.DEFAULT_TENANT : instance.tenantCode();
     }
 
     /**
@@ -82,13 +87,14 @@ public class DriverRuntime {
         }
         DeviceCatalogueLookup.DriverPackage published = spis.catalogue().driverPackage(packageId, version)
                 .orElseThrow(() -> new EngineException("no_driver_for_option", "Driver package not found", true));
-        DriverPackage cached = verified.get(published.sha256());
+        String cacheKey = published.sha256() + "|" + tenantOf(context);
+        DriverPackage cached = verified.get(cacheKey);
         if (cached != null) {
             return cached;
         }
         DriverPackage pkg = parser.parse(published.manifestJson());
         verify(published, pkg, context);
-        verified.put(published.sha256(), pkg);
+        verified.put(cacheKey, pkg);
         return pkg;
     }
 
@@ -97,23 +103,30 @@ public class DriverRuntime {
         String keyId = published.signatureKeyId() != null ? published.signatureKeyId() : pkg.signature() == null ? null : pkg.signature().keyId();
         DevicePackageSignatures signatures = spis.signatures(); // 503 module_disabled without E34: retried, never parsed unsigned
         boolean valid = false;
+        String tenant = tenantOf(instance); // per-tenant signing keys (E31-HLR-12): the tenant's key or a group key
+        String reason = "signature_invalid";
         if (signature != null && keyId != null) {
-            DevicePackageSignatures.Verification v = signatures.verify(published.manifestJson().getBytes(StandardCharsets.UTF_8), signature, keyId);
+            DevicePackageSignatures.Verification v = signatures.verify(published.manifestJson().getBytes(StandardCharsets.UTF_8), signature, keyId, tenant);
             valid = v.valid();
             if (!valid && !published.manifestJson().equals(pkg.canonicalJson())) {
-                valid = signatures.verify(pkg.canonicalJson().getBytes(StandardCharsets.UTF_8), signature, keyId).valid();
+                v = signatures.verify(pkg.canonicalJson().getBytes(StandardCharsets.UTF_8), signature, keyId, tenant);
+                valid = v.valid();
+            }
+            if (!valid && v.failureCode() != null) {
+                reason = v.failureCode();
             }
         }
         if (!valid) {
             try {
                 spis.securityEvents().publish(new DeviceSecurityEventPublisher.DeviceSecurityEvent("PACKAGE_SIGNATURE_INVALID", DeviceCodes.Severity.HIGH,
                         instance == null ? null : instance.endpointId(), instance == null ? null : instance.deviceInstanceId(),
-                        instance == null ? null : instance.siteCode(), "device-engine", "E31", "signature_invalid",
+                        instance == null ? null : instance.siteCode(), "device-engine", "E31", reason,
                         Map.of("packageId", pkg.packageId(), "version", pkg.version()), clock.instant()));
             } catch (RuntimeException ignored) {
                 // the refusal below is what matters; event delivery failures must not open the gate
             }
-            throw new EngineException("signature_invalid", "Driver package signature is invalid", true);
+            throw new EngineException("key_not_for_tenant".equals(reason) ? reason : "signature_invalid",
+                    "Driver package signature is invalid" + ("key_not_for_tenant".equals(reason) ? " for the tenant" : ""), true);
         }
     }
 }

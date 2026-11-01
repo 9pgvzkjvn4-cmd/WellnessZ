@@ -104,7 +104,9 @@ public class WebhookController {
             fail(instance, "timestamp_out_of_window");
             throw new ApiException(HttpStatus.UNAUTHORIZED, "timestamp_out_of_window", "The webhook timestamp is outside the replay window");
         }
-        String ref = secretRefParam.startsWith("PARAMETER:") ? String.valueOf(instance.parameters().get(secretRefParam.substring(10))) : secretRefParam;
+        // the E32 P6 schema nests the secret in webhook{webhookSecretRef}; older configurations hold it flat
+        String ref = secretRefParam.startsWith("PARAMETER:")
+                ? String.valueOf(com.wellnessz.e31.cloud.CloudConnector.parameter(instance.parameters(), secretRefParam.substring(10))) : secretRefParam;
         Optional<char[]> secret = spis.secrets().resolve(ref, "WEBHOOK_HMAC");
         if (secret.isEmpty() || signature == null || !valid(secret.get(), timestamp, body, signature)) {
             secret.ifPresent(s -> Arrays.fill(s, '\0'));

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -212,16 +213,12 @@ public class GatewayService {
      * worklist capability; date of birth and sex only when the driver declares it needs them ({@code protocol.worklistFields}).
      */
     public List<Map<String, Object>> worklist(DeviceEndpointPrincipal p, String deviceInstanceId, LocalDate date) {
-        DeviceCatalogueLookup.DeviceInstance i = instances(p).stream().filter(x -> x.deviceInstanceId().equals(deviceInstanceId)).findFirst()
-                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "device_not_authorised_for_endpoint", "The endpoint may not use this device"));
+        DeviceCatalogueLookup.DeviceInstance i = instanceFor(p, deviceInstanceId);
         DriverPackage pkg = drivers.forInstance(i, null);
         if ("NONE".equals(pkg.capabilities().worklistPush())) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "worklist_not_supported", "The device driver declares no worklist capability");
         }
-        List<String> needed = new ArrayList<>();
-        if (pkg.protocol() != null && pkg.protocol().has("worklistFields")) {
-            pkg.protocol().get("worklistFields").forEach(n -> needed.add(n.asString()));
-        }
+        Set<String> needed = worklistFields(pkg);
         List<Map<String, Object>> out = new ArrayList<>();
         for (DeviceCodes.Category c : i.categories()) {
             for (DeviceWorklistSource s : spis.worklists()) {
@@ -245,6 +242,29 @@ public class GatewayService {
             }
         }
         return out;
+    }
+
+    /** A device instance served by the endpoint (same tenant), else 403 {@code device_not_authorised_for_endpoint}. */
+    public DeviceCatalogueLookup.DeviceInstance instanceFor(DeviceEndpointPrincipal p, String deviceInstanceId) {
+        return instances(p).stream().filter(x -> x.deviceInstanceId().equals(deviceInstanceId)).findFirst()
+                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "device_not_authorised_for_endpoint", "The endpoint may not use this device"));
+    }
+
+    /** Demographic fields the driver declares it needs for a worklist push ({@code protocol.worklistFields}, minimisation). */
+    public Set<String> worklistFields(DeviceCatalogueLookup.DeviceInstance i) {
+        try {
+            return worklistFields(drivers.forInstance(i, null));
+        } catch (EngineException | ApiException e) {
+            return Set.of();
+        }
+    }
+
+    static Set<String> worklistFields(DriverPackage pkg) {
+        Set<String> needed = new java.util.HashSet<>();
+        if (pkg.protocol() != null && pkg.protocol().has("worklistFields")) {
+            pkg.protocol().get("worklistFields").forEach(n -> needed.add(n.asString()));
+        }
+        return needed;
     }
 
     /** Secret reference bound to one of the endpoint's instances (vendor database credentials of the Device Host agent). */

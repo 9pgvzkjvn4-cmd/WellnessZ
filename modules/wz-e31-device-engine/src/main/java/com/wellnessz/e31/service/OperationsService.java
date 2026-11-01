@@ -256,27 +256,6 @@ public class OperationsService {
         return v;
     }
 
-    public List<Map<String, Object>> tenants() {
-        return jdbc.queryForList("""
-                select code, messages_per_minute as "messagesPerMinute", max_connectors as "maxConnectors", catalogue_scope as "catalogueScope"
-                  from deviceint.tenant_quota order by code""");
-    }
-
-    public Map<String, Object> putQuota(String actor, String code, int messagesPerMinute, int maxConnectors, String catalogueScope) {
-        if (!code.matches("[A-Z0-9_\\-]{2,40}") || messagesPerMinute < 1 || maxConnectors < 1) {
-            throw ApiException.badRequest("validation_failed", "Invalid tenant quota");
-        }
-        String scope = catalogueScope == null || catalogueScope.isBlank() ? code : catalogueScope;
-        int n = jdbc.update("update deviceint.tenant_quota set messages_per_minute = ?, max_connectors = ?, catalogue_scope = ?, updated_by = ?, updated_at = ? where code = ?",
-                messagesPerMinute, maxConnectors, scope, actor, Timestamp.from(clock.instant()), code);
-        if (n == 0) {
-            jdbc.update("insert into deviceint.tenant_quota (code, messages_per_minute, max_connectors, catalogue_scope, updated_by, updated_at) values (?, ?, ?, ?, ?, ?)",
-                    code, messagesPerMinute, maxConnectors, scope, actor, Timestamp.from(clock.instant()));
-        }
-        audit.record("DEVICE_TENANT_QUOTA", "DEVICE_TENANT", code, AuditService.Outcome.SUCCESS, "perMinute=" + messagesPerMinute);
-        return Map.of("code", code, "messagesPerMinute", messagesPerMinute, "maxConnectors", maxConnectors, "catalogueScope", scope);
-    }
-
     public List<Map<String, Object>> gates() {
         Map<String, Map<String, Object>> signoff = new LinkedHashMap<>();
         for (Map<String, Object> r : jdbc.queryForList("select gate_code, status, signed_by, signed_at from deviceint.gate_signoff")) {

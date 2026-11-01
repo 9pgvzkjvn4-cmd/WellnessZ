@@ -27,6 +27,14 @@ public interface DeviceCatalogueLookup {
     /** Published, in-service instances at a station (or paired to a tablet / kiosk endpoint) that serve a category. */
     List<DeviceInstance> instancesAtStation(String siteCode, String stationCode, DeviceCodes.Category category);
 
+    /**
+     * Published instances using a connectivity option (all sites and tenants) – the engine's P6 vendor-cloud poller enumerates
+     * its connectors with it. Default: none (implementations that predate the method publish no pollable connector).
+     */
+    default List<DeviceInstance> publishedInstances(DeviceCodes.Option option) {
+        return List.of();
+    }
+
     /** A signed driver package version (manifest JSON as published, canonical form). */
     Optional<DriverPackage> driverPackage(String packageId, String version);
 

@@ -2,9 +2,6 @@ package com.wellnessz.e31.web;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,7 +15,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,7 +28,9 @@ import com.wellnessz.casekernel.device.DeviceEndpointPrincipal;
 import com.wellnessz.casekernel.module.ModuleRegistry;
 import com.wellnessz.common.error.ApiException;
 import com.wellnessz.e31.pipeline.IngestService;
+import com.wellnessz.e31.outbound.OutboundService;
 import com.wellnessz.e31.service.GatewayService;
+import com.wellnessz.e31.service.HistoricRetrievalService;
 import com.wellnessz.e31.store.RawPayloadStore;
 import com.wellnessz.e31.support.EngineSettings;
 import com.wellnessz.e31.support.Ids;
@@ -51,16 +49,23 @@ import tools.jackson.databind.json.JsonMapper;
 public class IngestController {
 
     private final IngestHandler handler;
+    private final BatchIngest batches;
     private final GatewayService gateways;
+    private final OutboundService outbound;
+    private final HistoricRetrievalService historic;
     private final RawPayloadStore raw;
     private final EngineSettings settings;
     private final ModuleRegistry modules;
     private final JsonMapper json;
 
-    public IngestController(IngestHandler handler, GatewayService gateways, RawPayloadStore raw, EngineSettings settings, ModuleRegistry modules,
+    public IngestController(IngestHandler handler, BatchIngest batches, GatewayService gateways, OutboundService outbound,
+                            HistoricRetrievalService historic, RawPayloadStore raw, EngineSettings settings, ModuleRegistry modules,
                             JsonMapper json) {
         this.handler = handler;
+        this.batches = batches;
         this.gateways = gateways;
+        this.outbound = outbound;
+        this.historic = historic;
         this.raw = raw;
         this.settings = settings;
         this.modules = modules;
@@ -165,87 +170,7 @@ public class IngestController {
     @PostMapping(value = "/batch", consumes = MediaType.ALL_VALUE)
     public Map<String, Object> batch(@RequestBody byte[] body) {
         IngestService.Source s = source();
-        if (body.length > 10L * 1024 * 1024) {
-            throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "payload_too_large", "A batch is limited to 10 MB");
-        }
-        JsonNode root;
-        try {
-            root = json.readTree(body);
-        } catch (JacksonException e) {
-            throw ApiException.badRequest("validation_failed", "The batch must be JSON");
-        }
-        JsonNode items = root == null ? null : root.get("items");
-        if (items == null || !items.isArray() || items.isEmpty() || items.size() > 100) {
-            throw ApiException.badRequest("validation_failed", "1–100 items are required");
-        }
-        List<JsonNode> sorted = new ArrayList<>();
-        items.forEach(sorted::add);
-        sorted.sort(Comparator.comparingLong(n -> n.path("sequence").asLong(Long.MAX_VALUE)));
-        List<Map<String, Object>> results = new ArrayList<>();
-        for (JsonNode item : sorted) {
-            String key = item.path("idempotencyKey").asString("");
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("idempotencyKey", key);
-            try {
-                Map<String, String> h = new LinkedHashMap<>();
-                item.path("headers").properties().forEach(e -> h.put(e.getKey(), e.getValue().asString()));
-                h.put("Idempotency-Key", key);
-                if (item.hasNonNull("sequence")) {
-                    h.put("X-Gateway-Sequence", item.get("sequence").asString());
-                }
-                if (item.hasNonNull("capturedAt")) {
-                    h.put("X-Captured-At", item.get("capturedAt").asString());
-                }
-                h.putIfAbsent("X-Replayed", "true");
-                IngestHandler.Headers headers = IngestHandler.Headers.of(h);
-                byte[] payload = payload(item);
-                String contentType = item.path("contentType").asString(null);
-                IngestHandler.Response r = switch (item.path("kind").asString("")) {
-                    case "HL7V2" -> handler.hl7(s, headers, payload);
-                    case "FHIR" -> handler.fhir(s, headers, payload);
-                    case "POCT1A" -> handler.poct1a(s, headers, payload);
-                    case "FILE" -> handler.file(s, headers, payload, contentType);
-                    case "BLE" -> handler.records(s, headers, payload, "BLE");
-                    case "SERIAL" -> handler.records(s, headers, payload, "SERIAL");
-                    case "FALLBACK" -> handler.fallback(s, headers, payload);
-                    default -> throw ApiException.badRequest("validation_failed", "Unknown item kind");
-                };
-                result.put("httpStatus", r.status());
-                if (r.body() instanceof String ack) {
-                    result.put("ack", ack);
-                } else {
-                    result.put("receipt", r.body());
-                }
-            } catch (ApiException e) {
-                result.put("httpStatus", e.status().value());
-                ProblemDetail pd = ProblemDetail.forStatusAndDetail(e.status(), e.getMessage());
-                pd.setProperty("code", e.code());
-                result.put("problem", Map.of("status", e.status().value(), "code", e.code(), "detail", String.valueOf(pd.getDetail())));
-            }
-            results.add(result);
-        }
-        return Map.of("results", results);
-    }
-
-    byte[] payload(JsonNode item) {
-        JsonNode b = item.get("body");
-        if (b == null || b.isNull()) {
-            throw ApiException.badRequest("validation_failed", "Item body missing");
-        }
-        if (b.isObject() || b.isArray()) {
-            return json.writeValueAsBytes(b);
-        }
-        String text = b.asString();
-        boolean base64 = "BASE64".equalsIgnoreCase(item.path("bodyEncoding").asString(""))
-                || item.path("contentType").asString("").startsWith("application/pdf");
-        if (base64) {
-            try {
-                return Base64.getDecoder().decode(text);
-            } catch (IllegalArgumentException e) {
-                throw ApiException.badRequest("validation_failed", "Item body is not valid base64");
-            }
-        }
-        return text.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return Map.of("results", batches.process(s, batches.items(body)));
     }
 
     @GetMapping("/config")
@@ -266,14 +191,61 @@ public class IngestController {
         return gateways.heartbeat(DeviceEndpointPrincipal.require(), hb == null ? json.createObjectNode() : hb);
     }
 
-    record CommandResult(String status, String detail) {
+    /** @param acks per-message acknowledgements of outbound HL7 / serial messages ({@code controlId}, {@code code} AA|AE|AR|CA|CE|CR) */
+    record CommandResult(String status, String detail, List<OutboundService.Ack> acks) {
     }
 
     @PostMapping("/commands/{commandId}/result")
     public ResponseEntity<Void> commandResult(@PathVariable UUID commandId, @RequestBody CommandResult r) {
         source();
-        gateways.commandResult(DeviceEndpointPrincipal.require(), commandId, r.status(), r.detail());
+        DeviceEndpointPrincipal p = DeviceEndpointPrincipal.require();
+        OutboundService.Command command = outbound.command(p, commandId);
+        gateways.commandResult(p, commandId, r.status(), r.detail());
+        outbound.results(command, r.status(), r.detail(), r.acks());
+        if ("RETRIEVE_HISTORY".equals(command.type())) {
+            historic.commandResult(commandId, r.status(), r.detail());
+        }
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * What the gateway sends for a command (contract §7): HL7 order / ADT / query messages for MLLP, the start bytes for a serial
+     * device, or the transport {@code GDT} / {@code VENDOR_DB} when the gateway produces the content itself.
+     */
+    @GetMapping("/commands/{commandId}/outbound")
+    public ResponseEntity<Map<String, Object>> outbound(@PathVariable UUID commandId) {
+        source();
+        DeviceEndpointPrincipal p = DeviceEndpointPrincipal.require();
+        OutboundService.Command command = outbound.command(p, commandId);
+        Map<String, Object> body = "RETRIEVE_HISTORY".equals(command.type()) ? historic.outbound(p, commandId, command.payload())
+                : outbound.outbound(p, commandId);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);
+    }
+
+    /**
+     * Historic results of a {@code RETRIEVE_HISTORY} command (≤ 100 items per call, same item format as {@code /batch});
+     * {@code "last": true} closes the retrieval. Items are keyed deterministically (duplicates are never stored twice).
+     */
+    @PostMapping(value = "/retrievals/{retrievalId}/batch", consumes = MediaType.ALL_VALUE)
+    public Map<String, Object> retrievalBatch(@PathVariable UUID retrievalId, @RequestBody byte[] body) {
+        IngestService.Source s = source();
+        DeviceEndpointPrincipal p = DeviceEndpointPrincipal.require();
+        JsonNode items = batches.items(body);
+        boolean last;
+        try {
+            last = json.readTree(body).path("last").asBoolean(false);
+        } catch (JacksonException e) {
+            throw ApiException.badRequest("validation_failed", "The batch must be JSON");
+        }
+        HistoricRetrievalService.Prepared prepared = historic.prepare(p, retrievalId, items, batches::payload);
+        List<Map<String, Object>> results = new java.util.ArrayList<>(prepared.decided());
+        if (!prepared.items().isEmpty()) {
+            results.addAll(batches.process(s, prepared.items()));
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("results", results);
+        out.put("retrieval", historic.recordBatch(p, retrievalId, results, last));
+        return out;
     }
 
     @GetMapping("/worklist")

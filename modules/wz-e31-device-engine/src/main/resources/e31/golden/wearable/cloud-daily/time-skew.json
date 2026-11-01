@@ -1,0 +1,14 @@
+{
+ "id": "ds-1001-20261029",
+ "subject": {
+  "employeeNumber": "E1001"
+ },
+ "day": {
+  "start": "2026-10-29T00:00:00Z",
+  "end": "2026-10-29T23:59:59-11:00"
+ },
+ "summary": {
+  "steps": 7800,
+  "sleepMinutes": 402
+ }
+}

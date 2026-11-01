@@ -13,6 +13,10 @@ import com.wellnessz.casekernel.device.DeviceCatalogueLookup;
 import com.wellnessz.casekernel.device.DeviceSpis;
 import com.wellnessz.casekernel.module.ModuleRegistry;
 import com.wellnessz.common.events.IntegrationEnvelope;
+import com.wellnessz.e31.driver.DriverPackage;
+import com.wellnessz.e31.driver.DriverRuntime;
+import com.wellnessz.e31.outbound.OutboundService;
+import com.wellnessz.e31.support.EngineException;
 import com.wellnessz.integration.idempotency.IdempotentConsumer;
 
 import tools.jackson.databind.JsonNode;
@@ -32,15 +36,17 @@ public class CaptureSessionListener {
     private final IdempotentConsumer consumer;
     private final DeviceSpis spis;
     private final GatewayService gateways;
+    private final DriverRuntime drivers;
     private final ModuleRegistry modules;
     private final JsonMapper json;
     private final Clock clock;
 
-    public CaptureSessionListener(IdempotentConsumer consumer, DeviceSpis spis, GatewayService gateways, ModuleRegistry modules, JsonMapper json,
+    public CaptureSessionListener(IdempotentConsumer consumer, DeviceSpis spis, GatewayService gateways, DriverRuntime drivers, ModuleRegistry modules, JsonMapper json,
                                   Clock clock) {
         this.consumer = consumer;
         this.spis = spis;
         this.gateways = gateways;
+        this.drivers = drivers;
         this.modules = modules;
         this.json = json;
         this.clock = clock;
@@ -65,6 +71,10 @@ public class CaptureSessionListener {
         if (instance == null || instance.endpointId() == null || !instance.published()) {
             return null;
         }
+        String command = command(push, instance);
+        if (command == null) {
+            return null;
+        }
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("sessionId", e.path("sessionId").asString(null));
         spis.sessions().activeSession(instanceId, clock.instant()).ifPresent(s -> {
@@ -73,7 +83,25 @@ public class CaptureSessionListener {
             }
             payload.put("formCode", s.formCode());
         });
-        gateways.queueCommand(instance.endpointId(), push, instanceId, payload, "device-engine");
-        return push;
+        gateways.queueCommand(instance.endpointId(), command, instanceId, payload, "device-engine");
+        return command;
+    }
+
+    /**
+     * "Start from the form" (E31-BL-019): {@code START_ACQUISITION} only when the driver declares a start command for a serial or
+     * MLLP connector ({@code protocol.startCommand}); otherwise the worklist push the driver supports (e.g. GDT 6302, which the
+     * vendor software turns into the test request), else nothing.
+     */
+    String command(String requested, DeviceCatalogueLookup.DeviceInstance instance) {
+        DriverPackage pkg;
+        try {
+            pkg = drivers.forInstance(instance, null);
+        } catch (EngineException | com.wellnessz.common.error.ApiException ex) {
+            return requested; // the gateway reports what it cannot do; the session itself is not affected
+        }
+        if ("START_ACQUISITION".equals(requested) && OutboundService.startCommand(pkg) != null) {
+            return requested;
+        }
+        return "NONE".equals(pkg.capabilities().worklistPush()) ? null : "PUSH_WORKLIST";
     }
 }

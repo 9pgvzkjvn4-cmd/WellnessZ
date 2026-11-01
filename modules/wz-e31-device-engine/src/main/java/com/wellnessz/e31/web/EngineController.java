@@ -31,6 +31,10 @@ import com.wellnessz.e31.driver.DriverValidator;
 import com.wellnessz.e31.service.ClinicalReadService;
 import com.wellnessz.e31.service.DriverService;
 import com.wellnessz.e31.service.OperationsService;
+import com.wellnessz.e31.service.TenantService;
+import com.wellnessz.e31.service.HistoricRetrievalService;
+import com.wellnessz.e31.cloud.CloudPollService;
+import com.wellnessz.e31.outbound.OutboundService;
 import com.wellnessz.e31.simulator.GoldenDatasets;
 import com.wellnessz.e31.simulator.SimulatorService;
 import com.wellnessz.e31.store.MessageStore;
@@ -58,6 +62,10 @@ public class EngineController {
 
     private final ClinicalReadService clinical;
     private final OperationsService ops;
+    private final TenantService tenants;
+    private final HistoricRetrievalService historic;
+    private final CloudPollService cloud;
+    private final OutboundService outbound;
     private final DriverService drivers;
     private final GoldenDatasets golden;
     private final SimulatorService simulators;
@@ -66,11 +74,16 @@ public class EngineController {
     private final ModuleRegistry modules;
     private final JsonMapper json;
 
-    public EngineController(ClinicalReadService clinical, OperationsService ops, DriverService drivers, GoldenDatasets golden,
+    public EngineController(ClinicalReadService clinical, OperationsService ops, TenantService tenants, HistoricRetrievalService historic,
+                            CloudPollService cloud, OutboundService outbound, DriverService drivers, GoldenDatasets golden,
                             SimulatorService simulators, TerminologyService terminology, CurrentUserProvider users, ModuleRegistry modules,
                             JsonMapper json) {
         this.clinical = clinical;
         this.ops = ops;
+        this.tenants = tenants;
+        this.historic = historic;
+        this.cloud = cloud;
+        this.outbound = outbound;
         this.drivers = drivers;
         this.golden = golden;
         this.simulators = simulators;
@@ -344,22 +357,86 @@ public class EngineController {
         return ops.verifyArchive(archiveId);
     }
 
+    // ------------------------------------------------------------------ historic retrieval, P6 connectors, outbound messages (round 2)
+
+    public record HistoricRequest(@NotBlank @Pattern(regexp = "[A-Za-z0-9._\\-]{1,64}") String deviceInstanceId, Instant from, Instant to) {
+    }
+
+    /** Requests the results a device / data manager holds for a time range (gateway command RETRIEVE_HISTORY). */
+    @PostMapping("/historic-retrievals")
+    @PreAuthorize("hasAnyRole('DEVICE_ADMIN','INTEGRATION_TESTER')")
+    public ResponseEntity<Map<String, Object>> historic(@RequestBody @jakarta.validation.Valid HistoricRequest r) {
+        return ResponseEntity.status(201).body(historic.request(user().username(), r.deviceInstanceId(), r.from(), r.to()));
+    }
+
+    @GetMapping("/historic-retrievals")
+    @PreAuthorize(OPS)
+    public List<Map<String, Object>> historicList(@RequestParam(required = false) @Pattern(regexp = "[A-Za-z0-9._\\-]{1,64}") String deviceInstanceId,
+                                                  @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit) {
+        user();
+        return historic.list(deviceInstanceId, limit);
+    }
+
+    @GetMapping("/historic-retrievals/{id}")
+    @PreAuthorize(OPS)
+    public Map<String, Object> historicGet(@PathVariable UUID id) {
+        user();
+        return historic.get(id);
+    }
+
+    /** P6 vendor-cloud connector status (schedule, last run, counts, allow-list and residency state – PHI-free). */
+    @GetMapping("/ops/cloud-connectors")
+    @PreAuthorize(OPS)
+    public List<Map<String, Object>> cloudConnectors() {
+        user();
+        return cloud.status();
+    }
+
+    /** Polls one P6 connector now (outside its schedule). */
+    @PostMapping("/ops/cloud-connectors/{deviceInstanceId}/poll")
+    @PreAuthorize("hasRole('DEVICE_ADMIN')")
+    public CloudPollService.Run pollNow(@PathVariable @Pattern(regexp = "[A-Za-z0-9._\\-]{1,64}") String deviceInstanceId) {
+        user();
+        return cloud.pollNow(deviceInstanceId);
+    }
+
+    /**
+     * Outbound order / worklist / start messages for a capture session or a device (status and acknowledgement only – no message
+     * content); commands not yet fetched by the gateway are listed as {@code pending}.
+     */
+    @GetMapping("/outbound")
+    @PreAuthorize("hasAnyRole('DEVICE_ADMIN','INTEGRATION_TESTER','OH_CLINICIAN','OH_PHYSICIAN','AME','CMO','NURSING_HEAD','COLLECTOR')")
+    public Map<String, Object> outbound(@RequestParam(required = false) UUID sessionId,
+                                        @RequestParam(required = false) @Pattern(regexp = "[A-Za-z0-9._\\-]{1,64}") String deviceInstanceId,
+                                        @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit) {
+        user();
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("messages", outbound.list(sessionId, deviceInstanceId, limit));
+        out.put("pending", sessionId == null ? List.of() : outbound.pendingForSession(sessionId));
+        return out;
+    }
+
     // ------------------------------------------------------------------ tenants (E31-F12)
 
     @GetMapping("/tenants")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public List<Map<String, Object>> tenants() {
         user();
-        return ops.tenants();
+        return tenants.tenants();
     }
 
+    /**
+     * @param catalogueScope  GROUP (shared group catalogue plus own rows) or TENANT (own rows only); unchanged / GROUP when omitted
+     * @param residencyRegion data residency of the tenant (P6 residency check); unchanged / UK when omitted
+     */
     public record QuotaRequest(@Min(1) @Max(100000) int messagesPerMinute, @Min(1) @Max(100000) int maxConnectors,
-                               @Pattern(regexp = "[A-Z0-9_\\-]{2,40}") String catalogueScope) {
+                               @Pattern(regexp = "GROUP|TENANT") String catalogueScope, @Pattern(regexp = "[A-Z]{2,10}") String residencyRegion) {
     }
 
+    /** Creates or updates a tenant (quota, connector limit, catalogue scope, residency). */
     @PutMapping("/tenants/{code}/quota")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
-    public Map<String, Object> quota(@PathVariable @Pattern(regexp = "[A-Z0-9_\\-]{2,40}") String code, @RequestBody @jakarta.validation.Valid QuotaRequest r) {
-        return ops.putQuota(user().username(), code, r.messagesPerMinute(), r.maxConnectors(), r.catalogueScope());
+    public Map<String, Object> quota(@PathVariable @Pattern(regexp = "[A-Z0-9_]{2,30}") String code, @RequestBody @jakarta.validation.Valid QuotaRequest r) {
+        return tenants.put(user().username(), code, r.messagesPerMinute(), r.maxConnectors(), r.catalogueScope(), r.residencyRegion());
     }
 }
