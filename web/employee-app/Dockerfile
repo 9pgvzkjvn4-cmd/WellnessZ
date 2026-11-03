@@ -15,7 +15,7 @@ ARG VITE_CSP_CONNECT_SRC="'self'"
 ENV VITE_CSP_CONNECT_SRC=${VITE_CSP_CONNECT_SRC}
 RUN npm run build
 
-FROM nginxinc/nginx-unprivileged:1.30.6-alpine3.24
+FROM nginxinc/nginx-unprivileged:1.31.7-alpine3.24
 LABEL org.opencontainers.image.title="wellnessz-employee-app" \
       org.opencontainers.image.description="WellnessZ employee/crew portal (static SPA + PWA)"
 COPY nginx.conf /etc/nginx/conf.d/default.conf
