@@ -91,6 +91,10 @@ class PlatformIntegrationTest {
     @Autowired EvidenceSealer sealer;
     @Autowired KnowledgeBase kb;
     @Autowired Environment env;
+    @Autowired io.intimed.intelligence.DeviceIdentifier identifier;
+    @Autowired io.intimed.intelligence.AutoMapper autoMapper;
+    @Autowired io.intimed.intelligence.CohortSimulator cohorts;
+    @Autowired io.intimed.intelligence.IntegrationProfiles integrationProfiles;
 
     IntiPrincipal admin, approver, nurse, soc;
     String cfgId;
@@ -311,5 +315,51 @@ class PlatformIntegrationTest {
         Files.writeString(Path.of(System.getProperty("intimed.home")).resolve("perf.txt"), String.format("%d messages in %.2f s = %.0f msg/s (single node, in-process, encrypted H2)%n", n, secs, rate));
         System.out.printf("CAPACITY: %d HL7 PCD-01 messages in %.2f s = %.0f msg/s%n", n, secs, rate);
         assertThat(rate).isGreaterThan(50);
+    }
+
+    // ---------------------------------------------------------------- IntiMed 2.0 intelligence (IM-E11…IM-E15)
+    static final java.util.Map<String, Object> METRICS = new java.util.LinkedHashMap<>();
+
+    @Test
+    @Order(20)
+    void exchangeTestCarriesClinicalReferenceValidationAndLiveFieldsAreInterpreted() {
+        // XT-17 ran in the Order(1) run; the live TPL-18 instance carries interpretation for the FEV1/FVC ratio
+        ObjectNode last = store.listByRef(A, "run", cfgId).stream().findFirst().orElseThrow();
+        assertThat(last.at("/results/XT-17/status").asString()).as(Json.pretty(last.at("/results/XT-17"))).isEqualTo("PASS");
+        ObjectNode inst = store.listByRef(A, "template-instance", "TPL-18").stream().filter(i -> "EMP-1".equals(i.path("subject").asString())).findFirst().orElseThrow();
+        assertThat(inst.at("/fields/ratio/referenceRange/entry").asString()).isEqualTo("fev1-fvc");
+        assertThat(inst.at("/fields/ratio/interpretation/system").asString()).endsWith("v3-ObservationInterpretation");
+    }
+
+    @Test
+    @Order(21)
+    void deviceIdentificationFindsTheRightDriverForEveryGoldenSession() {
+        ObjectNode b = identifier.benchmark(A);
+        METRICS.put("identificationTop1", b.get("accuracy").asDouble());
+        assertThat(b.get("accuracy").asDouble()).as(Json.pretty(b)).isGreaterThanOrEqualTo(0.95);
+        ObjectNode p = integrationProfiles.forModel(A, "IMD-001");
+        assertThat(p.at("/deviceType/code").asString()).isEqualTo("SPIROMETER");
+        assertThat(p.path("mechanisms").toString()).contains("P3").contains("Bluetooth LE");
+    }
+
+    @Test
+    @Order(22)
+    void autoMappingReproducesTheReferenceBindings() {
+        ObjectNode b = autoMapper.benchmark(A);
+        METRICS.put("autoMappingRecall", b.get("recall").asDouble());
+        METRICS.put("autoMappingLabelOnlyRecall", b.get("labelOnlyRecall").asDouble());
+        assertThat(b.get("recall").asDouble()).as(Json.pretty(b)).isGreaterThanOrEqualTo(0.9);
+    }
+
+    @Test
+    @Order(23)
+    void cohortSimulatorProducesTheExpectedFlagsThroughRealDriversAndPipeline() {
+        ObjectNode all = cohorts.runAll(A);
+        METRICS.put("cohortFlagPrecision", all.get("precision").asDouble());
+        assertThat(all.get("precision").asDouble()).as(Json.pretty(all)).isEqualTo(1.0);
+        ObjectNode art = cohorts.simulate(A, "monitor.philips.intellivue-pcd01@1.0.0", "adult-sepsis-like", List.of("NOISE", "DROPOUT", "CLOCK_SKEW"), 7);
+        assertThat(art.path("artefacts").size()).isEqualTo(3);
+        assertThat(art.at("/dryRun/status").asString()).isEqualTo("OK");
+        System.out.println("INTELLIGENCE-METRICS " + Json.write(METRICS));
     }
 }

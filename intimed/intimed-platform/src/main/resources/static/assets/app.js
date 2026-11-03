@@ -5,6 +5,7 @@ import { fleetPage, opsPage, templatesPage } from './pages/ops.js';
 import { capturePage } from './pages/capture.js';
 import { securityPage } from './pages/security.js';
 import { integrationPage, tenantPage } from './pages/integration.js';
+import { intelligencePage } from './pages/intelligence.js';
 
 export const state = { me: null, info: null };
 
@@ -14,6 +15,7 @@ const NAV = [
   ['configs', 'Provisioning', ['DEVICE_ADMIN', 'TEMPLATE_OWNER', 'AUDITOR', 'INTEGRATION_DEV', 'SECURITY_ANALYST', 'PLATFORM_SRE']],
   ['runs', 'Exchange tests', ['DEVICE_ADMIN', 'TEMPLATE_OWNER', 'AUDITOR', 'INTEGRATION_DEV']],
   ['fleet', 'Fleet & calibration', ['DEVICE_ADMIN', 'CLINICIAN', 'PLATFORM_SRE', 'SECURITY_ANALYST']],
+  ['intelligence', 'Intelligence studio', ['DEVICE_ADMIN', 'TEMPLATE_OWNER', 'INTEGRATION_DEV', 'PARTNER_DEV', 'REGULATORY', 'TENANT_ADMIN', 'PHYSICIAN']],
   ['templates', 'Templates & bindings', null],
   ['capture', 'Capture (clinician)', ['CLINICIAN', 'PHYSICIAN', 'TEMPLATE_OWNER']],
   ['ops', 'Queues & context', ['CLINICIAN', 'PHYSICIAN', 'DEVICE_ADMIN', 'INTEGRATION_DEV']],
@@ -52,7 +54,7 @@ function shell(page, rest) {
       button('Sign out', async () => { await post('/api/auth/logout').catch(() => {}); state.me = null; location.hash = '#/login'; location.reload(); }, 'ghost')));
   root.append(h('a', { class: 'skip', href: '#main' }, 'Skip to content'), nav, h('div', { class: 'col' }, top, main));
   const pages = { overview, catalogue, configs: configsPage, wizard, runs: runsPage, run: runDetail, fleet: fleetPage, templates: templatesPage, capture: capturePage,
-    ops: opsPage, security: securityPage, integration: integrationPage, tenant: tenantPage, quality, demo };
+    ops: opsPage, security: securityPage, integration: integrationPage, intelligence: intelligencePage, tenant: tenantPage, quality, demo };
   const fn = pages[page] || overview;
   Promise.resolve(fn(main, rest)).catch(e => { main.append(card('Error', h('p', { class: 'err' }, e.message))); });
 }
@@ -111,7 +113,7 @@ async function overview(main) {
       kpi('Certifications', o.certifications, 'four-eyes records')),
     h('div', { class: 'two' },
       card('How IntiMed works (architecture §5.2)', h('ol', { class: 'steps' }, ['Scope & map', 'Select device & connectivity option (P1–P11)', 'Recommend (configuration intelligence RR-01…RR-16)', 'Driver / adapter (signed package)',
-        'Configure & associate', 'Exchange test (XT-01…XT-16, sealed evidence)', 'Certify (four-eyes) & publish DEV → UAT → PROD', 'Go live & monitor', 'Maintain & re-certify'].map(s => h('li', null, s)))),
+        'Configure & associate', 'Exchange test (XT-01…XT-17, sealed evidence)', 'Certify (four-eyes) & publish DEV → UAT → PROD', 'Go live & monitor', 'Maintain & re-certify'].map(s => h('li', null, s)))),
       card('Recent events', table([{ label: 'Time', key: 'time' }, { label: 'Event', render: e => badge(e.type, 'neutral') }, { label: 'Data', render: e => fmt(e.data) }], o.events || [], { compact: true }))));
 }
 
@@ -126,6 +128,7 @@ async function demo(main) {
       h('div', { class: 'toolbar' }, h('span', null, 'Progress: ', h('b', null, s.progress)),
         button('Run all 22 scenarios', () => guard(() => post('/api/demo/run-all?includeGuided=true'), 'Scenario run started – refreshing…').then(() => setTimeout(load, 4000))),
         button(s.streaming ? 'Stop live streaming' : 'Start live streaming (continuous devices)', () => guard(() => post('/api/demo/streaming?on=' + !s.streaming)).then(load), 'secondary'),
+        button('Drift drill (hospital-at-home probe)', () => guard(() => post('/api/demo/drift-drill'), 'Drift drill done – see Intelligence studio › Drift').then(() => { location.hash = '#/intelligence/drift'; }), 'secondary'),
         button('Refresh', load, 'ghost')),
       table([{ label: 'Template', key: 'template' }, { label: 'Driver', key: 'driver' }, { label: 'Status', render: r => badge(r.status) },
         { label: 'Exchange test', render: r => r.run ? h('a', { href: '#/run/' + r.run }, r.checks + ' ' + (r.runStatus || '')) : '—' },

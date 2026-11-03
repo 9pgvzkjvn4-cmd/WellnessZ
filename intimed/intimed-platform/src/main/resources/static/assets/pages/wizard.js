@@ -245,7 +245,7 @@ export function runView(run) {
 
 export async function runsPage(main) {
   const runs = await get('/api/console/runs');
-  main.append(h('h1', null, 'Configuration-time exchange tests'), h('p', { class: 'lead' }, 'Every run: XT-01…XT-16 through the real transports, sandbox delivery, sealed evidence (SHA-256 + Ed25519).'),
+  main.append(h('h1', null, 'Configuration-time exchange tests'), h('p', { class: 'lead' }, 'Every run: XT-01…XT-17 through the real transports, sandbox delivery, sealed evidence (SHA-256 + Ed25519).'),
     table([{ label: 'Run', key: 'id' }, { label: 'Configuration', key: 'configId' }, { label: 'Driver', key: 'driver' }, { label: 'Result', render: r => badge(r.status + ' ' + r.passed + '/' + r.total) },
       { label: 'p95 ms', key: 'latencyP95Ms' }, { label: 'Finished', key: 'finishedAt' }, { label: 'Operator', key: 'operator' }], runs.slice().reverse(), { onRow: r => { location.hash = '#/run/' + r.id; }, rowClass: () => 'click' }));
 }

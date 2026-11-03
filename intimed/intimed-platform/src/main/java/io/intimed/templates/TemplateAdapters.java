@@ -52,6 +52,22 @@ public class TemplateAdapters {
             if (v.path("value").isNumber()) o.putObject("valueQuantity").put("value", v.get("value").decimalValue()).put("unit", v.path("unit").asString(""))
                     .put("system", "http://unitsofmeasure.org").put("code", v.path("unit").asString(""));
             else o.put("valueString", v.path("value").asString());
+            JsonNode rr = v.path("referenceRange");
+            if (rr.isObject() && !rr.path("gap").asBoolean(false)) {
+                ObjectNode r = o.putArray("referenceRange").addObject();
+                String u = v.path("unit").asString("");
+                if (rr.has("low")) r.putObject("low").put("value", rr.get("low").decimalValue()).put("unit", u).put("system", "http://unitsofmeasure.org").put("code", u);
+                if (rr.has("high")) r.putObject("high").put("value", rr.get("high").decimalValue()).put("unit", u).put("system", "http://unitsofmeasure.org").put("code", u);
+                r.putObject("type").putArray("coding").addObject().put("system", "http://terminology.hl7.org/CodeSystem/referencerange-meaning")
+                        .put("code", "normal").put("display", "Normal Range");
+                r.put("text", rr.path("text").asString() + " (" + rr.path("partition").asString() + "; " + rr.path("source").asString() + ")");
+            }
+            JsonNode it = v.path("interpretation");
+            if (it.isObject()) {
+                ObjectNode ic = o.putArray("interpretation").addObject();
+                ic.putArray("coding").addObject().put("system", it.path("system").asString()).put("code", it.path("code").asString()).put("display", it.path("display").asString());
+                if (v.has("grade")) ic.put("text", v.get("grade").asString());
+            }
             entries.addObject().put("fullUrl", "urn:uuid:" + id).set("resource", o);
             entries.get(entries.size() - 1).withObject("request").put("method", "PUT").put("url", "Observation/" + id);
             targets.addObject().put("reference", "Observation/" + id);
@@ -82,11 +98,23 @@ public class TemplateAdapters {
             JsonNode v = e.getValue();
             String code = def.at("/code/loinc").isString() ? def.at("/code/loinc").asString() + "^" + def.path("label").asString() + "^LN" : e.getKey() + "^" + def.path("label").asString() + "^L";
             sb.append("OBX|").append(++n[0]).append('|').append(v.path("value").isNumber() ? "NM" : "ST").append('|').append(code).append("||")
-                    .append(v.path("value").asString()).append('|').append(v.path("unit").asString("")).append("^^UCUM|||||F|||").append(ts)
+                    .append(v.path("value").asString()).append('|').append(v.path("unit").asString("")).append("^^UCUM|").append(obx7(v)).append('|')
+                    .append(v.at("/interpretation/code").asString("")).append("|||F|||").append(ts)
                     .append("||||").append(inst.path("deviceSerial").asString("")).append("\r");
         });
         return Json.obj().put("adapter", "HL7V2").put("contentType", "x-application/hl7-v2+er7").put("payload", sb.toString())
                 .put("ack", "MSA|AA|" + ctl);
+    }
+
+    /** OBX-7 reference range (HL7 v2.6 "low-high", "&gt;low" or "&lt;high"). */
+    static String obx7(JsonNode v) {
+        JsonNode rr = v.path("referenceRange");
+        if (!rr.isObject() || rr.path("gap").asBoolean(false)) return "";
+        String lo = rr.has("low") ? rr.get("low").decimalValue().stripTrailingZeros().toPlainString() : null;
+        String hi = rr.has("high") ? rr.get("high").decimalValue().stripTrailingZeros().toPlainString() : null;
+        if (lo != null && hi != null) return lo + "-" + hi;
+        if (lo != null) return ">" + lo;
+        return hi == null ? "" : "<" + hi;
     }
 
     ObjectNode rest(JsonNode tpl, JsonNode inst) {

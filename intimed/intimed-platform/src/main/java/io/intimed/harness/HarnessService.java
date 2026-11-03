@@ -43,7 +43,7 @@ import java.util.Map;
  * Configuration-time exchange test harness (IM-E04, architecture §7): derives a plan from the configuration draft
  * (model × option × parameters × association × template bindings × tenant policy), runs it against the family simulator
  * through the REAL device transports (MLLP-TLS / HTTPS ingress with the harness probe's mTLS identity), delivers into
- * sandbox instances of every bound template through the real adapters, verifies XT-01…XT-16 and seals an evidence pack.
+ * sandbox instances of every bound template through the real adapters, verifies XT-01…XT-17 and seals an evidence pack.
  * The same service backs the wizard (step 6), driver CI / partner tests (API) and scheduled site regression.
  */
 @Service
@@ -55,6 +55,7 @@ public class HarnessService {
         CHECKS.put("XT-07", "Field coverage & mandatory fields"); CHECKS.put("XT-08", "Units, codes & reference ranges"); CHECKS.put("XT-09", "Round trip");
         CHECKS.put("XT-10", "Latency"); CHECKS.put("XT-11", "Negative cases"); CHECKS.put("XT-12", "Bidirectional"); CHECKS.put("XT-13", "Security checks");
         CHECKS.put("XT-14", "Quality gates"); CHECKS.put("XT-15", "Provenance & audit"); CHECKS.put("XT-16", "Evidence pack");
+        CHECKS.put("XT-17", "Clinical reference validation");
     }
 
     private final ConfigService configs;
@@ -72,10 +73,17 @@ public class HarnessService {
     private final SecretStore secrets;
     private final TokenService tokens;
     private final Environment env;
+    private final io.intimed.intelligence.CohortSimulator cohorts;
+    private final io.intimed.intelligence.ValidationEngine validation;
+    private final io.intimed.clinical.PlatformCategories categories;
 
     public HarnessService(ConfigService configs, DriverRegistry drivers, TemplateRegistry templates, DocumentStore store, ProbeIdentity probes,
                           DeviceListeners listeners, Pipeline pipeline, QualityGates gates, EvidenceSealer sealer, AuditService audit, EventBus events,
-                          TenantService tenants, SecretStore secrets, TokenService tokens, Environment env) {
+                          TenantService tenants, SecretStore secrets, TokenService tokens, Environment env, io.intimed.intelligence.CohortSimulator cohorts,
+                          io.intimed.intelligence.ValidationEngine validation, io.intimed.clinical.PlatformCategories categories) {
+        this.cohorts = cohorts;
+        this.validation = validation;
+        this.categories = categories;
         this.configs = configs;
         this.drivers = drivers;
         this.templates = templates;
@@ -138,6 +146,54 @@ public class HarnessService {
     }
 
     record Outcome(String status, String ack, List<ObjectNode> observations, String raw) { }
+
+    /**
+     * XT-17 (IM-E14): (a) every numeric template field with a clinical concept carries a resolved reference interval and
+     * an HL7 interpretation flag; (b) the scripted demographic cohorts the driver can express (age bands, sex, pregnancy,
+     * altitude, regulation) produce exactly the expected flags through the real driver and pipeline; (c) the layered
+     * validation for the template's healthcare-platform category shows no structural, unit or cross-field errors.
+     */
+    private void clinicalReference(Ctx x, List<ObjectNode> inst) {
+        java.util.Map<String, String> concepts = cohorts.concepts(x.d);
+        if (concepts.isEmpty()) { x.na("XT-17", "Driver carries no quantity with a clinical reference interval (device/process data)"); return; }
+        ObjectNode ev = Json.obj();
+        int annotated = 0, expected = 0;
+        for (ObjectNode i : inst) for (var f : i.path("fields").properties()) {
+            if (!concepts.containsKey(f.getValue().path("sourceKey").asString())) continue;
+            expected++;
+            if (f.getValue().has("referenceRange") && (f.getValue().has("interpretation") || f.getValue().at("/referenceRange/gap").asBoolean(false))) annotated++;
+        }
+        ev.put("annotated", annotated).put("annotatable", expected);
+        int match = 0, total = 0;
+        ArrayNode cr = ev.putArray("cohorts");
+        for (JsonNode p : cohorts.profiles()) {
+            boolean any = false;
+            for (var e : p.path("expected").properties()) any |= cohorts.covers(x.d, e.getKey());
+            if (!any) continue;
+            ObjectNode r = cohorts.simulate(x.tenant, x.d.ref(), p.get("id").asString(), List.of(), 17);
+            match += r.get("expectedMatched").asInt();
+            total += r.get("expectedTotal").asInt();
+            cr.addObject().put("profile", p.get("id").asString()).put("matched", r.get("expectedMatched").asInt()).put("total", r.get("expectedTotal").asInt());
+        }
+        ev.put("cohortFlagsMatched", match).put("cohortFlagsTotal", total);
+        boolean structural = true;
+        ArrayNode vr = ev.putArray("validation");
+        for (ObjectNode i : inst) {
+            String tid = i.path("templateId").asString();
+            List<String> cats = categories.forTemplate(tid);
+            ObjectNode fields = (ObjectNode) i.path("fields").deepCopy();
+            ObjectNode v = validation.validate(templates.require(x.tenant, tid), fields, cats.isEmpty() ? null : cats.get(0), io.intimed.clinical.Demographics.UNKNOWN,
+                    Json.obj().put("consent", true));
+            for (JsonNode l : v.path("layers")) {
+                String layer = l.path("layer").asString();
+                if ("FAIL".equals(l.path("status").asString()) && List.of("UNITS", "CROSS_FIELD", "PLAUSIBILITY", "TERMINOLOGY").contains(layer)) structural = false;
+            }
+            vr.addObject().put("template", tid).put("category", cats.isEmpty() ? "generic" : cats.get(0)).put("verdict", v.path("verdict").asString());
+        }
+        boolean pass = annotated == expected && match == total && structural;
+        x.check("XT-17", pass, annotated + "/" + expected + " clinical fields carry reference interval + interpretation; " + match + "/" + total
+                + " cohort flags as expected (age/sex/pregnancy/context partitions); category validation " + (structural ? "free of unit/cross-field errors" : "has errors"), ev);
+    }
 
     public ObjectNode run(String tenant, String configId, String actor) {
         ObjectNode cfg = configs.get(tenant, configId);
@@ -309,6 +365,8 @@ public class HarnessService {
         Map<String, Object> chain = audit.verify();
         x.check("XT-15", prov && Boolean.TRUE.equals(chain.get("valid")), "Provenance (driver " + d.ref() + " signature VALID, configuration hash, endpoint) attached; audit chain "
                 + (Boolean.TRUE.equals(chain.get("valid")) ? "intact (" + chain.get("records") + " records)" : "BROKEN"), null);
+        // ---- XT-17 clinical reference validation (IntiMed 2.0)
+        clinicalReference(x, inst);
         // ---- evidence pack (XT-16)
         Instant finished = Instant.now();
         ObjectNode manifest = Json.obj().put("runId", runId).put("configId", configId).put("configHash", ConfigService.hash(cfg)).put("driver", d.ref())

@@ -22,7 +22,10 @@
    "P2",
    "P3",
    "P4"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-002",
@@ -46,7 +49,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-003",
@@ -70,7 +76,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-004",
@@ -94,7 +103,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-005",
@@ -118,7 +130,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-006",
@@ -142,7 +157,10 @@
    "P1",
    "P2",
    "P3"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-007",
@@ -165,7 +183,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-008",
@@ -189,7 +210,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-009",
@@ -212,7 +236,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-010",
@@ -236,7 +263,10 @@
    "P1",
    "P2",
    "P3"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-011",
@@ -260,7 +290,10 @@
    "P1",
    "P2",
    "P3"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-012",
@@ -284,7 +317,10 @@
    "P1",
    "P2",
    "P3"
-  ]
+  ],
+  "deviceType": "BREATH_ALCOHOL",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-013",
@@ -307,7 +343,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "PSG_EEG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-014",
@@ -331,7 +370,10 @@
    "P1",
    "P6",
    "P10"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-015",
@@ -354,7 +396,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-016",
@@ -377,7 +422,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-017",
@@ -400,7 +448,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-018",
@@ -423,7 +474,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-019",
@@ -446,7 +500,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-020",
@@ -469,7 +526,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-021",
@@ -492,7 +552,10 @@
   "options": [
    "P3",
    "P6"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-022",
@@ -514,7 +577,10 @@
   "family": "Audiometry & hearing",
   "options": [
    "P6"
-  ]
+  ],
+  "deviceType": "EXPOSURE_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-023",
@@ -537,7 +603,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-024",
@@ -561,7 +630,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-025",
@@ -584,7 +656,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-026",
@@ -607,7 +682,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-027",
@@ -635,7 +713,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "SPOT_VITALS_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-028",
@@ -662,7 +743,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "SPOT_VITALS_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-029",
@@ -688,7 +772,10 @@
   "family": "Vital signs & body composition",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "SPOT_VITALS_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-030",
@@ -714,7 +801,10 @@
   "family": "Vital signs & body composition",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "SPOT_VITALS_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-031",
@@ -740,7 +830,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "SPOT_VITALS_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-032",
@@ -766,7 +859,10 @@
    "P1",
    "P3",
    "P4"
-  ]
+  ],
+  "deviceType": "PULSE_OXIMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-033",
@@ -791,7 +887,10 @@
   "options": [
    "P1",
    "P3"
-  ]
+  ],
+  "deviceType": "PULSE_OXIMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-034",
@@ -815,7 +914,10 @@
   "family": "Vital signs & body composition",
   "options": [
    "P1"
-  ]
+  ],
+  "deviceType": "PULSE_OXIMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-035",
@@ -841,7 +943,10 @@
    "P1",
    "P3",
    "P6"
-  ]
+  ],
+  "deviceType": "BP_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-036",
@@ -866,7 +971,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "BP_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-037",
@@ -891,7 +999,10 @@
   "family": "Vital signs & body composition",
   "options": [
    "P3"
-  ]
+  ],
+  "deviceType": "BP_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-038",
@@ -918,7 +1029,10 @@
   "options": [
    "P3",
    "P6"
-  ]
+  ],
+  "deviceType": "BP_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-039",
@@ -944,7 +1058,10 @@
   "options": [
    "P4",
    "P10"
-  ]
+  ],
+  "deviceType": "THERMOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-040",
@@ -971,7 +1088,10 @@
   "options": [
    "P4",
    "P8"
-  ]
+  ],
+  "deviceType": "WEIGHING_SCALE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-041",
@@ -998,7 +1118,10 @@
    "P1",
    "P2",
    "P3"
-  ]
+  ],
+  "deviceType": "WEIGHING_SCALE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-042",
@@ -1024,7 +1147,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "WEIGHING_SCALE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-043",
@@ -1050,7 +1176,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "WEIGHING_SCALE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-044",
@@ -1075,7 +1204,10 @@
   "options": [
    "P3",
    "P6"
-  ]
+  ],
+  "deviceType": "SPOT_VITALS_MONITOR",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-045",
@@ -1099,7 +1231,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-046",
@@ -1123,7 +1258,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-047",
@@ -1149,7 +1287,10 @@
    "P2",
    "P4",
    "P7"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-048",
@@ -1172,7 +1313,10 @@
   "family": "Cardiology",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-049",
@@ -1197,7 +1341,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "SPOT_VITALS_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-050",
@@ -1220,7 +1367,10 @@
   "family": "Cardiology",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-051",
@@ -1245,7 +1395,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-052",
@@ -1269,7 +1422,10 @@
   "options": [
    "P3",
    "P4"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-053",
@@ -1294,7 +1450,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-054",
@@ -1317,7 +1476,10 @@
   "family": "Cardiology",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-055",
@@ -1342,7 +1504,10 @@
    "P1",
    "P2",
    "P3"
-  ]
+  ],
+  "deviceType": "BP_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-056",
@@ -1367,7 +1532,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "AMBULATORY_ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-057",
@@ -1393,7 +1561,10 @@
    "P1",
    "P2",
    "P3"
-  ]
+  ],
+  "deviceType": "AMBULATORY_ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-058",
@@ -1419,7 +1590,10 @@
    "P2",
    "P4",
    "P7"
-  ]
+  ],
+  "deviceType": "AMBULATORY_ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-059",
@@ -1444,7 +1618,10 @@
   "options": [
    "P3",
    "P6"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-060",
@@ -1469,7 +1646,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "AED_DEFIB",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-061",
@@ -1494,7 +1674,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "AED_DEFIB",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-062",
@@ -1519,7 +1702,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "AED_DEFIB",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-063",
@@ -1544,7 +1730,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "AED_DEFIB",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-064",
@@ -1569,7 +1758,10 @@
    "P2",
    "P9",
    "P10"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-065",
@@ -1594,7 +1786,10 @@
    "P1",
    "P2",
    "P9"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-066",
@@ -1619,7 +1814,10 @@
    "P2",
    "P9",
    "P10"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-067",
@@ -1642,7 +1840,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-068",
@@ -1665,7 +1866,10 @@
   "family": "Vision & ophthalmic",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "SPOT_VITALS_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-069",
@@ -1689,7 +1893,10 @@
   "options": [
    "P2",
    "P9"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-070",
@@ -1712,7 +1919,10 @@
   "options": [
    "P9",
    "P10"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-071",
@@ -1734,7 +1944,10 @@
   "family": "Vision & ophthalmic",
   "options": [
    "P2"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-072",
@@ -1757,7 +1970,10 @@
   "options": [
    "P4",
    "P7"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-073",
@@ -1780,7 +1996,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-074",
@@ -1804,7 +2023,10 @@
   "options": [
    "P1",
    "P3"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-075",
@@ -1828,7 +2050,10 @@
   "options": [
    "P2",
    "P7"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-076",
@@ -1851,7 +2076,10 @@
   "options": [
    "P1",
    "P7"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-077",
@@ -1875,7 +2103,10 @@
   "options": [
    "P6",
    "P9"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-078",
@@ -1901,7 +2132,10 @@
   "options": [
    "P1",
    "P5"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-079",
@@ -1926,7 +2160,10 @@
   "options": [
    "P1",
    "P5"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-080",
@@ -1951,7 +2188,10 @@
   "family": "Point-of-care laboratory",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-081",
@@ -1977,7 +2217,10 @@
   "options": [
    "P1",
    "P5"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-082",
@@ -2003,7 +2246,10 @@
   "options": [
    "P1",
    "P5"
-  ]
+  ],
+  "deviceType": "GLUCOSE_METER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-083",
@@ -2028,7 +2274,10 @@
   "options": [
    "P1",
    "P5"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-084",
@@ -2054,7 +2303,10 @@
   "options": [
    "P4",
    "P5"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-085",
@@ -2080,7 +2332,10 @@
   "options": [
    "P4",
    "P5"
-  ]
+  ],
+  "deviceType": "GLUCOSE_METER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-086",
@@ -2105,7 +2360,10 @@
   "family": "Point-of-care laboratory",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "GLUCOSE_METER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-087",
@@ -2131,7 +2389,10 @@
    "P1",
    "P4",
    "P5"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-088",
@@ -2156,7 +2417,10 @@
   "options": [
    "P1",
    "P5"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-089",
@@ -2182,7 +2446,10 @@
    "P1",
    "P9",
    "P10"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-090",
@@ -2208,7 +2475,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-091",
@@ -2234,7 +2504,10 @@
   "options": [
    "P4",
    "P5"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-092",
@@ -2260,7 +2533,10 @@
    "P1",
    "P9",
    "P10"
-  ]
+  ],
+  "deviceType": "EXPOSURE_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-093",
@@ -2286,7 +2562,10 @@
    "P4",
    "P6",
    "P8"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-094",
@@ -2308,7 +2587,10 @@
   "options": [
    "P1",
    "P9"
-  ]
+  ],
+  "deviceType": "PULSE_OXIMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-095",
@@ -2331,7 +2613,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "PULSE_OXIMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-096",
@@ -2354,7 +2639,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "BREATH_ALCOHOL",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-097",
@@ -2376,7 +2664,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "BREATH_ALCOHOL",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-098",
@@ -2398,7 +2689,10 @@
   "options": [
    "P3",
    "P6"
-  ]
+  ],
+  "deviceType": "DRUG_TEST",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-099",
@@ -2420,7 +2714,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "DRUG_TEST",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-100",
@@ -2442,7 +2739,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "DRUG_TEST",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-101",
@@ -2468,7 +2768,10 @@
   "family": "Drug & alcohol testing",
   "options": [
    "P6"
-  ]
+  ],
+  "deviceType": "DRUG_TEST",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-102",
@@ -2495,7 +2798,10 @@
   "options": [
    "P9",
    "P10"
-  ]
+  ],
+  "deviceType": "DRUG_TEST",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-103",
@@ -2518,7 +2824,10 @@
    "P1",
    "P9",
    "P10"
-  ]
+  ],
+  "deviceType": "DRUG_TEST",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-104",
@@ -2540,7 +2849,10 @@
   "options": [
    "P4",
    "P6"
-  ]
+  ],
+  "deviceType": "DRUG_TEST",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-105",
@@ -2563,7 +2875,10 @@
    "P1",
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "FIT_TESTER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-106",
@@ -2586,7 +2901,10 @@
    "P1",
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "FIT_TESTER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-107",
@@ -2608,7 +2926,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "FIT_TESTER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-108",
@@ -2631,7 +2952,10 @@
   "options": [
    "P3",
    "P10"
-  ]
+  ],
+  "deviceType": "DYNAMOMETER_ERGO",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-109",
@@ -2653,7 +2977,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "DYNAMOMETER_ERGO",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-110",
@@ -2675,7 +3002,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "FIT_TESTER",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-111",
@@ -2696,7 +3026,10 @@
   "family": "Respiratory protection & ergonomics",
   "options": [
    "P6"
-  ]
+  ],
+  "deviceType": "EXPOSURE_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-112",
@@ -2718,7 +3051,10 @@
   "options": [
    "P1",
    "P2"
-  ]
+  ],
+  "deviceType": "FIT_TESTER",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-113",
@@ -2739,7 +3075,10 @@
   "family": "Respiratory protection & ergonomics",
   "options": [
    "P10"
-  ]
+  ],
+  "deviceType": "FIT_TESTER",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-114",
@@ -2761,7 +3100,10 @@
   "options": [
    "P2",
    "P3"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-115",
@@ -2783,7 +3125,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "EXPOSURE_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-116",
@@ -2806,7 +3151,10 @@
    "P2",
    "P3",
    "P6"
-  ]
+  ],
+  "deviceType": "THERMOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-117",
@@ -2828,7 +3176,10 @@
   "options": [
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "INFUSION_PUMP",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-118",
@@ -2850,7 +3201,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "THERMOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-119",
@@ -2871,7 +3225,10 @@
   "family": "Exposure & environment feeds",
   "options": [
    "P6"
-  ]
+  ],
+  "deviceType": "EXPOSURE_MONITOR",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-120",
@@ -2893,7 +3250,10 @@
   "family": "Wearables & personal health",
   "options": [
    "P6"
-  ]
+  ],
+  "deviceType": "AMBULATORY_ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-121",
@@ -2916,7 +3276,10 @@
   "options": [
    "P6",
    "P8"
-  ]
+  ],
+  "deviceType": "WEARABLE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-122",
@@ -2939,7 +3302,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "WEARABLE",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-123",
@@ -2963,7 +3329,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "AED_DEFIB",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-124",
@@ -2985,7 +3354,10 @@
   "family": "Wearables & personal health",
   "options": [
    "P6"
-  ]
+  ],
+  "deviceType": "WEARABLE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-125",
@@ -3008,7 +3380,10 @@
   "family": "Occupational-health imaging & other instruments",
   "options": [
    "P7"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-126",
@@ -3033,7 +3408,10 @@
   "options": [
    "P6",
    "P7"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-127",
@@ -3057,7 +3435,10 @@
   "options": [
    "P6",
    "P9"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-128",
@@ -3081,7 +3462,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-129",
@@ -3105,7 +3489,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-130",
@@ -3128,7 +3515,10 @@
   "family": "Occupational-health imaging & other instruments",
   "options": [
    "P1"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-131",
@@ -3152,7 +3542,10 @@
   "options": [
    "P4",
    "P8"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-132",
@@ -3178,7 +3571,10 @@
   "family": "Occupational-health imaging & other instruments",
   "options": [
    "P10"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-133",
@@ -3201,7 +3597,10 @@
   "family": "Occupational-health imaging & other instruments",
   "options": [
    "P10"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-201",
@@ -3224,7 +3623,10 @@
   "options": [
    "P4",
    "P11"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-202",
@@ -3247,7 +3649,10 @@
   "options": [
    "P4",
    "P11"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-203",
@@ -3270,7 +3675,10 @@
   "options": [
    "P4",
    "P11"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-204",
@@ -3293,7 +3701,10 @@
    "P1",
    "P4",
    "P11"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-205",
@@ -3315,7 +3726,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-206",
@@ -3339,7 +3753,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "PULSE_OXIMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-207",
@@ -3360,7 +3777,10 @@
   "family": "Acute-care monitoring & telemetry",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-208",
@@ -3384,7 +3804,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "PULSE_OXIMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-209",
@@ -3406,7 +3829,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "ANAESTHESIA_WORKSTATION",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-210",
@@ -3428,7 +3854,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "CAPNOGRAPH_BIS",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-211",
@@ -3450,7 +3879,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "CAPNOGRAPH_BIS",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-212",
@@ -3472,7 +3904,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "THERMOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-213",
@@ -3494,7 +3929,10 @@
   "options": [
    "P4",
    "P8"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-221",
@@ -3517,7 +3955,10 @@
   "options": [
    "P4",
    "P6"
-  ]
+  ],
+  "deviceType": "INFUSION_PUMP",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-222",
@@ -3539,7 +3980,10 @@
   "family": "Infusion & medication delivery",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "INFUSION_PUMP",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-223",
@@ -3560,7 +4004,10 @@
   "family": "Infusion & medication delivery",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "INFUSION_PUMP",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-224",
@@ -3583,7 +4030,10 @@
   "options": [
    "P4",
    "P11"
-  ]
+  ],
+  "deviceType": "INFUSION_PUMP",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-225",
@@ -3604,7 +4054,10 @@
   "family": "Infusion & medication delivery",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "INFUSION_PUMP",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-226",
@@ -3628,7 +4081,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-227",
@@ -3651,7 +4107,10 @@
   "options": [
    "P1",
    "P10"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-228",
@@ -3674,7 +4133,10 @@
   "family": "Infusion & medication delivery",
   "options": [
    "P6"
-  ]
+  ],
+  "deviceType": "INFUSION_PUMP",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-229",
@@ -3699,7 +4161,10 @@
   "options": [
    "P3",
    "P6"
-  ]
+  ],
+  "deviceType": "GLUCOSE_METER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-230",
@@ -3721,7 +4186,10 @@
   "family": "Infusion & medication delivery",
   "options": [
    "P6"
-  ]
+  ],
+  "deviceType": "INFUSION_PUMP",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-241",
@@ -3743,7 +4211,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "VENTILATOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-242",
@@ -3767,7 +4238,10 @@
    "P1",
    "P4",
    "P11"
-  ]
+  ],
+  "deviceType": "VENTILATOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-243",
@@ -3790,7 +4264,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "VENTILATOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-244",
@@ -3812,7 +4289,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "VENTILATOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-245",
@@ -3836,7 +4316,10 @@
   "options": [
    "P4",
    "P6"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-246",
@@ -3860,7 +4343,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "VENTILATOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-247",
@@ -3882,7 +4368,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "VENTILATOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-248",
@@ -3905,7 +4394,10 @@
    "P1",
    "P4",
    "P11"
-  ]
+  ],
+  "deviceType": "ANAESTHESIA_WORKSTATION",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-249",
@@ -3926,7 +4418,10 @@
   "family": "Respiratory & anaesthesia",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "ANAESTHESIA_WORKSTATION",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-250",
@@ -3948,7 +4443,10 @@
   "options": [
    "P1",
    "P10"
-  ]
+  ],
+  "deviceType": "VENTILATOR",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-251",
@@ -3970,7 +4468,10 @@
   "options": [
    "P6",
    "P10"
-  ]
+  ],
+  "deviceType": "VENTILATOR",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-261",
@@ -3992,7 +4493,10 @@
   "options": [
    "P4",
    "P5"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-262",
@@ -4013,7 +4517,10 @@
   "family": "Laboratory analysers & middleware",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-263",
@@ -4034,7 +4541,10 @@
   "family": "Laboratory analysers & middleware",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-264",
@@ -4056,7 +4566,10 @@
   "family": "Laboratory analysers & middleware",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-265",
@@ -4077,7 +4590,10 @@
   "family": "Laboratory analysers & middleware",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-266",
@@ -4099,7 +4615,10 @@
   "family": "Laboratory analysers & middleware",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-267",
@@ -4122,7 +4641,10 @@
   "options": [
    "P4",
    "P5"
-  ]
+  ],
+  "deviceType": "POC_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-268",
@@ -4144,7 +4666,10 @@
   "family": "Laboratory analysers & middleware",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "BLOOD_GAS",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-269",
@@ -4165,7 +4690,10 @@
   "family": "Laboratory analysers & middleware",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-270",
@@ -4190,7 +4718,10 @@
   "options": [
    "P4",
    "P5"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-271",
@@ -4213,7 +4744,10 @@
   "family": "Laboratory analysers & middleware",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-272",
@@ -4235,7 +4769,10 @@
   "options": [
    "P4",
    "P5"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-273",
@@ -4256,7 +4793,10 @@
   "family": "Laboratory analysers & middleware",
   "options": [
    "P5"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-281",
@@ -4278,7 +4818,10 @@
   "options": [
    "P7",
    "P8"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-282",
@@ -4299,7 +4842,10 @@
   "family": "Imaging & PACS",
   "options": [
    "P7"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-283",
@@ -4324,7 +4870,10 @@
   "options": [
    "P6",
    "P7"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-284",
@@ -4347,7 +4896,10 @@
   "family": "Imaging & PACS",
   "options": [
    "P7"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-285",
@@ -4368,7 +4920,10 @@
   "family": "Imaging & PACS",
   "options": [
    "P7"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-286",
@@ -4391,7 +4946,10 @@
   "options": [
    "P4",
    "P7"
-  ]
+  ],
+  "deviceType": "CAPNOGRAPH_BIS",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-287",
@@ -4413,7 +4971,10 @@
   "family": "Imaging & PACS",
   "options": [
    "P7"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-288",
@@ -4437,7 +4998,10 @@
   "options": [
    "P2",
    "P7"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-289",
@@ -4459,7 +5023,10 @@
   "options": [
    "P7",
    "P8"
-  ]
+  ],
+  "deviceType": "PACS_VNA",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-290",
@@ -4482,7 +5049,10 @@
   "options": [
    "P2",
    "P7"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-291",
@@ -4506,7 +5076,10 @@
    "P6",
    "P7",
    "P8"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-301",
@@ -4531,7 +5104,10 @@
   "options": [
    "P4",
    "P6"
-  ]
+  ],
+  "deviceType": "IMPLANT_REMOTE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-302",
@@ -4554,7 +5130,10 @@
   "options": [
    "P4",
    "P6"
-  ]
+  ],
+  "deviceType": "IMPLANT_REMOTE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-303",
@@ -4578,7 +5157,10 @@
   "options": [
    "P4",
    "P6"
-  ]
+  ],
+  "deviceType": "IMPLANT_REMOTE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-304",
@@ -4600,7 +5182,10 @@
   "family": "Cardiology diagnostics & implant remote monitoring",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "IMPLANT_REMOTE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-305",
@@ -4624,7 +5209,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "AMBULATORY_ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-306",
@@ -4646,7 +5234,10 @@
   "family": "Cardiology diagnostics & implant remote monitoring",
   "options": [
    "P7"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-307",
@@ -4671,7 +5262,10 @@
    "P2",
    "P4",
    "P7"
-  ]
+  ],
+  "deviceType": "ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-311",
@@ -4693,7 +5287,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "DIALYSIS",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-312",
@@ -4716,7 +5313,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "DIALYSIS",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-313",
@@ -4737,7 +5337,10 @@
   "family": "Dialysis & extracorporeal",
   "options": [
    "P4"
-  ]
+  ],
+  "deviceType": "DIALYSIS",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-314",
@@ -4761,7 +5364,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "ECHO",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-315",
@@ -4784,7 +5390,10 @@
    "P1",
    "P4",
    "P6"
-  ]
+  ],
+  "deviceType": "ECMO_MCS",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-321",
@@ -4807,7 +5416,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "VENTILATOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-322",
@@ -4830,7 +5442,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "THERMOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-323",
@@ -4852,7 +5467,10 @@
   "options": [
    "P1",
    "P10"
-  ]
+  ],
+  "deviceType": "NEONATAL_INCUBATOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-324",
@@ -4876,7 +5494,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "AUDIOMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-325",
@@ -4899,7 +5520,10 @@
   "options": [
    "P1",
    "P4"
-  ]
+  ],
+  "deviceType": "FETAL_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-331",
@@ -4924,7 +5548,10 @@
   "options": [
    "P3",
    "P6"
-  ]
+  ],
+  "deviceType": "BP_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-332",
@@ -4948,7 +5575,10 @@
   "family": "Remote patient monitoring & home",
   "options": [
    "P6"
-  ]
+  ],
+  "deviceType": "AMBULATORY_ECG",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-333",
@@ -4971,7 +5601,10 @@
   "options": [
    "P6",
    "P8"
-  ]
+  ],
+  "deviceType": "WEARABLE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-334",
@@ -4992,7 +5625,10 @@
   "family": "Remote patient monitoring & home",
   "options": [
    "P6"
-  ]
+  ],
+  "deviceType": "RPM_KIT",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-335",
@@ -5017,7 +5653,10 @@
   "options": [
    "P6",
    "P8"
-  ]
+  ],
+  "deviceType": "RPM_KIT",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-341",
@@ -5041,7 +5680,10 @@
    "P4",
    "P6",
    "P7"
-  ]
+  ],
+  "deviceType": "PERFUSION_OR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-342",
@@ -5065,7 +5707,10 @@
    "P4",
    "P7",
    "P11"
-  ]
+  ],
+  "deviceType": "PERFUSION_OR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-343",
@@ -5087,7 +5732,10 @@
   "options": [
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "LAB_ANALYSER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-344",
@@ -5110,7 +5758,10 @@
    "P1",
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "PERFUSION_OR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-351",
@@ -5132,7 +5783,10 @@
   "options": [
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "WEIGHING_SCALE",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-352",
@@ -5154,7 +5808,10 @@
   "options": [
    "P4",
    "P6"
-  ]
+  ],
+  "deviceType": "SMART_BED_ENV",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-353",
@@ -5176,7 +5833,10 @@
   "options": [
    "P4",
    "P6"
-  ]
+  ],
+  "deviceType": "SMART_BED_ENV",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  },
  {
   "id": "IMD-361",
@@ -5201,7 +5861,10 @@
    "P2",
    "P4",
    "P7"
-  ]
+  ],
+  "deviceType": "MULTIPARAM_MONITOR",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-362",
@@ -5225,7 +5888,10 @@
   "options": [
    "P2",
    "P6"
-  ]
+  ],
+  "deviceType": "AED_DEFIB",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-363",
@@ -5248,7 +5914,10 @@
   "options": [
    "P2",
    "P4"
-  ]
+  ],
+  "deviceType": "SPIROMETER",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-371",
@@ -5272,7 +5941,10 @@
   "options": [
    "P2",
    "P7"
-  ]
+  ],
+  "deviceType": "IMAGING_MODALITY",
+  "deviceTypeBasis": "RULE_MATCH",
+  "deviceTypeConfidence": 0.85
  },
  {
   "id": "IMD-372",
@@ -5295,6 +5967,9 @@
   "options": [
    "P2",
    "P7"
-  ]
+  ],
+  "deviceType": "VISION_SCREENER",
+  "deviceTypeBasis": "FAMILY_DEFAULT",
+  "deviceTypeConfidence": 0.6
  }
 ]

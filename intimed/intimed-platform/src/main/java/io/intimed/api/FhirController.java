@@ -45,7 +45,7 @@ public class FhirController {
     @GetMapping("/metadata")
     public ObjectNode metadata() {
         ObjectNode c = Json.obj().put("resourceType", "CapabilityStatement").put("status", "active").put("date", "2026-11-01").put("kind", "instance")
-                .put("fhirVersion", "4.0.1").put("software", "IntiMed 1.0.0-local");
+                .put("fhirVersion", "4.0.1").put("software", "IntiMed 2.0.0-local");
         c.putArray("format").add("application/fhir+json");
         ObjectNode rest = c.putArray("rest").addObject().put("mode", "server");
         rest.putObject("security").put("description", "OAuth2 client credentials (ES256 JWT), SMART backend-services scopes system/<Resource>.<read|write>; tenant from token")

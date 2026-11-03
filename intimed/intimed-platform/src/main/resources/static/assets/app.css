@@ -52,3 +52,7 @@ pre.code{background:var(--neutralbg);border:1px solid var(--line);border-radius:
 .host{margin-top:10px}.host-form{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;max-width:900px}
 .run{margin-top:10px}
 @media (max-width:820px){#app{flex-direction:column}.side{width:100%;height:auto;position:static}.main{padding:14px}}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media (max-width:1100px){.grid2{grid-template-columns:1fr}}
+ul.tight{margin:0;padding-left:16px}ul.tight li{margin:0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.note{background:var(--warnbg);color:var(--warn);border-radius:10px;padding:8px 12px;max-width:1100px}

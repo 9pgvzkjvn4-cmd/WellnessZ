@@ -63,11 +63,13 @@ public class QualityController {
 
     @GetMapping("/classification")
     public Map<String, Object> classification() {
-        return Map.of("product", "IntiMed 1.0.0-local", "intendedUse", "Transfer, storage, format conversion and display of medical device data; configuration management and verification of device integrations",
+        return Map.of("product", "IntiMed 2.0.0-local", "intendedUse", "Transfer, storage, format conversion and display of medical device data; configuration management and verification of device integrations",
                 "fdaPosition", "Medical Device Data System functions (21 CFR 880.6310) – enforcement discretion; not active patient monitoring",
                 "iec62304Class", "Class A software system with Class B items for association and routing (wrong-patient / wrong-value hazards mitigated by verification, thresholds and the publish gate)",
                 "excludedFunctionsFeatureFlags", Map.of("alarmManagement", false, "clinicalInterpretation", false, "closedLoopControl", false, "activePatientMonitoringNotification", false),
                 "labelling", "Alarms are flagged as ALARM_STATE_FLAGGED and never interpreted; device interpretations (e.g. ECG statements) are marked unverified and require physician sign-off",
+                "referenceRangeFlagging", "IntiMed 2.0: numeric results are annotated with a cited, age/sex/context-partitioned reference interval and an HL7 interpretation flag (N/L/H/LL/HH) – informational display analogous to laboratory report flags; no diagnosis, no alarm, no treatment recommendation. Switchable per configuration (params.referenceRangeFlagging=false). Default intervals must be replaced by locally verified intervals (CLSI EP28-A3c) before clinical use",
+                "regulatoryImpact", "Flagging may move the product beyond MDDS enforcement discretion in some jurisdictions (FDA CDS guidance 2022 criteria; EU MDR Rule 11). A documented regulatory assessment is required before enabling flags in production; the validation studio and cohort simulator are non-clinical engineering tools",
                 "standards", new String[]{"IEC 62304", "ISO 14971", "IEC 62366-1", "IEC 82304-1", "IEC 81001-5-1", "IEC 80001-1", "ISO 13485-aligned QMS"});
     }
 }

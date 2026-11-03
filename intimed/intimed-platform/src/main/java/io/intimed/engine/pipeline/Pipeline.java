@@ -251,6 +251,49 @@ public class Pipeline {
         return res;
     }
 
+    /**
+     * Dry run (IM-E14 validation studio / cohort simulator): parse → normalise → map → annotate with reference intervals,
+     * with no persistence, no association, no metering and no events. {@code templateIds} null = every template the
+     * driver package binds. Demographics come from the request, not the subject registry.
+     */
+    public ObjectNode dryRun(String tenant, DriverPackage d, String payload, List<String> templateIds,
+                             java.util.function.Function<String, JsonNode> templateLookup, io.intimed.clinical.Demographics demo) {
+        ObjectNode out = Json.obj().put("driver", d.ref()).put("grammar", d.grammar().get("type").asString());
+        ObjectNode cfg = Json.obj().put("id", "dry-run").put("hash", "dry-run");
+        List<Parsed> sets;
+        try {
+            sets = parsers.get(d.grammar().get("type").asString()).parse(d.grammar(), payload);
+        } catch (ParseException | IllegalArgumentException e) {
+            return out.put("status", "PARSE_ERROR").put("error", e.getMessage());
+        }
+        ArrayNode results = out.putArray("sets");
+        Envelope env = new Envelope(tenant, null, "dry-run", d.options().isEmpty() ? "P?" : d.options().get(0), payload, "TEST", null, "dry-run", "dry-run", Instant.now());
+        for (Parsed p : sets) {
+            ObjectNode r = results.addObject();
+            r.set("identity", Json.tree(maskIdentity(p.identity)));
+            r.set("warnings", Json.tree(p.warnings));
+            ObjectNode obs;
+            try { obs = normalise(env, cfg, d, p); }
+            catch (IllegalArgumentException e) { r.put("status", "NORMALISE_ERROR").put("error", e.getMessage()); continue; }
+            r.set("measurements", obs.get("measurements"));
+            ArrayNode mapped = r.putArray("mapped");
+            d.bindings().properties().forEach(b -> {
+                if (templateIds != null && !templateIds.contains(b.getKey())) return;
+                JsonNode tpl = templateLookup.apply(b.getKey());
+                if (tpl != null) mapped.add(router.dryMap(b.getValue(), tpl, obs, demo));
+            });
+            r.put("status", "MAPPED");
+        }
+        out.put("status", results.isEmpty() ? "EMPTY" : "OK");
+        return out;
+    }
+
+    private static Map<String, String> maskIdentity(Map<String, String> id) {
+        Map<String, String> m = new java.util.LinkedHashMap<>(id);
+        m.computeIfPresent("subject", (k, v) -> PhiMasker.mask(v));
+        return m;
+    }
+
     ObjectNode normalise(Envelope env, JsonNode config, DriverPackage d, Parsed p) {
         ObjectNode obs = Json.obj();
         Instant eff = time(p.identity.get("time"), d.grammar().path("identity").path("timeFormat").asString(null), env.receivedAt());

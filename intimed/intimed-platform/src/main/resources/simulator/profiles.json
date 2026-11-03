@@ -1,0 +1,491 @@
+[
+ {
+  "id": "adult-normal",
+  "name": "Adult male, 40 y – healthy",
+  "group": "normal",
+  "demographics": {
+   "ageYears": 40,
+   "sex": "male"
+  },
+  "concepts": {},
+  "expected": {}
+ },
+ {
+  "id": "adult-female-normal",
+  "name": "Adult female, 34 y – healthy",
+  "group": "normal",
+  "demographics": {
+   "ageYears": 34,
+   "sex": "female"
+  },
+  "concepts": {},
+  "expected": {}
+ },
+ {
+  "id": "older-adult-normal",
+  "name": "Older adult female, 72 y – healthy",
+  "group": "normal",
+  "demographics": {
+   "ageYears": 72,
+   "sex": "female"
+  },
+  "concepts": {},
+  "expected": {}
+ },
+ {
+  "id": "adolescent-normal",
+  "name": "Adolescent male, 15 y – healthy",
+  "group": "age",
+  "demographics": {
+   "ageYears": 15,
+   "sex": "male"
+  },
+  "concepts": {},
+  "expected": {}
+ },
+ {
+  "id": "school-child-normal",
+  "name": "School-age child, 8 y – healthy",
+  "group": "age",
+  "demographics": {
+   "ageYears": 8,
+   "sex": "female"
+  },
+  "concepts": {},
+  "expected": {}
+ },
+ {
+  "id": "preschool-normal",
+  "name": "Preschool child, 4 y – healthy",
+  "group": "age",
+  "demographics": {
+   "ageYears": 4,
+   "sex": "male"
+  },
+  "concepts": {},
+  "expected": {}
+ },
+ {
+  "id": "infant-normal",
+  "name": "Infant, 6 months – healthy",
+  "group": "age",
+  "demographics": {
+   "ageYears": 0.5,
+   "sex": "female"
+  },
+  "concepts": {},
+  "expected": {}
+ },
+ {
+  "id": "neonate-normal",
+  "name": "Neonate, 5 days – healthy",
+  "group": "age",
+  "demographics": {
+   "ageYears": 0.0136986301369863,
+   "sex": "male"
+  },
+  "concepts": {},
+  "expected": {}
+ },
+ {
+  "id": "infant-hr-140",
+  "name": "Infant, 6 months – heart rate 140/min (normal for age)",
+  "group": "age",
+  "demographics": {
+   "ageYears": 0.5,
+   "sex": "male"
+  },
+  "concepts": {
+   "heart-rate": 140
+  },
+  "expected": {
+   "heart-rate": "N"
+  }
+ },
+ {
+  "id": "child-hr-140",
+  "name": "School-age child, 8 y – heart rate 140/min (high for age)",
+  "group": "age",
+  "demographics": {
+   "ageYears": 8,
+   "sex": "male"
+  },
+  "concepts": {
+   "heart-rate": 140
+  },
+  "expected": {
+   "heart-rate": "H"
+  }
+ },
+ {
+  "id": "adult-hypertensive-crisis",
+  "name": "Adult male, 58 y – hypertensive crisis",
+  "group": "abnormal",
+  "demographics": {
+   "ageYears": 58,
+   "sex": "male"
+  },
+  "concepts": {
+   "systolic": 186,
+   "diastolic": 112
+  },
+  "expected": {
+   "systolic": "HH",
+   "diastolic": "H"
+  }
+ },
+ {
+  "id": "adult-sepsis-like",
+  "name": "Adult female, 64 y – tachycardia, tachypnoea, fever, low SpO2",
+  "group": "abnormal",
+  "demographics": {
+   "ageYears": 64,
+   "sex": "female"
+  },
+  "concepts": {
+   "heart-rate": 128,
+   "resp-rate": 26,
+   "body-temp": 38.9,
+   "spo2": 92
+  },
+  "expected": {
+   "heart-rate": "H",
+   "resp-rate": "H",
+   "body-temp": "H",
+   "spo2": "L"
+  }
+ },
+ {
+  "id": "copd-hypoxaemia",
+  "name": "Older male, 70 y – COPD with hypoxaemia",
+  "group": "abnormal",
+  "demographics": {
+   "ageYears": 70,
+   "sex": "male"
+  },
+  "concepts": {
+   "spo2": 87,
+   "fev1-fvc": 58
+  },
+  "expected": {
+   "spo2": "LL",
+   "fev1-fvc": "L"
+  }
+ },
+ {
+  "id": "altitude-sea-level",
+  "name": "Adult, 30 y at sea level – SpO2 92 %",
+  "group": "environment",
+  "demographics": {
+   "ageYears": 30,
+   "sex": "male",
+   "siteAltitudeM": 0
+  },
+  "concepts": {
+   "spo2": 92
+  },
+  "expected": {
+   "spo2": "L"
+  }
+ },
+ {
+  "id": "altitude-3000m",
+  "name": "Adult, 30 y at 3,000 m – SpO2 92 % (normal for altitude)",
+  "group": "environment",
+  "demographics": {
+   "ageYears": 30,
+   "sex": "male",
+   "siteAltitudeM": 3000
+  },
+  "concepts": {
+   "spo2": 92
+  },
+  "expected": {
+   "spo2": "N"
+  }
+ },
+ {
+  "id": "adult-anaemia-female",
+  "name": "Adult female, 35 y, not pregnant – Hb 10.8 g/dL",
+  "group": "pregnancy",
+  "demographics": {
+   "ageYears": 35,
+   "sex": "female"
+  },
+  "concepts": {
+   "haemoglobin": 10.8
+  },
+  "expected": {
+   "haemoglobin": "L"
+  }
+ },
+ {
+  "id": "pregnant-2nd-trimester",
+  "name": "Pregnant female, 29 y, 2nd trimester – Hb 10.8 g/dL (normal for trimester)",
+  "group": "pregnancy",
+  "demographics": {
+   "ageYears": 29,
+   "sex": "female",
+   "pregnant": true,
+   "trimester": 2
+  },
+  "concepts": {
+   "haemoglobin": 10.8
+  },
+  "expected": {
+   "haemoglobin": "N"
+  }
+ },
+ {
+  "id": "diabetic-hyperglycaemia",
+  "name": "Adult male, 55 y, fasting – hyperglycaemia, HbA1c 8.1 %",
+  "group": "abnormal",
+  "demographics": {
+   "ageYears": 55,
+   "sex": "male",
+   "fasting": true
+  },
+  "concepts": {
+   "glucose": 13.5,
+   "hba1c": 8.1
+  },
+  "expected": {
+   "glucose": "H",
+   "hba1c": "H"
+  }
+ },
+ {
+  "id": "hypoglycaemia",
+  "name": "Adult female, 45 y – glucose 2.6 mmol/L",
+  "group": "abnormal",
+  "demographics": {
+   "ageYears": 45,
+   "sex": "female"
+  },
+  "concepts": {
+   "glucose": 2.6
+  },
+  "expected": {
+   "glucose": "LL"
+  }
+ },
+ {
+  "id": "hyperkalaemia",
+  "name": "Older male, 67 y – potassium 6.8 mmol/L",
+  "group": "abnormal",
+  "demographics": {
+   "ageYears": 67,
+   "sex": "male"
+  },
+  "concepts": {
+   "potassium": 6.8
+  },
+  "expected": {
+   "potassium": "HH"
+  }
+ },
+ {
+  "id": "long-qtc-female",
+  "name": "Adult female, 50 y – QTc 505 ms",
+  "group": "abnormal",
+  "demographics": {
+   "ageYears": 50,
+   "sex": "female"
+  },
+  "concepts": {
+   "qtc": 505
+  },
+  "expected": {
+   "qtc": "HH"
+  }
+ },
+ {
+  "id": "borderline-qtc-male",
+  "name": "Adult male, 50 y – QTc 455 ms (prolonged for men)",
+  "group": "sex",
+  "demographics": {
+   "ageYears": 50,
+   "sex": "male"
+  },
+  "concepts": {
+   "qtc": 455
+  },
+  "expected": {
+   "qtc": "H"
+  }
+ },
+ {
+  "id": "borderline-qtc-female",
+  "name": "Adult female, 50 y – QTc 455 ms (normal for women)",
+  "group": "sex",
+  "demographics": {
+   "ageYears": 50,
+   "sex": "female"
+  },
+  "concepts": {
+   "qtc": 455
+  },
+  "expected": {
+   "qtc": "N"
+  }
+ },
+ {
+  "id": "noise-induced-hearing-loss",
+  "name": "Adult male, 45 y – noise notch at 4 kHz",
+  "group": "occupational",
+  "demographics": {
+   "ageYears": 45,
+   "sex": "male"
+  },
+  "concepts": {
+   "hearing-threshold@r4000": 45,
+   "hearing-threshold@l4000": 40,
+   "hearing-threshold@r6000": 35
+  },
+  "expected": {
+   "hearing-threshold@r4000": "H",
+   "hearing-threshold@l4000": "H",
+   "hearing-threshold@r6000": "H"
+  }
+ },
+ {
+  "id": "dot-brac-removal",
+  "name": "Driver, 38 y – BrAC 0.031 (24 h removal)",
+  "group": "occupational",
+  "demographics": {
+   "ageYears": 38,
+   "sex": "male",
+   "regulation": "US-DOT-FMCSA"
+  },
+  "concepts": {
+   "brac": 0.031
+  },
+  "expected": {
+   "brac": "H"
+  }
+ },
+ {
+  "id": "dot-brac-violation",
+  "name": "Driver, 41 y – BrAC 0.052 (violation)",
+  "group": "occupational",
+  "demographics": {
+   "ageYears": 41,
+   "sex": "male",
+   "regulation": "US-DOT-FMCSA"
+  },
+  "concepts": {
+   "brac": 0.052
+  },
+  "expected": {
+   "brac": "HH"
+  }
+ },
+ {
+  "id": "fit-test-fail",
+  "name": "Worker, 30 y – half-mask fit factor 64 (fail)",
+  "group": "occupational",
+  "demographics": {
+   "ageYears": 30,
+   "sex": "female",
+   "respiratorType": "HALF_MASK"
+  },
+  "concepts": {
+   "fit-factor": 64
+  },
+  "expected": {
+   "fit-factor": "L"
+  }
+ },
+ {
+  "id": "severe-osa-adult",
+  "name": "Adult male, 52 y – AHI 34 /h",
+  "group": "abnormal",
+  "demographics": {
+   "ageYears": 52,
+   "sex": "male"
+  },
+  "concepts": {
+   "ahi": 34
+  },
+  "expected": {
+   "ahi": "H"
+  }
+ },
+ {
+  "id": "paediatric-osa",
+  "name": "Child, 7 y – AHI 3 /h (abnormal for a child)",
+  "group": "age",
+  "demographics": {
+   "ageYears": 7,
+   "sex": "female"
+  },
+  "concepts": {
+   "ahi": 3
+  },
+  "expected": {
+   "ahi": "H"
+  }
+ },
+ {
+  "id": "adult-ahi-3",
+  "name": "Adult, 40 y – AHI 3 /h (normal for an adult)",
+  "group": "age",
+  "demographics": {
+   "ageYears": 40,
+   "sex": "female"
+  },
+  "concepts": {
+   "ahi": 3
+  },
+  "expected": {
+   "ahi": "N"
+  }
+ },
+ {
+  "id": "fetal-tachycardia",
+  "name": "Pregnant female, 28 y – fetal heart rate 172",
+  "group": "pregnancy",
+  "demographics": {
+   "ageYears": 28,
+   "sex": "female",
+   "pregnant": true,
+   "trimester": 3
+  },
+  "concepts": {
+   "fetal-hr": 172
+  },
+  "expected": {
+   "fetal-hr": "H"
+  }
+ },
+ {
+  "id": "neonatal-hypothermia",
+  "name": "Neonate, 2 days – skin temperature 35.8 °C",
+  "group": "age",
+  "demographics": {
+   "ageYears": 0.005479452054794521,
+   "sex": "female"
+  },
+  "concepts": {
+   "neonatal-skin-temp": 35.8
+  },
+  "expected": {
+   "neonatal-skin-temp": "L"
+  }
+ },
+ {
+  "id": "dialysis-inadequate",
+  "name": "Adult male, 61 y – Kt/V 1.05",
+  "group": "abnormal",
+  "demographics": {
+   "ageYears": 61,
+   "sex": "male"
+  },
+  "concepts": {
+   "ktv": 1.05
+  },
+  "expected": {
+   "ktv": "L"
+  }
+ }
+]

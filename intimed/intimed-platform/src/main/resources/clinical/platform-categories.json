@@ -1,0 +1,302 @@
+[
+ {
+  "id": "ACUTE_EHR",
+  "name": "Hospital EHR – acute care (ICU, ED, OR, wards)",
+  "hosts": "Hospital EHRs, anaesthesia information systems, flowsheets",
+  "templates": [
+   "TPL-01",
+   "TPL-02",
+   "TPL-03",
+   "TPL-04",
+   "TPL-05",
+   "TPL-16"
+  ],
+  "outputs": [
+   {
+    "format": "FHIR R4",
+    "profile": "http://hl7.org/fhir/StructureDefinition/vitalsigns"
+   },
+   {
+    "format": "HL7 v2.6",
+    "profile": "IHE PCD-01 ORU^R01 (OBX-7 range, OBX-8 flag)"
+   }
+  ],
+  "rules": [
+   "STRUCTURE",
+   "TERMINOLOGY",
+   "UNITS",
+   "CLINICAL_RANGE",
+   "CROSS_FIELD",
+   "PLAUSIBILITY"
+  ],
+  "terminology": {
+   "requireStandardCode": false
+  },
+  "demographics": [
+   "age",
+   "sex"
+  ],
+  "interpretation": "flag",
+  "criticalHandling": "flagged LL/HH for the host's alarm/notification workflow – IntiMed raises no alarms"
+ },
+ {
+  "id": "PRIMARY_CARE",
+  "name": "Primary care / outpatient EHR",
+  "hosts": "GP and outpatient EHRs, IPS-based records",
+  "templates": [
+   "TPL-02",
+   "TPL-08",
+   "TPL-13"
+  ],
+  "outputs": [
+   {
+    "format": "FHIR R4",
+    "profile": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-vital-signs"
+   },
+   {
+    "format": "FHIR R4",
+    "profile": "IPS Observation (results)"
+   }
+  ],
+  "rules": [
+   "STRUCTURE",
+   "TERMINOLOGY",
+   "UNITS",
+   "CLINICAL_RANGE",
+   "CROSS_FIELD",
+   "PLAUSIBILITY",
+   "CATEGORY_GRADES"
+  ],
+  "terminology": {
+   "requireStandardCode": true
+  },
+  "demographics": [
+   "age",
+   "sex"
+  ],
+  "interpretation": "flag+grade",
+  "criticalHandling": "flag"
+ },
+ {
+  "id": "OCC_HEALTH",
+  "name": "Occupational health platform (e.g. OHCM)",
+  "hosts": "Occupational-health case management, surveillance and fitness-for-duty systems",
+  "templates": [
+   "TPL-17",
+   "TPL-18",
+   "TPL-19",
+   "TPL-20",
+   "TPL-21",
+   "TPL-22"
+  ],
+  "outputs": [
+   {
+    "format": "FHIR R4",
+    "profile": "Observation + DiagnosticReport (OH)"
+   },
+   {
+    "format": "REST/PDF",
+    "profile": "OH form post-back with grade and regulation"
+   }
+  ],
+  "rules": [
+   "STRUCTURE",
+   "UNITS",
+   "CLINICAL_RANGE",
+   "CROSS_FIELD",
+   "CATEGORY_GRADES",
+   "REGULATORY"
+  ],
+  "terminology": {
+   "requireStandardCode": false
+  },
+  "demographics": [
+   "age",
+   "sex"
+  ],
+  "interpretation": "grade+regulatory",
+  "criticalHandling": "regulatory outcome (e.g. DOT removal from duty) reported as status-only to HR via the host",
+  "parameters": {
+   "regulation": "US-DOT-FMCSA",
+   "respiratorType": "HALF_MASK"
+  }
+ },
+ {
+  "id": "LIS",
+  "name": "Laboratory information system / POCT",
+  "hosts": "LIS, POCT data managers, middleware",
+  "templates": [
+   "TPL-05",
+   "TPL-06"
+  ],
+  "outputs": [
+   {
+    "format": "HL7 v2.5.1/2.6",
+    "profile": "ORU^R01 with OBX-7 reference range and OBX-8 abnormal flag (LAW)"
+   },
+   {
+    "format": "FHIR R4",
+    "profile": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-observation-lab"
+   }
+  ],
+  "rules": [
+   "STRUCTURE",
+   "TERMINOLOGY",
+   "UNITS",
+   "CLINICAL_RANGE",
+   "LAB_RANGE_REQUIRED",
+   "CROSS_FIELD"
+  ],
+  "terminology": {
+   "requireStandardCode": true
+  },
+  "demographics": [
+   "age",
+   "sex",
+   "pregnancy"
+  ],
+  "interpretation": "flag",
+  "criticalHandling": "LL/HH flagged for the laboratory critical-result call process"
+ },
+ {
+  "id": "IMAGING_CARDIO",
+  "name": "Imaging & cardiology systems",
+  "hosts": "PACS/RIS, ECG management, device-clinic systems",
+  "templates": [
+   "TPL-07",
+   "TPL-08",
+   "TPL-09"
+  ],
+  "outputs": [
+   {
+    "format": "FHIR R4",
+    "profile": "ImagingStudy / DiagnosticReport / Observation"
+   },
+   {
+    "format": "HL7 v2",
+    "profile": "IHE IDCO ORU"
+   }
+  ],
+  "rules": [
+   "STRUCTURE",
+   "UNITS",
+   "CLINICAL_RANGE",
+   "DOSE_REFERENCE",
+   "CROSS_FIELD"
+  ],
+  "terminology": {
+   "requireStandardCode": false
+  },
+  "demographics": [
+   "age",
+   "sex"
+  ],
+  "interpretation": "flag",
+  "criticalHandling": "flag",
+  "parameters": {
+   "drlCtDlp": 600
+  }
+ },
+ {
+  "id": "RPM_HOME",
+  "name": "Remote patient monitoring / hospital at home",
+  "hosts": "RPM dashboards, chronic-care and virtual-ward platforms",
+  "templates": [
+   "TPL-13",
+   "TPL-14",
+   "TPL-22"
+  ],
+  "outputs": [
+   {
+    "format": "FHIR R4",
+    "profile": "Personal Health Device (PHD) Observation"
+   },
+   {
+    "format": "REST",
+    "profile": "dashboard post-back"
+   }
+  ],
+  "rules": [
+   "STRUCTURE",
+   "UNITS",
+   "CLINICAL_RANGE",
+   "CROSS_FIELD",
+   "CONSENT"
+  ],
+  "terminology": {
+   "requireStandardCode": false
+  },
+  "demographics": [
+   "age",
+   "sex"
+  ],
+  "interpretation": "flag+care-plan",
+  "criticalHandling": "flagged for the care team's escalation protocol in the host"
+ },
+ {
+  "id": "SPECIALIST",
+  "name": "Specialist unit systems (dialysis, neonatal, maternity, sleep)",
+  "hosts": "Dialysis TDMS, neonatal/maternity systems, sleep lab software",
+  "templates": [
+   "TPL-10",
+   "TPL-11",
+   "TPL-12",
+   "TPL-15"
+  ],
+  "outputs": [
+   {
+    "format": "FHIR R4",
+    "profile": "Observation / DiagnosticReport"
+   },
+   {
+    "format": "HL7 v2",
+    "profile": "ORU^R01"
+   }
+  ],
+  "rules": [
+   "STRUCTURE",
+   "UNITS",
+   "CLINICAL_RANGE",
+   "CROSS_FIELD",
+   "CATEGORY_GRADES"
+  ],
+  "terminology": {
+   "requireStandardCode": false
+  },
+  "demographics": [
+   "age",
+   "sex",
+   "pregnancy"
+  ],
+  "interpretation": "flag+grade",
+  "criticalHandling": "flag"
+ },
+ {
+  "id": "WELLNESS",
+  "name": "Wellness / consumer health",
+  "hosts": "Wellness programmes, employee health apps",
+  "templates": [
+   "TPL-22",
+   "TPL-13"
+  ],
+  "outputs": [
+   {
+    "format": "FHIR R4",
+    "profile": "PHD Observation"
+   }
+  ],
+  "rules": [
+   "STRUCTURE",
+   "UNITS",
+   "CONSENT"
+  ],
+  "terminology": {
+   "requireStandardCode": false
+  },
+  "demographics": [
+   "age"
+  ],
+  "interpretation": "informational",
+  "criticalHandling": "none – informational display only"
+ }
+]

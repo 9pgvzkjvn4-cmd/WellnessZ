@@ -1,0 +1,242 @@
+[
+ {
+  "code": "AED_DEFIB",
+  "name": "Defibrillator / AED (readiness and event data)",
+  "ieee11073Specialization": null,
+  "dataClass": "EVENT"
+ },
+ {
+  "code": "SPOT_VITALS_MONITOR",
+  "name": "Spot-check vital signs monitor",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "MULTIPARAM_MONITOR",
+  "name": "Multiparameter patient monitor / telemetry",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ },
+ {
+  "code": "BP_MONITOR",
+  "name": "Blood pressure monitor (NIBP)",
+  "ieee11073Specialization": "IEEE 11073-10407",
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "PULSE_OXIMETER",
+  "name": "Pulse oximeter",
+  "ieee11073Specialization": "IEEE 11073-10404",
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "THERMOMETER",
+  "name": "Thermometer",
+  "ieee11073Specialization": "IEEE 11073-10408",
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "WEIGHING_SCALE",
+  "name": "Weighing scale / body composition",
+  "ieee11073Specialization": "IEEE 11073-10415",
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "GLUCOSE_METER",
+  "name": "Glucose meter / CGM",
+  "ieee11073Specialization": "IEEE 11073-10417",
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "SPIROMETER",
+  "name": "Spirometer / lung function",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "AUDIOMETER",
+  "name": "Audiometer / hearing screener",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "ECG",
+  "name": "Electrocardiograph / ECG management",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "AMBULATORY_ECG",
+  "name": "Ambulatory ECG / Holter / patch",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ },
+ {
+  "code": "VISION_SCREENER",
+  "name": "Vision / colour-vision screener",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "BREATH_ALCOHOL",
+  "name": "Evidential breath-alcohol tester",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "DRUG_TEST",
+  "name": "Drug test analyser / collection",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "POC_ANALYSER",
+  "name": "Point-of-care analyser",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "BLOOD_GAS",
+  "name": "Blood gas analyser",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "LAB_ANALYSER",
+  "name": "Laboratory analyser / middleware",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "INFUSION_PUMP",
+  "name": "Infusion pump / pump server",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ },
+ {
+  "code": "VENTILATOR",
+  "name": "Ventilator",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ },
+ {
+  "code": "ANAESTHESIA_WORKSTATION",
+  "name": "Anaesthesia workstation",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ },
+ {
+  "code": "CAPNOGRAPH_BIS",
+  "name": "Capnography / depth-of-anaesthesia / haemodynamics",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ },
+ {
+  "code": "IMAGING_MODALITY",
+  "name": "Imaging modality (CT, MR, DR, US)",
+  "ieee11073Specialization": null,
+  "dataClass": "STUDY"
+ },
+ {
+  "code": "PACS_VNA",
+  "name": "PACS / VNA / imaging archive",
+  "ieee11073Specialization": null,
+  "dataClass": "STUDY"
+ },
+ {
+  "code": "ECHO",
+  "name": "Echocardiography system",
+  "ieee11073Specialization": null,
+  "dataClass": "STUDY"
+ },
+ {
+  "code": "IMPLANT_REMOTE",
+  "name": "Implant remote-monitoring portal (IDCO)",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "DIALYSIS",
+  "name": "Dialysis system",
+  "ieee11073Specialization": null,
+  "dataClass": "SESSION"
+ },
+ {
+  "code": "ECMO_MCS",
+  "name": "ECMO / mechanical circulatory support",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ },
+ {
+  "code": "NEONATAL_INCUBATOR",
+  "name": "Incubator / warmer / neonatal device",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ },
+ {
+  "code": "FETAL_MONITOR",
+  "name": "Fetal monitor (CTG)",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ },
+ {
+  "code": "RPM_KIT",
+  "name": "RPM kit / cellular home device",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "HOSPITAL_AT_HOME",
+  "name": "Hospital-at-home monitoring platform",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ },
+ {
+  "code": "WEARABLE",
+  "name": "Consumer wearable / aggregator",
+  "ieee11073Specialization": null,
+  "dataClass": "DAILY"
+ },
+ {
+  "code": "CPAP_SLEEP",
+  "name": "CPAP / sleep therapy",
+  "ieee11073Specialization": null,
+  "dataClass": "DAILY"
+ },
+ {
+  "code": "PSG_EEG",
+  "name": "Polysomnography / EEG / neurophysiology",
+  "ieee11073Specialization": null,
+  "dataClass": "STUDY"
+ },
+ {
+  "code": "PERFUSION_OR",
+  "name": "Perfusion / OR integration / surgical device",
+  "ieee11073Specialization": null,
+  "dataClass": "SESSION"
+ },
+ {
+  "code": "FIT_TESTER",
+  "name": "Respirator fit tester",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "EXPOSURE_MONITOR",
+  "name": "Exposure monitor / dosimeter / environment",
+  "ieee11073Specialization": null,
+  "dataClass": "DAILY"
+ },
+ {
+  "code": "DYNAMOMETER_ERGO",
+  "name": "Dynamometer / ergonomics / functional capacity",
+  "ieee11073Specialization": null,
+  "dataClass": "SPOT"
+ },
+ {
+  "code": "SMART_BED_ENV",
+  "name": "Smart bed / location / environment",
+  "ieee11073Specialization": null,
+  "dataClass": "CONTINUOUS"
+ }
+]

@@ -76,6 +76,19 @@ public class DemoService implements ApplicationRunner {
             {"TPL-22", "wear.aggregator.fhir-pcha@1.0.0", "Wellness programme", "HOME", "", "EMP-700106"}};
         for (String[] r : s) SCENARIOS.put(r[0], new String[]{r[1], r[2], r[3], r[4], r[5]});
     }
+    /** Synthetic demographics for reference-interval partitioning (birth date relative to today, sex, pregnancy). */
+    static ObjectNode demographics(String tpl, ObjectNode sub) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        int n = Integer.parseInt(tpl.substring(4));
+        switch (tpl) {
+            case "TPL-11" -> sub.put("birthDate", today.minusDays(3).toString()).put("sex", "female");
+            case "TPL-12" -> sub.put("birthDate", today.minusYears(29).toString()).put("sex", "female").put("pregnant", true).put("trimester", 3);
+            case "TPL-15" -> sub.put("birthDate", today.minusYears(52).toString()).put("sex", "male");
+            default -> sub.put("birthDate", today.minusYears(30 + (n * 7) % 45).minusDays(n * 11L).toString()).put("sex", n % 2 == 0 ? "female" : "male");
+        }
+        return sub;
+    }
+
     /** Left un-provisioned at start so the guided walkthrough provisions them live. */
     public static final List<String> GUIDED = List.of("TPL-18", "TPL-02");
 
@@ -128,12 +141,14 @@ public class DemoService implements ApplicationRunner {
 
     void seed() {
         Current.as(as("nurse.clinic"), () -> {
-            for (String[] s : SCENARIOS.values()) {
-                ObjectNode sub = Json.obj().put("id", s[4]).put("mrn", s[4]).put("name", "Synthetic subject " + s[4].substring(s[4].length() - 3)).put("badge", "BADGE-" + s[4].substring(s[4].length() - 3));
+            for (var en : SCENARIOS.entrySet()) {
+                String[] s = en.getValue();
+                ObjectNode sub = demographics(en.getKey(), Json.obj().put("id", s[4]).put("mrn", s[4]).put("name", "Synthetic subject " + s[4].substring(s[4].length() - 3)).put("badge", "BADGE-" + s[4].substring(s[4].length() - 3)));
                 sub.set("vendorIds", Json.arr().add(s[4].replace("-", "")));
                 store.put(TENANT, "subject", s[4], sub, "ACTIVE", null);
             }
             store.put(TENANT, "subject", "MRN-100299", Json.obj().put("id", "MRN-100299").put("mrn", "MRN-100299").put("name", "Synthetic subject 299").put("badge", "BADGE-299")
+                    .put("birthDate", java.time.LocalDate.now().minusYears(8).toString()).put("sex", "male")
                     .set("vendorIds", Json.arr().add("100299")), "ACTIVE", null);
             return null;
         });
@@ -284,6 +299,33 @@ public class DemoService implements ApplicationRunner {
         long inst = store.listByRef(TENANT, "template-instance", tplId).stream().filter(i -> subject.equals(i.path("subject").asString())).count();
         r.put("templateInstances", inst).put("subject", subject).put("association", method);
         return r;
+    }
+
+    /**
+     * Drift drill (IM-E15): the hospital-at-home oximeter probe "drifts" – six live readings with SpO2 in the 80s and a
+     * raised pulse are filed through the real pipeline (each flagged L/LL/H against the subject's reference interval),
+     * then the drift monitor raises an AN-08 data-quality alert for the biomedical team.
+     */
+    public ObjectNode driftDrill(io.intimed.intelligence.DriftMonitor drift) {
+        String driver = SCENARIOS.get("TPL-14")[0], subject = SCENARIOS.get("TPL-14")[4];
+        ObjectNode cfg = store.listByStatus(TENANT, "config", "PUBLISHED").stream().filter(c -> driver.equals(c.path("driver").asString())).findFirst()
+                .orElseThrow(() -> io.intimed.common.ApiException.conflict("not-provisioned", "provision the TPL-14 hospital-at-home scenario first"));
+        DriverPackage d = drivers.require(TENANT, driver);
+        ArrayNode sent = Json.arr();
+        Current.as(as("nurse.icu"), () -> {
+            for (int i = 0; i < 6; i++) {
+                java.util.Map<String, String> v = new java.util.LinkedHashMap<>(Simulator.values(d));
+                v.put("spo2", String.valueOf(84 + i % 3));
+                v.put("hr", String.valueOf(112 + i));
+                String serial = cfg.path("expectedSerials").path(0).asString(d.tests().path("serial").asString());
+                ObjectNode r = capture.sendLive(TENANT, cfg, Simulator.render(d, v, subject, Instant.now().plusSeconds(i * 60L).truncatedTo(ChronoUnit.SECONDS), serial));
+                sent.add(r.path("status").asString());
+            }
+            return null;
+        });
+        ObjectNode out = Current.as(as("admin.device"), () -> drift.analyse(TENANT, "user:admin.device"));
+        out.set("sent", sent);
+        return out;
     }
 
     // ---------------------------------------------------------------- live streaming of continuous devices (demo dashboards)

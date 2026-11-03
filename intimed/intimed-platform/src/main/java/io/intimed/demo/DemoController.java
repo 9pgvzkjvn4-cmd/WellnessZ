@@ -19,8 +19,9 @@ import java.util.Map;
 @RequestMapping("/api/demo")
 public class DemoController {
     private final DemoService demo;
+    private final io.intimed.intelligence.DriftMonitor drift;
 
-    public DemoController(DemoService demo) { this.demo = demo; }
+    public DemoController(DemoService demo, io.intimed.intelligence.DriftMonitor drift) { this.demo = demo; this.drift = drift; }
 
     private void guard() {
         if (!demo.enabled()) throw ApiException.notFound("resource");
@@ -41,6 +42,9 @@ public class DemoController {
     @PostMapping("/scenarios/{tpl}") public ObjectNode one(@PathVariable String tpl) { guard(); Current.require(Role.DEVICE_ADMIN, Role.TENANT_ADMIN); return demo.runScenario(tpl); }
 
     @PostMapping("/streaming") public Map<String, Object> streaming(@RequestParam boolean on) { guard(); demo.setStreaming(on); return Map.of("streaming", on); }
+
+    @PostMapping("/drift-drill")
+    public ObjectNode driftDrill() { guard(); Current.require(Role.DEVICE_ADMIN, Role.TENANT_ADMIN); return demo.driftDrill(drift); }
 
     @PostMapping("/anomaly-drill/{configId}")
     public ObjectNode drill(@PathVariable String configId) { guard(); Current.require(Role.SECURITY_ANALYST); return demo.anomalyDrill(configId); }

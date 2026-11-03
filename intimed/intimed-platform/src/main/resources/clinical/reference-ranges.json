@@ -1,0 +1,1384 @@
+{
+ "version": "2026.11-1",
+ "disclaimer": "reference intervals are DEFAULTS for integration validation and demonstration. Every deploying organisation must\nconfirm or replace them with its own (laboratory-verified, CLSI EP28-A3c) intervals and action thresholds before clinical use.\nValues marked 'demo action threshold' are illustrative critical limits, not clinical recommendations.",
+ "sources": {
+  "PALS": "AHA Pediatric Advanced Life Support normal vital signs by age (PALS 2015/2020 tables as reproduced in published charts) – verify against the AHA PALS Provider Manual",
+  "ACCAHA": "2017 ACC/AHA Guideline for High Blood Pressure in Adults – categories normal <120/<80, elevated 120–129/<80, stage 1 130–139 or 80–89, stage 2 ≥140 or ≥90, crisis >180 and/or >120",
+  "WHOHB": "WHO 2024 Guideline on haemoglobin cutoffs to define anaemia (children 6–23 months 10.5 g/dL; pregnancy trimester-specific); upper limits are laboratory-specific demo values",
+  "WHOHEAR": "WHO World Report on Hearing 2021 – grades: <20 dB normal, 20–<35 mild, 35–<50 moderate, 50–<65 moderately severe, 65–<80 severe, 80–<95 profound, ≥95 complete (epidemiological, better ear, adults)",
+  "DOT": "49 CFR 382.505 / 382.201 (FMCSA) – breath alcohol 0.02–0.039: no safety-sensitive functions for ≥24 h; ≥0.04: violation",
+  "AASM": "AASM scoring – adult AHI <5 normal, 5–<15 mild, 15–<30 moderate, ≥30 severe; paediatric AHI >1 abnormal",
+  "ADA": "ADA Standards of Care – fasting plasma glucose 3.9–5.5 mmol/L (70–99 mg/dL), HbA1c <5.7 % normal, 5.7–6.4 % prediabetes, ≥6.5 % diabetes; level 2 hypoglycaemia <3.0 mmol/L",
+  "GOLD": "GOLD – post-bronchodilator FEV1/FVC <0.70 (fixed ratio); GLI-2012 lower limit of normal preferred (age/sex/height-specific equations, not bundled)",
+  "KDOQI": "KDOQI Haemodialysis Adequacy 2015 – minimum delivered spKt/V 1.2 (target 1.4)",
+  "OSHA": "OSHA 29 CFR 1910.134 Appendix A – quantitative fit test pass: fit factor ≥100 (half-mask), ≥500 (full-facepiece)",
+  "FIGO": "FIGO / NICE intrapartum CTG – baseline fetal heart rate 110–160 bpm; <100 or >180 abnormal",
+  "WHONEO": "WHO thermal protection of the newborn – normal axillary/skin temperature 36.5–37.5 °C",
+  "LAB": "Common adult laboratory reference intervals (illustrative; replace with the performing laboratory's verified intervals – CLSI EP28-A3c)",
+  "VITAL": "Common adult vital-sign references (illustrative defaults)",
+  "ECG": "Common adult ECG interval references (PR 120–200 ms, QRS <120 ms, QTc prolonged ≥450 ms men / ≥460 ms women, ≥500 ms high risk)",
+  "BIS": "Manufacturer guidance – BIS 40–60 general-anaesthesia target (treatment range, not a reference interval)"
+ },
+ "ageBands": [
+  [
+   "Neonate",
+   0,
+   0.07671232876712329
+  ],
+  [
+   "Infant",
+   0.07671232876712329,
+   1
+  ],
+  [
+   "Toddler",
+   1,
+   3
+  ],
+  [
+   "Preschool",
+   3,
+   6
+  ],
+  [
+   "School age",
+   6,
+   13
+  ],
+  [
+   "Adolescent",
+   13,
+   18
+  ],
+  [
+   "Adult",
+   18,
+   65
+  ],
+  [
+   "Older adult",
+   65,
+   200
+  ]
+ ],
+ "entries": [
+  {
+   "id": "heart-rate",
+   "name": "Heart rate",
+   "unit": "/min",
+   "match": {
+    "loinc": [
+     "8867-4",
+     "40443-4"
+    ],
+    "fieldIds": [
+     "hr",
+     "pulse",
+     "mhr",
+     "resting_hr"
+    ]
+   },
+   "source": "PALS",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 0.07671232876712329,
+     "sex": "any",
+     "low": 100,
+     "high": 205
+    },
+    {
+     "ageFrom": 0.07671232876712329,
+     "ageTo": 1,
+     "sex": "any",
+     "low": 100,
+     "high": 190
+    },
+    {
+     "ageFrom": 1,
+     "ageTo": 3,
+     "sex": "any",
+     "low": 98,
+     "high": 140
+    },
+    {
+     "ageFrom": 3,
+     "ageTo": 6,
+     "sex": "any",
+     "low": 80,
+     "high": 120
+    },
+    {
+     "ageFrom": 6,
+     "ageTo": 13,
+     "sex": "any",
+     "low": 75,
+     "high": 118
+    },
+    {
+     "ageFrom": 13,
+     "ageTo": 18,
+     "sex": "any",
+     "low": 60,
+     "high": 100
+    },
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 60,
+     "high": 100,
+     "criticalLow": 40,
+     "criticalHigh": 150,
+     "note": "adult critical limits: demo action threshold"
+    }
+   ]
+  },
+  {
+   "id": "resp-rate",
+   "name": "Respiratory rate",
+   "unit": "/min",
+   "match": {
+    "loinc": [
+     "9279-1"
+    ],
+    "fieldIds": [
+     "rr"
+    ]
+   },
+   "source": "PALS",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 0.07671232876712329,
+     "sex": "any",
+     "low": 30,
+     "high": 60
+    },
+    {
+     "ageFrom": 0.07671232876712329,
+     "ageTo": 1,
+     "sex": "any",
+     "low": 30,
+     "high": 53
+    },
+    {
+     "ageFrom": 1,
+     "ageTo": 3,
+     "sex": "any",
+     "low": 22,
+     "high": 37
+    },
+    {
+     "ageFrom": 3,
+     "ageTo": 6,
+     "sex": "any",
+     "low": 20,
+     "high": 28
+    },
+    {
+     "ageFrom": 6,
+     "ageTo": 13,
+     "sex": "any",
+     "low": 18,
+     "high": 25
+    },
+    {
+     "ageFrom": 13,
+     "ageTo": 18,
+     "sex": "any",
+     "low": 12,
+     "high": 20
+    },
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 12,
+     "high": 20,
+     "criticalLow": 8,
+     "criticalHigh": 30,
+     "note": "adult critical limits: demo action threshold"
+    }
+   ]
+  },
+  {
+   "id": "spo2",
+   "name": "Oxygen saturation (SpO2)",
+   "unit": "%",
+   "match": {
+    "loinc": [
+     "59408-5",
+     "2708-6"
+    ],
+    "fieldIds": [
+     "spo2"
+    ]
+   },
+   "source": "VITAL",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 95,
+     "high": 100,
+     "criticalLow": 90
+    }
+   ],
+   "modifiers": [
+    {
+     "param": "siteAltitudeM",
+     "gte": 2500,
+     "set": {
+      "low": 90,
+      "criticalLow": 85
+     },
+     "note": "high-altitude site (≥2,500 m): lower limit reduced – configure per site"
+    }
+   ]
+  },
+  {
+   "id": "systolic",
+   "name": "Systolic blood pressure",
+   "unit": "mm[Hg]",
+   "match": {
+    "loinc": [
+     "8480-6"
+    ],
+    "fieldIds": [
+     "nibp_sys",
+     "sys",
+     "m_sys"
+    ]
+   },
+   "source": "PALS / ACCAHA",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 0.07671232876712329,
+     "sex": "any",
+     "low": 67,
+     "high": 84
+    },
+    {
+     "ageFrom": 0.07671232876712329,
+     "ageTo": 1,
+     "sex": "any",
+     "low": 72,
+     "high": 104
+    },
+    {
+     "ageFrom": 1,
+     "ageTo": 3,
+     "sex": "any",
+     "low": 86,
+     "high": 106
+    },
+    {
+     "ageFrom": 3,
+     "ageTo": 6,
+     "sex": "any",
+     "low": 89,
+     "high": 112
+    },
+    {
+     "ageFrom": 6,
+     "ageTo": 13,
+     "sex": "any",
+     "low": 97,
+     "high": 120
+    },
+    {
+     "ageFrom": 13,
+     "ageTo": 18,
+     "sex": "any",
+     "low": 110,
+     "high": 131
+    },
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 90,
+     "high": 119,
+     "criticalLow": 70,
+     "criticalHigh": 180,
+     "categories": [
+      [
+       "Normal",
+       null,
+       120
+      ],
+      [
+       "Elevated",
+       120,
+       130
+      ],
+      [
+       "Hypertension stage 1",
+       130,
+       140
+      ],
+      [
+       "Hypertension stage 2",
+       140,
+       181
+      ],
+      [
+       "Hypertensive crisis",
+       181,
+       null
+      ]
+     ],
+     "note": "adult: ACC/AHA 2017 categories; paediatric: PALS 50th height percentile ranges"
+    }
+   ]
+  },
+  {
+   "id": "diastolic",
+   "name": "Diastolic blood pressure",
+   "unit": "mm[Hg]",
+   "match": {
+    "loinc": [
+     "8462-4"
+    ],
+    "fieldIds": [
+     "nibp_dia",
+     "dia",
+     "m_dia"
+    ]
+   },
+   "source": "PALS / ACCAHA",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 0.07671232876712329,
+     "sex": "any",
+     "low": 35,
+     "high": 53
+    },
+    {
+     "ageFrom": 0.07671232876712329,
+     "ageTo": 1,
+     "sex": "any",
+     "low": 37,
+     "high": 56
+    },
+    {
+     "ageFrom": 1,
+     "ageTo": 3,
+     "sex": "any",
+     "low": 42,
+     "high": 63
+    },
+    {
+     "ageFrom": 3,
+     "ageTo": 6,
+     "sex": "any",
+     "low": 46,
+     "high": 72
+    },
+    {
+     "ageFrom": 6,
+     "ageTo": 13,
+     "sex": "any",
+     "low": 57,
+     "high": 80
+    },
+    {
+     "ageFrom": 13,
+     "ageTo": 18,
+     "sex": "any",
+     "low": 64,
+     "high": 83
+    },
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 60,
+     "high": 79,
+     "criticalLow": 40,
+     "criticalHigh": 120,
+     "categories": [
+      [
+       "Normal",
+       null,
+       80
+      ],
+      [
+       "Hypertension stage 1",
+       80,
+       90
+      ],
+      [
+       "Hypertension stage 2",
+       90,
+       121
+      ],
+      [
+       "Hypertensive crisis",
+       121,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "body-temp",
+   "name": "Body temperature",
+   "unit": "Cel",
+   "match": {
+    "loinc": [
+     "8310-5"
+    ],
+    "fieldIds": [
+     "temp"
+    ]
+   },
+   "source": "VITAL",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 36.0,
+     "high": 37.5,
+     "criticalLow": 35.0,
+     "criticalHigh": 40.0,
+     "categories": [
+      [
+       "Hypothermia",
+       null,
+       35.0
+      ],
+      [
+       "Normal",
+       35.0,
+       37.6
+      ],
+      [
+       "Raised",
+       37.6,
+       38.0
+      ],
+      [
+       "Fever",
+       38.0,
+       40.0
+      ],
+      [
+       "Hyperpyrexia",
+       40.0,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "neonatal-skin-temp",
+   "name": "Neonatal skin temperature",
+   "unit": "Cel",
+   "match": {
+    "local": [
+     "INTIMED-NEO-SKINT"
+    ],
+    "fieldIds": [
+     "skin_temp"
+    ]
+   },
+   "source": "WHONEO",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 1,
+     "sex": "any",
+     "low": 36.5,
+     "high": 37.5,
+     "criticalLow": 35.5,
+     "criticalHigh": 38.5
+    }
+   ],
+   "gapNote": "incubator/warmer skin temperature interval defined for infants < 1 y only"
+  },
+  {
+   "id": "etco2",
+   "name": "End-tidal CO2",
+   "unit": "mm[Hg]",
+   "match": {
+    "mdc": [
+     "MDC_AWAY_CO2_ET"
+    ],
+    "fieldIds": [
+     "etco2"
+    ]
+   },
+   "source": "VITAL",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 35,
+     "high": 45,
+     "criticalLow": 20,
+     "criticalHigh": 60,
+     "note": "critical: demo action threshold"
+    }
+   ]
+  },
+  {
+   "id": "glucose",
+   "name": "Glucose",
+   "unit": "mmol/L",
+   "match": {
+    "loinc": [
+     "15074-8",
+     "14749-6",
+     "2339-0",
+     "2345-7"
+    ],
+    "fieldIds": [
+     "glucose"
+    ]
+   },
+   "source": "ADA",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 3.9,
+     "high": 7.8,
+     "criticalLow": 3.0,
+     "criticalHigh": 22.2,
+     "note": "non-fasting / random; HH: demo action threshold"
+    }
+   ],
+   "modifiers": [
+    {
+     "param": "fasting",
+     "eq": true,
+     "set": {
+      "high": 5.5
+     },
+     "note": "fasting: 3.9–5.5 mmol/L"
+    }
+   ]
+  },
+  {
+   "id": "ph-arterial",
+   "name": "pH (arterial)",
+   "unit": "[pH]",
+   "match": {
+    "loinc": [
+     "2744-1"
+    ],
+    "fieldIds": [
+     "ph"
+    ]
+   },
+   "source": "LAB",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 7.35,
+     "high": 7.45,
+     "criticalLow": 7.2,
+     "criticalHigh": 7.6
+    }
+   ]
+  },
+  {
+   "id": "pco2",
+   "name": "pCO2 (arterial)",
+   "unit": "mm[Hg]",
+   "match": {
+    "loinc": [
+     "2019-8"
+    ],
+    "fieldIds": [
+     "pco2"
+    ]
+   },
+   "source": "LAB",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 35,
+     "high": 45,
+     "criticalLow": 20,
+     "criticalHigh": 70
+    }
+   ]
+  },
+  {
+   "id": "po2",
+   "name": "pO2 (arterial)",
+   "unit": "mm[Hg]",
+   "match": {
+    "loinc": [
+     "2703-7"
+    ],
+    "fieldIds": [
+     "po2"
+    ]
+   },
+   "source": "LAB",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 65,
+     "sex": "any",
+     "low": 80,
+     "high": 100,
+     "criticalLow": 60
+    },
+    {
+     "ageFrom": 65,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 70,
+     "high": 100,
+     "criticalLow": 60
+    }
+   ]
+  },
+  {
+   "id": "sodium",
+   "name": "Sodium",
+   "unit": "mmol/L",
+   "match": {
+    "loinc": [
+     "2947-0",
+     "2951-2"
+    ],
+    "fieldIds": [
+     "na"
+    ]
+   },
+   "source": "LAB",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 135,
+     "high": 145,
+     "criticalLow": 120,
+     "criticalHigh": 160
+    }
+   ]
+  },
+  {
+   "id": "potassium",
+   "name": "Potassium",
+   "unit": "mmol/L",
+   "match": {
+    "loinc": [
+     "6298-4",
+     "2823-3"
+    ],
+    "fieldIds": [
+     "k"
+    ]
+   },
+   "source": "LAB",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 3.5,
+     "high": 5.1,
+     "criticalLow": 2.8,
+     "criticalHigh": 6.2
+    }
+   ],
+   "gapNote": "paediatric potassium: laboratory-specific interval required"
+  },
+  {
+   "id": "lactate",
+   "name": "Lactate",
+   "unit": "mmol/L",
+   "match": {
+    "loinc": [
+     "2518-9",
+     "2524-7"
+    ],
+    "fieldIds": [
+     "lactate"
+    ]
+   },
+   "source": "LAB",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 0.5,
+     "high": 2.0,
+     "criticalHigh": 4.0
+    }
+   ]
+  },
+  {
+   "id": "haemoglobin",
+   "name": "Haemoglobin",
+   "unit": "g/dL",
+   "match": {
+    "loinc": [
+     "718-7"
+    ],
+    "fieldIds": [
+     "hb"
+    ]
+   },
+   "source": "WHOHB",
+   "ranges": [
+    {
+     "ageFrom": 0.5,
+     "ageTo": 2,
+     "sex": "any",
+     "low": 10.5,
+     "high": 14.5,
+     "criticalLow": 7.0
+    },
+    {
+     "ageFrom": 2,
+     "ageTo": 5,
+     "sex": "any",
+     "low": 11.0,
+     "high": 14.5,
+     "criticalLow": 7.0
+    },
+    {
+     "ageFrom": 5,
+     "ageTo": 12,
+     "sex": "any",
+     "low": 11.5,
+     "high": 15.5,
+     "criticalLow": 7.0
+    },
+    {
+     "ageFrom": 12,
+     "ageTo": 15,
+     "sex": "any",
+     "low": 12.0,
+     "high": 16.0,
+     "criticalLow": 7.0
+    },
+    {
+     "ageFrom": 15,
+     "ageTo": 200,
+     "sex": "female",
+     "low": 12.0,
+     "high": 15.5,
+     "criticalLow": 7.0
+    },
+    {
+     "ageFrom": 15,
+     "ageTo": 200,
+     "sex": "male",
+     "low": 13.0,
+     "high": 17.5,
+     "criticalLow": 7.0
+    },
+    {
+     "ageFrom": 15,
+     "ageTo": 60,
+     "sex": "female",
+     "low": 11.0,
+     "high": 15.5,
+     "criticalLow": 7.0,
+     "pregnant": true,
+     "trimester": 1
+    },
+    {
+     "ageFrom": 15,
+     "ageTo": 60,
+     "sex": "female",
+     "low": 10.5,
+     "high": 15.5,
+     "criticalLow": 7.0,
+     "pregnant": true,
+     "trimester": 2
+    },
+    {
+     "ageFrom": 15,
+     "ageTo": 60,
+     "sex": "female",
+     "low": 11.0,
+     "high": 15.5,
+     "criticalLow": 7.0,
+     "pregnant": true,
+     "trimester": 3
+    }
+   ],
+   "gapNote": "infants <6 months: laboratory-specific interval required"
+  },
+  {
+   "id": "creatinine",
+   "name": "Creatinine",
+   "unit": "umol/L",
+   "match": {
+    "loinc": [
+     "14682-9"
+    ],
+    "fieldIds": [
+     "creatinine"
+    ]
+   },
+   "source": "LAB",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "male",
+     "low": 62,
+     "high": 106
+    },
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "female",
+     "low": 44,
+     "high": 80
+    }
+   ],
+   "gapNote": "paediatric creatinine: age-partitioned laboratory interval required (e.g. CALIPER)"
+  },
+  {
+   "id": "hba1c",
+   "name": "HbA1c",
+   "unit": "%",
+   "match": {
+    "loinc": [
+     "4548-4"
+    ],
+    "fieldIds": [
+     "hba1c"
+    ]
+   },
+   "source": "ADA",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 4.0,
+     "high": 5.6,
+     "categories": [
+      [
+       "Normal",
+       null,
+       5.7
+      ],
+      [
+       "Prediabetes",
+       5.7,
+       6.5
+      ],
+      [
+       "Diabetes range",
+       6.5,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cholesterol",
+   "name": "Total cholesterol",
+   "unit": "mmol/L",
+   "match": {
+    "loinc": [
+     "14647-2",
+     "2093-3"
+    ],
+    "fieldIds": [
+     "chol"
+    ]
+   },
+   "source": "LAB",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "high": 5.1,
+     "categories": [
+      [
+       "Desirable",
+       null,
+       5.2
+      ],
+      [
+       "Borderline high",
+       5.2,
+       6.2
+      ],
+      [
+       "High",
+       6.2,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "alt",
+   "name": "ALT",
+   "unit": "U/L",
+   "match": {
+    "loinc": [
+     "1742-6"
+    ],
+    "fieldIds": [
+     "alt"
+    ]
+   },
+   "source": "LAB",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "male",
+     "low": 7,
+     "high": 55
+    },
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "female",
+     "low": 7,
+     "high": 45
+    }
+   ]
+  },
+  {
+   "id": "wbc",
+   "name": "Leukocytes",
+   "unit": "10*9/L",
+   "match": {
+    "loinc": [
+     "6690-2"
+    ],
+    "fieldIds": [
+     "wbc"
+    ]
+   },
+   "source": "LAB",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 4.0,
+     "high": 11.0,
+     "criticalLow": 2.0,
+     "criticalHigh": 30.0
+    }
+   ]
+  },
+  {
+   "id": "pr-interval",
+   "name": "PR interval",
+   "unit": "ms",
+   "match": {
+    "loinc": [
+     "8625-6"
+    ],
+    "fieldIds": [
+     "pr"
+    ]
+   },
+   "source": "ECG",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 120,
+     "high": 200
+    }
+   ]
+  },
+  {
+   "id": "qrs-duration",
+   "name": "QRS duration",
+   "unit": "ms",
+   "match": {
+    "loinc": [
+     "8633-0"
+    ],
+    "fieldIds": [
+     "qrs"
+    ]
+   },
+   "source": "ECG",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 60,
+     "high": 119
+    }
+   ]
+  },
+  {
+   "id": "qtc",
+   "name": "QTc interval",
+   "unit": "ms",
+   "match": {
+    "loinc": [
+     "8636-3"
+    ],
+    "fieldIds": [
+     "qtc"
+    ]
+   },
+   "source": "ECG",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "male",
+     "low": 350,
+     "high": 449,
+     "criticalHigh": 500
+    },
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "female",
+     "low": 350,
+     "high": 459,
+     "criticalHigh": 500
+    }
+   ]
+  },
+  {
+   "id": "qrs-axis",
+   "name": "QRS axis",
+   "unit": "deg",
+   "match": {
+    "loinc": [
+     "8632-2"
+    ],
+    "fieldIds": [
+     "axis"
+    ]
+   },
+   "source": "ECG",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": -30,
+     "high": 90
+    }
+   ]
+  },
+  {
+   "id": "fetal-hr",
+   "name": "Fetal heart rate",
+   "unit": "/min",
+   "match": {
+    "loinc": [
+     "55283-6"
+    ],
+    "fieldIds": [
+     "fhr"
+    ]
+   },
+   "source": "FIGO",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 110,
+     "high": 160,
+     "criticalLow": 100,
+     "criticalHigh": 180
+    }
+   ],
+   "subject": "fetus (baseline)"
+  },
+  {
+   "id": "fev1-fvc",
+   "name": "FEV1/FVC",
+   "unit": "%",
+   "match": {
+    "loinc": [
+     "19926-5"
+    ],
+    "fieldIds": [
+     "ratio"
+    ]
+   },
+   "source": "GOLD",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 70,
+     "high": 100
+    }
+   ],
+   "gapNote": "GLI-2012 LLN not bundled – fixed ratio used for adults"
+  },
+  {
+   "id": "hearing-threshold",
+   "name": "Hearing threshold (pure tone)",
+   "unit": "dB",
+   "match": {
+    "localPrefix": [
+     "INTIMED-AUD-R",
+     "INTIMED-AUD-L"
+    ],
+    "fieldIds": []
+   },
+   "source": "WHOHEAR",
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": -10,
+     "high": 19,
+     "categories": [
+      [
+       "Normal",
+       null,
+       20
+      ],
+      [
+       "Mild",
+       20,
+       35
+      ],
+      [
+       "Moderate",
+       35,
+       50
+      ],
+      [
+       "Moderately severe",
+       50,
+       65
+      ],
+      [
+       "Severe",
+       65,
+       80
+      ],
+      [
+       "Profound",
+       80,
+       95
+      ],
+      [
+       "Complete",
+       95,
+       null
+      ]
+     ],
+     "note": "per-frequency application of better-ear epidemiological grades – approximation for screening display"
+    }
+   ]
+  },
+  {
+   "id": "brac",
+   "name": "Breath alcohol concentration",
+   "unit": "g/210L",
+   "match": {
+    "local": [
+     "INTIMED-BRAC"
+    ],
+    "fieldIds": [
+     "brac"
+    ]
+   },
+   "source": "DOT",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 0,
+     "high": 0.019,
+     "criticalHigh": 0.04,
+     "categories": [
+      [
+       "Negative",
+       null,
+       0.02
+      ],
+      [
+       "0.02–0.039: no safety-sensitive functions for ≥24 h",
+       0.02,
+       0.04
+      ],
+      [
+       "≥0.04: regulatory violation",
+       0.04,
+       null
+      ]
+     ]
+    }
+   ],
+   "context": {
+    "param": "regulation",
+    "values": [
+     "US-DOT-FMCSA"
+    ],
+    "note": "occupational regulatory thresholds – apply only where the employer programme is subject to them"
+   }
+  },
+  {
+   "id": "ahi",
+   "name": "Apnoea–hypopnoea index",
+   "unit": "/h",
+   "match": {
+    "local": [
+     "INTIMED-PSG-AHI"
+    ],
+    "fieldIds": [
+     "ahi"
+    ]
+   },
+   "source": "AASM",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 18,
+     "sex": "any",
+     "low": 0,
+     "high": 1
+    },
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 0,
+     "high": 4.9,
+     "categories": [
+      [
+       "Normal",
+       null,
+       5
+      ],
+      [
+       "Mild OSA",
+       5,
+       15
+      ],
+      [
+       "Moderate OSA",
+       15,
+       30
+      ],
+      [
+       "Severe OSA",
+       30,
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ktv",
+   "name": "Kt/V",
+   "unit": "1",
+   "match": {
+    "local": [
+     "INTIMED-DIA-KTV"
+    ],
+    "fieldIds": [
+     "ktv"
+    ]
+   },
+   "source": "KDOQI",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 1.2
+    }
+   ],
+   "type": "treatment"
+  },
+  {
+   "id": "fit-factor",
+   "name": "Respirator fit factor",
+   "unit": "1",
+   "match": {
+    "local": [
+     "INTIMED-FIT-FF"
+    ],
+    "fieldIds": [
+     "fit_factor"
+    ]
+   },
+   "source": "OSHA",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 100
+    }
+   ],
+   "modifiers": [
+    {
+     "param": "respiratorType",
+     "eq": "FULL_FACE",
+     "set": {
+      "low": 500
+     },
+     "note": "full-facepiece: ≥500"
+    }
+   ]
+  },
+  {
+   "id": "bis",
+   "name": "Bispectral index",
+   "unit": "1",
+   "match": {
+    "mdc": [
+     "MDC_EEG_BISPECTRAL_INDEX"
+    ],
+    "fieldIds": [
+     "bis"
+    ]
+   },
+   "source": "BIS",
+   "ranges": [
+    {
+     "ageFrom": 0,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 40,
+     "high": 60
+    }
+   ],
+   "type": "treatment"
+  }
+ ]
+}

@@ -2,6 +2,8 @@ package io.intimed.engine.pipeline;
 
 import io.intimed.common.Hashing;
 import io.intimed.common.Json;
+import io.intimed.clinical.Demographics;
+import io.intimed.clinical.ReferenceRanges;
 import io.intimed.engine.terminology.Terminology;
 import io.intimed.store.DocumentStore;
 import io.intimed.templates.TemplateAdapters;
@@ -30,12 +32,72 @@ public class Router {
     private final TemplateRegistry templates;
     private final TemplateAdapters adapters;
     private final Terminology terms;
+    private final ReferenceRanges ranges;
 
-    public Router(DocumentStore store, TemplateRegistry templates, TemplateAdapters adapters, Terminology terms) {
+    public Router(DocumentStore store, TemplateRegistry templates, TemplateAdapters adapters, Terminology terms, ReferenceRanges ranges) {
         this.store = store;
         this.templates = templates;
         this.adapters = adapters;
         this.terms = terms;
+        this.ranges = ranges;
+    }
+
+    /**
+     * Demographics for reference-interval partitioning (IM-E14): subject registry (birthDate, sex, pregnancy) at the
+     * observation's effective time, plus configuration context parameters (site altitude, regulation, respirator type).
+     */
+    public Demographics demographics(String tenant, JsonNode config, JsonNode obs) {
+        String ref = obs.path("subject").path("ref").asString(null);
+        JsonNode s = ref == null ? null : store.get(tenant, "subject", ref).orElse(null);
+        Instant at = Instant.parse(obs.path("effectiveTime").asString(Instant.now().toString()));
+        return Demographics.fromSubject(s, at, null).withContext(config.path("params"));
+    }
+
+    public static boolean flaggingEnabled(JsonNode config) { return config.path("params").path("referenceRangeFlagging").asBoolean(true); }
+
+    /**
+     * Pure mapping of one measurement onto one template field (no persistence) – shared by live routing and the dry-run
+     * validation studio: unit conversion to the field unit (RR-06), rounding, and reference-interval annotation.
+     * Returns null and adds a reason to {@code blocked} when the value cannot be posted.
+     */
+    public ObjectNode mapField(JsonNode m, JsonNode def, String fieldId, Demographics demo, boolean flag, List<String> blocked) {
+        ObjectNode fv = Json.obj();
+        if (m.get("value").isNumber()) {
+            String target = def.path("unit").asString(m.path("unit").asString(null));
+            Map<String, Double> factors = new HashMap<>();
+            m.path("factors").properties().forEach(f -> factors.put(f.getKey(), f.getValue().asDouble()));
+            var conv = terms.convert(m.get("value").decimalValue(), m.path("unit").asString(null), target, factors);
+            if (conv.isEmpty()) { blocked.add(fieldId + ": no conversion " + m.path("unit").asString() + " → " + target); return null; }
+            BigDecimal v = conv.get();
+            if (def.has("decimals")) v = v.setScale(def.get("decimals").asInt(), java.math.RoundingMode.HALF_UP);
+            fv.put("value", v).put("unit", target);
+            if (!target.equals(m.path("unit").asString(target))) fv.put("convertedFrom", m.get("value").asString() + " " + m.path("unit").asString());
+            if (flag && demo != null) ranges.annotate(fv, def, fieldId, demo);
+        } else {
+            fv.put("value", m.get("value").asString());
+        }
+        fv.put("sourceKey", m.get("key").asString());
+        if (m.has("flags") && !m.get("flags").isEmpty()) fv.set("flags", m.get("flags"));
+        return fv;
+    }
+
+    /** Dry-run mapping of an observation into a template through a binding (validation studio, cohort simulator). */
+    public ObjectNode dryMap(JsonNode binding, JsonNode tpl, JsonNode obs, Demographics demo) {
+        Map<String, JsonNode> byKey = new HashMap<>();
+        obs.get("measurements").forEach(m -> byKey.put(m.get("key").asString(), m));
+        ObjectNode out = Json.obj().put("templateId", tpl.get("id").asString()).put("templateName", tpl.path("name").asString());
+        ObjectNode fields = out.putObject("fields");
+        List<String> blocked = new java.util.ArrayList<>();
+        binding.path("fields").properties().forEach(e -> {
+            JsonNode m = byKey.get(e.getValue().asString());
+            if (m == null) return;
+            JsonNode def = TemplateRegistry.field(tpl, e.getKey());
+            if (def == null) { blocked.add(e.getKey() + ": not in template"); return; }
+            ObjectNode fv = mapField(m, def, e.getKey(), demo, true, blocked);
+            if (fv != null) fields.set(e.getKey(), fv);
+        });
+        out.set("blocked", Json.tree(blocked));
+        return out;
     }
 
     public static String instanceKind(String mode) {
@@ -46,6 +108,8 @@ public class Router {
         ArrayNode routing = obs.putArray("routing");
         Map<String, JsonNode> byKey = new HashMap<>();
         obs.get("measurements").forEach(m -> byKey.put(m.get("key").asString(), m));
+        Demographics demo = demographics(tenant, config, obs);
+        boolean flag = flaggingEnabled(config);
         for (JsonNode b : config.path("bindings")) {
             String tplId = b.get("templateId").asString();
             JsonNode tpl = templates.require(tenant, tplId);
@@ -61,35 +125,26 @@ public class Router {
                 if (m == null) return;
                 JsonNode def = TemplateRegistry.field(tpl, e.getKey());
                 if (def == null) { blocked.add(e.getKey() + ": not in template"); return; }
-                ObjectNode fv = Json.obj();
-                if (m.get("value").isNumber()) {
-                    String target = def.path("unit").asString(m.path("unit").asString(null));
-                    Map<String, Double> factors = new HashMap<>();
-                    m.path("factors").properties().forEach(f -> factors.put(f.getKey(), f.getValue().asDouble()));
-                    var conv = terms.convert(m.get("value").decimalValue(), m.path("unit").asString(null), target, factors);
-                    if (conv.isEmpty()) {
-                        blocked.add(e.getKey() + ": no conversion " + m.path("unit").asString() + " → " + target);
-                        result.routingErrors.add(tplId + "/" + e.getKey() + " unit " + m.path("unit").asString() + " not convertible to " + target);
-                        return;
-                    }
-                    BigDecimal v = conv.get();
-                    if (def.has("decimals")) v = v.setScale(def.get("decimals").asInt(), java.math.RoundingMode.HALF_UP);
-                    fv.put("value", v).put("unit", target);
-                    if (!target.equals(m.path("unit").asString(target))) fv.put("convertedFrom", m.get("value").asString() + " " + m.path("unit").asString());
-                } else {
-                    fv.put("value", m.get("value").asString());
+                List<String> why = new java.util.ArrayList<>();
+                ObjectNode fv = mapField(m, def, e.getKey(), demo, flag, why);
+                if (fv == null) {
+                    why.forEach(blocked::add);
+                    result.routingErrors.add(tplId + "/" + e.getKey() + " unit " + m.path("unit").asString() + " not convertible to " + def.path("unit").asString());
+                    return;
                 }
-                fv.put("sourceKey", m.get("key").asString()).put("observationId", obs.get("id").asString());
-                if (m.has("flags") && !m.get("flags").isEmpty()) fv.set("flags", m.get("flags"));
+                fv.put("observationId", obs.get("id").asString());
                 if ("CONTINUOUS".equals(tpl.path("captureMode").asString())) {
                     ArrayNode series = fields.has(e.getKey()) && fields.get(e.getKey()).has("series") ? (ArrayNode) fields.get(e.getKey()).get("series") : Json.arr();
-                    series.add(Json.obj().put("t", obs.get("effectiveTime").asString()).set("v", fv.get("value")));
+                    ObjectNode pt = series.addObject().put("t", obs.get("effectiveTime").asString());
+                    pt.set("v", fv.get("value"));
+                    if (fv.has("interpretation")) pt.put("f", fv.at("/interpretation/code").asString());
                     fv.set("series", series);
                 }
                 fields.set(e.getKey(), fv);
                 filled.add(e.getKey());
             });
             inst.put("filedAt", Instant.now().toString()).put("status", "FILED");
+            if (flag) inst.putObject("demographics").put("ageBand", ranges.ageBand(demo.ageYears())).put("partition", demo.describe());
             ArrayNode deliveries = inst.putArray("deliveries");
             for (JsonNode a : tpl.path("adapters")) {
                 ObjectNode out = adapters.render(a.asString(), tpl, inst);

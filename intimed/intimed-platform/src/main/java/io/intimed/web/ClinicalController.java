@@ -129,6 +129,11 @@ public class ClinicalController {
         String id = b.path("mrn").asString(Hashing.id("sub"));
         ObjectNode s = Json.obj().put("id", id).put("mrn", id).put("name", b.path("name").asString("")).put("badge", b.path("badge").asString(""));
         s.set("vendorIds", b.path("vendorIds").isArray() ? b.get("vendorIds") : Json.arr());
+        // demographics for reference-interval partitioning (IM-E14) – validated, never free text
+        if (b.hasNonNull("birthDate")) s.put("birthDate", java.time.LocalDate.parse(b.get("birthDate").asString()).toString());
+        String sex = b.path("sex").asString("");
+        if (java.util.List.of("male", "female").contains(sex)) s.put("sex", sex);
+        if (b.path("pregnant").asBoolean(false)) s.put("pregnant", true).put("trimester", Math.max(1, Math.min(3, b.path("trimester").asInt(2))));
         return store.put(t(), "subject", id, s, "ACTIVE", null);
     }
     @GetMapping("/context/beds") public List<ObjectNode> beds() { clinical(); return store.list(t(), "bed"); }
