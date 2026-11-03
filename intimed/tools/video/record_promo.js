@@ -113,8 +113,14 @@ async function validate(driver, tpl, profile, category) {
   await validate('vitals.welchallyn.csm-pcd01@1.0.0', 'TPL-02', 'adult-hypertensive-crisis', 'PRIMARY_CARE');
   await scrollTo('Mapped output template');
   await shot(V, 'Grades you already use', 'Grades you already use appear next to the flag – for example the ACC A H A blood-pressure category. A reading of one eighty-six over one twelve is flagged as critical high and graded hypertensive crisis.');
-  await login('nurse.clinic'); await go('capture', 2000);
-  await shot(V, 'Capture at the point of care', 'At the point of care you pick the template and press capture. The device answers over a secure connection, and the values are filed into the form with their range and flag. Values from screens or paper are held until you verify them.');
+  await login('nurse.icu'); await go('capture', 2000);
+  await pick('Template', 'TPL-01');
+  await page.locator('main label.field:has(> span:text-is("Station / bed")) input').fill('BED-07');
+  await page.locator('main label.field:has(> span:text-is("Station / bed")) input').dispatchEvent('change');
+  await pick('Subject', 'MRN-100231'); await page.waitForTimeout(1500);
+  await page.locator('intimed-capture button.btn.primary').first().click(); await page.waitForTimeout(3500);
+  await page.evaluate(() => { const el = document.querySelector('intimed-capture'); if (el) el.scrollIntoView({ block: 'start' }); window.scrollBy(0, -60); });
+  await shot(V, 'Capture at the point of care', 'At the point of care, the ICU nurse picks the flowsheet for bed seven and presses capture. The monitor answers over a secure connection and the values are filed into the form, each with the range for this patient and its flag – here a systolic of one hundred and twenty is flagged H and graded elevated. Values from screens or paper are held until you verify them.');
   await slide(V, 'Flags inform – they never alarm', ['IntiMed raises no alarms and makes no diagnosis', 'Critical flags (LL/HH) go to your host’s own notification workflow', 'Default ranges are replaced by your laboratory’s verified ranges before clinical use'],
     'Flags inform, they never alarm. IntiMed makes no diagnosis; critical flags travel to your host system’s own workflow, and your organisation replaces the default ranges with its laboratory’s verified ranges before clinical use.', 'Safety');
 
