@@ -13,3 +13,7 @@ table{border-collapse:collapse;width:100%;margin:6px 0;background:#fff}td{border
 input,textarea{font:inherit;border:1px solid #c7d2e3;border-radius:6px;padding:4px 6px;width:100%;box-sizing:border-box}
 label.row{display:grid;grid-template-columns:45% 55%;gap:6px;margin:3px 0;align-items:center}
 .muted{color:#5b6b82}.err{color:#a11b1b}h4{margin:10px 0 4px}
+
+.rr{color:#5b6b82;font-size:12px;white-space:nowrap}
+.ifl{display:inline-block;min-width:26px;text-align:center;border-radius:99px;padding:0 7px;font-size:12px;font-weight:700}
+.ifl-N{background:#e5f5eb;color:#0d7a3c}.ifl-L,.ifl-H{background:#fff4dc;color:#8a5a00}.ifl-LL,.ifl-HH{background:#fdeceb;color:#b42318}

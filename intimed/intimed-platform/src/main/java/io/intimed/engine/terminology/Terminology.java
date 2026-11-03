@@ -36,7 +36,7 @@ public class Terminology {
             Map.entry("{steps}", "{steps}"), Map.entry("h", "h"), Map.entry("min", "min"), Map.entry("/h", "/h"), Map.entry("lux", "lx"),
             Map.entry("mgcm2", "mGy.cm2"), Map.entry("mmol/mol", "mmol/mol"), Map.entry("mg/g", "mg/g"), Map.entry("kcal", "kcal"),
             Map.entry("ml/min", "mL/min"), Map.entry("mm", "mm"), Map.entry("ng/ml", "ng/mL"), Map.entry("u/l", "U/L"), Map.entry("10*9/l", "10*9/L"),
-            Map.entry("ug/dl", "ug/dL"), Map.entry("mmol/kg", "mmol/kg"), Map.entry("10^9/l", "10*9/L"), Map.entry("10*12/l", "10*12/L"), Map.entry("ph", "[pH]"), Map.entry("[ph]", "[pH]"), Map.entry("deg", "deg"),
+            Map.entry("ug/dl", "ug/dL"), Map.entry("umol/l", "umol/L"), Map.entry("µmol/l", "umol/L"), Map.entry("mmol/kg", "mmol/kg"), Map.entry("10^9/l", "10*9/L"), Map.entry("10*12/l", "10*12/L"), Map.entry("ph", "[pH]"), Map.entry("[ph]", "[pH]"), Map.entry("deg", "deg"),
             Map.entry("mgy.cm", "mGy.cm"), Map.entry("g/210l", "g/210L"), Map.entry("mdc_dim_milli_l", "mL"), Map.entry("mdc_dim_milli_l_per_hr", "mL/h"), Map.entry("mdc_dim_cm_h2o", "cm[H2O]"));
 
     /** Linear conversions a*x + b keyed "from>to". */

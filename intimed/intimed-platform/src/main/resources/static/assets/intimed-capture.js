@@ -62,7 +62,9 @@ class IntiMedCapture extends HTMLElement {
       if (inst.length) {
         const i = inst[0];
         filedBox.append(h('h4', null, 'Filed into the form (' + i.effectiveTime.replace('T', ' ').slice(0, 19) + ' UTC)'),
-          h('table', null, h('tbody', null, Object.entries(i.fields).map(([k, v]) => h('tr', null, h('td', null, k), h('td', null, String(v.value) + (v.unit ? ' ' + v.unit : '')), h('td', { class: 'flag' }, (v.flags || []).join(' ') + (v.convertedFrom ? ' converted from ' + v.convertedFrom : '')))))),
+          h('table', null, h('tbody', null, Object.entries(i.fields).map(([k, v]) => h('tr', null, h('td', null, k), h('td', null, String(v.value) + (v.unit ? ' ' + v.unit : '')), h('td', { class: 'rr', title: v.referenceRange ? v.referenceRange.partition + ' · ' + v.referenceRange.source : null }, v.referenceRange && !v.referenceRange.gap ? v.referenceRange.text : ''),
+            h('td', null, v.interpretation ? h('span', { class: 'ifl ifl-' + v.interpretation.code, title: v.interpretation.display }, v.interpretation.code) : '', v.grade ? ' ' + v.grade : ''),
+            h('td', { class: 'flag' }, (v.flags || []).join(' ') + (v.convertedFrom ? ' converted from ' + v.convertedFrom : '')))))),
           h('small', { class: 'muted' }, 'Provenance: ' + i.provenance.driver + ' · config hash ' + String(i.provenance.configHash).slice(0, 12) + ' · adapters ' + (i.deliveries || []).map(d => d.adapter).join(', ')));
       }
     } catch (e) { clear(pendBox).append(h('p', { class: 'err' }, e.message)); }

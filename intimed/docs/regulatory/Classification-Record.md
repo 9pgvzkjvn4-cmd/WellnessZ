@@ -13,3 +13,18 @@
   filing is mitigated by external measures (verification, thresholds, publish gate). Life-cycle evidence: traceability
   matrix, tests, release notes.
 * **Maintenance** – reviewed at every release that adds a function or market.
+
+## IntiMed 2.0 – reference-range flagging (impact assessment)
+
+* **Function** – numeric results are annotated with a cited, age/sex/pregnancy/context-partitioned reference interval and an
+  HL7 interpretation code (N, L, H, LL, HH) plus optional grade (e.g. ACC/AHA BP category, WHO hearing grade). Display only:
+  no diagnosis, no alarm, no notification, no treatment recommendation.
+* **Control** – switchable per configuration (`params.referenceRangeFlagging=false`); default intervals are labelled
+  “for integration validation and demonstration”; production use requires locally verified intervals (CLSI EP28-A3c) and the
+  tenant interval-governance workflow (IM-E14-BL-011).
+* **Assessment** – flagging against standard reference ranges resembles laboratory report flags; under the FDA CDS guidance
+  (2022) and EU MDR Rule 11 it may nevertheless move the product out of MDDS enforcement discretion in some markets. A documented
+  regulatory assessment per market is required **before** enabling flags in production. The validation studio and cohort
+  simulator are non-clinical engineering tools.
+* **Risk controls** – see the risk summary rows *Misleading reference interval* and *Flag mistaken for an alarm*.
+

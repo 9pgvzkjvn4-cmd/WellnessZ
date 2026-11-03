@@ -10,6 +10,8 @@
 | Duplicate or replayed results | resend, replay attack | stable ids, idempotency, replay windows, AN-06 | XT-11, IT |
 | Data unavailable when needed | device isolation, transport failure | fallback chain (other device → OCR → manual), gateway store-and-forward | capture fallback, sdk gateway |
 | Alarm misinterpreted | alarm conveyed through IntiMed | alarms flagged, not interpreted (MDDS boundary) | classification record |
+| Misleading reference interval (wrong partition, unverified default) | missing/incorrect demographics, default interval not verified locally | partition shown with every flag, ‘age unknown – adult interval assumed’ note, gap notes instead of guessed intervals, cited source, per-configuration switch, local verification required | ClinicalIntelligenceTests (33 cohort cases), XT-17 |
+| Flag mistaken for an alarm | LL/HH displayed in host | informational HL7 interpretation only, no notification path, category ‘criticalHandling’ text states the host owns alerting | validation studio review, classification record |
 
 The complete risk management file (hazard log with severities/probabilities, review records) is maintained in the QMS
 (deferred – IM-E10-BL-003 partial).

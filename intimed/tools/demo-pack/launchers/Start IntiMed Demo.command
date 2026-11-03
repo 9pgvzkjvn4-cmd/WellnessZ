@@ -7,7 +7,10 @@ mkdir -p "$INTIMED_HOME" && chmod 700 "$INTIMED_HOME"
 echo "IntiMed demo pack – data in $INTIMED_HOME"
 # The pack was downloaded: clear the quarantine flag on the pack's own files so the bundled (Eclipse-signed) runtime starts.
 xattr -dr com.apple.quarantine "$PACK" 2>/dev/null || true
-JAVA="$(ls -d "$PACK"/runtime/*/Contents/Home/bin/java 2>/dev/null | head -1)"
+# Universal pack: one bundled JRE per architecture – pick the one for this Mac (arm64 = Apple silicon, x86_64 = Intel).
+case "$(uname -m)" in arm64|aarch64) ARCH=aarch64 ;; *) ARCH=x64 ;; esac
+JAVA="$(ls -d "$PACK"/runtime/$ARCH/*/Contents/Home/bin/java 2>/dev/null | head -1)"
+[ -z "$JAVA" ] && JAVA="$(ls -d "$PACK"/runtime/*/Contents/Home/bin/java 2>/dev/null | head -1)"
 if [ -z "$JAVA" ]; then
   if command -v java >/dev/null && java -version 2>&1 | grep -qE 'version "(2[1-9]|[3-9][0-9])'; then JAVA=java; else
     echo "No bundled runtime for $(uname -m) and no Java 21 found. Use the pack for your Mac (Apple silicon / Intel) or install Temurin 21."; read -r -p "Press Enter to close"; exit 1; fi

@@ -6,6 +6,7 @@ rec, voice, out = sys.argv[1], sys.argv[2], sys.argv[3]
 os.makedirs(out, exist_ok=True)
 m = json.load(open(os.path.join(rec, "manifest.json")))
 names = {"platform": "IntiMed-Platform-Overview", "demo": "IntiMed-Demo-Execution-Steps"}
+names.update(m.pop("_names", {}))
 def ts(t):
     h, r = divmod(t, 3600); mm, s = divmod(r, 60); return "%02d:%02d:%02d,%03d" % (h, mm, int(s), int((s - int(s)) * 1000))
 for video, shots in m.items():

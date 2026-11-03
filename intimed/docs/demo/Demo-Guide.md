@@ -1,4 +1,4 @@
-# IntiMed demo guide
+# IntiMed 2.0 demo guide
 
 The demo pack runs the complete platform on a MacBook with simulated devices. **All people are synthetic**; device brands
 and models come from the worldwide inventory of the requirement pack; driver packages, golden sessions and keys are
@@ -6,9 +6,9 @@ generated for the demo. Nothing leaves your machine.
 
 ## 1. Start
 
-1. Unzip `IntiMed-Demo-Pack-macOS-<AppleSilicon|Intel>.zip` (Finder double-click).
+1. Unzip `IntiMed-2.0-Demo-Pack-macOS-Universal.zip` (Finder double-click). One pack for Apple silicon and Intel Macs.
 2. **Right-click → Open** `Start IntiMed Demo.command` (first time only: macOS asks to confirm an app from the internet).
-   The launcher uses the bundled Java runtime, stores a master key in your login Keychain (service `intimed-demo`),
+   The launcher picks the bundled Java runtime for your Mac (`uname -m`), stores a master key in your login Keychain (service `intimed-demo`),
    starts the platform and opens https://localhost:9443. First start takes ~1 minute: it creates the PKI, the demo tenants
    and personas, and **auto-provisions 20 of the 22 template scenarios in the background** (TPL-02 and TPL-18 are left for
    you to provision live).
@@ -40,14 +40,14 @@ generated for the demo. Nothing leaves your machine.
 |---|---|---|---|---|
 | D01 | Universal catalogue | admin.device | Sign in (TOTP via demo authenticator) → *Device catalogue* → search `EasyOne` → open IMD-001 | 225 devices, 24 families, FDA counts; connectivity matrix shows P2 **CERTIFIED_IN_LAB**; posture ACCEPTABLE |
 | D02 | Provision a spirometer with configuration intelligence (TPL-18) | admin.device | *Provision this model* → step 1 accept driver → step 2 option P2 (RR-01 why) → step 3 endpoint *Demo clinic gateway*, station `OH-SPIRO-1` → step 4 parameters (try `pairing`/inline secret ideas in *Validate*) → step 5 association WORKLIST, bindings pre-filled (RR-10), grading ATS_ERS_2019 → *Save* each step | Every recommendation shows rule, source, confidence and *why*; Accept/Adjust/Override recorded; policy findings listed |
-| D03 | Exchange test & evidence | admin.device | Step 6 → *Run exchange test* → *Download evidence pack* → *Verify seal* → *Sandbox template instances* → FHIR / HL7V2 renderings | 15/15 checks PASS (TLS 1.3 mTLS, identity, coverage, units, round trip, latency, negatives, security, quality gates, provenance, sealed evidence) |
+| D03 | Exchange test & evidence | admin.device | Step 6 → *Run exchange test* → *Download evidence pack* → *Verify seal* → *Sandbox template instances* → FHIR / HL7V2 renderings | 16/16 applicable checks PASS (TLS 1.3 mTLS, identity, coverage, units, round trip, latency, negatives, security, quality gates, provenance, sealed evidence, **XT-17 clinical reference validation**); XT-12 N/A (one-way device) |
 | D04 | Four-eyes certification & publish gate | admin.device → approver.device → sre | Step 7 *Submit*; try *Approve* as admin (refused: four-eyes); sign in as approver → *Approve*; step 8 *Publish to DEV*, *UAT*; *PROD* refused until `sre` *approves PROD promotion* | CERTIFIED with certification record; promotion history with diffs; PROD after SRE approval |
 | D05 | Clinician capture in the host form | nurse.clinic | *Capture* → template TPL-18, station `OH-SPIRO-1`, subject `EMP-700102` → *Capture* on the device → result filed; open `/host-demo/` | Values filed into the form with provenance (driver, configuration hash, adapters FHIR/REST/PDF) |
 | D06 | Quality gates | nurse.clinic / admin.device | *Fleet* → *Fail ✗* the spirometer calibration → capture again → device unavailable / held; *Release* as admin | Calibration lockout (XT-14 behaviour); release audited |
 | D07 | Verify-before-post & fallback | nurse.clinic | Capture TPL-19 (vision): OCR device → *Photo / OCR* → submit → review → *Accept & file*; *Device unavailable? Fallback* | OCR proposals held until verified; fallback chain: other device → OCR → manual with attestation |
 | D08 | Endpoint security & anomaly isolation | soc.analyst (+ admin.device) | *Security → Endpoints* → *Register endpoint* (one-time token + CSR command) → *Alerts*; trigger the drill (`POST /api/demo/anomaly-drill/<configId>` or Demo control) → AN-07 auto-isolation → *Release* refused until the bound configuration is re-tested → admin re-tests → release | Isolation within the 15-minute target, re-certification gate enforced, everything in the audit chain (*Audit trail* → INTACT) |
 | D09 | Interoperability | dev.integrator | *Integration & APIs* → create client (`system/Observation.read`) → *FHIR explorer* → call; *Webhooks* → subscribe the reference host inbox → capture something → deliveries + host inbox *VALID* signatures | ES256 token with least-privilege scope; FHIR Bundle; signed webhooks verified by the host |
-| D10 | All 22 template scenarios | admin.device | *Demo control* → *Run all 22 scenarios* (~1–2 min) | Every TPL-01…TPL-22 PUBLISHED_AND_LIVE with a passing exchange test and a live reading filed |
+| D10 | All 22 template scenarios | admin.device | *Demo control* → *Run all 22 scenarios* (~1–2 min) | Every TPL-01…TPL-22 PUBLISHED_AND_LIVE with a passing exchange test (XT-17 included where the device carries clinical quantities) and a live reading filed with reference range and flag |
 | D11 | Traceability & regulatory | auditor / regulatory | *Traceability & quality* → filter DEFERRED → classification record | 117 backlog items with status, evidence or reason; excluded functions behind feature flags |
 | D12 | Security test kit | terminal | `Run Security Test Kit.command` | 69 checks PASS; `security-test-kit/results/REPORT.md` |
 
@@ -77,3 +77,22 @@ generated for the demo. Nothing leaves your machine.
 | TPL-20 Drug & alcohol | Lifeloc FC20 serial | P1 | session (restricted) | no identifier matching for restricted categories |
 | TPL-21 Fit test | TSI PortaCount via TSI Link | P6 | worklist | fit factor / pass-fail |
 | TPL-22 Wellness | Wearable aggregator (FHIR) | P8 | consent | FHIR inbound, consent scopes |
+
+## 5. IntiMed 2.0 intelligence scenarios (*Intelligence studio*)
+
+Personas: `dev.integrator` (no MFA) or `template.owner` for E01–E07; `admin.device` for E08. Reference ranges are
+defaults for integration validation and demonstration – not for clinical use.
+
+| ID | Scenario | Persona(s) | Steps | Expected result |
+|---|---|---|---|---|
+| E01 | Validation studio – mapped output per platform category | dev.integrator | *Intelligence studio → Validation studio* → driver *Philips IntelliVue*, template TPL-01, source *Simulated cohort* `Adult female, 64 y – tachycardia…` → *Validate & render* | Mapped TPL-01 with value, unit, code, reference range (partition `age ≥ 18 y`), flag (HR **H**, SpO2 **L**, RR **H**, temp **H** with grade *Fever*), source; validation layers PASS with INFO findings; FHIR shows `referenceRange` + `interpretation`; HL7 OBX-7 `60-100`, OBX-8 `H` |
+| E02 | Same value, different age band | dev.integrator | Validation studio → cohort `Infant, 6 months – heart rate 140/min` → validate; then `School-age child, 8 y – heart rate 140/min` | Infant: HR 140 **N** (partition `age 28 d–<1 y`); child: HR 140 **H** (partition `age 6 y–<13 y`) – the age group changes the flag, the value does not |
+| E03 | Pregnancy, altitude and sex partitions | dev.integrator | *Reference ranges* tab → Haemoglobin 10.8 g/dL: female 35 y → evaluate; then pregnancy T2; SpO2 92 % at altitude 0 vs 3000 m; QTc 455 ms male vs female | Hb **L** (non-pregnant) vs **N** (T2, WHO 2024); SpO2 **L** at sea level vs **N** at 3000 m; QTc **H** male vs **N** female; source and notes shown |
+| E04 | Category rule packs | template.owner | Validation studio → driver *Roche cobas*, template TPL-06, category **LIS**; then driver *BodyTrace*, TPL-13, category **RPM_HOME**, untick *Consent on file*; then driver *Lifeloc FC20*, TPL-20, category **OCC_HEALTH**, paste/source cohort `Driver, 41 y – BrAC 0.052 (violation)` | LIS: every numeric result carries a range (LAB_RANGE_REQUIRED PASS); RPM without consent: CONSENT **FAIL**; OH: BrAC **HH** with the 49 CFR 382.201 consequence reported as information |
+| E05 | Cross-field validation | dev.integrator | Validation studio → source *Pasted payload*: load a sample for *Welch Allyn Connex* (Device identification tab → *Load sample*), edit systolic below diastolic, paste into the studio, validate TPL-02 | CROSS_FIELD **FAIL**: “systolic ≤ diastolic”; nothing is filed (dry run) |
+| E06 | Device identification & integration profile | dev.integrator | *Device identification* → load a sample from *GE Aisys* → *Identify*; then *Run benchmark* | IDENTIFIED with ~99 % confidence, evidence (grammar, keys recovered, sending application, serial prefix), device type VENTILATOR, integration profile (options, transports, mapping precision); benchmark 100 % top-1 over all golden sessions |
+| E07 | Auto-mapping & cohorts | dev.integrator | *Auto-mapping* → *Welch Allyn* + TPL-02 → *Suggest* → *Benchmark*; *Simulator cohorts* → `Infant 6 months – HR 140`, tick NOISE + DROPOUT → *Simulate*; *Run all cohorts* | Suggestions with confidence and *why* (code, unit, label); 100 % recall (coded and label-only). Cohort payload in the device’s own protocol and units, artefacts listed, expected flags met; precision report 100 % |
+| E08 | Data-quality drift | admin.device | *Demo control* → *Drift drill (hospital-at-home probe)* → lands on *Intelligence studio → Drift* | Six low-SpO2 / high-pulse readings filed (flagged), two AN-08 drift alerts (SpO2, pulse) with advice for the biomedical team – a data-quality signal, never a clinical alarm |
+| E09 | Exchange test with XT-17 | admin.device | Provision TPL-02 (guided) → step 6 *Run exchange test* → open XT-17 evidence | XT-17 PASS: clinical fields annotated, cohort flags as expected for the device’s concepts, category validation free of unit/cross-field errors; sealed in the evidence pack |
+| E10 | Regulatory position | regulatory | *Traceability & quality* → classification record | `referenceRangeFlagging` and `regulatoryImpact` statements: informational flags, switchable per configuration, local interval verification (CLSI EP28-A3c) and regulatory assessment required before production |
+

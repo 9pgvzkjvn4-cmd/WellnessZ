@@ -15,3 +15,8 @@ The product ADRs ADR-01…ADR-12 apply. Local implementation decisions:
 | ADR-L4 | Device listeners on the JDK (`SSLServerSocket`, `HttpsServer`) independent of the web server | `needClientAuth` on every device port, no plaintext port at all |
 | ADR-L5 | Vanilla JS console without build step; DOM built with text nodes only; strict CSP without `unsafe-inline` | Small attack surface, no npm supply chain in the product runtime |
 | ADR-L6 | Driver release key held offline; only the public key is in the repository; tenants trust additional publisher keys | Supply-chain control for driver packages (threat "malicious driver") |
+| ADR-L7 | IntiMed 2.0: clinical reference intervals as a versioned, cited knowledge base (JSON resource) resolved at routing time from subject demographics + configuration context, not hard-coded in templates or drivers | One interval definition serves every device and template; tenants can overlay locally verified intervals (deferred IM-E14-BL-011) |
+| ADR-L8 | Flags are informational HL7 interpretation codes (N/L/H/LL/HH) plus optional grades; no alarms, no notifications; switchable per configuration | Keeps the intended use close to MDDS; regulatory assessment required before enabling in production |
+| ADR-L9 | Validation studio, identification and cohort simulator use a side-effect-free pipeline dry run sharing the router's pure mapping function | What the studio shows is exactly what live routing would file; no PHI persisted by engineering tools |
+| ADR-L10 | Identification and auto-mapping are explainable heuristics (structure, codes, units, labels) with confidence and evidence; never auto-bind below 0.5 | Auditable, no training data needed; ML deferred until fleet data and MLOps governance exist |
+

@@ -40,5 +40,8 @@ sheet(wb.create_sheet("Personas"), T[0], [20, 52, 60])
 s = wb.create_sheet("Scenarios"); sheet(s, T[1], [6, 34, 24, 70, 60], ["Pass / Fail", "Tester", "Notes"])
 dv = DataValidation(type="list", formula1='"Pass,Fail,Blocked,Not run"'); s.add_data_validation(dv); dv.add("F2:F200")
 sheet(wb.create_sheet("Template scenarios"), T[2], [22, 44, 10, 18, 60], ["Pass / Fail"])
+if len(T) > 3:
+    s2 = wb.create_sheet("2.0 Intelligence scenarios"); sheet(s2, T[3], [6, 34, 24, 70, 60], ["Pass / Fail", "Tester", "Notes"])
+    dv2 = DataValidation(type="list", formula1='"Pass,Fail,Blocked,Not run"'); s2.add_data_validation(dv2); dv2.add("F2:F200")
 wb.save(out)
 print("written", out)
