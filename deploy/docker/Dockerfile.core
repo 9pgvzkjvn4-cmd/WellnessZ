@@ -12,7 +12,7 @@
 # =============================================================================
 
 # ---------- build ------------------------------------------------------------
-FROM maven:3.9.16-eclipse-temurin-21-noble AS build
+FROM maven:3.9-eclipse-temurin-26-noble AS build
 WORKDIR /workspace
 # Only Maven inputs are sent (see Dockerfile.core.dockerignore)
 COPY . .
