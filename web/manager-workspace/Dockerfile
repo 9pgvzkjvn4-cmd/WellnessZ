@@ -13,7 +13,7 @@ RUN --mount=type=secret,id=npm_ca,required=false \
 COPY . .
 RUN npm run build
 
-FROM nginxinc/nginx-unprivileged:1.30.6-alpine3.24
+FROM nginxinc/nginx-unprivileged:1.31.7-alpine3.24
 LABEL org.opencontainers.image.title="wellnessz-manager-workspace" \
       org.opencontainers.image.description="WellnessZ manager & HR workspace (static SPA, status-only)"
 COPY nginx.conf /etc/nginx/conf.d/default.conf
