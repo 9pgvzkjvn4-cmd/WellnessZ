@@ -3,7 +3,7 @@
 # Build:  docker build -t wellnessz/manager-workspace:dev web/manager-workspace
 # Run:    docker run --rm -p 8080:8080 --read-only --tmpfs /tmp wellnessz/manager-workspace:dev
 
-FROM node:24.22.2-alpine3.24 AS build
+FROM node:26.12.1-alpine3.24 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 # Optional corporate TLS-intercepting proxy CA: docker build --secret id=npm_ca,src=/path/ca.pem ...
