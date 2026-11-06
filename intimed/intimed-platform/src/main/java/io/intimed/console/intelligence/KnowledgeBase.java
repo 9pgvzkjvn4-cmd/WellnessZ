@@ -68,4 +68,21 @@ public class KnowledgeBase {
     public long runs(String driver, String option) { return store.listByRef(DocumentStore.GLOBAL, "kb-fingerprint", driver + "/" + option).size(); }
 
     public List<ObjectNode> export() { return store.list(DocumentStore.GLOBAL, "kb-fingerprint"); }
+
+    /**
+     * De-identified cross-tenant benchmark aggregate (IM-E02-BL-007 / IM-E09-BL-004): only k-anonymous cells (k ≥ 5
+     * organisations) reach the knowledge base; the aggregate carries no tenant id and is refused if it looks identifying.
+     */
+    public boolean contributeAggregate(String dimension, String key, ObjectNode aggregate) {
+        if (!dimension.matches("[a-z]{1,20}") || key == null || key.length() > 120) return false;
+        String plain = Json.write(aggregate);
+        if (!PhiMasker.mask(plain).equals(plain)) return false;
+        String id = dimension + ":" + key;
+        ObjectNode doc = Json.obj().put("dimension", dimension).put("key", key).put("updatedAt", Instant.now().toString().substring(0, 10));
+        doc.set("aggregate", aggregate);
+        store.put(DocumentStore.GLOBAL, "kb-benchmark", Hashing.stableId("kbb", id), doc, "PUBLISHED", id);
+        return true;
+    }
+
+    public List<ObjectNode> benchmarkAggregates() { return store.list(DocumentStore.GLOBAL, "kb-benchmark"); }
 }

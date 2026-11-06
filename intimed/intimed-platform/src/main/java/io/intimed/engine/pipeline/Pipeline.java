@@ -223,7 +223,7 @@ public class Pipeline {
     }
 
     /** Shadow mode (IM-E04-F05): before clinical sign-off live data is filed into shadow copies of the template only. */
-    static boolean shadowActive(JsonNode config, Envelope env) {
+    public static boolean shadowActive(JsonNode config, Envelope env) {
         JsonNode sh = config.path("shadow");
         return "LIVE".equals(env.mode()) && sh.isObject() && !sh.path("signedOff").asBoolean(false)
                 && Instant.parse(sh.path("until").asString("1970-01-01T00:00:00Z")).isAfter(env.receivedAt());

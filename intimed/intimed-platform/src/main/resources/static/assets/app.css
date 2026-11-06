@@ -56,3 +56,4 @@ pre.code{background:var(--neutralbg);border:1px solid var(--line);border-radius:
 ul.tight{margin:0;padding-left:16px}ul.tight li{margin:0}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
 .note{background:var(--warnbg);color:var(--warn);border-radius:10px;padding:8px 12px;max-width:1100px}
+.brand-preview{margin:10px 0;min-height:8px}.brand-preview img{max-height:48px;max-width:240px}
