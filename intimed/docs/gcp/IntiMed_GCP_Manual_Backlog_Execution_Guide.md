@@ -73,7 +73,7 @@ Everything that software can do is in the product, its Terraform/Helm (`deploy/g
 
 **Steps**
 
-1. Add each site to vpn_sites (peer_ip, peer_asn, two /30 BGP link ranges) in envs/prod.local.tfvars and its shared secret to the pipeline secret VPN_SHARED_SECRETS_JSON; apply Terraform (HA VPN gateway, 2 tunnels per site, Cloud Router BGP).
+1. Add each site to vpn_sites (peer_ip, peer_asn, two /30 BGP link ranges) in envs/prod.local.tfvars and its shared secret to the pipeline secret VPN_SHARED_SECRETS_JSON (JSON map: site name → shared secret); apply Terraform (HA VPN gateway, 2 tunnels per site, Cloud Router BGP).
 2. Configure the site VPN device with both tunnels (IKEv2) and BGP; confirm both tunnels are ESTABLISHED and BGP sessions UP (gcloud compute vpn-tunnels describe / routers get-status).
 3. Allow only TCP 2575 and 8443 from the device VLANs to the IntiMed device IP (devices_lb_ip, internal passthrough NLB); block everything else (docs/security/Network-Reference-Designs.md).
 4. Add the device VLAN CIDRs to device_source_cidrs (VPC firewall rule) and networkPolicy.deviceSourceCidrs (Helm, via render-values.sh); re-deploy.
@@ -397,7 +397,7 @@ Everything that software can do is in the product, its Terraform/Helm (`deploy/g
 2. DR drills: ENV=uat deploy/gcp/scripts/dr-drill.sh D1 D2 D3 D4 quarterly (PROD semi-annually in a change window); compare RTO/RPO with targets; delete the D3 clone afterwards.
 3. Lock the retention policies of the evidence/audit buckets after acceptance: ENV=prod deploy/gcp/scripts/lock-retention.sh (irreversible – needs DPO confirmation of the 7-year period), then set lock_archive_retention = true.
 4. Staff the on-call rota on the Cloud Monitoring notification channels (alert_emails; add PagerDuty/SMS channels); test paging with a synthetic incident.
-5. Agree patch windows (GKE maintenance window and exclusions; Cloud SQL maintenance window Friday 01:00 AST).
+5. Agree patch windows (GKE maintenance window and exclusions; Cloud SQL maintenance window Friday 22:00 UTC = Saturday 01:00 AST).
 6. Optional tracing: add the OpenTelemetry Java agent with the Google Cloud Trace exporter (no PHI in span attributes).
 7. Back up the platform master key (Secret Manager intimed-master-key) to the offline break-glass store (two custodians).
 8. Finance: review IntiMed_GCP_Cost_Model.xlsx, confirm every 'estimate – verify' line in the Google Cloud Pricing Calculator, buy 1- or 3-year committed-use discounts for steady compute and Cloud SQL, keep the billing budgets per project.

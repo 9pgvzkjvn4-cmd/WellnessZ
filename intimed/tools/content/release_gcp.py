@@ -71,7 +71,7 @@ GCP_SECTIONS = {
     "M-02": {"title": "Hospital and clinic connectivity: HA VPN / Cloud Interconnect and segmentation validation", "owner": "Customer network team with Platform SRE",
              "why": "Site networks, firewalls and IPsec peers are owned by each hospital.",
              "pre": ["Public IP and BGP ASN of the site VPN device, device VLAN CIDRs", "Shared secret exchanged out-of-band (never e-mail)"],
-             "steps": ["Add each site to vpn_sites (peer_ip, peer_asn, two /30 BGP link ranges) in envs/prod.local.tfvars and its shared secret to the pipeline secret VPN_SHARED_SECRETS_JSON ({"<site>": "<secret>"}); apply Terraform (HA VPN gateway, 2 tunnels per site, Cloud Router BGP).",
+             "steps": ["Add each site to vpn_sites (peer_ip, peer_asn, two /30 BGP link ranges) in envs/prod.local.tfvars and its shared secret to the pipeline secret VPN_SHARED_SECRETS_JSON (JSON map: site name → shared secret); apply Terraform (HA VPN gateway, 2 tunnels per site, Cloud Router BGP).",
                        "Configure the site VPN device with both tunnels (IKEv2) and BGP; confirm both tunnels are ESTABLISHED and BGP sessions UP (gcloud compute vpn-tunnels describe / routers get-status).",
                        "Allow only TCP 2575 and 8443 from the device VLANs to the IntiMed device IP (devices_lb_ip, internal passthrough NLB); block everything else (docs/security/Network-Reference-Designs.md).",
                        "Add the device VLAN CIDRs to device_source_cidrs (VPC firewall rule) and networkPolicy.deviceSourceCidrs (Helm, via render-values.sh); re-deploy.",
