@@ -3,7 +3,7 @@
 ARG BASE=eclipse-temurin:21.0.8_9-jre-noble
 FROM ${BASE}
 LABEL org.opencontainers.image.title="IntiMed platform" org.opencontainers.image.vendor="IntiMed" org.opencontainers.image.licenses="Proprietary" \
-      org.opencontainers.image.source="https://github.com/9pgvzkjvn4-cmd/WellnessZ" org.opencontainers.image.version="2.0.0"
+      org.opencontainers.image.source="https://github.com/9pgvzkjvn4-cmd/WellnessZ" org.opencontainers.image.version="2.1.0"
 RUN groupadd --system --gid 10001 intimed && useradd --system --uid 10001 --gid intimed --home-dir /data --shell /usr/sbin/nologin intimed \
     && mkdir -p /data && chown intimed:intimed /data \
     && apt-get update && apt-get -y upgrade && apt-get clean && rm -rf /var/lib/apt/lists/*

@@ -13,51 +13,58 @@
   "IM-E01-BL-003": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/engine/parse/SerialFrameParser.java; cli/Sdk.java gateway; P1 option pack; drivers da.lifeloc.fc20-serial, neonatal.drager.babyleo-serial",
-   "reason": "Physical COM-port / USB-HID access and port discovery need the native Device Host agent on a vendor PC or gateway hardware",
-   "strategy": "Ship the .NET 8 Windows device-host agent and the Linux gateway (jSerialComm/BlueZ) that frame bytes into the same signed driver grammar and post over mTLS (IM-S7 hardware lab)"
+   "evidence": "intimed-platform/src/main/java/io/intimed/engine/parse/SerialFrameParser.java; sdk gateway; Dockerfile.gateway",
+   "reason": "Physical COM-port / USB-HID access needs the device-host agent on site hardware",
+   "strategy": "Guide M-03",
+   "manual": "M-03"
   },
   "IM-E01-BL-004": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/engine/transport/DeviceListeners.java (MLLP-TLS, ORU, ADT A01/A02/A03, ORM/OML worklists); engine/parse/RecordParser.java; harness XT-01/XT-13",
-   "reason": "PCD-02/ACM/IPEC full profiles and formal IHE DEV conformance need Connectathon tooling (Gazelle) and vendor gateways",
-   "strategy": "Add PCD-02 subscription, ACM/PCD-04 flagging and Gazelle conformance runs in UAT; register for the IHE Connectathon (IM-S5/IM-S13)"
+   "evidence": "intimed-platform/src/main/java/io/intimed/engine/transport/DeviceListeners.java (MLLP-TLS, ORU, ADT A01/A04/A08…, ORM/OML)",
+   "reason": "PCD-02/ACM/IPEC profile completion and formal IHE conformance need Gazelle tests and vendor systems",
+   "strategy": "Guide M-06",
+   "manual": "M-06"
   },
   "IM-E01-BL-005": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/engine/parse/{CsvParser,XmlParser,GdtParser,JsonPathParser}.java; P2 option pack; drivers ecg.ge.muse-xml, sleep.natus.embla-csv, perfusion.terumo.system1-json, audio.benson.cca200-xml, spiro.ndd.easyone-gdt",
-   "reason": "Read-only SQL Server/Access/SQLite connections and folder watching run on the vendor PC (device host), not in the platform",
-   "strategy": "Device-host agent adds JDBC read-only connectors and file-stability watchers posting the export through the ingress; certification per vendor software version in the device lab"
+   "evidence": "intimed-platform/src/main/java/io/intimed/engine/parse/{Csv,Xml,Gdt,JsonPath}Parser.java; P2 option pack; gateway image",
+   "reason": "Read-only access to vendor databases / shares needs site credentials and vendor approval",
+   "strategy": "Guide M-03",
+   "manual": "M-03"
   },
   "IM-E01-BL-006": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/engine/parse/GattParser.java (BLP 2A35, PLX 2A5E, HTP 2A1C, WSS 2A9D, IEEE-11073 SFLOAT/FLOAT); RR-03 pairing policy",
-   "reason": "Radio-level BLE scanning, bonding and LE Secure Connections pairing need BlueZ/CoreBluetooth on a gateway, kiosk or phone",
-   "strategy": "Gateway (BlueZ) and iOS/Android SDK pairing modules emit the same {characteristic, hex} envelope; add GLS/BCS profiles; pairing-policy enforcement on device"
+   "evidence": "intimed-platform/src/main/java/io/intimed/engine/parse/GattParser.java; RR-03 pairing policy",
+   "reason": "BLE radios, bonding and LE Secure Connections need gateway / mobile hardware",
+   "strategy": "Guide M-03",
+   "manual": "M-03"
   },
   "IM-E01-BL-007": {
    "status": "PARTIAL",
    "increment": "L6",
    "evidence": "intimed-platform/src/main/java/io/intimed/engine/transport/AstmE1381.java (ENQ/ACK/NAK/EOT, frames ≤ 240 chars with ETB/ETX, checksum, frame numbers mod 8, 6 retransmissions, sender + receiver state machines), engine/transport/Poct1aConversation.java (HEL/DST/REQ/OBS/EOT/END/ACK dialogue); RecordParser accepts raw E1381 captures; ProtocolCodecTests",
    "reason": "Codecs are transport-independent and unit-tested with golden frames; not yet wired to a serial/TCP listener in the device-host agent, not validated against physical analysers / data managers, IHE LAW not implemented",
-   "strategy": "Bind codecs to the device-host agent serial/TCP ports; validate with two data managers in the lab (IM-S9)"
+   "strategy": "Bind codecs to the device-host agent serial/TCP ports; validate with two data managers in the lab (IM-S9)",
+   "manual": "M-04"
   },
   "IM-E01-BL-008": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/api/PublicMachineController.java webhook receiver (HMAC, replay window); engine/parse/JsonPathParser.java; drivers rpm.bodytrace.cloud-webhook, hah.masimo.safetynet-cloud, fit.tsi.portacount-cloud; consent association",
-   "reason": "Live OAuth2 polling of vendor clouds needs vendor contracts, credentials and internet egress approvals",
-   "strategy": "Add the OAuth2 poller with per-vendor rate limits and residency checks behind the same driver grammar; onboard CGM/RPM vendors under BAAs (IM-S8)"
+   "evidence": "intimed-platform/src/main/java/io/intimed/api/PublicMachineController.java webhook receiver (HMAC, replay window), JsonPathParser, cloud drivers; EgressClient allow-list",
+   "reason": "Vendor cloud APIs need contracts and OAuth credentials per vendor",
+   "strategy": "Guide M-05",
+   "manual": "M-05"
   },
   "IM-E01-BL-009": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/engine/parse/DicomJsonParser.java (PS3.18 JSON, SR/RDSR numeric content); driver imaging.ct.dicom-rdsr",
-   "reason": "DICOM networking (C-STORE SCP, MWL, MPPS, Q/R) needs a DICOM router and modalities",
-   "strategy": "Deploy dcm4che/Orthanc as the DICOM router forwarding DICOMweb JSON to the ingress; MWL from host orders (IM-S11)"
+   "evidence": "intimed-platform/src/main/java/io/intimed/engine/parse/DicomJsonParser.java; imaging.ct.dicom-rdsr",
+   "reason": "DICOM networking needs a DICOM router and modalities",
+   "strategy": "Guide M-04",
+   "manual": "M-04"
   },
   "IM-E01-BL-010": {
    "status": "DELIVERED",
@@ -72,58 +79,66 @@
   "IM-E01-BL-012": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "drivers monitor.philips.intellivue-pcd01, monitor.ge.carescape-sdc (TPL-01/02/03)",
-   "reason": "Remaining acute-care vendors (Mindray, Dräger, Nihon Kohden, Spacelabs, Masimo, Medtronic, Edwards) need lab units and vendor interface specs",
-   "strategy": "Author one signed package per vendor gateway from the specs, certify with golden sessions captured in the device lab (IM-S5)"
+   "evidence": "2 acute-care monitor drivers (PCD-01, SDC)",
+   "reason": "More vendors need real units in the device lab",
+   "strategy": "Guide M-04",
+   "manual": "M-04"
   },
   "IM-E01-BL-013": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "drivers infusion.bd.alaris-ipec (bidirectional XT-12), anaesthesia.ge.aisys-pcd01",
-   "reason": "Other pump servers (ICU Medical, Baxter, B. Braun, Fresenius), ventilators and MEDIBUS.X need vendor access",
-   "strategy": "Extend with PIV for each pump server and ventilator packages; MEDIBUS.X adapter in the gateway (IM-S6)"
+   "evidence": "infusion, anaesthesia drivers",
+   "reason": "More vendors need real units",
+   "strategy": "Guide M-04",
+   "manual": "M-04"
   },
   "IM-E01-BL-014": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "drivers spiro.ndd.easyone-gdt, audio.benson.cca200-xml, vision.optec.6500-ocr, vision.manual.snellen, da.lifeloc.fc20-serial, fit.tsi.portacount-cloud, vitals.welchallyn.csm-pcd01, ecg.ge.muse-xml, bp/oximeter BLE",
-   "reason": "Parity with all 133 OHCM instruments needs three vendors per family certified with real devices",
-   "strategy": "Port the OHCM E31 driver set into signed IntiMed packages; certify three vendors per family with the OHCM reference client (IM-S7)"
+   "evidence": "OH instrument drivers (spirometry, audiometry, vision, D&A, fit test)",
+   "reason": "More vendors need real units",
+   "strategy": "Guide M-04",
+   "manual": "M-04"
   },
   "IM-E01-BL-015": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "drivers rpm.bodytrace.cloud-webhook, hah.masimo.safetynet-cloud, wear.aggregator.fhir-pcha; consent enrolment",
-   "reason": "CGM/insulin clouds, CPAP, aggregators require partner agreements and credentials",
-   "strategy": "Partner onboarding with sandbox credentials; packages per platform (IM-S8)"
+   "evidence": "drivers rpm.bodytrace.cloud-webhook, hah.masimo.safetynet-cloud, wear.aggregator.fhir-pcha",
+   "reason": "Further RPM / CGM / wearable vendors need contracts and test accounts",
+   "strategy": "Guide M-05",
+   "manual": "M-05"
   },
   "IM-E01-BL-016": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "drivers bloodgas.radiometer.abl90-poct1a, lab.roche.cobas-astm",
-   "reason": "Middleware and molecular connectivity need vendor test systems",
-   "strategy": "Certify two middleware and two POC data managers in the lab (IM-S9)"
+   "evidence": "lab + POCT drivers; POCT1-A2 / ASTM E1381 codecs (L6)",
+   "reason": "Middleware and analysers needed",
+   "strategy": "Guide M-04",
+   "manual": "M-04"
   },
   "IM-E01-BL-017": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "drivers idco.medtronic.carelink-hl7, ecg.ge.muse-xml",
-   "reason": "Other IDCO portals, patch portals and echo SR need vendor feeds",
-   "strategy": "IDCO from LATITUDE/Merlin.net/BIOTRONIK; echo SR TID 5200 mapping (IM-S10)"
+   "evidence": "IDCO and ECG drivers",
+   "reason": "Vendor portals and feeds needed",
+   "strategy": "Guide M-04",
+   "manual": "M-04"
   },
   "IM-E01-BL-018": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "driver imaging.ct.dicom-rdsr",
-   "reason": "PACS/VNA vendors, dose management, ophthalmic and endoscopy exports need imaging systems",
-   "strategy": "DICOMweb routing rules per PACS; ophthalmic FORUM/HEYEX exports (IM-S11)"
+   "evidence": "CT RDSR driver",
+   "reason": "PACS / VNA and modalities needed",
+   "strategy": "Guide M-04",
+   "manual": "M-04"
   },
   "IM-E01-BL-019": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "drivers dialysis.fresenius.5008-tdms, neonatal.drager.babyleo-serial, fetal.philips.avalon-hl7, sleep.natus.embla-csv, perfusion.terumo.system1-json",
-   "reason": "Remaining specialist sub-families (ECMO, sterilisation, smart beds, nurse call, EEG) need vendor units",
-   "strategy": "One vendor per sub-family certified; remaining models queued with verification states (IM-S12)"
+   "evidence": "dialysis, neonatal, fetal, sleep, perfusion drivers",
+   "reason": "Specialist units needed",
+   "strategy": "Guide M-04",
+   "manual": "M-04"
   },
   "IM-E01-BL-020": {
    "status": "DELIVERED",
@@ -152,10 +167,11 @@
   },
   "IM-E01-BL-025": {
    "status": "PARTIAL",
-   "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/cli/Sdk.java gateway (AES-GCM encrypted store-and-forward queue, ordered flush)",
-   "reason": "Mobile SDK offline queue and the hardened gateway buffer (≥ 48 h) belong to the edge releases",
-   "strategy": "Reuse the queue format in iOS/Android SDKs and the gateway image with disk-quota policies and reconciliation reports (IM-S7/IM-S8)"
+   "increment": "L7",
+   "evidence": "sdk gateway encrypted store-and-forward + Dockerfile.gateway",
+   "reason": "≥ 48 h buffer sizing and power-loss tests need the hardware gateway",
+   "strategy": "Guide M-03",
+   "manual": "M-03"
   },
   "IM-E01-BL-026": {
    "status": "DELIVERED",
@@ -163,11 +179,12 @@
    "evidence": "intimed-platform/src/main/java/io/intimed/engine/sim/Simulator.java (golden sessions for 26 drivers, negative cases); sdk test; UnitTests driver CI"
   },
   "IM-E01-BL-027": {
-   "status": "PARTIAL",
-   "increment": "L1",
-   "evidence": "Spring Boot Actuator/Micrometer (Prometheus endpoint on :9444), per-stage timings, events; fleet health",
-   "reason": "Tenant-scoped Grafana dashboards, alert rules and OpenTelemetry trace export need an observability stack",
-   "strategy": "Ship the OTel collector + Prometheus/Grafana/Loki Helm sub-chart and per-connector SLO dashboards (IM-S13)"
+   "status": "DELIVERED",
+   "increment": "L7",
+   "evidence": "Managed Prometheus scraping of /actuator/prometheus (pod annotations), SLO alert rule group (deploy/azure/terraform/monitoring.tf), Azure Monitor workbook (dashboard.tf), Container Insights, SIEM stream → Sentinel analytics rule; docs/azure/SLO-and-Runbooks.md",
+   "reason": "Distributed trace export (OpenTelemetry) is optional for a single deployable",
+   "strategy": "Enable the Azure Monitor OpenTelemetry Java agent when traces are needed (guide M-11 step 6)",
+   "manual": "M-11"
   },
   "IM-E01-BL-028": {
    "status": "DELIVERED",
@@ -180,11 +197,12 @@
    "evidence": "intimed-platform/src/main/java/io/intimed/quality/QualityController classification record + feature flags (alarm management/interpretation off); docs/regulatory"
   },
   "IM-E01-BL-030": {
-   "status": "PARTIAL",
-   "increment": "L5",
-   "evidence": "docs/operations/Capacity-Model.md; harness latency (XT-10) and pipeline timings",
-   "reason": "Soak tests at 2× acute-care peak need a Dev/UAT cluster",
-   "strategy": "k6 soak profiles in CI against UAT per cloud; capacity model per environment validated (IM-S13)"
+   "status": "DELIVERED",
+   "increment": "L7",
+   "evidence": "intimed-platform/src/main/java/io/intimed/cli/Sdk.java `sdk soak` (mTLS MLLP/HTTPS load generator with p50/p95/p99 + ack mix), .github/workflows/intimed-perf-soak.yml, docs/azure/SLO-and-Runbooks.md capacity per environment",
+   "reason": "The soak run itself needs the UAT environment and an enrolled soak endpoint",
+   "strategy": "Run the soak workflow at 2× peak before each production release (guide M-11)",
+   "manual": "M-11"
   },
   "IM-E02-BL-001": {
    "status": "DELIVERED",
@@ -218,14 +236,13 @@
    "increment": "L6",
    "evidence": "intimed-platform/src/main/java/io/intimed/partner/PartnerSubmissionService.java (PARTNER_DEV submission: metadata, interface spec text/PDF ≤ 5 MB with SHA-256, MDS2 + CycloneDX/SPDX SBOM → catalogue posture, signed driver via DriverRegistry.publish → CANDIDATE; SUBMITTED → IN_REVIEW → HARNESS_PASSED → CERTIFIED/REJECTED, four-eyes certify, audited); web/PartnerController.java; UI Partners & registers; PartnerCatalogueTest",
    "reason": "Partner identity is a PARTNER_DEV user inside the hospital tenant; a separate partner tenant type, contracts and a public marketplace are not built",
-   "strategy": "Partner tenant type with cross-tenant publication of certified packages (IM-S16+)"
+   "strategy": "Partner tenant type with cross-tenant publication of certified packages (IM-S16+)",
+   "manual": "M-14"
   },
   "IM-E02-BL-007": {
-   "status": "PARTIAL",
-   "increment": "L2",
-   "evidence": "intimed-platform/src/main/java/io/intimed/catalogue/CatalogueService.coverage (by family/option, certified models, requests)",
-   "reason": "Global cross-tenant analytics need the SaaS warehouse (P3)",
-   "strategy": "De-identified aggregates to ClickHouse in the SaaS (IM-S16+)"
+   "status": "DELIVERED",
+   "increment": "L8",
+   "evidence": "intimed-platform/src/main/java/io/intimed/commercial/BenchmarkService.java (opt-in, k ≥ 5 organisations, small-cell suppression, no tenant ids); OperationsCommercialTest"
   },
   "IM-E03-BL-001": {
    "status": "DELIVERED",
@@ -257,7 +274,8 @@
    "increment": "L6",
    "evidence": "intimed-platform/src/main/java/io/intimed/console/intelligence/ExplanationService.java (policy gateway: global + tenant switch, PHI redaction, residency host allow-list, API key from secret:// or managed identity via IMDS, max tokens, rate limit, audit of prompt/response hashes only, UNVERIFIED label, citations required); DocAssistant BM25 retrieval; web/ExplanationController.java; PartnerCatalogueTest (stub endpoint)",
    "reason": "Verified against an Azure OpenAI-compatible stub only; no approved production model endpoint, no pgvector embeddings",
-   "strategy": "Approve endpoint + DPA per region; add embeddings retrieval (IM-S8)"
+   "strategy": "Approve endpoint + DPA per region; add embeddings retrieval (IM-S8)",
+   "manual": "M-15"
   },
   "IM-E03-BL-007": {
    "status": "DELIVERED",
@@ -297,9 +315,10 @@
   "IM-E03-BL-014": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "static/assets/intimed-capture.js web component; REST console API",
-   "reason": "SMART-launched console embedding and a published component library need host partners",
-   "strategy": "Package as Lit components + SMART app launch; npm distribution (IM-S7)"
+   "evidence": "static/assets/intimed-capture.js web component + REST console API + OpenAPI",
+   "reason": "SMART launch embedding and npm publication need host partners",
+   "strategy": "Guide M-06",
+   "manual": "M-06"
   },
   "IM-E03-BL-015": {
    "status": "DELIVERED",
@@ -327,11 +346,12 @@
    "evidence": "intimed-platform/src/main/java/io/intimed/console/ConfigService.publish gate on configuration hash; re-test on any technical change"
   },
   "IM-E04-BL-005": {
-   "status": "PARTIAL",
-   "increment": "L5",
-   "evidence": "Shadow flag (shadowDays, SHADOW mode routing to shadow instances)",
-   "reason": "Discrepancy reports against manual entry need live clinical parallel runs (pilot, IM-S15)",
-   "strategy": "Shadow-vs-manual field comparison report and clinical sign-off screen during pilots"
+   "status": "DELIVERED",
+   "increment": "L8",
+   "evidence": "intimed-platform/src/main/java/io/intimed/operations/ShadowReviewService.java (manual reference values encrypted, per-field/device agreement report, four-eyes clinical sign-off ends shadow mode); OperationsCommercialTest",
+   "reason": "The parallel run and the clinical sign-off are performed by clinicians at the pilot site",
+   "strategy": "Guide M-08",
+   "manual": "M-08"
   },
   "IM-E04-BL-006": {
    "status": "DELIVERED",
@@ -339,11 +359,9 @@
    "evidence": "intimed-platform/src/main/java/io/intimed/harness/EvidenceSealer.java (manifest, results, renderings, masked traces, timings, security, SHA-256 + Ed25519 seal) attached to certification"
   },
   "IM-E04-BL-007": {
-   "status": "PARTIAL",
-   "increment": "L5",
-   "evidence": "Harness API and runs history per configuration",
-   "reason": "Scheduled site regression suites belong to the operated environments",
-   "strategy": "Nightly/regression job re-running published configurations after releases and driver updates; trend charts (IM-S13)"
+   "status": "DELIVERED",
+   "increment": "L8",
+   "evidence": "intimed-platform/src/main/java/io/intimed/operations/RegressionService.java (nightly re-run of every PUBLISHED configuration, trends, regression.failed event + audit), web/OperationsController.java, UI Operations & commercial; OperationsCommercialTest"
   },
   "IM-E04-BL-008": {
    "status": "DELIVERED",
@@ -352,9 +370,9 @@
   },
   "IM-E04-BL-009": {
    "status": "DEFERRED",
-   "increment": "—",
    "reason": "Needs real devices from five families in UAT",
-   "strategy": "UAT validation with false-positive/negative rates documented per family (IM-S13)"
+   "strategy": "Guide M-04 step 7 (false-positive/negative study)",
+   "manual": "M-04"
   },
   "IM-E05-BL-001": {
    "status": "DELIVERED",
@@ -378,9 +396,9 @@
   },
   "IM-E05-BL-005": {
    "status": "DEFERRED",
-   "increment": "—",
-   "reason": "SMART on FHIR app and native iOS/Android SDKs require app-store signing, mobile CI and host EHR sandboxes",
-   "strategy": "Wrap the web component as a SMART app; Swift/Kotlin SDKs generated from OpenAPI with CoreBluetooth/Android BLE (IM-S7)"
+   "reason": "SMART app packaging and native iOS/Android SDKs need app-store accounts, signing and mobile CI",
+   "strategy": "Guide M-07",
+   "manual": "M-07"
   },
   "IM-E05-BL-006": {
    "status": "DELIVERED",
@@ -391,8 +409,9 @@
    "status": "PARTIAL",
    "increment": "L4",
    "evidence": "Session association, BLE parsing, gateway queue",
-   "reason": "Batch screening and kiosk self-measurement UX need kiosk hardware and BLE radios",
-   "strategy": "Kiosk mode in the mobile SDK with consent screens (IM-S7)"
+   "reason": "Kiosk hardware and BLE radios",
+   "strategy": "Guide M-03",
+   "manual": "M-03"
   },
   "IM-E05-BL-008": {
    "status": "DELIVERED",
@@ -401,9 +420,9 @@
   },
   "IM-E05-BL-009": {
    "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Patient-facing summaries and consent UI are P3 / IM-S8 and need language packs and patient identity",
-   "strategy": "Patient app module with localised summaries and consent management on top of the enrolment API"
+   "reason": "Patient-facing app with localisation and patient identity is a separate product track",
+   "strategy": "Guide M-07",
+   "manual": "M-07"
   },
   "IM-E05-BL-010": {
    "status": "DELIVERED",
@@ -427,9 +446,9 @@
   },
   "IM-E05-BL-014": {
    "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Time-and-motion and UX audit need two reference sites",
-   "strategy": "Pilot study design with OHCM and one acute ward (IM-S15)"
+   "reason": "Time-and-motion study needs two reference sites",
+   "strategy": "Guide M-08",
+   "manual": "M-08"
   },
   "IM-E06-BL-001": {
    "status": "DELIVERED",
@@ -437,31 +456,36 @@
    "evidence": "intimed-platform/src/main/java/io/intimed/security/pki/LocalPki.java (root + per-tenant CA, CSR enrolment, rotation tokens, revocation); security/auth/TokenService OAuth2; mTLS in all device listeners"
   },
   "IM-E06-BL-002": {
-   "status": "PARTIAL",
-   "increment": "L1",
-   "evidence": "docs/security/Network-Reference-Designs.md (hospital, clinic, home, cloud) + firewall request pre-fill",
-   "reason": "Validation scripts need real network segments",
-   "strategy": "Script 01 against site networks in UAT (IM-S14)"
+   "status": "DELIVERED",
+   "increment": "L7",
+   "evidence": "security-test-kit/01_network_segmentation_check.py (mTLS-only device ports, plaintext refused, other ports closed, console reachability), NSGs + Kubernetes NetworkPolicies (Terraform/Helm), docs/security/Network-Reference-Designs.md",
+   "reason": "Validation must be executed from each hospital / clinic network",
+   "strategy": "Run script 01 from every site segment at onboarding (guide M-02)",
+   "manual": "M-02"
   },
   "IM-E06-BL-003": {
-   "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Hardened gateway/device-host images (CIS, disk encryption, EDR, patch campaigns) are hardware/OS deliverables",
-   "strategy": "Ubuntu Core / Debian CIS-hardened gateway image with zero-touch enrolment against this enrolment API; signed MSI for the Windows device host (IM-S1 edge track)"
+   "status": "PARTIAL",
+   "increment": "L7",
+   "evidence": "deploy/docker/Dockerfile.gateway (non-root, minimal JRE image) + enrolment API (one-time token, CSR)",
+   "reason": "OS hardening (CIS), disk encryption, EDR, zero-touch provisioning and patch campaigns are hardware/OS work",
+   "strategy": "Guide M-03",
+   "manual": "M-03"
   },
   "IM-E06-BL-004": {
    "status": "PARTIAL",
-   "increment": "L1",
-   "evidence": "intimed-platform/src/main/java/io/intimed/security/secrets/{SecretStore,LocalSecretStore,HashiCorpVaultSecretStore,SecretScanner}.java; gitleaks in CI",
-   "reason": "Azure Key Vault / GCP Secret Manager adapters and HSM need cloud subscriptions",
-   "strategy": "Implement the two cloud adapters behind SecretStore; HSM-backed KEK in PROD (IM-S1 Azure Dev / IM-S13 GCP)"
+   "increment": "L7",
+   "evidence": "intimed-platform/src/main/java/io/intimed/security/secrets/{AzureKeyVaultSecretStore,AzureIdentity}.java (Key Vault via Entra workload identity, tenant-bound tags, no keys), Key Vault Premium HSM in Terraform, CSI-synced runtime secrets, CloudAdaptersTest",
+   "reason": "GCP Secret Manager / Cloud KMS adapter not built – not needed for Azure Qatar Central",
+   "strategy": "Same SecretStore contract when a GCP deployment is commissioned (guide M-13)",
+   "manual": "M-13"
   },
   "IM-E06-BL-005": {
-   "status": "PARTIAL",
-   "increment": "L1",
-   "evidence": "CycloneDX SBOM per build, signed driver packages, threat model (docs/security/Threat-Model.md), .github workflow",
-   "reason": "Signed container releases, DAST and a disclosure programme need the release pipeline and organisation",
-   "strategy": "cosign-signed images, ZAP DAST stage, advisory monitoring and coordinated disclosure policy (IM-S14)"
+   "status": "DELIVERED",
+   "increment": "L7",
+   "evidence": "Release pipeline: CodeQL (SAST), Trivy (SCA/image), gitleaks, OWASP ZAP baseline (DAST), CycloneDX SBOM, cosign-signed images, signed driver packages; docs/security/Threat-Model.md",
+   "reason": "Coordinated vulnerability disclosure programme and advisory SLAs are organisational",
+   "strategy": "Publish security.txt and disclosure policy (guide M-10)",
+   "manual": "M-10"
   },
   "IM-E06-BL-006": {
    "status": "DELIVERED",
@@ -481,36 +505,40 @@
   "IM-E06-BL-009": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "Consent enrolment and withdrawal, minimisation (events without PHI), retention via offboarding/crypto-shred, masking",
-   "reason": "DPIA templates per deployment and retention schedules need the DPO",
-   "strategy": "DPIA templates per setting; retention-class jobs per tenant policy (IM-S8)"
+   "evidence": "Consent, minimisation, retention via offboarding/crypto-shred, masking; DPIA template for Qatar (guide appendix A)",
+   "reason": "The DPIA per deployment is signed by the DPO",
+   "strategy": "Guide M-01",
+   "manual": "M-01"
   },
   "IM-E06-BL-010": {
    "status": "PARTIAL",
-   "increment": "L5",
-   "evidence": "security-test-kit/ scripts 02,03,04,07,08,09,10,12,13,14,17,18,19 + report builder",
-   "reason": "Cloud-specific checks (16) and network/OS checks (01, 05) need cloud/UAT environments",
-   "strategy": "Extend the kit with az/gcloud posture checks and run per cloud before GA and quarterly (IM-S14)"
+   "increment": "L7",
+   "evidence": "security-test-kit/{16_azure_posture_check,05_container_runtime_check,01_network_segmentation_check}.py + run-kit-aks.sh; fixtures; release pipeline runs 16 + 05 against UAT",
+   "reason": "GCP and private-cloud posture checks not built",
+   "strategy": "Port script 16 to gcloud / OpenShift when those environments exist (guide M-13)",
+   "manual": "M-13"
   },
   "IM-E06-BL-011": {
    "status": "DEFERRED",
-   "increment": "—",
-   "reason": "SOC 2 Type II, ISO 27001, independent pen test and IEC 80001-1 agreements are organisational programmes",
-   "strategy": "Assurance programme with external auditors once the SaaS runs in Azure (IM-S14)"
+   "reason": "SOC 2 / ISO 27001 / penetration test / IEC 80001-1 agreements are organisational programmes",
+   "strategy": "Guide M-10",
+   "manual": "M-10"
   },
   "IM-E07-BL-001": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/api/FhirController.java (CapabilityStatement, Observation search/read/create, Device, Subscription rest-hook), OAuth2 scopes",
-   "reason": "SMART App Launch (user context) and R5 Subscriptions need an authorisation server federation",
-   "strategy": "Keycloak SMART profile + R5 topic-based Subscriptions; HAPI FHIR JPA as canonical store (IM-S5)"
+   "evidence": "intimed-platform/src/main/java/io/intimed/api/FhirController.java (CapabilityStatement, Observation, Device, Subscription rest-hook, Patient create/update with system/Patient.write)",
+   "reason": "SMART App Launch (user context) needs a host EHR authorisation server",
+   "strategy": "Guide M-06",
+   "manual": "M-06"
   },
   "IM-E07-BL-002": {
    "status": "PARTIAL",
    "increment": "L4",
    "evidence": "MLLP-TLS endpoints with ORU in/out, ADT/ORM in",
-   "reason": "Conformance test suites and connectathon participation are external",
-   "strategy": "Gazelle-based conformance in CI; connectathon (IM-S5)"
+   "reason": "Conformance suites and connectathon are external",
+   "strategy": "Guide M-06",
+   "manual": "M-06"
   },
   "IM-E07-BL-003": {
    "status": "DELIVERED",
@@ -522,7 +550,8 @@
    "increment": "L6",
    "evidence": "intimed-platform/src/main/java/io/intimed/web/OpenApiController.java (OpenAPI 3.1 generated at runtime from RequestMappingHandlerMapping, /api/public/openapi.json: machine APIs, FHIR, intelligence, partner); intimed/sdk/typescript (fetch, typed) and intimed/sdk/python (urllib, offline unittest) with client-credentials helpers",
    "reason": "Typed request/response schemas are generic objects; Java/.NET/Swift/Kotlin SDKs, package publication and a hosted developer portal are not built",
-   "strategy": "Schema annotations + OpenAPI generator pipeline per language; developer portal (IM-S7)"
+   "strategy": "Schema annotations + OpenAPI generator pipeline per language; developer portal (IM-S7)",
+   "manual": "M-07"
   },
   "IM-E07-BL-005": {
    "status": "DELIVERED",
@@ -537,9 +566,10 @@
   "IM-E07-BL-007": {
    "status": "PARTIAL",
    "increment": "L4",
-   "evidence": "Reference host page (EP-1), host receiver (EP-4), FHIR (EP-2), HL7 (EP-3)",
-   "reason": "EHR/RPM/LIS reference integrations need partner systems; OHCM integration needs its environment",
-   "strategy": "OHCM integration via EP-1/EP-2 in the OHCM UAT; EHR sandbox (IM-S7)"
+   "evidence": "Reference host page, host receiver, FHIR and HL7 adapters",
+   "reason": "Reference integrations need partner EHR / LIS / RPM systems",
+   "strategy": "Guide M-06",
+   "manual": "M-06"
   },
   "IM-E07-BL-008": {
    "status": "DELIVERED",
@@ -552,100 +582,101 @@
    "evidence": "Self-contained platform jar (embedded encrypted H2, local PKI, simulators), deploy/local (compose with PostgreSQL + Vault dev), deploy/macos bootstrap, demo pack launcher"
   },
   "IM-E08-BL-002": {
-   "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Azure infrastructure (AKS, PostgreSQL Flexible HA, Event Hubs, Key Vault, Front Door) is outside the local scope",
-   "strategy": "Terraform modules + Helm chart for Azure Dev first (IM-S1 cloud track)"
+   "status": "DELIVERED",
+   "increment": "L7",
+   "evidence": "deploy/azure/terraform (VNet, AKS, PostgreSQL Flexible HA, Key Vault, ACR, WORM Blob, App Gateway WAF, Firewall, VPN, Log Analytics/Sentinel, Managed Prometheus, policy, budget; terraform validate + 4 mocked tests) and deploy/helm/intimed (schema-validated)",
+   "manual": "M-01"
   },
   "IM-E08-BL-003": {
    "status": "DEFERRED",
-   "increment": "—",
-   "reason": "GCP infrastructure is outside the local scope",
-   "strategy": "Terraform/Helm for GKE, Cloud SQL HA, Pub/Sub, KMS (IM-S13)"
+   "reason": "GCP blueprint is outside the Azure Qatar Central release",
+   "strategy": "Helm chart is cloud-agnostic; add GKE/Cloud SQL Terraform when a GCP customer is signed (guide M-13)",
+   "manual": "M-13"
   },
   "IM-E08-BL-004": {
    "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Private-cloud blueprint (OpenShift/Rancher, Patroni, Strimzi, MinIO, Vault) is outside the local scope",
-   "strategy": "Helm values + Ansible for RKE2/OpenShift (IM-S13)"
+   "reason": "Private-cloud blueprint is outside the Azure Qatar Central release",
+   "strategy": "Helm values for OpenShift/RKE2 + Patroni when a private-cloud customer is signed (guide M-13)",
+   "manual": "M-13"
   },
   "IM-E08-BL-005": {
-   "status": "DEFERRED",
-   "increment": "—",
-   "reason": "HA/DR drills need multi-zone environments",
-   "strategy": "Failover automation and twice-yearly drills per cloud (IM-S13)"
+   "status": "DELIVERED",
+   "increment": "L7",
+   "evidence": "Zone-redundant AKS + Premium ZRS volume (pod reschedules across zones), PostgreSQL zone-redundant HA + 35-day PITR, WORM archive via intimed-platform/src/main/java/io/intimed/cloud/BlobArchiver.java, deploy/azure/scripts/dr-drill.sh (D1 zone loss, D2 DB failover, D3 PITR restore, D4 archive) – docs/azure/Operations-and-DR.md",
+   "reason": "Drills must be executed and recorded in the operated environments; Qatar Central has no paired region (cross-region DR needs a regulator decision)",
+   "strategy": "Quarterly UAT / semi-annual PROD drills (guide M-11)",
+   "manual": "M-11"
   },
   "IM-E08-BL-006": {
-   "status": "PARTIAL",
-   "increment": "L1",
-   "evidence": ".github/workflows/intimed-ci.yml (build, tests, SBOM, secret scan, driver signature check)",
-   "reason": "Signed images and GitOps promotion need registries and Argo CD",
-   "strategy": "cosign + Argo CD with approval gates (IM-S1/IM-S13)"
+   "status": "DELIVERED",
+   "increment": "L7",
+   "evidence": ".github/workflows/intimed-azure-release.yml (tests, CodeQL, gitleaks, Trivy gate, push to ACR, cosign signature with HSM key in Key Vault, UAT deploy + helm test + posture checks + ZAP, PROD behind environment approval with signature verification), intimed-azure-infra.yml",
+   "manual": "M-11"
   },
   "IM-E08-BL-007": {
-   "status": "PARTIAL",
-   "increment": "L5",
-   "evidence": "docs/operations/Runbook-Local.md, Capacity-Model.md",
-   "reason": "SLO catalogue, observability stacks and FinOps dashboards need operated environments",
-   "strategy": "SRE handbook with top-20 failure modes per cloud (IM-S13)"
+   "status": "DELIVERED",
+   "increment": "L7",
+   "evidence": "docs/azure/SLO-and-Runbooks.md (SLOs, top-20 failure modes RB-01…RB-20), alert rules, workbook, budget alerts, docs/azure/IntiMed-Azure-Qatar-Cost-Model.xlsx",
+   "reason": "On-call rota and patch windows are organisational",
+   "strategy": "Staff the on-call rota and agree maintenance windows (guide M-11)",
+   "manual": "M-11"
   },
   "IM-E08-BL-008": {
    "status": "PARTIAL",
-   "increment": "L4",
-   "evidence": "Gateway mode in the platform jar (sdk gateway, enrol)",
-   "reason": "Gateway images, MSI packaging and fleet management need edge hardware",
-   "strategy": "arm64/amd64 gateway OCI images, MSI, fleet service (IM-S1 edge track)"
+   "increment": "L7",
+   "evidence": "deploy/docker/Dockerfile.gateway (arm64/amd64 OCI gateway image, non-root, sdk gateway encrypted store-and-forward)",
+   "reason": "Windows device-host MSI, code-signing and fleet management need edge hardware and a signing certificate",
+   "strategy": "Guide M-03",
+   "manual": "M-03"
   },
   "IM-E08-BL-009": {
-   "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Five-year hosting TCO model is a Finance deliverable",
-   "strategy": "Model per cloud and environment reviewed with Finance (IM-S13)"
+   "status": "DELIVERED",
+   "increment": "L7",
+   "evidence": "docs/azure/IntiMed-Azure-Qatar-Cost-Model.xlsx (live Qatar Central retail prices, UAT/PROD bill of materials, 5-year TCO, cost per connected device) built by tools/azure/cost_model.py",
+   "reason": "Finance review and negotiated prices (EA/MACC, reservations) are organisational",
+   "strategy": "Review with Finance (guide M-11 step 8)",
+   "manual": "M-11"
   },
   "IM-E08-BL-010": {
-   "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Reference SaaS and client-hosted deployments need cloud accounts",
-   "strategy": "Azure SaaS + GCP/private client-hosted references (IM-S13)"
+   "status": "PARTIAL",
+   "increment": "L7",
+   "evidence": "Azure Qatar Central reference deployment (IntiMed-hosted, single-tenant per customer or multi-tenant) – Terraform envs uat/prod, Setup Guide",
+   "reason": "Client-hosted GCP / private-cloud references not built",
+   "strategy": "Guide M-13",
+   "manual": "M-13"
   },
   "IM-E09-BL-001": {
-   "status": "PARTIAL",
-   "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/tenancy/TenantService (create, offboard with export count and crypto-shred evidence)",
-   "reason": "Trials with sandbox devices and self-service onboarding are P2/P3 commercial features",
-   "strategy": "Self-service tenant lifecycle with trial devices (IM-S16+)"
+   "status": "DELIVERED",
+   "increment": "L8",
+   "evidence": "intimed-platform/src/main/java/io/intimed/commercial/TrialService.java (trial tenants with expiry, sandbox, suspension, offboarding with crypto-shred) + simulator-only enforcement in Pipeline and endpoint registration; OperationsCommercialTest"
   },
   "IM-E09-BL-002": {
-   "status": "PARTIAL",
-   "increment": "L4",
-   "evidence": "Entitlements and daily metering per tenant",
-   "reason": "Billing/marketplace feeds need Stripe/Chargebee/marketplace accounts",
-   "strategy": "Billing exporters and reconciliation (IM-S16+)"
+   "status": "DELIVERED",
+   "increment": "L8",
+   "evidence": "intimed-platform/src/main/java/io/intimed/commercial/BillingService.java (HMAC-signed metering export CSV/JSONL, reconciliation against invoice lines); OperationsCommercialTest",
+   "reason": "Marketplace / billing-provider accounts are commercial",
+   "strategy": "Guide M-14",
+   "manual": "M-14"
   },
   "IM-E09-BL-003": {
-   "status": "PARTIAL",
-   "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/web/PlatformController /api/tenant/analytics (capture rate, verified readings, time saved estimate, calibration compliance)",
-   "reason": "Monthly executive reports need a warehouse and history",
-   "strategy": "Monthly report job + dashboards (IM-S15)"
+   "status": "DELIVERED",
+   "increment": "L8",
+   "evidence": "intimed-platform/src/main/java/io/intimed/commercial/MonthlyReportService.java (JSON/CSV executive report, monthly snapshots); OperationsCommercialTest"
   },
   "IM-E09-BL-004": {
-   "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Cross-tenant benchmarking needs the multi-tenant SaaS (P3)",
-   "strategy": "Privacy-preserving aggregates (k-anonymity, small-cell suppression) feeding the KB"
+   "status": "DELIVERED",
+   "increment": "L8",
+   "evidence": "intimed-platform/src/main/java/io/intimed/commercial/BenchmarkService.java + KnowledgeBase.contributeAggregate (k-anonymous aggregates only); OperationsCommercialTest"
   },
   "IM-E09-BL-005": {
-   "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Customer-success tooling is P3",
-   "strategy": "Health scores from metering + support-case integration"
+   "status": "DELIVERED",
+   "increment": "L8",
+   "evidence": "intimed-platform/src/main/java/io/intimed/commercial/TenantHealthService.java (0–100 health score with explained factors); OperationsCommercialTest"
   },
   "IM-E09-BL-006": {
-   "status": "DEFERRED",
-   "increment": "—",
-   "reason": "White-label OEM packaging is P3",
-   "strategy": "Theming tokens + branding configuration in the console and component"
+   "status": "DELIVERED",
+   "increment": "L8",
+   "evidence": "intimed-platform/src/main/java/io/intimed/commercial/BrandingService.java (validated tokens, hardened SVG/PNG logo check, CSSOM application in console and capture component); OperationsCommercialTest"
   },
   "IM-E10-BL-001": {
    "status": "DELIVERED",
@@ -660,35 +691,38 @@
   "IM-E10-BL-003": {
    "status": "PARTIAL",
    "increment": "L3",
-   "evidence": "docs/regulatory/Risk-Management-Summary.md (hazards → controls → tests)",
-   "reason": "A complete ISO 14971 file requires the clinical safety officer and the QMS",
-   "strategy": "Full risk file in the eQMS with review records (IM-S4 org track)"
+   "evidence": "docs/regulatory/Risk-Management-Summary.md (hazards → controls → tests incl. 2.0 rows)",
+   "reason": "Complete ISO 14971 file needs the clinical safety officer and the eQMS",
+   "strategy": "Guide M-09",
+   "manual": "M-09"
   },
   "IM-E10-BL-004": {
    "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Formative/summative usability studies need representative users",
-   "strategy": "IEC 62366-1 file with studies at pilot sites (IM-S14)"
+   "reason": "IEC 62366-1 formative/summative studies need representative users",
+   "strategy": "Guide M-08",
+   "manual": "M-08"
   },
   "IM-E10-BL-005": {
    "status": "PARTIAL",
    "increment": "L5",
-   "evidence": "Release notes, known anomalies, labelling of excluded functions in docs",
-   "reason": "Clinical safety case templates for hosts need the CSO",
-   "strategy": "DCB0129/0160-style templates per host (IM-S14)"
+   "evidence": "Release notes, labelling of excluded functions, classification record",
+   "reason": "Clinical safety case per host needs the CSO",
+   "strategy": "Guide M-09",
+   "manual": "M-09"
   },
   "IM-E10-BL-006": {
    "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Post-market surveillance and vigilance require a live product",
-   "strategy": "Complaint handling and vigilance processes at GA (IM-S15)"
+   "reason": "Post-market surveillance needs a live product",
+   "strategy": "Guide M-09",
+   "manual": "M-09"
   },
   "IM-E10-BL-007": {
-   "status": "PARTIAL",
-   "increment": "L5",
-   "evidence": "SBOM per build (open-source register input)",
-   "reason": "Supplier management for cloud providers and device vendors is a QMS process",
-   "strategy": "Supplier register in the eQMS fed by the SBOM (IM-S13)"
+   "status": "DELIVERED",
+   "increment": "L7",
+   "evidence": "tools/compliance/supplier_register.py (SBOM components + Azure services + device vendors → supplier register workbook)",
+   "reason": "Supplier assessments are completed by the QMS owner",
+   "strategy": "Guide M-09",
+   "manual": "M-09"
   }
  },
  "increments": [
@@ -722,6 +756,16 @@
    "id": "L6",
    "name": "Backlog follow-up: partner programme & badges, UDI register feeds, AI policy gateway, OpenAPI + SDKs, lab protocol codecs",
    "sprints": "IM-S2, IM-S7, IM-S8, IM-S9, IM-S16 (local subsets)"
+  },
+  {
+   "id": "L7",
+   "name": "Azure Qatar Central: Terraform + Helm, Key Vault, PostgreSQL HA, WORM archive, CI/CD with signed images, observability, DR drills, cloud security kit, cost/TCO",
+   "sprints": "IM-S1 cloud track, IM-S13, IM-S14"
+  },
+  {
+   "id": "L8",
+   "name": "Operations & commercial: regression suites, shadow sign-off, executive reports, health scores, billing, trials, white-label, k-anonymous benchmarks",
+   "sprints": "IM-S8, IM-S13, IM-S15, IM-S16+"
   }
  ],
  "capacity": {
@@ -734,9 +778,9 @@
   },
   "IM-S1": {
    "planned": 225,
-   "delivered": 115,
-   "partial": 76,
-   "deferred": 34,
+   "delivered": 178,
+   "partial": 47,
+   "deferred": 0,
    "items": 17
   },
   "IM-S7": {
@@ -762,9 +806,9 @@
   },
   "IM-S8": {
    "planned": 84,
-   "delivered": 21,
-   "partial": 47,
-   "deferred": 16,
+   "delivered": 42,
+   "partial": 34,
+   "deferred": 8,
    "items": 7
   },
   "IM-S11": {
@@ -776,8 +820,8 @@
   },
   "IM-S2": {
    "planned": 65,
-   "delivered": 52,
-   "partial": 13,
+   "delivered": 65,
+   "partial": 0,
    "deferred": 0,
    "items": 6
   },
@@ -811,16 +855,16 @@
   },
   "IM-S13": {
    "planned": 112,
-   "delivered": 8,
-   "partial": 31,
-   "deferred": 73,
+   "delivered": 57,
+   "partial": 8,
+   "deferred": 47,
    "items": 11
   },
   "IM-S16+": {
    "planned": 70,
-   "delivered": 0,
-   "partial": 31,
-   "deferred": 39,
+   "delivered": 70,
+   "partial": 0,
+   "deferred": 0,
    "items": 7
   },
   "IM-S3": {
@@ -839,8 +883,8 @@
   },
   "IM-S15": {
    "planned": 31,
-   "delivered": 0,
-   "partial": 21,
+   "delivered": 21,
+   "partial": 0,
    "deferred": 10,
    "items": 4
   }

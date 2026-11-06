@@ -182,3 +182,13 @@ INCREMENTS = [
  {"id": "L4", "name": "Device families (26 drivers, P1–P11), APIs, capture experience, anomaly isolation", "sprints": "IM-S5 … IM-S12 (local subsets)"},
  {"id": "L5", "name": "Hardening: security test kit, documentation, demo pack, videos", "sprints": "IM-S13 … IM-S15 (local subsets)"},
 ]
+
+
+# ---- release 2.1 (Azure Qatar Central) overlay – see tools/content/release_azure.py
+import release_azure as _R
+MANUAL_REF = {}
+for _k, _v in _R.OVERLAY.items():
+    S[_k] = _v[:5]
+    if _v[5]:
+        MANUAL_REF[_k] = _v[5]
+INCREMENTS += _R.INCREMENTS

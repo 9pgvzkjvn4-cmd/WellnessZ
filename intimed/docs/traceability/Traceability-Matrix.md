@@ -1,15 +1,15 @@
-# IntiMed – Requirements Traceability Matrix (local-scope release 1.0.0-local)
+# IntiMed – Requirements Traceability Matrix (release 2.1 – local + Azure Qatar Central)
 
 Generated from `tools/content/traceability.py` (single source of truth, also served at `/api/quality/backlog`).
 
 | | Items | Story points |
 |---|---:|---:|
-| DELIVERED | 55 | 659 |
-| PARTIAL | 43 | 535 |
-| DEFERRED | 19 | 201 |
+| DELIVERED | 78 | 896 |
+| PARTIAL | 30 | 405 |
+| DEFERRED | 9 | 94 |
 | **Total** | **117** | **1395** |
 
-Status: **DELIVERED** – complete for the LOCAL (MacBook) environment setting; **PARTIAL** – implemented and tested locally, the remainder needs cloud, real devices, partners or the organisation; **DEFERRED** – not applicable to a local scope (see `Deferred-and-Partial-Backlog.md`).
+Status: **DELIVERED** – implemented in the product or its automation (LOCAL and Azure Qatar Central); **PARTIAL** – implemented as far as software can go, the remainder needs people, hardware, vendors, licences or audits; **DEFERRED** – deliberately outside this release. Every item that still needs a manual step names its section in `docs/azure/Manual-Backlog-Execution-Guide.md` (M-01…M-16).
 
 ## IM-E01 – IntiMed Core Integration Engine
 
@@ -19,7 +19,7 @@ _Provide a generic, vendor-neutral device integration engine that connects any d
 
 | Feature | Name | HLRs | Backlog items (status) |
 |---|---|---|---|
-| IM-E01-F01 | Canonical pipeline & streaming support | IM-E01-HLR-01; IM-E01-HLR-12; IM-E01-HLR-14 | IM-E01-BL-001 (DELIVERED)<br>IM-E01-BL-002 (DELIVERED)<br>IM-E01-BL-030 (PARTIAL) |
+| IM-E01-F01 | Canonical pipeline & streaming support | IM-E01-HLR-01; IM-E01-HLR-12; IM-E01-HLR-14 | IM-E01-BL-001 (DELIVERED)<br>IM-E01-BL-002 (DELIVERED)<br>IM-E01-BL-030 (DELIVERED) |
 | IM-E01-F02 | Adapter library P1–P10 (+ SDC-ready) | IM-E01-HLR-02 | IM-E01-BL-003 (PARTIAL)<br>IM-E01-BL-004 (PARTIAL)<br>IM-E01-BL-005 (PARTIAL)<br>IM-E01-BL-006 (PARTIAL)<br>IM-E01-BL-007 (PARTIAL)<br>IM-E01-BL-008 (PARTIAL)<br>IM-E01-BL-009 (PARTIAL)<br>IM-E01-BL-010 (DELIVERED) |
 | IM-E01-F03 | Driver SDK, package registry & marketplace | IM-E01-HLR-03 | IM-E01-BL-011 (DELIVERED)<br>IM-E01-BL-012 (PARTIAL)<br>IM-E01-BL-013 (PARTIAL)<br>IM-E01-BL-014 (PARTIAL)<br>IM-E01-BL-015 (PARTIAL)<br>IM-E01-BL-016 (PARTIAL)<br>IM-E01-BL-017 (PARTIAL)<br>IM-E01-BL-018 (PARTIAL)<br>IM-E01-BL-019 (PARTIAL) |
 | IM-E01-F04 | Normalisation & terminology service | IM-E01-HLR-04 | IM-E01-BL-020 (DELIVERED) |
@@ -29,44 +29,44 @@ _Provide a generic, vendor-neutral device integration engine that connects any d
 | IM-E01-F08 | Bidirectional device workflows | IM-E01-HLR-08 | IM-E01-BL-024 (DELIVERED) |
 | IM-E01-F09 | Edge store-and-forward & buffering | IM-E01-HLR-09 | IM-E01-BL-025 (PARTIAL) |
 | IM-E01-F10 | Simulators & golden datasets | IM-E01-HLR-10 | IM-E01-BL-026 (DELIVERED) |
-| IM-E01-F11 | Connector & device observability | IM-E01-HLR-11 | IM-E01-BL-027 (PARTIAL) |
+| IM-E01-F11 | Connector & device observability | IM-E01-HLR-11 | IM-E01-BL-027 (DELIVERED) |
 | IM-E01-F12 | Multi-tenant partitioning & residency | IM-E01-HLR-13 | IM-E01-BL-028 (DELIVERED) |
 | IM-E01-F13 | Regulatory scope guardrails | IM-E01-HLR-14 | IM-E01-BL-029 (DELIVERED) |
 
 ### Backlog → implementation evidence
 
-| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason |
-|---|---|---:|---|---|---|---|
-| IM-E01-BL-001 | Design the canonical observation model, pipeline stages, event contracts and streaming semantics; record ADRs | 13 | IM-S0 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/engine/pipeline/* (canonical observation, stages, events); docs/architecture/ADR.md |
-| IM-E01-BL-002 | Implement pipeline services with DLQ triage UI, ordering/late-arrival rules and alarm-state flagging | 21 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/engine/pipeline/Pipeline.java (DLQ + replay, idempotent ids, late/skew rules, alarm flags); web/ClinicalController DLQ triage; UI Queues |
-| IM-E01-BL-003 | Serial/USB adapter for gateway and device host with port discovery and framing options | 13 | IM-S7 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/SerialFrameParser.java; cli/Sdk.java gateway; P1 option pack; drivers da.lifeloc.fc20-serial, neonatal.drager.babyleo-serial |
-| IM-E01-BL-004 | HL7 v2 MLLP-TLS adapter: PCD-01 periodic and spot, PCD-02, ACM, IPEC, ORM/OML, ADT; IHE DEV conformance tests | 21 | IM-S5 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/transport/DeviceListeners.java (MLLP-TLS, ORU, ADT A01/A02/A03, ORM/OML worklists); engine/parse/RecordParser.java; harness XT-01/XT-13 |
-| IM-E01-BL-005 | Vendor database/file watcher adapter (SQL Server/SQLite/Access/PostgreSQL read-only; XML/GDT/CSV/PDF folders) | 13 | IM-S7 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/{CsvParser,XmlParser,GdtParser,JsonPathParser}.java; P2 option pack; drivers ecg.ge.muse-xml, sleep.natus.embla-csv, perfusion.terumo.system1-json, audio.benson.cca200-xml, spiro.ndd.easyone-gdt |
-| IM-E01-BL-006 | BLE adapter (standard GATT health profiles and vendor services) for gateway, kiosk and mobile with LE Secure Connections | 13 | IM-S7 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/GattParser.java (BLP 2A35, PLX 2A5E, HTP 2A1C, WSS 2A9D, IEEE-11073 SFLOAT/FLOAT); RR-03 pairing policy |
-| IM-E01-BL-007 | POCT1-A2 adapter, LIS2/ASTM and IHE LAW analyser interfaces and data-manager HL7 bridges | 13 | IM-S9 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/RecordParser.java (ASTM E1394/LIS2-A2), XmlParser POCT1A; drivers bloodgas.radiometer.abl90-poct1a, lab.roche.cobas-astm; QC-lot gate |
-| IM-E01-BL-008 | Cloud API/webhook adapter framework (OAuth2, polling, webhooks, rate limits, consent scopes) incl. CRM remote-monitoring portals, RPM and wearable platforms | 13 | IM-S8 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/api/PublicMachineController.java webhook receiver (HMAC, replay window); engine/parse/JsonPathParser.java; drivers rpm.bodytrace.cloud-webhook, hah.masimo.safetynet-cloud, fit.tsi.portacount-cloud; consent association |
-| IM-E01-BL-009 | DICOM adapter (C-STORE SCP, MWL, Q/R, MPPS, DICOMweb, SR, waveform) with PACS/VNA routing | 13 | IM-S11 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/DicomJsonParser.java (PS3.18 JSON, SR/RDSR numeric content); driver imaging.ct.dicom-rdsr |
-| IM-E01-BL-010 | FHIR R4/R5 inbound adapter (PoCD IG, Subscriptions), image/OCR + barcode fallback adapter, SDC adapter stub | 13 | IM-S7 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/{FhirObservationParser,FormParser}.java; api/FhirController POST Observation (P8); P9 OCR proposals with verification; P11 SDC stub (BICEPS JSON) |
-| IM-E01-BL-011 | Driver package format, signing, compatibility rules; SDK CLI (scaffold/test/scan/sign/publish); registry with candidate/certified channels; partner submission workflow | 21 | IM-S2 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/engine/driver/{DriverRegistry,DriverValidator,Signatures}.java; cli/Sdk.java keygen/sign/validate/test/publish; CANDIDATE/CERTIFIED channels; trusted publishers |
-| IM-E01-BL-012 | Driver packages – acute-care monitoring & telemetry: Philips IntelliVue/PIIC iX, GE CARESCAPE Gateway, Mindray eGateway, Dräger Infinity Gateway, Nihon Kohden, Spacelabs, Masimo Root/Iris, Medtronic Capnostream/BIS, Edwards HemoSphere (PCD-01/02 periodic & spot, ACM observations, waveform snippets) | 13 | IM-S5 | PARTIAL | L4 | drivers monitor.philips.intellivue-pcd01, monitor.ge.carescape-sdc (TPL-01/02/03) |
-| IM-E01-BL-013 | Driver packages – infusion, ventilation & anaesthesia: Alaris Systems Manager, ICU Medical MedNet, Baxter Dose IQ, B. Braun Space Online, Fresenius Vigilant, PharmGuard; Hamilton, Dräger Evita/Babylog, Getinge Servo, PB 980, Philips V60/Trilogy; Aisys, Perseus/Atlan, Mindray A7/A9 (IPEC/PIV, MEDIBUS.X, SDC stub) | 13 | IM-S6 | PARTIAL | L4 | drivers infusion.bd.alaris-ipec (bidirectional XT-12), anaesthesia.ge.aisys-pcd01 |
-| IM-E01-BL-014 | Driver packages – outpatient & occupational-health instruments: spirometers, audiometers, vision testers, vitals monitors, ECG systems, breath-alcohol and drug testers, fit testers, ergonomics, exposure feeds (serial/USB, vendor DB/file, BLE, HL7) – parity with the OHCM MDI pack families | 21 | IM-S7 | PARTIAL | L4 | drivers spiro.ndd.easyone-gdt, audio.benson.cca200-xml, vision.optec.6500-ocr, vision.manual.snellen, da.lifeloc.fc20-serial, fit.tsi.portacount-cloud, vitals.welchallyn.csm-pcd01, ecg.ge.muse-xml, bp/oximeter BLE |
-| IM-E01-BL-015 | Driver packages – RPM, wearables & home: RPM kits (BodyTrace, Smart Meter, Tenovi, Withings), CGM/insulin clouds (Dexcom, LibreView, CareLink, t:connect, Glooko), ResMed AirView, Care Orchestrator, hospital-at-home platforms, aggregators (Validic, Human API, HealthKit, Health Connect), telehealth kits | 13 | IM-S8 | PARTIAL | L4 | drivers rpm.bodytrace.cloud-webhook, hah.masimo.safetynet-cloud, wear.aggregator.fhir-pcha; consent enrolment |
-| IM-E01-BL-016 | Driver packages – laboratory & POCT: middleware (Instrument Manager, cobas infinity, AlinIQ, Atellica DM, REMISOL, WAM), blood gas data managers (AQURE, GEMweb Plus, POCcelerator), molecular connectivity (C360, FilmArray Link), POC analysers via POCT1-A2 (i-STAT, Afinion, StatStrip, DCA, HemoCue) | 13 | IM-S9 | PARTIAL | L4 | drivers bloodgas.radiometer.abl90-poct1a, lab.roche.cobas-astm |
-| IM-E01-BL-017 | Driver packages – cardiology diagnostics & implant remote monitoring: IHE IDCO from CareLink/Paceart, LATITUDE, Merlin.net, BIOTRONIK; Zio/MCOT portals; echo DICOM SR; MUSE/TraceMaster/IntelliSpace ECG; ABPM/Holter software | 13 | IM-S10 | PARTIAL | L4 | drivers idco.medtronic.carelink-hl7, ecg.ge.muse-xml |
-| IM-E01-BL-018 | Driver packages – imaging & PACS: DICOM MWL/MPPS/C-STORE/RDSR/SR, DICOMweb to Sectra/Agfa/Philips/Fujifilm/GE PACS-VNA, dose management, ophthalmic (FORUM/HEYEX), dental and endoscopy exports, AI-triage flags | 8 | IM-S11 | PARTIAL | L4 | driver imaging.ct.dicom-rdsr |
-| IM-E01-BL-019 | Driver packages – specialist units: dialysis (TDMS/Kinexus, Baxter, Nexadia, Sharesource/Nx2me), ECMO/MCS consoles, incubators/warmers, bilirubinometers, newborn hearing, fetal monitors, OR integration and energy devices, sterilisation tracking, perfusion, EEG/PSG exports, smart beds, nurse call | 13 | IM-S12 | PARTIAL | L4 | drivers dialysis.fresenius.5008-tdms, neonatal.drager.babyleo-serial, fetal.philips.avalon-hl7, sleep.natus.embla-csv, perfusion.terumo.system1-json |
-| IM-E01-BL-020 | Terminology service with MDC/LOINC/SNOMED/UCUM maps, conversions, reference ranges, GLI, tenant locale/unit policy; FHIR writer and raw archive | 13 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/engine/terminology/Terminology.java (UCUM synonyms, MDC dimensions, conversions, analyte factors); FHIR writer (adapters); raw archive (kind raw, encrypted) |
-| IM-E01-BL-021 | Association engine with worklist, encounter–bed–device binding (ADT transfer/discharge), session, badge/NFC/RFID and vendor ID matching; unmatched queue UI | 21 | IM-S5 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/engine/association/AssociationEngine.java (worklist, encounter–bed with ADT transfer/discharge, session, badge, matching 0.97/0.92/0.85, consent); unmatched queue UI |
-| IM-E01-BL-022 | Quality-gate rules engine with guideline grading library, plausibility/artefact rules, duplicates/late handling, verify-before-post per template | 13 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/engine/quality/QualityGates.java (calibration/QC lockout, plausibility, artefact, skew/late, ATS/ERS grading, verify-before-post, alarm flags); harness XT-14 |
-| IM-E01-BL-023 | Routing service with many-to-many template binding resolution and provenance fan-out | 13 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/engine/pipeline/Router.java (many-to-many bindings, unit conversion with block, provenance fan-out) |
-| IM-E01-BL-024 | As a clinician I want to push the patient to the device and start the acquisition from the template where the vendor supports it | 8 | IM-S6 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/capture/CaptureService.acquire (start from the form); harness/PumpSimulator + XT-12 order push RGV^O15 → RRG^O16 |
-| IM-E01-BL-025 | Encrypted store-and-forward on gateway, device host and mobile with streaming buffer and reconciliation | 13 | IM-S1 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/cli/Sdk.java gateway (AES-GCM encrypted store-and-forward queue, ordered flush) |
-| IM-E01-BL-026 | Simulator suite and golden datasets per family incl. streaming bursts; CI stages; harness integration | 21 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/engine/sim/Simulator.java (golden sessions for 26 drivers, negative cases); sdk test; UnitTests driver CI |
-| IM-E01-BL-027 | OpenTelemetry instrumentation, tenant-scoped dashboards, alert rules, ops API, streaming-gap detection | 8 | IM-S1 | PARTIAL | L1 | Spring Boot Actuator/Micrometer (Prometheus endpoint on :9444), per-stage timings, events; fleet health |
-| IM-E01-BL-028 | Tenant partitioning, quotas, residency pinning and automated tenant onboarding | 13 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/tenancy/TenantService.java (residency, quotas, entitlements, metering, offboarding with crypto-shredding); store/DocumentStore tenant partitioning |
-| IM-E01-BL-029 | IEC 62304 classification and MDDS scope record; feature flags for excluded functions; release labelling | 5 | IM-S0 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/quality/QualityController classification record + feature flags (alarm management/interpretation off); docs/regulatory |
-| IM-E01-BL-030 | Performance and soak testing at 2× projected acute-care peak; capacity model per environment | 8 | IM-S13 | PARTIAL | L5 | docs/operations/Capacity-Model.md; harness latency (XT-10) and pipeline timings |
+| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason | Manual guide |
+|---|---|---:|---|---|---|---|---|
+| IM-E01-BL-001 | Design the canonical observation model, pipeline stages, event contracts and streaming semantics; record ADRs | 13 | IM-S0 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/engine/pipeline/* (canonical observation, stages, events); docs/architecture/ADR.md | — |
+| IM-E01-BL-002 | Implement pipeline services with DLQ triage UI, ordering/late-arrival rules and alarm-state flagging | 21 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/engine/pipeline/Pipeline.java (DLQ + replay, idempotent ids, late/skew rules, alarm flags); web/ClinicalController DLQ triage; UI Queues | — |
+| IM-E01-BL-003 | Serial/USB adapter for gateway and device host with port discovery and framing options | 13 | IM-S7 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/SerialFrameParser.java; sdk gateway; Dockerfile.gateway | M-03 |
+| IM-E01-BL-004 | HL7 v2 MLLP-TLS adapter: PCD-01 periodic and spot, PCD-02, ACM, IPEC, ORM/OML, ADT; IHE DEV conformance tests | 21 | IM-S5 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/transport/DeviceListeners.java (MLLP-TLS, ORU, ADT A01/A04/A08…, ORM/OML) | M-06 |
+| IM-E01-BL-005 | Vendor database/file watcher adapter (SQL Server/SQLite/Access/PostgreSQL read-only; XML/GDT/CSV/PDF folders) | 13 | IM-S7 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/{Csv,Xml,Gdt,JsonPath}Parser.java; P2 option pack; gateway image | M-03 |
+| IM-E01-BL-006 | BLE adapter (standard GATT health profiles and vendor services) for gateway, kiosk and mobile with LE Secure Connections | 13 | IM-S7 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/GattParser.java; RR-03 pairing policy | M-03 |
+| IM-E01-BL-007 | POCT1-A2 adapter, LIS2/ASTM and IHE LAW analyser interfaces and data-manager HL7 bridges | 13 | IM-S9 | PARTIAL | L6 | intimed-platform/src/main/java/io/intimed/engine/transport/AstmE1381.java (ENQ/ACK/NAK/EOT, frames ≤ 240 chars with ETB/ETX, checksum, frame numbers mod 8, 6 retransmissions, sender + receiver state machines), engine/transport/Poct1aConversation.java (HEL/DST/REQ/OBS/EOT/END/ACK dialogue); RecordParser accepts raw E1381 captures; ProtocolCodecTests | M-04 |
+| IM-E01-BL-008 | Cloud API/webhook adapter framework (OAuth2, polling, webhooks, rate limits, consent scopes) incl. CRM remote-monitoring portals, RPM and wearable platforms | 13 | IM-S8 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/api/PublicMachineController.java webhook receiver (HMAC, replay window), JsonPathParser, cloud drivers; EgressClient allow-list | M-05 |
+| IM-E01-BL-009 | DICOM adapter (C-STORE SCP, MWL, Q/R, MPPS, DICOMweb, SR, waveform) with PACS/VNA routing | 13 | IM-S11 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/DicomJsonParser.java; imaging.ct.dicom-rdsr | M-04 |
+| IM-E01-BL-010 | FHIR R4/R5 inbound adapter (PoCD IG, Subscriptions), image/OCR + barcode fallback adapter, SDC adapter stub | 13 | IM-S7 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/engine/parse/{FhirObservationParser,FormParser}.java; api/FhirController POST Observation (P8); P9 OCR proposals with verification; P11 SDC stub (BICEPS JSON) | — |
+| IM-E01-BL-011 | Driver package format, signing, compatibility rules; SDK CLI (scaffold/test/scan/sign/publish); registry with candidate/certified channels; partner submission workflow | 21 | IM-S2 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/engine/driver/{DriverRegistry,DriverValidator,Signatures}.java; cli/Sdk.java keygen/sign/validate/test/publish; CANDIDATE/CERTIFIED channels; trusted publishers | — |
+| IM-E01-BL-012 | Driver packages – acute-care monitoring & telemetry: Philips IntelliVue/PIIC iX, GE CARESCAPE Gateway, Mindray eGateway, Dräger Infinity Gateway, Nihon Kohden, Spacelabs, Masimo Root/Iris, Medtronic Capnostream/BIS, Edwards HemoSphere (PCD-01/02 periodic & spot, ACM observations, waveform snippets) | 13 | IM-S5 | PARTIAL | L4 | 2 acute-care monitor drivers (PCD-01, SDC) | M-04 |
+| IM-E01-BL-013 | Driver packages – infusion, ventilation & anaesthesia: Alaris Systems Manager, ICU Medical MedNet, Baxter Dose IQ, B. Braun Space Online, Fresenius Vigilant, PharmGuard; Hamilton, Dräger Evita/Babylog, Getinge Servo, PB 980, Philips V60/Trilogy; Aisys, Perseus/Atlan, Mindray A7/A9 (IPEC/PIV, MEDIBUS.X, SDC stub) | 13 | IM-S6 | PARTIAL | L4 | infusion, anaesthesia drivers | M-04 |
+| IM-E01-BL-014 | Driver packages – outpatient & occupational-health instruments: spirometers, audiometers, vision testers, vitals monitors, ECG systems, breath-alcohol and drug testers, fit testers, ergonomics, exposure feeds (serial/USB, vendor DB/file, BLE, HL7) – parity with the OHCM MDI pack families | 21 | IM-S7 | PARTIAL | L4 | OH instrument drivers (spirometry, audiometry, vision, D&A, fit test) | M-04 |
+| IM-E01-BL-015 | Driver packages – RPM, wearables & home: RPM kits (BodyTrace, Smart Meter, Tenovi, Withings), CGM/insulin clouds (Dexcom, LibreView, CareLink, t:connect, Glooko), ResMed AirView, Care Orchestrator, hospital-at-home platforms, aggregators (Validic, Human API, HealthKit, Health Connect), telehealth kits | 13 | IM-S8 | PARTIAL | L4 | drivers rpm.bodytrace.cloud-webhook, hah.masimo.safetynet-cloud, wear.aggregator.fhir-pcha | M-05 |
+| IM-E01-BL-016 | Driver packages – laboratory & POCT: middleware (Instrument Manager, cobas infinity, AlinIQ, Atellica DM, REMISOL, WAM), blood gas data managers (AQURE, GEMweb Plus, POCcelerator), molecular connectivity (C360, FilmArray Link), POC analysers via POCT1-A2 (i-STAT, Afinion, StatStrip, DCA, HemoCue) | 13 | IM-S9 | PARTIAL | L4 | lab + POCT drivers; POCT1-A2 / ASTM E1381 codecs (L6) | M-04 |
+| IM-E01-BL-017 | Driver packages – cardiology diagnostics & implant remote monitoring: IHE IDCO from CareLink/Paceart, LATITUDE, Merlin.net, BIOTRONIK; Zio/MCOT portals; echo DICOM SR; MUSE/TraceMaster/IntelliSpace ECG; ABPM/Holter software | 13 | IM-S10 | PARTIAL | L4 | IDCO and ECG drivers | M-04 |
+| IM-E01-BL-018 | Driver packages – imaging & PACS: DICOM MWL/MPPS/C-STORE/RDSR/SR, DICOMweb to Sectra/Agfa/Philips/Fujifilm/GE PACS-VNA, dose management, ophthalmic (FORUM/HEYEX), dental and endoscopy exports, AI-triage flags | 8 | IM-S11 | PARTIAL | L4 | CT RDSR driver | M-04 |
+| IM-E01-BL-019 | Driver packages – specialist units: dialysis (TDMS/Kinexus, Baxter, Nexadia, Sharesource/Nx2me), ECMO/MCS consoles, incubators/warmers, bilirubinometers, newborn hearing, fetal monitors, OR integration and energy devices, sterilisation tracking, perfusion, EEG/PSG exports, smart beds, nurse call | 13 | IM-S12 | PARTIAL | L4 | dialysis, neonatal, fetal, sleep, perfusion drivers | M-04 |
+| IM-E01-BL-020 | Terminology service with MDC/LOINC/SNOMED/UCUM maps, conversions, reference ranges, GLI, tenant locale/unit policy; FHIR writer and raw archive | 13 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/engine/terminology/Terminology.java (UCUM synonyms, MDC dimensions, conversions, analyte factors); FHIR writer (adapters); raw archive (kind raw, encrypted) | — |
+| IM-E01-BL-021 | Association engine with worklist, encounter–bed–device binding (ADT transfer/discharge), session, badge/NFC/RFID and vendor ID matching; unmatched queue UI | 21 | IM-S5 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/engine/association/AssociationEngine.java (worklist, encounter–bed with ADT transfer/discharge, session, badge, matching 0.97/0.92/0.85, consent); unmatched queue UI | — |
+| IM-E01-BL-022 | Quality-gate rules engine with guideline grading library, plausibility/artefact rules, duplicates/late handling, verify-before-post per template | 13 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/engine/quality/QualityGates.java (calibration/QC lockout, plausibility, artefact, skew/late, ATS/ERS grading, verify-before-post, alarm flags); harness XT-14 | — |
+| IM-E01-BL-023 | Routing service with many-to-many template binding resolution and provenance fan-out | 13 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/engine/pipeline/Router.java (many-to-many bindings, unit conversion with block, provenance fan-out) | — |
+| IM-E01-BL-024 | As a clinician I want to push the patient to the device and start the acquisition from the template where the vendor supports it | 8 | IM-S6 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/capture/CaptureService.acquire (start from the form); harness/PumpSimulator + XT-12 order push RGV^O15 → RRG^O16 | — |
+| IM-E01-BL-025 | Encrypted store-and-forward on gateway, device host and mobile with streaming buffer and reconciliation | 13 | IM-S1 | PARTIAL | L7 | sdk gateway encrypted store-and-forward + Dockerfile.gateway | M-03 |
+| IM-E01-BL-026 | Simulator suite and golden datasets per family incl. streaming bursts; CI stages; harness integration | 21 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/engine/sim/Simulator.java (golden sessions for 26 drivers, negative cases); sdk test; UnitTests driver CI | — |
+| IM-E01-BL-027 | OpenTelemetry instrumentation, tenant-scoped dashboards, alert rules, ops API, streaming-gap detection | 8 | IM-S1 | DELIVERED | L7 | Managed Prometheus scraping of /actuator/prometheus (pod annotations), SLO alert rule group (deploy/azure/terraform/monitoring.tf), Azure Monitor workbook (dashboard.tf), Container Insights, SIEM stream → Sentinel analytics rule; docs/azure/SLO-and-Runbooks.md | M-11 |
+| IM-E01-BL-028 | Tenant partitioning, quotas, residency pinning and automated tenant onboarding | 13 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/tenancy/TenantService.java (residency, quotas, entitlements, metering, offboarding with crypto-shredding); store/DocumentStore tenant partitioning | — |
+| IM-E01-BL-029 | IEC 62304 classification and MDDS scope record; feature flags for excluded functions; release labelling | 5 | IM-S0 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/quality/QualityController classification record + feature flags (alarm management/interpretation off); docs/regulatory | — |
+| IM-E01-BL-030 | Performance and soak testing at 2× projected acute-care peak; capacity model per environment | 8 | IM-S13 | DELIVERED | L7 | intimed-platform/src/main/java/io/intimed/cli/Sdk.java `sdk soak` (mTLS MLLP/HTTPS load generator with p50/p95/p99 + ack mix), .github/workflows/intimed-perf-soak.yml, docs/azure/SLO-and-Runbooks.md capacity per environment | M-11 |
 
 ## IM-E02 – Universal Device Catalogue & Worldwide Inventory
 
@@ -77,23 +77,23 @@ _Maintain a governed, continuously updated catalogue of medical devices in use w
 | Feature | Name | HLRs | Backlog items (status) |
 |---|---|---|---|
 | IM-E02-F01 | Catalogue model, APIs & console views | IM-E02-HLR-01; IM-E02-HLR-04 | IM-E02-BL-001 (DELIVERED) |
-| IM-E02-F02 | Register feeds & change review | IM-E02-HLR-02; IM-E02-HLR-03 | IM-E02-BL-003 (PARTIAL)<br>IM-E02-BL-004 (DELIVERED) |
+| IM-E02-F02 | Register feeds & change review | IM-E02-HLR-02; IM-E02-HLR-03 | IM-E02-BL-003 (DELIVERED)<br>IM-E02-BL-004 (DELIVERED) |
 | IM-E02-F03 | Connectivity matrix & verification states | IM-E02-HLR-06 | IM-E02-BL-005 (DELIVERED) |
-| IM-E02-F04 | Vendor/partner portal & request-a-model | IM-E02-HLR-05 | IM-E02-BL-006 (DEFERRED) |
+| IM-E02-F04 | Vendor/partner portal & request-a-model | IM-E02-HLR-05 | IM-E02-BL-006 (DELIVERED) |
 | IM-E02-F05 | Seed inventory & approval counts | IM-E02-HLR-07 | IM-E02-BL-002 (DELIVERED) |
-| IM-E02-F06 | Catalogue analytics | IM-E02-HLR-08 | IM-E02-BL-007 (PARTIAL) |
+| IM-E02-F06 | Catalogue analytics | IM-E02-HLR-08 | IM-E02-BL-007 (DELIVERED) |
 
 ### Backlog → implementation evidence
 
-| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason |
-|---|---|---:|---|---|---|---|
-| IM-E02-BL-001 | Build the catalogue data model, APIs and console views with lifecycle states and tenant acceptance policies | 13 | IM-S2 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/catalogue/CatalogueService.java (search, model detail, connectivity matrix, posture, acceptance policies); UI Device catalogue |
-| IM-E02-BL-002 | Load the seed inventory (≈245 devices) with FDA codes, approval counts, connectivity options and verification states | 5 | IM-S2 | DELIVERED | L2 | seed/devices.json (225 devices, 24 families), seed/fda-codes.json (132 codes with counts) |
-| IM-E02-BL-003 | Implement openFDA, AccessGUDID and EUDAMED feed connectors with change detection and reviewer approval | 13 | IM-S2 | PARTIAL | L2 | intimed-platform/src/main/java/io/intimed/catalogue/RegisterFeedService.java (openFDA 510(k)/recall with change detection and reviewer approval) |
-| IM-E02-BL-004 | As a device administrator I want recalls and safety communications for my connected models surfaced with acknowledgement tracking | 8 | IM-S2 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/catalogue/CatalogueService recalls + acknowledgement tracking; openFDA recall feed after review |
-| IM-E02-BL-005 | As a device administrator I want to see how confident the catalogue is about each model's connectivity and the specification it is based on | 5 | IM-S2 | DELIVERED | L2 | Connectivity matrix verification states (CERTIFIED_IN_LAB / VENDOR_CONFIRMED / COMMUNITY_REPORTED / UNVERIFIED) with basis |
-| IM-E02-BL-006 | As a vendor I want to submit my model, interface specification, MDS2/SBOM and driver for certification and track status | 13 | IM-S16+ | DEFERRED | — | Vendor self-service portal is a P3 / IM-S16+ marketplace capability requiring partner identity and contracts |
-| IM-E02-BL-007 | As the product team I want catalogue coverage, request and backlog analytics per tenant and globally | 5 | IM-S16+ | PARTIAL | L2 | intimed-platform/src/main/java/io/intimed/catalogue/CatalogueService.coverage (by family/option, certified models, requests) |
+| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason | Manual guide |
+|---|---|---:|---|---|---|---|---|
+| IM-E02-BL-001 | Build the catalogue data model, APIs and console views with lifecycle states and tenant acceptance policies | 13 | IM-S2 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/catalogue/CatalogueService.java (search, model detail, connectivity matrix, posture, acceptance policies); UI Device catalogue | — |
+| IM-E02-BL-002 | Load the seed inventory (≈245 devices) with FDA codes, approval counts, connectivity options and verification states | 5 | IM-S2 | DELIVERED | L2 | seed/devices.json (225 devices, 24 families), seed/fda-codes.json (132 codes with counts) | — |
+| IM-E02-BL-003 | Implement openFDA, AccessGUDID and EUDAMED feed connectors with change detection and reviewer approval | 13 | IM-S2 | DELIVERED | L6 | intimed-platform/src/main/java/io/intimed/catalogue/UdiFeedService.java (AccessGUDID lookup by DI, EUDAMED configurable search, content-hash change detection, shared reviewer queue → CatalogueService.applyUdiRecord), security/egress/EgressClient.java (HTTPS, host allow-list, no redirects, private-address refusal); RegisterFeedService openFDA; PartnerCatalogueTest (local stub server) | — |
+| IM-E02-BL-004 | As a device administrator I want recalls and safety communications for my connected models surfaced with acknowledgement tracking | 8 | IM-S2 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/catalogue/CatalogueService recalls + acknowledgement tracking; openFDA recall feed after review | — |
+| IM-E02-BL-005 | As a device administrator I want to see how confident the catalogue is about each model's connectivity and the specification it is based on | 5 | IM-S2 | DELIVERED | L2 | Connectivity matrix verification states (CERTIFIED_IN_LAB / VENDOR_CONFIRMED / COMMUNITY_REPORTED / UNVERIFIED) with basis | — |
+| IM-E02-BL-006 | As a vendor I want to submit my model, interface specification, MDS2/SBOM and driver for certification and track status | 13 | IM-S16+ | DELIVERED | L6 | intimed-platform/src/main/java/io/intimed/partner/PartnerSubmissionService.java (PARTNER_DEV submission: metadata, interface spec text/PDF ≤ 5 MB with SHA-256, MDS2 + CycloneDX/SPDX SBOM → catalogue posture, signed driver via DriverRegistry.publish → CANDIDATE; SUBMITTED → IN_REVIEW → HARNESS_PASSED → CERTIFIED/REJECTED, four-eyes certify, audited); web/PartnerController.java; UI Partners & registers; PartnerCatalogueTest | M-14 |
+| IM-E02-BL-007 | As the product team I want catalogue coverage, request and backlog analytics per tenant and globally | 5 | IM-S16+ | DELIVERED | L8 | intimed-platform/src/main/java/io/intimed/commercial/BenchmarkService.java (opt-in, k ≥ 5 organisations, small-cell suppression, no tenant ids); OperationsCommercialTest | — |
 
 ## IM-E03 – Guided Provisioning Console with Configuration Intelligence
 
@@ -106,7 +106,7 @@ _Give device administrators a console and an eight-step wizard that, at every se
 | IM-E03-F01 | Eight-step wizard & site templates | IM-E03-HLR-01; IM-E03-HLR-08 | IM-E03-BL-001 (DELIVERED) |
 | IM-E03-F02 | Recommendation engine (defaults + context + knowledge base) | IM-E03-HLR-02; IM-E03-HLR-04 | IM-E03-BL-002 (DELIVERED)<br>IM-E03-BL-003 (DELIVERED)<br>IM-E03-BL-004 (DELIVERED) |
 | IM-E03-F03 | Conflict & risk detection | IM-E03-HLR-03 | IM-E03-BL-005 (DELIVERED) |
-| IM-E03-F04 | Documentation assistant (retrieval with citations) | IM-E03-HLR-05 | IM-E03-BL-006 (PARTIAL) |
+| IM-E03-F04 | Documentation assistant (retrieval with citations) | IM-E03-HLR-05 | IM-E03-BL-006 (DELIVERED) |
 | IM-E03-F05 | Connectivity option packs P1–P10 | IM-E03-HLR-06 | IM-E03-BL-007 (DELIVERED) |
 | IM-E03-F06 | Fleet operations & diagnostics | IM-E03-HLR-07 | IM-E03-BL-008 (DELIVERED)<br>IM-E03-BL-009 (DELIVERED)<br>IM-E03-BL-010 (DELIVERED)<br>IM-E03-BL-015 (DELIVERED) |
 | IM-E03-F07 | Governance & environment promotion | IM-E03-HLR-08 | IM-E03-BL-011 (DELIVERED) |
@@ -115,23 +115,23 @@ _Give device administrators a console and an eight-step wizard that, at every se
 
 ### Backlog → implementation evidence
 
-| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason |
-|---|---|---:|---|---|---|---|
-| IM-E03-BL-001 | As a device administrator I want an eight-step wizard with pause/resume, clone and site templates that shows only options my model supports | 21 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService.java (8 steps, pause/resume, clone, new version); UI wizard; options limited to the model/driver |
-| IM-E03-BL-002 | Build the recommendation rule engine over driver defaults and tenant context (network profile, vendor software, security policy, jurisdiction, template requirements) with explanations and confidence | 21 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/console/intelligence/RecommendationEngine.java (RR-01…RR-16, why, confidence, policy outcome) |
-| IM-E03-BL-003 | Build the configuration knowledge base: de-identified configuration fingerprints from certified runs with outcome statistics, opt-in sharing, ranking and learning loop from test/production outcomes | 21 | IM-S8 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/console/intelligence/KnowledgeBase.java (de-identified fingerprints from certified runs, opt-in, success ranking) |
-| IM-E03-BL-004 | As a device administrator I want to accept, adjust or override each recommendation with a reason and see the audit trail | 8 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/console/ConfigService.decide (ACCEPT/ADJUST/OVERRIDE with reason, audit trail, decision log) |
-| IM-E03-BL-005 | Implement conflict and risk detection with tenant policy (block/warn/justify) and a pre-save validation API | 13 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/console/intelligence/PolicyEngine.java (BLOCK/JUSTIFY/WARN; pre-save validation API) |
-| IM-E03-BL-006 | As a device administrator I want cited suggestions from the vendor's interface specification I uploaded, marked unverified until the test passes | 13 | IM-S8 | PARTIAL | L3 | intimed-platform/src/main/java/io/intimed/console/intelligence/DocAssistant.java (tenant-scoped BM25 retrieval with citations, UNVERIFIED label) |
-| IM-E03-BL-007 | Author the ten connectivity option packs (schemas, guides, diagrams, validation, defaults) | 13 | IM-S3 | DELIVERED | L2 | optionpacks/P1…P11.json (schemas, defaults, validation, prerequisites, guides, test fragments); console/OptionPacks.java |
-| IM-E03-BL-008 | As a device administrator I want calibration/QC schedules with lockout and release, two-tap check entry for clinicians and audit reports | 13 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService calibration/QC (lockout, release, two-tap checks, history); UI Fleet |
-| IM-E03-BL-009 | As a clinic manager I want a fleet dashboard by site/room/bed with health, versions, alerts and update campaigns | 13 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService.fleet (site/room/bed, health, versions, alerts) |
-| IM-E03-BL-010 | As a support engineer I want PHI-masked diagnostics, payload inspector, time offset and a re-send action | 8 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/web/ConsoleController diagnostics (PHI-masked payload inspector, clock offsets, re-send) |
-| IM-E03-BL-011 | Implement roles, four-eyes approval, change history and environment promotion Dev → UAT → Prod with diffs | 13 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService (four-eyes, change history, DEV→UAT→PROD promotion with diffs, SRE approval for PROD) |
-| IM-E03-BL-012 | As a security officer I want MDS2/SBOM intake, EOL dates and a posture policy that gates certification with documented exceptions | 8 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/catalogue posture register + PolicyEngine SC-07 + security co-approval |
-| IM-E03-BL-013 | As an auditor I want a certification record per device with configuration snapshot, test evidence, approvals and the recommendation trail | 5 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService.certificationRecord (snapshot, evidence seal, approvals, recommendation trail) |
-| IM-E03-BL-014 | As a host-product vendor I want to embed the console as web components / a SMART app and drive it by API | 13 | IM-S7 | PARTIAL | L4 | static/assets/intimed-capture.js web component; REST console API |
-| IM-E03-BL-015 | As a device administrator I want decommissioning to revoke keys, remove bindings and archive configuration in one action | 5 | IM-S14 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService.decommission (revoke keys, remove bindings, archive) |
+| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason | Manual guide |
+|---|---|---:|---|---|---|---|---|
+| IM-E03-BL-001 | As a device administrator I want an eight-step wizard with pause/resume, clone and site templates that shows only options my model supports | 21 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService.java (8 steps, pause/resume, clone, new version); UI wizard; options limited to the model/driver | — |
+| IM-E03-BL-002 | Build the recommendation rule engine over driver defaults and tenant context (network profile, vendor software, security policy, jurisdiction, template requirements) with explanations and confidence | 21 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/console/intelligence/RecommendationEngine.java (RR-01…RR-16, why, confidence, policy outcome) | — |
+| IM-E03-BL-003 | Build the configuration knowledge base: de-identified configuration fingerprints from certified runs with outcome statistics, opt-in sharing, ranking and learning loop from test/production outcomes | 21 | IM-S8 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/console/intelligence/KnowledgeBase.java (de-identified fingerprints from certified runs, opt-in, success ranking) | — |
+| IM-E03-BL-004 | As a device administrator I want to accept, adjust or override each recommendation with a reason and see the audit trail | 8 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/console/ConfigService.decide (ACCEPT/ADJUST/OVERRIDE with reason, audit trail, decision log) | — |
+| IM-E03-BL-005 | Implement conflict and risk detection with tenant policy (block/warn/justify) and a pre-save validation API | 13 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/console/intelligence/PolicyEngine.java (BLOCK/JUSTIFY/WARN; pre-save validation API) | — |
+| IM-E03-BL-006 | As a device administrator I want cited suggestions from the vendor's interface specification I uploaded, marked unverified until the test passes | 13 | IM-S8 | DELIVERED | L6 | intimed-platform/src/main/java/io/intimed/console/intelligence/ExplanationService.java (policy gateway: global + tenant switch, PHI redaction, residency host allow-list, API key from secret:// or managed identity via IMDS, max tokens, rate limit, audit of prompt/response hashes only, UNVERIFIED label, citations required); DocAssistant BM25 retrieval; web/ExplanationController.java; PartnerCatalogueTest (stub endpoint) | M-15 |
+| IM-E03-BL-007 | Author the ten connectivity option packs (schemas, guides, diagrams, validation, defaults) | 13 | IM-S3 | DELIVERED | L2 | optionpacks/P1…P11.json (schemas, defaults, validation, prerequisites, guides, test fragments); console/OptionPacks.java | — |
+| IM-E03-BL-008 | As a device administrator I want calibration/QC schedules with lockout and release, two-tap check entry for clinicians and audit reports | 13 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService calibration/QC (lockout, release, two-tap checks, history); UI Fleet | — |
+| IM-E03-BL-009 | As a clinic manager I want a fleet dashboard by site/room/bed with health, versions, alerts and update campaigns | 13 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService.fleet (site/room/bed, health, versions, alerts) | — |
+| IM-E03-BL-010 | As a support engineer I want PHI-masked diagnostics, payload inspector, time offset and a re-send action | 8 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/web/ConsoleController diagnostics (PHI-masked payload inspector, clock offsets, re-send) | — |
+| IM-E03-BL-011 | Implement roles, four-eyes approval, change history and environment promotion Dev → UAT → Prod with diffs | 13 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService (four-eyes, change history, DEV→UAT→PROD promotion with diffs, SRE approval for PROD) | — |
+| IM-E03-BL-012 | As a security officer I want MDS2/SBOM intake, EOL dates and a posture policy that gates certification with documented exceptions | 8 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/catalogue posture register + PolicyEngine SC-07 + security co-approval | — |
+| IM-E03-BL-013 | As an auditor I want a certification record per device with configuration snapshot, test evidence, approvals and the recommendation trail | 5 | IM-S3 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService.certificationRecord (snapshot, evidence seal, approvals, recommendation trail) | — |
+| IM-E03-BL-014 | As a host-product vendor I want to embed the console as web components / a SMART app and drive it by API | 13 | IM-S7 | PARTIAL | L4 | static/assets/intimed-capture.js web component + REST console API + OpenAPI | M-06 |
+| IM-E03-BL-015 | As a device administrator I want decommissioning to revoke keys, remove bindings and archive configuration in one action | 5 | IM-S14 | DELIVERED | L2 | intimed-platform/src/main/java/io/intimed/console/ConfigService.decommission (revoke keys, remove bindings, archive) | — |
 
 ## IM-E04 – Configuration-Time Exchange Testing & Template Binding Verification
 
@@ -145,24 +145,24 @@ _Provide a built-in test harness that, during provisioning and after any change,
 | IM-E04-F02 | Exchange test executor | IM-E04-HLR-02 | IM-E04-BL-002 (DELIVERED)<br>IM-E04-BL-009 (DEFERRED) |
 | IM-E04-F03 | Security checks in the exchange test | IM-E04-HLR-03 | IM-E04-BL-003 (DELIVERED) |
 | IM-E04-F04 | Publish gate & re-test triggers | IM-E04-HLR-04 | IM-E04-BL-004 (DELIVERED) |
-| IM-E04-F05 | Shadow mode & parallel-run sign-off | IM-E04-HLR-05 | IM-E04-BL-005 (PARTIAL) |
+| IM-E04-F05 | Shadow mode & parallel-run sign-off | IM-E04-HLR-05 | IM-E04-BL-005 (DELIVERED) |
 | IM-E04-F06 | Evidence pack & audit retrieval | IM-E04-HLR-06 | IM-E04-BL-006 (DELIVERED) |
-| IM-E04-F07 | Site regression suites | IM-E04-HLR-07 | IM-E04-BL-007 (PARTIAL) |
+| IM-E04-F07 | Site regression suites | IM-E04-HLR-07 | IM-E04-BL-007 (DELIVERED) |
 | IM-E04-F08 | Harness API for CI and partners | IM-E04-HLR-08 | IM-E04-BL-008 (DELIVERED) |
 
 ### Backlog → implementation evidence
 
-| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason |
-|---|---|---:|---|---|---|---|
-| IM-E04-BL-001 | Build the test plan generator from configuration, template bindings and tenant policy with live/simulator modes and test-subject management | 13 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/harness/HarnessService.plan |
-| IM-E04-BL-002 | Implement the exchange test executor with sandbox template instances, coverage/unit/code/range checks, round-trip read-back, latency and negative cases | 21 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/harness/HarnessService.run (sandbox instances, coverage/unit/code/range, round trip, latency, negatives) |
-| IM-E04-BL-003 | Add security checks (TLS/mTLS, plaintext refusal, pairing policy, identity binding) to every exchange test with control mapping | 8 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/harness/HarnessService.securityChecks (plaintext, no client cert, TLS 1.1, cert validity, pairing, scopes, secrets, HMAC, OAuth) |
-| IM-E04-BL-004 | As a governance owner I want publication blocked until the exchange test passes and re-tests triggered by driver, template, firmware or parameter changes | 8 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/console/ConfigService.publish gate on configuration hash; re-test on any technical change |
-| IM-E04-BL-005 | As a template owner I want a shadow-mode parallel run with discrepancy reports by field and device before I sign off go-live | 13 | IM-S15 | PARTIAL | L5 | Shadow flag (shadowDays, SHADOW mode routing to shadow instances) |
-| IM-E04-BL-006 | As an auditor I want the evidence pack of every run attached to the device's certification record | 5 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/harness/EvidenceSealer.java (manifest, results, renderings, masked traces, timings, security, SHA-256 + Ed25519 seal) attached to certification |
-| IM-E04-BL-007 | As a device administrator I want scheduled site regression suites with trend reporting | 5 | IM-S13 | PARTIAL | L5 | Harness API and runs history per configuration |
-| IM-E04-BL-008 | Expose the harness through an API used by driver CI and partner integration tests, sharing simulators and golden datasets | 8 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/web/MachineApiController /api/v1/harness/runs (scope harness.run); sdk test |
-| IM-E04-BL-009 | Validate the harness in UAT with real devices from five families and document false-positive/negative rates | 5 | IM-S13 | DEFERRED | — | Needs real devices from five families in UAT |
+| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason | Manual guide |
+|---|---|---:|---|---|---|---|---|
+| IM-E04-BL-001 | Build the test plan generator from configuration, template bindings and tenant policy with live/simulator modes and test-subject management | 13 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/harness/HarnessService.plan | — |
+| IM-E04-BL-002 | Implement the exchange test executor with sandbox template instances, coverage/unit/code/range checks, round-trip read-back, latency and negative cases | 21 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/harness/HarnessService.run (sandbox instances, coverage/unit/code/range, round trip, latency, negatives) | — |
+| IM-E04-BL-003 | Add security checks (TLS/mTLS, plaintext refusal, pairing policy, identity binding) to every exchange test with control mapping | 8 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/harness/HarnessService.securityChecks (plaintext, no client cert, TLS 1.1, cert validity, pairing, scopes, secrets, HMAC, OAuth) | — |
+| IM-E04-BL-004 | As a governance owner I want publication blocked until the exchange test passes and re-tests triggered by driver, template, firmware or parameter changes | 8 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/console/ConfigService.publish gate on configuration hash; re-test on any technical change | — |
+| IM-E04-BL-005 | As a template owner I want a shadow-mode parallel run with discrepancy reports by field and device before I sign off go-live | 13 | IM-S15 | DELIVERED | L8 | intimed-platform/src/main/java/io/intimed/operations/ShadowReviewService.java (manual reference values encrypted, per-field/device agreement report, four-eyes clinical sign-off ends shadow mode); OperationsCommercialTest | M-08 |
+| IM-E04-BL-006 | As an auditor I want the evidence pack of every run attached to the device's certification record | 5 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/harness/EvidenceSealer.java (manifest, results, renderings, masked traces, timings, security, SHA-256 + Ed25519 seal) attached to certification | — |
+| IM-E04-BL-007 | As a device administrator I want scheduled site regression suites with trend reporting | 5 | IM-S13 | DELIVERED | L8 | intimed-platform/src/main/java/io/intimed/operations/RegressionService.java (nightly re-run of every PUBLISHED configuration, trends, regression.failed event + audit), web/OperationsController.java, UI Operations & commercial; OperationsCommercialTest | — |
+| IM-E04-BL-008 | Expose the harness through an API used by driver CI and partner integration tests, sharing simulators and golden datasets | 8 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/web/MachineApiController /api/v1/harness/runs (scope harness.run); sdk test | — |
+| IM-E04-BL-009 | Validate the harness in UAT with real devices from five families and document false-positive/negative rates | 5 | IM-S13 | DEFERRED | — | Needs real devices from five families in UAT | M-04 |
 
 ## IM-E05 – Template Binding & Clinical Capture Experience
 
@@ -184,22 +184,22 @@ _Define templates generically – an EHR flowsheet, a clinic form, an occupation
 
 ### Backlog → implementation evidence
 
-| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason |
-|---|---|---:|---|---|---|---|
-| IM-E05-BL-001 | Implement Template Definitions with field semantics, versioning, FHIR/host schema import and the catalogue by care setting | 13 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/templates/TemplateRegistry.java (22 reference templates, versioning, FHIR Questionnaire import) |
-| IM-E05-BL-002 | As a template owner I want a binding editor pre-filled with recommended bindings and regression tests on template changes | 13 | IM-S4 | DELIVERED | L3 | UI binding editor (step 5) pre-filled from the reference library (RR-10); regression via re-test on template version change |
-| IM-E05-BL-003 | Build template adapters: FHIR, HL7 v2 ORU, host REST, embedded post-back, PDF attachment with acknowledgements and error handling | 21 | IM-S5 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/templates/TemplateAdapters.java (FHIR transaction + Provenance, HL7 v2.6 ORU, REST post-back, PDF) with acknowledgements |
-| IM-E05-BL-004 | As a clinician I want a 'capture from device' component in my template that lists certified, in-calibration devices at my station or bed and files the result after my preview | 21 | IM-S5 | DELIVERED | L4 | static/assets/intimed-capture.js + capture/CaptureService (devices at station, in calibration, preview, accept/correct/reject) |
-| IM-E05-BL-005 | SMART on FHIR app and iOS/Android SDKs exposing the capture component for host products | 13 | IM-S7 | DEFERRED | — | SMART on FHIR app and native iOS/Android SDKs require app-store signing, mobile CI and host EHR sandboxes |
-| IM-E05-BL-006 | As a clinician I want the next certified option (other device, OCR with verification, manual with attestation) when a device is unavailable, with the path recorded | 5 | IM-S7 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/capture/CaptureService.fallback (other certified device → OCR with verification → manual with attestation) |
-| IM-E05-BL-007 | As a nurse I want batch screening mode with BLE devices and offline queueing; as a patient I want kiosk self-measurement with consent | 13 | IM-S7 | PARTIAL | L4 | Session association, BLE parsing, gateway queue |
-| IM-E05-BL-008 | As an ICU nurse I want validated interval values from continuous feeds with trends and artefact flags in my flowsheet, without alarms | 13 | IM-S5 | DELIVERED | L4 | CONTINUOUS templates with interval series, artefact flags, alarm flagged-not-interpreted; demo streaming |
-| IM-E05-BL-009 | As a patient I want plain-language result summaries in my language and control over my wearable data consent | 8 | IM-S8 | DEFERRED | — | Patient-facing summaries and consent UI are P3 / IM-S8 and need language packs and patient identity |
-| IM-E05-BL-010 | Reference templates & bindings – acute care: ICU/ward interval flowsheet, ED triage vitals set, anaesthesia record, infusion/MAR, blood gas & POC result (TPL-01…05) with field semantics, units, codes and harness regression cases | 13 | IM-S5 | DELIVERED | L3 | templates TPL-01…TPL-05 with bindings from drivers |
-| IM-E05-BL-011 | Reference templates & bindings – occupational health & outpatient: audiogram, spirometry, vision & colour vision, drug & alcohol with chain of custody, fit test & ergonomics, wellness/wearable summary (TPL-17…22) – aligned with OHCM forms | 13 | IM-S7 | DELIVERED | L3 | templates TPL-17…TPL-21 (audiogram, spirometry, vision, D&A chain of custody, fit test) |
-| IM-E05-BL-012 | Reference templates & bindings – laboratory, imaging & cardiology: laboratory result report, imaging order/report link & dose record, echo/ECG structured report, device-clinic remote-monitoring (IDCO) report (TPL-06…09) | 8 | IM-S10 | DELIVERED | L3 | templates TPL-06…TPL-09 |
-| IM-E05-BL-013 | Reference templates & bindings – RPM & specialist units: RPM daily readings dashboard, hospital-at-home flowsheet, dialysis session, neonatal observation chart, partogram, sleep/neurophysiology report, operative/perfusion record (TPL-10…16) | 13 | IM-S12 | DELIVERED | L3 | templates TPL-10…TPL-16, TPL-22 |
-| IM-E05-BL-014 | Time-and-motion and UX audit in two reference sites (acute ward and OH clinic) | 5 | IM-S15 | DEFERRED | — | Time-and-motion and UX audit need two reference sites |
+| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason | Manual guide |
+|---|---|---:|---|---|---|---|---|
+| IM-E05-BL-001 | Implement Template Definitions with field semantics, versioning, FHIR/host schema import and the catalogue by care setting | 13 | IM-S4 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/templates/TemplateRegistry.java (22 reference templates, versioning, FHIR Questionnaire import) | — |
+| IM-E05-BL-002 | As a template owner I want a binding editor pre-filled with recommended bindings and regression tests on template changes | 13 | IM-S4 | DELIVERED | L3 | UI binding editor (step 5) pre-filled from the reference library (RR-10); regression via re-test on template version change | — |
+| IM-E05-BL-003 | Build template adapters: FHIR, HL7 v2 ORU, host REST, embedded post-back, PDF attachment with acknowledgements and error handling | 21 | IM-S5 | DELIVERED | L3 | intimed-platform/src/main/java/io/intimed/templates/TemplateAdapters.java (FHIR transaction + Provenance, HL7 v2.6 ORU, REST post-back, PDF) with acknowledgements | — |
+| IM-E05-BL-004 | As a clinician I want a 'capture from device' component in my template that lists certified, in-calibration devices at my station or bed and files the result after my preview | 21 | IM-S5 | DELIVERED | L4 | static/assets/intimed-capture.js + capture/CaptureService (devices at station, in calibration, preview, accept/correct/reject) | — |
+| IM-E05-BL-005 | SMART on FHIR app and iOS/Android SDKs exposing the capture component for host products | 13 | IM-S7 | DEFERRED | — | SMART app packaging and native iOS/Android SDKs need app-store accounts, signing and mobile CI | M-07 |
+| IM-E05-BL-006 | As a clinician I want the next certified option (other device, OCR with verification, manual with attestation) when a device is unavailable, with the path recorded | 5 | IM-S7 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/capture/CaptureService.fallback (other certified device → OCR with verification → manual with attestation) | — |
+| IM-E05-BL-007 | As a nurse I want batch screening mode with BLE devices and offline queueing; as a patient I want kiosk self-measurement with consent | 13 | IM-S7 | PARTIAL | L4 | Session association, BLE parsing, gateway queue | M-03 |
+| IM-E05-BL-008 | As an ICU nurse I want validated interval values from continuous feeds with trends and artefact flags in my flowsheet, without alarms | 13 | IM-S5 | DELIVERED | L4 | CONTINUOUS templates with interval series, artefact flags, alarm flagged-not-interpreted; demo streaming | — |
+| IM-E05-BL-009 | As a patient I want plain-language result summaries in my language and control over my wearable data consent | 8 | IM-S8 | DEFERRED | — | Patient-facing app with localisation and patient identity is a separate product track | M-07 |
+| IM-E05-BL-010 | Reference templates & bindings – acute care: ICU/ward interval flowsheet, ED triage vitals set, anaesthesia record, infusion/MAR, blood gas & POC result (TPL-01…05) with field semantics, units, codes and harness regression cases | 13 | IM-S5 | DELIVERED | L3 | templates TPL-01…TPL-05 with bindings from drivers | — |
+| IM-E05-BL-011 | Reference templates & bindings – occupational health & outpatient: audiogram, spirometry, vision & colour vision, drug & alcohol with chain of custody, fit test & ergonomics, wellness/wearable summary (TPL-17…22) – aligned with OHCM forms | 13 | IM-S7 | DELIVERED | L3 | templates TPL-17…TPL-21 (audiogram, spirometry, vision, D&A chain of custody, fit test) | — |
+| IM-E05-BL-012 | Reference templates & bindings – laboratory, imaging & cardiology: laboratory result report, imaging order/report link & dose record, echo/ECG structured report, device-clinic remote-monitoring (IDCO) report (TPL-06…09) | 8 | IM-S10 | DELIVERED | L3 | templates TPL-06…TPL-09 | — |
+| IM-E05-BL-013 | Reference templates & bindings – RPM & specialist units: RPM daily readings dashboard, hospital-at-home flowsheet, dialysis session, neonatal observation chart, partogram, sleep/neurophysiology report, operative/perfusion record (TPL-10…16) | 13 | IM-S12 | DELIVERED | L3 | templates TPL-10…TPL-16, TPL-22 | — |
+| IM-E05-BL-014 | Time-and-motion and UX audit in two reference sites (acute ward and OH clinic) | 5 | IM-S15 | DEFERRED | — | Time-and-motion study needs two reference sites | M-08 |
 
 ## IM-E06 – Endpoint & Integration Security as a core feature
 
@@ -210,10 +210,10 @@ _Make endpoint security a built-in property of IntiMed in every environment sett
 | Feature | Name | HLRs | Backlog items (status) |
 |---|---|---|---|
 | IM-E06-F01 | Endpoint identity & PKI options | IM-E06-HLR-01 | IM-E06-BL-001 (DELIVERED) |
-| IM-E06-F02 | Network zoning reference designs | IM-E06-HLR-02 | IM-E06-BL-002 (PARTIAL) |
-| IM-E06-F03 | Hardened gateway & device-host images | IM-E06-HLR-03 | IM-E06-BL-003 (DEFERRED) |
+| IM-E06-F02 | Network zoning reference designs | IM-E06-HLR-02 | IM-E06-BL-002 (DELIVERED) |
+| IM-E06-F03 | Hardened gateway & device-host images | IM-E06-HLR-03 | IM-E06-BL-003 (PARTIAL) |
 | IM-E06-F04 | Vault/KMS integration per cloud | IM-E06-HLR-04 | IM-E06-BL-004 (PARTIAL) |
-| IM-E06-F05 | Secure development life-cycle & SBOM | IM-E06-HLR-05 | IM-E06-BL-005 (PARTIAL) |
+| IM-E06-F05 | Secure development life-cycle & SBOM | IM-E06-HLR-05 | IM-E06-BL-005 (DELIVERED) |
 | IM-E06-F06 | Vendor posture gate | IM-E06-HLR-06 | IM-E06-BL-006 (DELIVERED) |
 | IM-E06-F07 | Tamper-evident audit & SIEM | IM-E06-HLR-07 | IM-E06-BL-007 (DELIVERED) |
 | IM-E06-F08 | Anomaly detection & isolation playbook | IM-E06-HLR-08 | IM-E06-BL-008 (DELIVERED) |
@@ -223,19 +223,19 @@ _Make endpoint security a built-in property of IntiMed in every environment sett
 
 ### Backlog → implementation evidence
 
-| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason |
-|---|---|---:|---|---|---|---|
-| IM-E06-BL-001 | Implement PKI options (client CA / per-tenant managed CA), enrolment, rotation, revocation, OAuth2 clients and mTLS enforcement in all adapters | 13 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/security/pki/LocalPki.java (root + per-tenant CA, CSR enrolment, rotation tokens, revocation); security/auth/TokenService OAuth2; mTLS in all device listeners |
-| IM-E06-BL-002 | Publish reference network designs for hospital, clinic, home and cloud with firewall templates and validation scripts | 8 | IM-S1 | PARTIAL | L1 | docs/security/Network-Reference-Designs.md (hospital, clinic, home, cloud) + firewall request pre-fill |
-| IM-E06-BL-003 | Build hardened gateway and device-host images with zero-touch enrolment, drift detection and patch campaigns | 13 | IM-S1 | DEFERRED | — | Hardened gateway/device-host images (CIS, disk encryption, EDR, patch campaigns) are hardware/OS deliverables |
-| IM-E06-BL-004 | Integrate Azure Key Vault, GCP Secret Manager/Cloud KMS and HashiCorp Vault behind one secrets interface; HSM for production; CI secret scanning | 13 | IM-S1 | PARTIAL | L1 | intimed-platform/src/main/java/io/intimed/security/secrets/{SecretStore,LocalSecretStore,HashiCorpVaultSecretStore,SecretScanner}.java; gitleaks in CI |
-| IM-E06-BL-005 | Establish the IEC 81001-5-1 life-cycle: threat models, SAST/DAST/SCA gates, signed releases with SBOM, advisory monitoring, disclosure process and SLAs | 13 | IM-S1 | PARTIAL | L1 | CycloneDX SBOM per build, signed driver packages, threat model (docs/security/Threat-Model.md), .github workflow |
-| IM-E06-BL-006 | As a security officer I want a vendor posture gate (MDS2/SBOM/EOL) with isolation patterns and exceptions per tenant policy | 8 | IM-S3 | DELIVERED | L2 | Vendor posture gate with exceptions (catalogue posture, SC-07 JUSTIFY, security co-approval) |
-| IM-E06-BL-007 | Tamper-evident audit store with SIEM forwarding (Sentinel, Chronicle, Splunk, QRadar) and PHI masking | 8 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/security/audit/AuditService.java (HMAC hash chain, verify, SIEM JSONL sink, PHI masking) |
-| IM-E06-BL-008 | As a SOC analyst I want anomaly alerts with one-click isolation and a re-certification gate; run the drill | 13 | IM-S14 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/security/endpoint/AnomalyService.java (AN-01…AN-07, one-click isolation, re-certification gate, drill metrics) |
-| IM-E06-BL-009 | Privacy controls (minimisation, consent, retention, pseudonymised telemetry, de-identified non-prod) and DPIA templates per deployment setting | 8 | IM-S8 | PARTIAL | L4 | Consent enrolment and withdrawal, minimisation (events without PHI), retention via offboarding/crypto-shred, masking |
-| IM-E06-BL-010 | Maintain the security test kit with cloud-specific checks (Azure, GCP, private cloud) and run it in all reference environments per release | 13 | IM-S14 | PARTIAL | L5 | security-test-kit/ scripts 02,03,04,07,08,09,10,12,13,14,17,18,19 + report builder |
-| IM-E06-BL-011 | Launch the assurance programme: SOC 2 Type II readiness, ISO 27001 scope, GA penetration test, IEC 80001-1 agreement template | 8 | IM-S14 | DEFERRED | — | SOC 2 Type II, ISO 27001, independent pen test and IEC 80001-1 agreements are organisational programmes |
+| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason | Manual guide |
+|---|---|---:|---|---|---|---|---|
+| IM-E06-BL-001 | Implement PKI options (client CA / per-tenant managed CA), enrolment, rotation, revocation, OAuth2 clients and mTLS enforcement in all adapters | 13 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/security/pki/LocalPki.java (root + per-tenant CA, CSR enrolment, rotation tokens, revocation); security/auth/TokenService OAuth2; mTLS in all device listeners | — |
+| IM-E06-BL-002 | Publish reference network designs for hospital, clinic, home and cloud with firewall templates and validation scripts | 8 | IM-S1 | DELIVERED | L7 | security-test-kit/01_network_segmentation_check.py (mTLS-only device ports, plaintext refused, other ports closed, console reachability), NSGs + Kubernetes NetworkPolicies (Terraform/Helm), docs/security/Network-Reference-Designs.md | M-02 |
+| IM-E06-BL-003 | Build hardened gateway and device-host images with zero-touch enrolment, drift detection and patch campaigns | 13 | IM-S1 | PARTIAL | L7 | deploy/docker/Dockerfile.gateway (non-root, minimal JRE image) + enrolment API (one-time token, CSR) | M-03 |
+| IM-E06-BL-004 | Integrate Azure Key Vault, GCP Secret Manager/Cloud KMS and HashiCorp Vault behind one secrets interface; HSM for production; CI secret scanning | 13 | IM-S1 | PARTIAL | L7 | intimed-platform/src/main/java/io/intimed/security/secrets/{AzureKeyVaultSecretStore,AzureIdentity}.java (Key Vault via Entra workload identity, tenant-bound tags, no keys), Key Vault Premium HSM in Terraform, CSI-synced runtime secrets, CloudAdaptersTest | M-13 |
+| IM-E06-BL-005 | Establish the IEC 81001-5-1 life-cycle: threat models, SAST/DAST/SCA gates, signed releases with SBOM, advisory monitoring, disclosure process and SLAs | 13 | IM-S1 | DELIVERED | L7 | Release pipeline: CodeQL (SAST), Trivy (SCA/image), gitleaks, OWASP ZAP baseline (DAST), CycloneDX SBOM, cosign-signed images, signed driver packages; docs/security/Threat-Model.md | M-10 |
+| IM-E06-BL-006 | As a security officer I want a vendor posture gate (MDS2/SBOM/EOL) with isolation patterns and exceptions per tenant policy | 8 | IM-S3 | DELIVERED | L2 | Vendor posture gate with exceptions (catalogue posture, SC-07 JUSTIFY, security co-approval) | — |
+| IM-E06-BL-007 | Tamper-evident audit store with SIEM forwarding (Sentinel, Chronicle, Splunk, QRadar) and PHI masking | 8 | IM-S1 | DELIVERED | L1 | intimed-platform/src/main/java/io/intimed/security/audit/AuditService.java (HMAC hash chain, verify, SIEM JSONL sink, PHI masking) | — |
+| IM-E06-BL-008 | As a SOC analyst I want anomaly alerts with one-click isolation and a re-certification gate; run the drill | 13 | IM-S14 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/security/endpoint/AnomalyService.java (AN-01…AN-07, one-click isolation, re-certification gate, drill metrics) | — |
+| IM-E06-BL-009 | Privacy controls (minimisation, consent, retention, pseudonymised telemetry, de-identified non-prod) and DPIA templates per deployment setting | 8 | IM-S8 | PARTIAL | L4 | Consent, minimisation, retention via offboarding/crypto-shred, masking; DPIA template for Qatar (guide appendix A) | M-01 |
+| IM-E06-BL-010 | Maintain the security test kit with cloud-specific checks (Azure, GCP, private cloud) and run it in all reference environments per release | 13 | IM-S14 | PARTIAL | L7 | security-test-kit/{16_azure_posture_check,05_container_runtime_check,01_network_segmentation_check}.py + run-kit-aks.sh; fixtures; release pipeline runs 16 + 05 against UAT | M-13 |
+| IM-E06-BL-011 | Launch the assurance programme: SOC 2 Type II readiness, ISO 27001 scope, GA penetration test, IEC 80001-1 agreement template | 8 | IM-S14 | DEFERRED | — | SOC 2 / ISO 27001 / penetration test / IEC 80001-1 agreements are organisational programmes | M-10 |
 
 ## IM-E07 – Interoperability APIs, SDKs & Medical-Product Integration
 
@@ -249,22 +249,22 @@ _Expose IntiMed as a platform that medical products and healthcare systems integ
 | IM-E07-F02 | HL7 v2 & IHE DEV endpoints | IM-E07-HLR-02 | IM-E07-BL-002 (PARTIAL) |
 | IM-E07-F03 | Webhooks & event topics | IM-E07-HLR-03 | IM-E07-BL-003 (DELIVERED) |
 | IM-E07-F04 | SDKs, web components, samples & sandbox | IM-E07-HLR-04 | IM-E07-BL-004 (PARTIAL) |
-| IM-E07-F05 | Partner certification & marketplaces | IM-E07-HLR-05 | IM-E07-BL-005 (DEFERRED) |
+| IM-E07-F05 | Partner certification & marketplaces | IM-E07-HLR-05 | IM-E07-BL-005 (DELIVERED) |
 | IM-E07-F06 | Integration Guide for medical products | IM-E07-HLR-06 | IM-E07-BL-006 (DELIVERED) |
 | IM-E07-F07 | Reference integrations | IM-E07-HLR-07 | IM-E07-BL-007 (PARTIAL) |
 
 ### Backlog → implementation evidence
 
-| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason |
-|---|---|---:|---|---|---|---|
-| IM-E07-BL-001 | Expose the FHIR R4 API surface with Subscriptions, SMART launch, scopes and OpenAPI/conformance statements; contract tests | 21 | IM-S5 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/api/FhirController.java (CapabilityStatement, Observation search/read/create, Device, Subscription rest-hook), OAuth2 scopes |
-| IM-E07-BL-002 | HL7 v2 and IHE DEV endpoints with profiles and conformance tests; prepare connectathon participation | 13 | IM-S5 | PARTIAL | L4 | MLLP-TLS endpoints with ORU in/out, ADT/ORM in |
-| IM-E07-BL-003 | Signed webhooks and bus topics with retries, replay and subscription management | 8 | IM-S5 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/api/WebhookService.java (HMAC, retries, replay, subscriptions) + events/EventBus (persisted, replayable) |
-| IM-E07-BL-004 | Publish SDKs (TypeScript, Java/Kotlin, .NET, Swift, Android, Python), web components, sample apps, sandbox tenants and the developer portal | 21 | IM-S7 | PARTIAL | L4 | Web component, mdi-sdk CLI, OpenAPI-able REST API, sandbox via tenant creation |
-| IM-E07-BL-005 | As a partner I want a certification programme with automated test suites and a badge listed in the catalogue and marketplaces | 13 | IM-S16+ | DEFERRED | — | Partner certification programme with badges is P3 (IM-S16+) |
-| IM-E07-BL-006 | Write and publish the Integration Guide for medical products with per-environment instructions (MacBook; Dev/UAT/Prod on Azure, GCP, private cloud) and checklists | 8 | IM-S13 | DELIVERED | L5 | docs/integration/Integration-Guide.md (MacBook + Dev/UAT/Prod per cloud, seven patterns) |
-| IM-E07-BL-007 | Build and maintain reference integrations (EHR flowsheet FHIR + v2, OHCM, RPM app, LIS) with harness regression in CI | 21 | IM-S7 | PARTIAL | L4 | Reference host page (EP-1), host receiver (EP-4), FHIR (EP-2), HL7 (EP-3) |
-| IM-E07-BL-008 | API versioning policy, deprecation windows and partner contract tests | 3 | IM-S5 | DELIVERED | L4 | docs/integration/API-Versioning-Policy.md; FHIR CapabilityStatement; /api/v1 machine API |
+| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason | Manual guide |
+|---|---|---:|---|---|---|---|---|
+| IM-E07-BL-001 | Expose the FHIR R4 API surface with Subscriptions, SMART launch, scopes and OpenAPI/conformance statements; contract tests | 21 | IM-S5 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/api/FhirController.java (CapabilityStatement, Observation, Device, Subscription rest-hook, Patient create/update with system/Patient.write) | M-06 |
+| IM-E07-BL-002 | HL7 v2 and IHE DEV endpoints with profiles and conformance tests; prepare connectathon participation | 13 | IM-S5 | PARTIAL | L4 | MLLP-TLS endpoints with ORU in/out, ADT/ORM in | M-06 |
+| IM-E07-BL-003 | Signed webhooks and bus topics with retries, replay and subscription management | 8 | IM-S5 | DELIVERED | L4 | intimed-platform/src/main/java/io/intimed/api/WebhookService.java (HMAC, retries, replay, subscriptions) + events/EventBus (persisted, replayable) | — |
+| IM-E07-BL-004 | Publish SDKs (TypeScript, Java/Kotlin, .NET, Swift, Android, Python), web components, sample apps, sandbox tenants and the developer portal | 21 | IM-S7 | PARTIAL | L6 | intimed-platform/src/main/java/io/intimed/web/OpenApiController.java (OpenAPI 3.1 generated at runtime from RequestMappingHandlerMapping, /api/public/openapi.json: machine APIs, FHIR, intelligence, partner); intimed/sdk/typescript (fetch, typed) and intimed/sdk/python (urllib, offline unittest) with client-credentials helpers | M-07 |
+| IM-E07-BL-005 | As a partner I want a certification programme with automated test suites and a badge listed in the catalogue and marketplaces | 13 | IM-S16+ | DELIVERED | L6 | intimed-platform/src/main/java/io/intimed/partner/BadgeService.java (badge with level, date, harness version, run id, evidence seal; shown in catalogue results and GET /api/partner/badges; auto-revoked on failing run.completed or driver withdrawal); PartnerCatalogueTest | — |
+| IM-E07-BL-006 | Write and publish the Integration Guide for medical products with per-environment instructions (MacBook; Dev/UAT/Prod on Azure, GCP, private cloud) and checklists | 8 | IM-S13 | DELIVERED | L5 | docs/integration/Integration-Guide.md (MacBook + Dev/UAT/Prod per cloud, seven patterns) | — |
+| IM-E07-BL-007 | Build and maintain reference integrations (EHR flowsheet FHIR + v2, OHCM, RPM app, LIS) with harness regression in CI | 21 | IM-S7 | PARTIAL | L4 | Reference host page, host receiver, FHIR and HL7 adapters | M-06 |
+| IM-E07-BL-008 | API versioning policy, deprecation windows and partner contract tests | 3 | IM-S5 | DELIVERED | L4 | docs/integration/API-Versioning-Policy.md; FHIR CapabilityStatement; /api/v1 machine API | — |
 
 ## IM-E08 – Deployment, Environments & Operations
 
@@ -275,27 +275,27 @@ _Deliver IntiMed as reproducible infrastructure for four environment settings: a
 | Feature | Name | HLRs | Backlog items (status) |
 |---|---|---|---|
 | IM-E08-F01 | MacBook developer kit | IM-E08-HLR-01 | IM-E08-BL-001 (DELIVERED) |
-| IM-E08-F02 | Cloud blueprints & IaC (Azure, GCP, private cloud) | IM-E08-HLR-02; IM-E08-HLR-07 | IM-E08-BL-002 (DEFERRED)<br>IM-E08-BL-003 (DEFERRED)<br>IM-E08-BL-004 (DEFERRED)<br>IM-E08-BL-010 (DEFERRED) |
-| IM-E08-F03 | HA/DR design & drills | IM-E08-HLR-03 | IM-E08-BL-005 (DEFERRED) |
-| IM-E08-F04 | CI/CD & promotion | IM-E08-HLR-04 | IM-E08-BL-006 (PARTIAL) |
-| IM-E08-F05 | SRE operations & FinOps | IM-E08-HLR-05 | IM-E08-BL-007 (PARTIAL) |
+| IM-E08-F02 | Cloud blueprints & IaC (Azure, GCP, private cloud) | IM-E08-HLR-02; IM-E08-HLR-07 | IM-E08-BL-002 (DELIVERED)<br>IM-E08-BL-003 (DEFERRED)<br>IM-E08-BL-004 (DEFERRED)<br>IM-E08-BL-010 (PARTIAL) |
+| IM-E08-F03 | HA/DR design & drills | IM-E08-HLR-03 | IM-E08-BL-005 (DELIVERED) |
+| IM-E08-F04 | CI/CD & promotion | IM-E08-HLR-04 | IM-E08-BL-006 (DELIVERED) |
+| IM-E08-F05 | SRE operations & FinOps | IM-E08-HLR-05 | IM-E08-BL-007 (DELIVERED) |
 | IM-E08-F06 | Edge packaging & fleet management | IM-E08-HLR-06 | IM-E08-BL-008 (PARTIAL) |
-| IM-E08-F07 | Hosting TCO comparison model | IM-E08-HLR-08 | IM-E08-BL-009 (DEFERRED) |
+| IM-E08-F07 | Hosting TCO comparison model | IM-E08-HLR-08 | IM-E08-BL-009 (DELIVERED) |
 
 ### Backlog → implementation evidence
 
-| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason |
-|---|---|---:|---|---|---|---|
-| IM-E08-BL-001 | Build the MacBook developer kit: bootstrap, arm64/amd64 images, local cluster/compose, simulators, local PKI/Vault, sample templates and docs | 13 | IM-S1 | DELIVERED | L1 | Self-contained platform jar (embedded encrypted H2, local PKI, simulators), deploy/local (compose with PostgreSQL + Vault dev), deploy/macos bootstrap, demo pack launcher |
-| IM-E08-BL-002 | Terraform modules and Helm charts for Azure (AKS, PostgreSQL Flexible HA, Event Hubs/Strimzi, Blob, Key Vault, Entra, Front Door/WAF, Monitor/Sentinel) | 21 | IM-S1 | DEFERRED | — | Azure infrastructure (AKS, PostgreSQL Flexible HA, Event Hubs, Key Vault, Front Door) is outside the local scope |
-| IM-E08-BL-003 | Terraform modules and Helm charts for GCP (GKE, Cloud SQL HA, Pub/Sub/Strimzi, Cloud Storage, KMS/Secret Manager, Identity Platform, Cloud Armor, Logging/Chronicle) | 21 | IM-S13 | DEFERRED | — | GCP infrastructure is outside the local scope |
-| IM-E08-BL-004 | Private-cloud blueprint (OpenShift/Rancher on VMware, Patroni PostgreSQL, Strimzi/NATS, MinIO, Vault, Keycloak, HAProxy/F5, Prometheus/Grafana/Loki) with Ansible/Terraform | 21 | IM-S13 | DEFERRED | — | Private-cloud blueprint (OpenShift/Rancher, Patroni, Strimzi, MinIO, Vault) is outside the local scope |
-| IM-E08-BL-005 | HA/DR implementation and drills on each cloud; failover automation; backup verification | 13 | IM-S13 | DEFERRED | — | HA/DR drills need multi-zone environments |
-| IM-E08-BL-006 | CI/CD with signed images, SBOM, simulator/performance/security stages, GitOps promotion with approval gates; independent driver and configuration promotion | 13 | IM-S1 | PARTIAL | L1 | .github/workflows/intimed-ci.yml (build, tests, SBOM, secret scan, driver signature check) |
-| IM-E08-BL-007 | SLO catalogue, observability stacks per cloud, runbooks for top-20 failure modes, on-call, patch windows, capacity model and FinOps dashboards | 13 | IM-S13 | PARTIAL | L5 | docs/operations/Runbook-Local.md, Capacity-Model.md |
-| IM-E08-BL-008 | Edge packaging (gateway arm64/amd64 images, Windows device host MSI, mobile SDK packaging) and cloud-independent fleet management | 8 | IM-S1 | PARTIAL | L4 | Gateway mode in the platform jar (sdk gateway, enrol) |
-| IM-E08-BL-009 | Build the 5-year hosting TCO model per cloud and environment with cost per connected device; review with Finance | 5 | IM-S13 | DEFERRED | — | Five-year hosting TCO model is a Finance deliverable |
-| IM-E08-BL-010 | Reference deployments: IntiMed-hosted SaaS (Azure) and client-hosted single tenant (GCP and private cloud) with runbook parity | 8 | IM-S13 | DEFERRED | — | Reference SaaS and client-hosted deployments need cloud accounts |
+| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason | Manual guide |
+|---|---|---:|---|---|---|---|---|
+| IM-E08-BL-001 | Build the MacBook developer kit: bootstrap, arm64/amd64 images, local cluster/compose, simulators, local PKI/Vault, sample templates and docs | 13 | IM-S1 | DELIVERED | L1 | Self-contained platform jar (embedded encrypted H2, local PKI, simulators), deploy/local (compose with PostgreSQL + Vault dev), deploy/macos bootstrap, demo pack launcher | — |
+| IM-E08-BL-002 | Terraform modules and Helm charts for Azure (AKS, PostgreSQL Flexible HA, Event Hubs/Strimzi, Blob, Key Vault, Entra, Front Door/WAF, Monitor/Sentinel) | 21 | IM-S1 | DELIVERED | L7 | deploy/azure/terraform (VNet, AKS, PostgreSQL Flexible HA, Key Vault, ACR, WORM Blob, App Gateway WAF, Firewall, VPN, Log Analytics/Sentinel, Managed Prometheus, policy, budget; terraform validate + 4 mocked tests) and deploy/helm/intimed (schema-validated) | M-01 |
+| IM-E08-BL-003 | Terraform modules and Helm charts for GCP (GKE, Cloud SQL HA, Pub/Sub/Strimzi, Cloud Storage, KMS/Secret Manager, Identity Platform, Cloud Armor, Logging/Chronicle) | 21 | IM-S13 | DEFERRED | — | GCP blueprint is outside the Azure Qatar Central release | M-13 |
+| IM-E08-BL-004 | Private-cloud blueprint (OpenShift/Rancher on VMware, Patroni PostgreSQL, Strimzi/NATS, MinIO, Vault, Keycloak, HAProxy/F5, Prometheus/Grafana/Loki) with Ansible/Terraform | 21 | IM-S13 | DEFERRED | — | Private-cloud blueprint is outside the Azure Qatar Central release | M-13 |
+| IM-E08-BL-005 | HA/DR implementation and drills on each cloud; failover automation; backup verification | 13 | IM-S13 | DELIVERED | L7 | Zone-redundant AKS + Premium ZRS volume (pod reschedules across zones), PostgreSQL zone-redundant HA + 35-day PITR, WORM archive via intimed-platform/src/main/java/io/intimed/cloud/BlobArchiver.java, deploy/azure/scripts/dr-drill.sh (D1 zone loss, D2 DB failover, D3 PITR restore, D4 archive) – docs/azure/Operations-and-DR.md | M-11 |
+| IM-E08-BL-006 | CI/CD with signed images, SBOM, simulator/performance/security stages, GitOps promotion with approval gates; independent driver and configuration promotion | 13 | IM-S1 | DELIVERED | L7 | .github/workflows/intimed-azure-release.yml (tests, CodeQL, gitleaks, Trivy gate, push to ACR, cosign signature with HSM key in Key Vault, UAT deploy + helm test + posture checks + ZAP, PROD behind environment approval with signature verification), intimed-azure-infra.yml | M-11 |
+| IM-E08-BL-007 | SLO catalogue, observability stacks per cloud, runbooks for top-20 failure modes, on-call, patch windows, capacity model and FinOps dashboards | 13 | IM-S13 | DELIVERED | L7 | docs/azure/SLO-and-Runbooks.md (SLOs, top-20 failure modes RB-01…RB-20), alert rules, workbook, budget alerts, docs/azure/IntiMed-Azure-Qatar-Cost-Model.xlsx | M-11 |
+| IM-E08-BL-008 | Edge packaging (gateway arm64/amd64 images, Windows device host MSI, mobile SDK packaging) and cloud-independent fleet management | 8 | IM-S1 | PARTIAL | L7 | deploy/docker/Dockerfile.gateway (arm64/amd64 OCI gateway image, non-root, sdk gateway encrypted store-and-forward) | M-03 |
+| IM-E08-BL-009 | Build the 5-year hosting TCO model per cloud and environment with cost per connected device; review with Finance | 5 | IM-S13 | DELIVERED | L7 | docs/azure/IntiMed-Azure-Qatar-Cost-Model.xlsx (live Qatar Central retail prices, UAT/PROD bill of materials, 5-year TCO, cost per connected device) built by tools/azure/cost_model.py | M-11 |
+| IM-E08-BL-010 | Reference deployments: IntiMed-hosted SaaS (Azure) and client-hosted single tenant (GCP and private cloud) with runbook parity | 8 | IM-S13 | PARTIAL | L7 | Azure Qatar Central reference deployment (IntiMed-hosted, single-tenant per customer or multi-tenant) – Terraform envs uat/prod, Setup Guide | M-13 |
 
 ## IM-E09 – Multi-Tenancy, Commercial Operations & Analytics
 
@@ -305,23 +305,23 @@ _Run IntiMed as a business: tenant onboarding and lifecycle, licensing models (p
 
 | Feature | Name | HLRs | Backlog items (status) |
 |---|---|---|---|
-| IM-E09-F01 | Tenant lifecycle automation | IM-E09-HLR-01 | IM-E09-BL-001 (PARTIAL) |
-| IM-E09-F02 | Licensing, entitlements & metering | IM-E09-HLR-02 | IM-E09-BL-002 (PARTIAL) |
-| IM-E09-F03 | Client analytics | IM-E09-HLR-03 | IM-E09-BL-003 (PARTIAL) |
-| IM-E09-F04 | Product analytics & benchmarking | IM-E09-HLR-04 | IM-E09-BL-004 (DEFERRED) |
-| IM-E09-F05 | Customer success tooling | IM-E09-HLR-05 | IM-E09-BL-005 (DEFERRED) |
-| IM-E09-F06 | White-label / OEM | IM-E09-HLR-06 | IM-E09-BL-006 (DEFERRED) |
+| IM-E09-F01 | Tenant lifecycle automation | IM-E09-HLR-01 | IM-E09-BL-001 (DELIVERED) |
+| IM-E09-F02 | Licensing, entitlements & metering | IM-E09-HLR-02 | IM-E09-BL-002 (DELIVERED) |
+| IM-E09-F03 | Client analytics | IM-E09-HLR-03 | IM-E09-BL-003 (DELIVERED) |
+| IM-E09-F04 | Product analytics & benchmarking | IM-E09-HLR-04 | IM-E09-BL-004 (DELIVERED) |
+| IM-E09-F05 | Customer success tooling | IM-E09-HLR-05 | IM-E09-BL-005 (DELIVERED) |
+| IM-E09-F06 | White-label / OEM | IM-E09-HLR-06 | IM-E09-BL-006 (DELIVERED) |
 
 ### Backlog → implementation evidence
 
-| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason |
-|---|---|---:|---|---|---|---|
-| IM-E09-BL-001 | Automate tenant lifecycle incl. trials with sandbox devices and offboarding export/deletion evidence | 13 | IM-S16+ | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/tenancy/TenantService (create, offboard with export count and crypto-shred evidence) |
-| IM-E09-BL-002 | Implement licensing models, entitlements and metering with billing/marketplace feeds and reconciliation | 13 | IM-S16+ | PARTIAL | L4 | Entitlements and daily metering per tenant |
-| IM-E09-BL-003 | As a client executive I want monthly analytics on capture rates, time saved, data quality, calibration compliance and fleet health | 8 | IM-S15 | PARTIAL | L4 | intimed-platform/src/main/java/io/intimed/web/PlatformController /api/tenant/analytics (capture rate, verified readings, time saved estimate, calibration compliance) |
-| IM-E09-BL-004 | Privacy-preserving product analytics and cross-tenant benchmarking feeding the knowledge base (opt-in) | 8 | IM-S8 | DEFERRED | — | Cross-tenant benchmarking needs the multi-tenant SaaS (P3) |
-| IM-E09-BL-005 | As a customer success manager I want health scores and adoption dashboards with support-case integration | 5 | IM-S16+ | DEFERRED | — | Customer-success tooling is P3 |
-| IM-E09-BL-006 | As an OEM partner I want to white-label IntiMed with my branding and support channels | 8 | IM-S16+ | DEFERRED | — | White-label OEM packaging is P3 |
+| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason | Manual guide |
+|---|---|---:|---|---|---|---|---|
+| IM-E09-BL-001 | Automate tenant lifecycle incl. trials with sandbox devices and offboarding export/deletion evidence | 13 | IM-S16+ | DELIVERED | L8 | intimed-platform/src/main/java/io/intimed/commercial/TrialService.java (trial tenants with expiry, sandbox, suspension, offboarding with crypto-shred) + simulator-only enforcement in Pipeline and endpoint registration; OperationsCommercialTest | — |
+| IM-E09-BL-002 | Implement licensing models, entitlements and metering with billing/marketplace feeds and reconciliation | 13 | IM-S16+ | DELIVERED | L8 | intimed-platform/src/main/java/io/intimed/commercial/BillingService.java (HMAC-signed metering export CSV/JSONL, reconciliation against invoice lines); OperationsCommercialTest | M-14 |
+| IM-E09-BL-003 | As a client executive I want monthly analytics on capture rates, time saved, data quality, calibration compliance and fleet health | 8 | IM-S15 | DELIVERED | L8 | intimed-platform/src/main/java/io/intimed/commercial/MonthlyReportService.java (JSON/CSV executive report, monthly snapshots); OperationsCommercialTest | — |
+| IM-E09-BL-004 | Privacy-preserving product analytics and cross-tenant benchmarking feeding the knowledge base (opt-in) | 8 | IM-S8 | DELIVERED | L8 | intimed-platform/src/main/java/io/intimed/commercial/BenchmarkService.java + KnowledgeBase.contributeAggregate (k-anonymous aggregates only); OperationsCommercialTest | — |
+| IM-E09-BL-005 | As a customer success manager I want health scores and adoption dashboards with support-case integration | 5 | IM-S16+ | DELIVERED | L8 | intimed-platform/src/main/java/io/intimed/commercial/TenantHealthService.java (0–100 health score with explained factors); OperationsCommercialTest | — |
+| IM-E09-BL-006 | As an OEM partner I want to white-label IntiMed with my branding and support channels | 8 | IM-S16+ | DELIVERED | L8 | intimed-platform/src/main/java/io/intimed/commercial/BrandingService.java (validated tokens, hardened SVG/PNG logo check, CSSOM application in console and capture component); OperationsCommercialTest | — |
 
 ## IM-E10 – Product Regulatory, Quality & Clinical Safety
 
@@ -337,19 +337,19 @@ _Establish IntiMed as a quality-managed health software product: software safety
 | IM-E10-F04 | Usability engineering file | IM-E10-HLR-04 | IM-E10-BL-004 (DEFERRED) |
 | IM-E10-F05 | Clinical safety case templates, labelling & IFU | IM-E10-HLR-05 | IM-E10-BL-005 (PARTIAL) |
 | IM-E10-F06 | Post-market surveillance & complaints | IM-E10-HLR-06 | IM-E10-BL-006 (DEFERRED) |
-| IM-E10-F07 | Supplier management | IM-E10-HLR-07 | IM-E10-BL-007 (PARTIAL) |
+| IM-E10-F07 | Supplier management | IM-E10-HLR-07 | IM-E10-BL-007 (DELIVERED) |
 
 ### Backlog → implementation evidence
 
-| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason |
-|---|---|---:|---|---|---|---|
-| IM-E10-BL-001 | Produce the regulatory analysis and classification record per market with exclusions and maintenance procedure | 8 | IM-S0 | DELIVERED | L1 | docs/regulatory/Classification-Record.md; /api/quality/classification |
-| IM-E10-BL-002 | Implement IEC 62304 processes within the agile model and traceability tooling from epics/HLR to tests and releases | 13 | IM-S1 | DELIVERED | L1 | Traceability epic → HLR → backlog → code → tests (this matrix, /api/quality/backlog, docs/traceability) |
-| IM-E10-BL-003 | Build the ISO 14971 risk management file with hazard analysis and controls traced to features and tests | 13 | IM-S4 | PARTIAL | L3 | docs/regulatory/Risk-Management-Summary.md (hazards → controls → tests) |
-| IM-E10-BL-004 | Usability engineering file with formative and summative evaluations of capture component, console and wizard | 8 | IM-S14 | DEFERRED | — | Formative/summative usability studies need representative users |
-| IM-E10-BL-005 | Clinical safety case templates, hazard logs, labelling, IFU, release notes and known-anomaly process | 8 | IM-S14 | PARTIAL | L5 | Release notes, known anomalies, labelling of excluded functions in docs |
-| IM-E10-BL-006 | Post-market surveillance, complaint handling and vigilance interfaces with timelines and risk-file feedback | 5 | IM-S15 | DEFERRED | — | Post-market surveillance and vigilance require a live product |
-| IM-E10-BL-007 | Supplier management register for open source, cloud providers and device vendors | 5 | IM-S13 | PARTIAL | L5 | SBOM per build (open-source register input) |
+| Backlog | Title | SP | Sprint | Status | Increment | Evidence / reason | Manual guide |
+|---|---|---:|---|---|---|---|---|
+| IM-E10-BL-001 | Produce the regulatory analysis and classification record per market with exclusions and maintenance procedure | 8 | IM-S0 | DELIVERED | L1 | docs/regulatory/Classification-Record.md; /api/quality/classification | — |
+| IM-E10-BL-002 | Implement IEC 62304 processes within the agile model and traceability tooling from epics/HLR to tests and releases | 13 | IM-S1 | DELIVERED | L1 | Traceability epic → HLR → backlog → code → tests (this matrix, /api/quality/backlog, docs/traceability) | — |
+| IM-E10-BL-003 | Build the ISO 14971 risk management file with hazard analysis and controls traced to features and tests | 13 | IM-S4 | PARTIAL | L3 | docs/regulatory/Risk-Management-Summary.md (hazards → controls → tests incl. 2.0 rows) | M-09 |
+| IM-E10-BL-004 | Usability engineering file with formative and summative evaluations of capture component, console and wizard | 8 | IM-S14 | DEFERRED | — | IEC 62366-1 formative/summative studies need representative users | M-08 |
+| IM-E10-BL-005 | Clinical safety case templates, hazard logs, labelling, IFU, release notes and known-anomaly process | 8 | IM-S14 | PARTIAL | L5 | Release notes, labelling of excluded functions, classification record | M-09 |
+| IM-E10-BL-006 | Post-market surveillance, complaint handling and vigilance interfaces with timelines and risk-file feedback | 5 | IM-S15 | DEFERRED | — | Post-market surveillance needs a live product | M-09 |
+| IM-E10-BL-007 | Supplier management register for open source, cloud providers and device vendors | 5 | IM-S13 | DELIVERED | L7 | tools/compliance/supplier_register.py (SBOM components + Azure services + device vendors → supplier register workbook) | M-09 |
 
 ## HLR index
 
@@ -449,7 +449,12 @@ _Establish IntiMed as a quality-managed health software product: software safety
 
 | Test class | What it proves |
 |---|---|
+| **Total 134 automated tests** (Maven) + 4 Terraform plan/apply tests (mocked providers) + security kit 69 local checks + Azure checks (01, 05, 16) | |
 | `UnitTests` (36) | All 26 driver packages valid, signed, secret-free, golden session parses every semantic key, malformed rejected; XXE refused; SFLOAT; serial checksum; GDT length; payload size; UCUM; AES-GCM context binding; RFC 6238 TOTP vector; PHI masking; secret scanner |
 | `PlatformIntegrationTest` (10) | Wizard with intelligence → exchange test 15/15 over real mTLS → four-eyes refusal/approval → publish gate → DEV/UAT, PROD needs SRE; live capture files into TPL-18, PHI encrypted at rest, idempotent re-send; re-test after change; RR-03 block; SC-19 accept-all refused in UAT; plaintext/no-cert/revoked refused; anomaly isolation + re-certification gate; tenant isolation (ciphertext copied across tenants cannot be read); audit tamper detection; HTTP controls (401, CSRF, CSP, HSTS, FHIR auth, webhook HMAC); password policy and lockout |
+| `ClinicalIntelligenceTests` (42), `ClinicalIntelligenceDeferredIntegrationTest` (8) | Reference ranges, cohorts, validation, eGFR/derived values, delta checks, EP28 governance, host demographics, RR-17/RR-18, trajectories, terminology adapter |
+| `OperationsCommercialTest` (8) | Regression suites, shadow sign-off, monthly report, health score, billing HMAC + reconciliation, trials (simulator-only), branding hardening, k-anonymous benchmarks |
+| `PartnerCatalogueTest` (9), `ProtocolCodecTests` (8) | Partner submissions + four-eyes + badges, GUDID/EUDAMED feeds, AI gateway policy, OpenAPI; ASTM E1381 / POCT1-A2 codecs |
+| `CloudAdaptersTest` (4) | Azure Key Vault secret store (tenant binding, HTTPS/host rules), workload-identity token exchange, immutable Blob archiver |
 | `ArchitectureTest` (4) | Engine core independent of control plane; security independent of engine; templates host-agnostic; nothing depends on the demo |
 | `security-test-kit/` | SC-01…SC-20 local scripts against the running platform (see kit README) |

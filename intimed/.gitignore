@@ -14,3 +14,4 @@ deploy/azure/terraform/tfplan
 deploy/helm/intimed/values-*.generated.yaml
 dr-drill-*.json
 soak-report.json
+__pycache__/

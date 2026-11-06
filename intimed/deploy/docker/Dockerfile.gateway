@@ -3,7 +3,7 @@
 # mutual TLS. Enrol once (`sdk enrol` with a one-time token), then run `sdk gateway`. Identity and queue live on /gateway.
 ARG BASE=eclipse-temurin:21.0.8_9-jre-noble
 FROM ${BASE}
-LABEL org.opencontainers.image.title="IntiMed edge gateway" org.opencontainers.image.version="2.0.0"
+LABEL org.opencontainers.image.title="IntiMed edge gateway" org.opencontainers.image.version="2.1.0"
 RUN groupadd --system --gid 10010 gateway && useradd --system --uid 10010 --gid gateway --home-dir /gateway --shell /usr/sbin/nologin gateway \
     && usermod -aG dialout gateway \
     && mkdir -p /gateway && chown gateway:gateway /gateway \
