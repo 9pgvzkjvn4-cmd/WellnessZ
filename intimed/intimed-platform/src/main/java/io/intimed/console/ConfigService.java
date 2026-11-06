@@ -431,6 +431,7 @@ public class ConfigService {
         Current.require(Role.TEMPLATE_OWNER, Role.PHYSICIAN);
         ObjectNode c = get(tenant, id);
         if (!c.has("shadow")) throw ApiException.conflict("no-shadow", "configuration is not in shadow mode");
+        if (actor.equals(c.path("createdBy").asString())) throw ApiException.forbidden("four-eyes", "the configuration creator cannot sign off its own shadow run");
         c.withObject("shadow").put("signedOff", true).put("signedOffBy", actor).put("signedOffAt", Instant.now().toString());
         store.put(tenant, KIND, id, c, c.get("status").asString(), c.get("modelId").asString());
         audit.record(tenant, actor, "config.shadow.signoff", "config/" + id, null);

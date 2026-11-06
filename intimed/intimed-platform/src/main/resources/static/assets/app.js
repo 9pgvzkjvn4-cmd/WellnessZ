@@ -6,6 +6,7 @@ import { capturePage } from './pages/capture.js';
 import { securityPage } from './pages/security.js';
 import { integrationPage, tenantPage } from './pages/integration.js';
 import { intelligencePage } from './pages/intelligence.js';
+import { operations2Page } from './pages/operations2.js';
 
 export const state = { me: null, info: null };
 
@@ -22,15 +23,31 @@ const NAV = [
   ['security', 'Security', ['SECURITY_ANALYST', 'DEVICE_ADMIN', 'CISO_DPO', 'PLATFORM_SRE', 'AUDITOR', 'TENANT_ADMIN']],
   ['integration', 'Integration & APIs', ['INTEGRATION_DEV', 'PARTNER_DEV', 'TENANT_ADMIN', 'DEVICE_ADMIN']],
   ['tenant', 'Tenant & analytics', ['TENANT_ADMIN', 'PLATFORM_SRE', 'DEVICE_ADMIN']],
+  ['operations', 'Operations & commercial', ['DEVICE_ADMIN', 'PLATFORM_SRE', 'TENANT_ADMIN', 'TEMPLATE_OWNER', 'CLINICIAN', 'PHYSICIAN', 'INTEGRATION_DEV', 'REGULATORY', 'AUDITOR']],
   ['quality', 'Traceability & quality', null],
   ['demo', 'Demo control', null],
 ];
 
 export const has = (...roles) => state.me && state.me.roles.some(r => roles.includes(r));
 
+// White-label theming (IM-E09-BL-006): tenant colours become CSS custom properties through the CSSOM (allowed by the
+// CSP, unlike inline style attributes); the capture web component inherits the same --im-* tokens.
+const HEX = /^#[0-9a-fA-F]{6}$/;
+export function applyBranding(b) {
+  if (!b) return;
+  state.branding = b;
+  const root = document.documentElement.style;
+  if (HEX.test(b.primaryColor || '')) { root.setProperty('--brand', b.primaryColor); root.setProperty('--im-primary', b.primaryColor); }
+  if (HEX.test(b.accentColor || '')) { root.setProperty('--brand-2', b.accentColor); root.setProperty('--im-accent', b.accentColor); }
+  if (b.productName) document.title = b.productName + ' Console';
+}
+
+async function loadBranding() { try { applyBranding(await get('/api/tenant/branding')); } catch { /* default theme */ } }
+
 async function boot() {
   try { state.info = await get('/api/public/info'); } catch { state.info = { environment: 'LOCAL' }; }
   try { await get('/api/auth/csrf'); state.me = await get('/api/auth/me'); } catch { state.me = null; }
+  if (state.me) await loadBranding();
   window.addEventListener('hashchange', route);
   route();
 }
@@ -46,7 +63,8 @@ function shell(page, rest) {
   const root = clear($('#app'));
   const main = h('main', { id: 'main', class: 'main', tabindex: '-1' });
   const nav = h('nav', { class: 'side', 'aria-label': 'Main' },
-    h('div', { class: 'brand' }, h('img', { src: '/favicon.svg', alt: '', width: 28, height: 28 }), h('div', null, h('b', null, 'IntiMed'), h('small', null, 'Device integration platform'))),
+    h('div', { class: 'brand' }, h('img', { src: (state.branding && state.branding.logo) || '/favicon.svg', alt: '', width: 28, height: 28 }),
+      h('div', null, h('b', null, (state.branding && state.branding.productName) || 'IntiMed'), h('small', null, (state.branding && state.branding.custom) ? 'powered by IntiMed' : 'Device integration platform'))),
     NAV.filter(([, , roles]) => !roles || has(...roles)).map(([id, label]) => h('a', { href: '#/' + id, class: 'nav' + (id === page ? ' active' : '') }, label)));
   const top = h('header', { class: 'top' },
     h('div', { class: 'env' }, badge(state.info.environment || 'LOCAL', 'env'), h('span', null, state.me.tenantName)),
@@ -54,7 +72,7 @@ function shell(page, rest) {
       button('Sign out', async () => { await post('/api/auth/logout').catch(() => {}); state.me = null; location.hash = '#/login'; location.reload(); }, 'ghost')));
   root.append(h('a', { class: 'skip', href: '#main' }, 'Skip to content'), nav, h('div', { class: 'col' }, top, main));
   const pages = { overview, catalogue, configs: configsPage, wizard, runs: runsPage, run: runDetail, fleet: fleetPage, templates: templatesPage, capture: capturePage,
-    ops: opsPage, security: securityPage, integration: integrationPage, intelligence: intelligencePage, tenant: tenantPage, quality, demo };
+    ops: opsPage, security: securityPage, integration: integrationPage, intelligence: intelligencePage, operations: operations2Page, tenant: tenantPage, quality, demo };
   const fn = pages[page] || overview;
   Promise.resolve(fn(main, rest)).catch(e => { main.append(card('Error', h('p', { class: 'err' }, e.message))); });
 }
@@ -70,7 +88,7 @@ function loginView() {
       await get('/api/auth/csrf');
       const r = await post('/api/auth/login', { username: user.value.trim(), password: pw.value });
       if (r.mfaRequired) return mfaView(r.demoAuthenticator);
-      state.me = r.user; location.hash = '#/overview'; route();
+      state.me = r.user; await loadBranding(); location.hash = '#/overview'; route();
     } catch (err) { msg.textContent = err.message; }
   } },
     h('img', { src: '/favicon.svg', alt: '', width: 48, height: 48 }), h('h1', null, 'IntiMed'), h('p', { class: 'muted' }, 'Intelligent Medical Device Integration Platform · LOCAL'),
@@ -91,7 +109,7 @@ function mfaView(demoAuth) {
   }
   root.append(h('div', { class: 'login-wrap' }, h('form', { class: 'login', onsubmit: async (e) => {
     e.preventDefault();
-    try { const r = await post('/api/auth/mfa', { code: code.value.trim() }); state.me = r.user; location.hash = '#/overview'; route(); } catch (err) { msg.textContent = err.message; }
+    try { const r = await post('/api/auth/mfa', { code: code.value.trim() }); state.me = r.user; await loadBranding(); location.hash = '#/overview'; route(); } catch (err) { msg.textContent = err.message; }
   } }, h('h1', null, 'Second factor'), h('p', { class: 'muted' }, 'Enter the 6-digit code from your authenticator app (RFC 6238 TOTP).'), field('Authentication code', code), msg,
     h('button', { class: 'btn primary wide', type: 'submit' }, 'Verify'), helper)));
   code.focus();

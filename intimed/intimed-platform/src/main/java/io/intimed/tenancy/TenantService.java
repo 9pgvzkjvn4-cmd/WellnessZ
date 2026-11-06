@@ -119,9 +119,27 @@ public class TenantService {
                 .query((rs, i) -> Map.<String, Object>of("day", rs.getString(1), "meter", rs.getString(2), "qty", rs.getLong(3))).list();
     }
 
-    /** Offboarding: export + crypto-shred evidence (IM-E09-BL-001 local subset). */
+    /**
+     * Lifecycle status change (trial suspension, IM-E09-BL-001) with an optional settings patch applied regardless of the
+     * current status. Never used to re-activate an offboarded tenant (its data key is shredded).
+     */
+    public Tenant setStatus(String id, String status, ObjectNode settingsPatch, String actor) {
+        Tenant t = find(id);
+        if (t == null) throw ApiException.notFound("tenant");
+        if ("OFFBOARDED".equals(t.status())) throw ApiException.conflict("offboarded", "tenant is offboarded");
+        if (!Set.of("ACTIVE", "SUSPENDED").contains(status)) throw ApiException.bad("invalid-status", "status must be ACTIVE or SUSPENDED");
+        ObjectNode s = (ObjectNode) t.settings().deepCopy();
+        if (settingsPatch != null) s.setAll(settingsPatch);
+        jdbc.sql("update tenants set status = :st, settings = :s where id = :i").param("st", status).param("s", Json.write(s)).param("i", id).update();
+        audit.record(id, actor, "tenant.status", "tenant/" + id, Map.of("from", t.status(), "to", status));
+        return find(id);
+    }
+
+    /** Offboarding: export + crypto-shred evidence (IM-E09-BL-001 local subset). Allowed for ACTIVE and SUSPENDED tenants. */
     public Map<String, Object> offboard(String id, String actor) {
-        require(id);
+        Tenant t = find(id);
+        if (t == null) throw ApiException.notFound("tenant");
+        if ("OFFBOARDED".equals(t.status())) throw ApiException.conflict("offboarded", "tenant is already offboarded");
         jdbc.sql("update tenants set status = 'OFFBOARDED' where id = :i").param("i", id).update();
         long docs = jdbc.sql("delete from documents where tenant_id = :i").param("i", id).update();
         keys.shred(id);

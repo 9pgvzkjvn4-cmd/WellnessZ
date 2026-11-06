@@ -22,7 +22,7 @@ import java.util.Set;
 @Repository
 public class DocumentStore {
     /** Kinds that can contain subject identifiers or measurements → always encrypted at rest. */
-    public static final Set<String> SENSITIVE = Set.of("observation", "sandbox-instance", "template-instance", "unmatched", "dlq", "raw", "capture", "worklist", "shadow", "subject", "bed", "enrolment");
+    public static final Set<String> SENSITIVE = Set.of("observation", "sandbox-instance", "template-instance", "unmatched", "dlq", "raw", "capture", "worklist", "shadow", "subject", "bed", "enrolment", "shadow-reference");
     public static final String GLOBAL = "_global";
 
     private final JdbcClient jdbc;
@@ -95,6 +95,19 @@ public class DocumentStore {
     public long countByStatus(String tenant, String kind, String status) {
         return jdbc.sql("select count(*) from documents where tenant_id = :t and kind = :k and status = :s")
                 .param("t", tenant).param("k", kind).param("s", status).query(Long.class).single();
+    }
+
+    /** Count by the non-PHI ref column (no decryption) – benchmarking and health scoring. */
+    public long countByRef(String tenant, String kind, String ref) {
+        requireTenant(tenant);
+        return jdbc.sql("select count(*) from documents where tenant_id = :t and kind = :k and ref = :r")
+                .param("t", tenant).param("k", kind).param("r", ref).query(Long.class).single();
+    }
+
+    public long countByRefAndStatus(String tenant, String kind, String ref, String status) {
+        requireTenant(tenant);
+        return jdbc.sql("select count(*) from documents where tenant_id = :t and kind = :k and ref = :r and status = :s")
+                .param("t", tenant).param("k", kind).param("r", ref).param("s", status).query(Long.class).single();
     }
 
     public void delete(String tenant, String kind, String id) {
