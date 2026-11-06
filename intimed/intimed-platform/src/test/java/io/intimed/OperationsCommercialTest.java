@@ -94,6 +94,8 @@ class OperationsCommercialTest {
     @Autowired TenantHealthService health;
     @Autowired BillingService billing;
     @Autowired TrialService trials;
+    @Autowired io.intimed.web.SecurityController securityController;
+    @Autowired io.intimed.engine.pipeline.Pipeline pipeline;
     @Autowired BrandingService branding;
     @Autowired BenchmarkService benchmarks;
     @Autowired OperationsController opsApi;
@@ -368,6 +370,14 @@ class OperationsCommercialTest {
         assertThat(t.plan()).isEqualTo("TRIAL");
         assertThat(t.settings().path("simulatorOnly").asBoolean()).isTrue();
         assertThat(store.get("oc-trial", "subject", TrialService.SANDBOX_SUBJECT)).isPresent();
+        // simulator-only is enforced: no real endpoint can be registered, non-simulator live traffic is rejected
+        assertThatThrownBy(() -> Current.as(new io.intimed.security.auth.IntiPrincipal("u-trial", "trial.admin", "oc-trial", "Trial admin",
+                java.util.EnumSet.of(io.intimed.security.auth.Role.DEVICE_ADMIN), java.util.Set.of(), false),
+                () -> securityController.register(Json.obj().put("name", "Real monitor gateway")))).hasMessageContaining("simulator traffic only");
+        String cfgOnTrial = "cfg-none";
+        var rejected = pipeline.process(io.intimed.engine.pipeline.Envelope.live("oc-trial", "ep-real-device", cfgOnTrial, "P4", "MSH|x", "10.0.0.9"));
+        assertThat(rejected.status).isEqualTo("REJECTED");
+        assertThat(rejected.error).contains("simulator traffic only");
         assertThat(store.require("oc-trial", "trial-sandbox", "sandbox").get("simulators")).isNotEmpty();
         assertThatThrownBy(() -> trials.create("oc-trial2", "x", "eu-west", 365, null, "user:sre")).isInstanceOf(ApiException.class);
         Instant now = Instant.now();

@@ -35,8 +35,11 @@ public class SecurityController {
     private final AuditService audit;
     private final SecretStore secrets;
     private final DocumentStore store;
+    private final io.intimed.tenancy.TenantService tenants;
 
-    public SecurityController(EndpointService endpoints, AnomalyService anomalies, AuditService audit, SecretStore secrets, DocumentStore store) {
+    public SecurityController(EndpointService endpoints, AnomalyService anomalies, AuditService audit, SecretStore secrets, DocumentStore store,
+                              io.intimed.tenancy.TenantService tenants) {
+        this.tenants = tenants;
         this.endpoints = endpoints;
         this.anomalies = anomalies;
         this.audit = audit;
@@ -51,6 +54,9 @@ public class SecurityController {
     @PostMapping("/endpoints")
     public Map<String, Object> register(@RequestBody JsonNode b) {
         Current.require(Role.DEVICE_ADMIN, Role.SECURITY_ANALYST);
+        // IM-E09-BL-001: trial tenants run on the platform's simulators only – no real device / gateway identities
+        if (tenants.require(t()).settings().path("simulatorOnly").asBoolean(false))
+            throw io.intimed.common.ApiException.conflict("trial-simulator-only", "trial tenants accept simulator traffic only – convert the tenant to a paid plan to enrol real devices");
         EndpointService.Registered r = endpoints.register(t(), b.path("name").asString(), b.path("type").asString("GATEWAY"), b.path("site").asString("Main clinic"), b.path("zone").asString("MDZ-1"), Current.actor());
         return Map.of("endpoint", r.endpoint(), "enrolmentToken", r.enrolmentToken(), "expiresInMinutes", 15, "note", "single use – shown once");
     }

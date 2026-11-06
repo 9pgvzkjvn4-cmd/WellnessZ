@@ -68,15 +68,23 @@ public class Pipeline {
         this.tenants = tenants;
     }
 
+    /** Platform-issued simulator / probe identities (harness probe, demo gateway). */
+    static final java.util.Set<String> SIMULATOR_ENDPOINTS = java.util.Set.of("ep-harness", "ep-demo-gateway");
+
     public PipelineResult process(Envelope env) {
         long t0 = System.nanoTime();
         String tenant = env.tenant();
+        JsonNode tenantSettings = tenants.require(tenant).settings();
+        // IM-E09-BL-001: a trial tenant only accepts live traffic from the platform's own simulator identities
+        if (!env.test() && tenantSettings.path("simulatorOnly").asBoolean(false) && env.endpointId() != null && !SIMULATOR_ENDPOINTS.contains(env.endpointId())) {
+            return PipelineResult.of("REJECTED", "AR", "trial tenant accepts simulator traffic only");
+        }
         ObjectNode config = store.get(tenant, "config", env.configId() == null ? "-" : env.configId()).orElse(null);
         if (config == null) return PipelineResult.of("REJECTED", "AR", "no configuration bound for this message");
         boolean published = "PUBLISHED".equals(config.path("status").asString());
         if (!env.test() && !published && !"SHADOW".equals(env.mode())) return PipelineResult.of("REJECTED", "AR", "configuration is not published");
         if ("DECOMMISSIONED".equals(config.path("status").asString())) return PipelineResult.of("REJECTED", "AR", "configuration decommissioned");
-        JsonNode quotas = tenants.require(tenant).settings().path("quotas");
+        JsonNode quotas = tenantSettings.path("quotas");
         if (!limiter.allow("tenant:" + tenant, quotas.path("messagesPerSecond").asDouble(500), quotas.path("burst").asDouble(1000))
                 || (env.endpointId() != null && !limiter.allow("ep:" + env.endpointId(), config.path("params").path("maxMessagesPerSecond").asDouble(50), 100))) {
             if (env.endpointId() != null) anomalies.signal(tenant, env.endpointId(), "RATE_EXCEEDED", "config " + config.get("id").asString());
