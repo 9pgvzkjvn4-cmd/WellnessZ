@@ -47,6 +47,11 @@ public class ValidationEngine {
      * @param context consent, regulation and other category parameters supplied by the caller
      */
     public ObjectNode validate(JsonNode tpl, ObjectNode fields, String categoryId, Demographics demo, JsonNode context) {
+        return validate(null, tpl, fields, categoryId, demo, context);
+    }
+
+    /** Tenant-aware validation: re-annotation uses the tenant's ACTIVE interval overlay (IM-E14-BL-011) – XT-17 and the studio. */
+    public ObjectNode validate(String tenant, JsonNode tpl, ObjectNode fields, String categoryId, Demographics demo, JsonNode context) {
         JsonNode cat = categoryId == null ? null : categories.require(categoryId);
         List<String> rules = new ArrayList<>();
         if (cat == null) rules.addAll(List.of("STRUCTURE", "TERMINOLOGY", "UNITS", "PLAUSIBILITY", "CLINICAL_RANGE", "CROSS_FIELD"));
@@ -58,7 +63,7 @@ public class ValidationEngine {
         fields.properties().forEach(e -> {
             JsonNode def = TemplateRegistry.field(tpl, e.getKey());
             if (def != null && e.getValue().path("value").isNumber() && cat != null && !"informational".equals(cat.path("interpretation").asString()))
-                ranges.annotate((ObjectNode) e.getValue(), def, e.getKey(), d);
+                ranges.annotate((ObjectNode) e.getValue(), def, e.getKey(), d, tenant);
             if (cat != null && "informational".equals(cat.path("interpretation").asString()) && e.getValue().isObject()) {
                 ((ObjectNode) e.getValue()).remove(List.of("interpretation", "grade"));
             }
@@ -115,6 +120,8 @@ public class ValidationEngine {
             if (v.has("referenceRange")) row.set("referenceRange", v.get("referenceRange"));
             if (v.has("interpretation")) row.set("interpretation", v.get("interpretation"));
             if (v.has("grade")) row.put("grade", v.get("grade").asString());
+            if (v.has("derived")) row.put("label", def.path("label").asString() + " (" + v.path("label").asString("derived – verify") + ")").set("derived", v.get("derived"));
+            if (v.has("delta")) row.set("delta", v.get("delta"));
         }
         ObjectNode inst = Json.obj().put("id", "validation-" + tpl.get("id").asString()).put("templateId", tpl.get("id").asString()).put("subject", "SYNTHETIC")
                 .put("effectiveTime", Instant.now().toString()).put("filedAt", Instant.now().toString()).put("deviceSerial", "SIM");

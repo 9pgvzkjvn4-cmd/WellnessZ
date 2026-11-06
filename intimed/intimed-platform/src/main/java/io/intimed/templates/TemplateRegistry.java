@@ -101,7 +101,8 @@ public class TemplateRegistry {
                 ObjectNode c = f.putObject("code");
                 String sys = code.path("system").asString("");
                 c.put(sys.contains("loinc") ? "loinc" : sys.contains("11073") ? "mdc" : "code", code.path("code").asString());
-            }
+                // code from a system IntiMed does not know: keep the system for the terminology adapter (IM-E12-BL-010)
+                if (!sys.contains("loinc") && !sys.contains("11073") && !sys.isBlank()) c.put("system", sys);            }
             for (JsonNode ext : it.path("extension")) {
                 String url = ext.path("url").asString("");
                 if (url.endsWith("questionnaire-unit") || url.endsWith("questionnaire-unitOption")) f.put("unit", ext.path("valueCoding").path("code").asString());

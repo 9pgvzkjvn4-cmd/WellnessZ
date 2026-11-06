@@ -20,6 +20,39 @@ import java.util.List;
 public class ReferenceRanges {
     public static final String INTERPRETATION_SYSTEM = "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation";
     private final JsonNode kb = Json.resource("clinical/reference-ranges.json");
+    /** Tenant overlay source (IM-E14-BL-011): tenant → ACTIVE overlay {version, entries:{entryId:[ranges]}} or null. */
+    private volatile java.util.function.Function<String, JsonNode> overlays = t -> null;
+
+    /** Registered by the interval-governance service; kept as a hook so the knowledge base stays usable stand-alone. */
+    public void overlaySource(java.util.function.Function<String, JsonNode> source) { this.overlays = source == null ? t -> null : source; }
+
+    /**
+     * The entry as it applies to a tenant: the tenant's ACTIVE, four-eyes-approved and EP28-verified overlay replaces the
+     * default partitions of that entry (modifiers and context notes are kept); otherwise the default entry.
+     */
+    public JsonNode effective(JsonNode e, String tenant) {
+        if (e == null || tenant == null) return e;
+        JsonNode ov;
+        try { ov = overlays.apply(tenant); } catch (RuntimeException ex) { ov = null; }
+        if (ov == null || !ov.path("entries").has(e.get("id").asString())) return e;
+        ObjectNode c = (ObjectNode) e.deepCopy();
+        ArrayNode rs = Json.arr();
+        for (JsonNode r : ov.path("entries").get(e.get("id").asString())) {
+            ObjectNode rr = (ObjectNode) r.deepCopy();
+            if (!rr.has("categories")) for (JsonNode d : e.get("ranges")) {
+                boolean overlap = d.get("ageFrom").asDouble() < rr.path("ageTo").asDouble(200) && rr.path("ageFrom").asDouble(0) < d.get("ageTo").asDouble();
+                String ds = d.path("sex").asString("any"), os = rr.path("sex").asString("any");
+                if (overlap && d.has("categories") && (ds.equals(os) || "any".equals(ds))) { rr.set("categories", d.get("categories")); break; }
+            }
+            rs.add(rr);
+        }
+        c.set("ranges", rs);
+        c.put("source", "tenant overlay v" + ov.path("version").asInt() + (ov.hasNonNull("source") ? " – " + ov.get("source").asString() : ""));
+        c.put("overlayVersion", ov.path("version").asInt()).put("overlayId", ov.path("id").asString());
+        return c;
+    }
+
+    public Resolved resolve(JsonNode e, Demographics d, String tenant) { return resolve(effective(e, tenant), d); }
 
     public JsonNode knowledgeBase() { return kb; }
     public JsonNode entries() { return kb.get("entries"); }
@@ -149,9 +182,12 @@ public class ReferenceRanges {
     }
 
     /** Annotates a mapped template field value in place (referenceRange, interpretation, grade, partition, source). */
-    public ObjectNode annotate(ObjectNode fieldValue, JsonNode fieldDef, String fieldId, Demographics d) {
+    public ObjectNode annotate(ObjectNode fieldValue, JsonNode fieldDef, String fieldId, Demographics d) { return annotate(fieldValue, fieldDef, fieldId, d, null); }
+
+    /** Tenant-aware annotation: the tenant's ACTIVE overlay is used first (source "tenant overlay vN"), defaults otherwise. */
+    public ObjectNode annotate(ObjectNode fieldValue, JsonNode fieldDef, String fieldId, Demographics d, String tenant) {
         if (!fieldValue.path("value").isNumber()) return fieldValue;
-        JsonNode e = find(fieldDef, fieldId);
+        JsonNode e = effective(find(fieldDef, fieldId), tenant);
         if (e == null) return fieldValue;
         Resolved r = resolve(e, d);
         ObjectNode rr = fieldValue.putObject("referenceRange").put("entry", r.entryId()).put("text", r.text()).put("partition", r.partition())
@@ -161,6 +197,7 @@ public class ReferenceRanges {
         if (r.criticalLow() != null) rr.put("criticalLow", r.criticalLow());
         if (r.criticalHigh() != null) rr.put("criticalHigh", r.criticalHigh());
         if (!r.notes().isEmpty()) rr.set("notes", Json.tree(r.notes()));
+        if (e.has("overlayVersion")) rr.put("overlayVersion", e.get("overlayVersion").asInt()).put("overlayId", e.path("overlayId").asString());
         Interpretation i = interpret(fieldValue.get("value").decimalValue(), r);
         if (i != null) {
             fieldValue.putObject("interpretation").put("code", i.code()).put("display", i.display()).put("system", INTERPRETATION_SYSTEM);

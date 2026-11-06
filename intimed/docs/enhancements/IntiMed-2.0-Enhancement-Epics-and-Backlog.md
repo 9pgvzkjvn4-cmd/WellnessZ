@@ -6,9 +6,9 @@ Scope: more intelligence in the platform; precise mapping of device type, model,
 
 | Status | Items | Story points |
 |---|---|---|
-| DELIVERED | 25 | 140 |
-| PARTIAL | 3 | 15 |
-| DEFERRED | 9 | 89 |
+| DELIVERED | 32 | 192 |
+| PARTIAL | 2 | 18 |
+| DEFERRED | 3 | 34 |
 
 Measured precision (integration tests on the 26 shipped drivers, 22 templates, 33 cohorts):
 
@@ -91,7 +91,7 @@ Sources: AASM Manual for the Scoring of Sleep and Associated Events v3; AASM pae
 
 **Finding.** CLSI EP28-A3c: intervals are established (≥ 120 reference individuals per partition) or transferred/verified (20 samples) by each laboratory; partitioning by age and sex when statistically justified.
 
-**Design response.** Every KB interval is labelled a default for integration validation; the regulatory record requires local verification before clinical use; deferred story IM-E14-BL-011 adds a CLSI EP28 import/verification workflow.
+**Design response.** Every KB interval is labelled a default for integration validation; the regulatory record requires local verification before clinical use; IM-E14-BL-011 (IntiMed 2.1) adds a tenant overlay with CSV / FHIR ObservationDefinition import, CLSI EP28 transference verification (≤ 2 of 20 outside), four-eyes approval and versioning.
 
 Sources: CLSI EP28-A3c; Analyse-it EP28 partitioning guide; J Lab Physicians – reference interval transference
 
@@ -177,9 +177,9 @@ Sources: HL7 v2 / IHE PCD message structure; UCUM specification (unitsofmeasure.
 |---|---|---|---|---|
 | IM-S17 | Clinical reference foundation | KB, interpretation, categories, router annotation, adapters, demographics, regulatory record | 59 | 59 |
 | IM-S18 | Validation studio & identification | Validation engine, studio UI, identification, profiles, auto-mapper, cohort simulator, XT-17 | 74 | 74 |
-| IM-S19 | Operational intelligence & governance I | Drift monitor and drill, RR-17/RR-18 wizard integration, interval governance | 25 | 7 |
-| IM-S20 | Clinical depth | Percent-predicted spirometry, derived values, taxonomy review, drift workflow | 28 | 0 |
-| IM-S21 | Live context | Host demographics, quarantine identification, time-series physiology, delta checks | 32 | 0 |
+| IM-S19 | Operational intelligence & governance I | Drift monitor and drill, RR-17/RR-18 wizard integration, interval governance | 25 | 25 |
+| IM-S20 | Clinical depth | Percent-predicted spirometry, derived values, taxonomy review, drift workflow | 28 | 10 |
+| IM-S21 | Live context | Host demographics, quarantine identification, time-series physiology, delta checks | 32 | 24 |
 | IM-S22 | Terminology & ML | Terminology server, ML drift / predictive maintenance | 26 | 0 |
 
 ## Backlog and traceability
@@ -191,7 +191,7 @@ Sources: HL7 v2 / IHE PCD message structure; UCUM specification (unitsofmeasure.
 | IM-E11-BL-003 | IM-E11-F02 | Story | Intelligence studio page with validation, identification, auto-mapping, cohorts, ranges, categories, types and drift tabs (CSP-safe, no innerHTML) | 13 | IM-S18 | DELIVERED | intimed-platform/src/main/resources/static/assets/pages/intelligence.js | Playwright smoke (all 8 tabs) |
 | IM-E11-BL-004 | IM-E11-F03 | Story | REST API /api/intelligence/* with role checks, 256 KiB payload limit and audit (payload hash only) | 5 | IM-S17 | DELIVERED | intimed-platform/src/main/java/io/intimed/web/IntelligenceController.java | security-test-kit (69/69) |
 | IM-E11-BL-005 | IM-E11-F04 | Story | Subject registry: birth date, sex, pregnancy/trimester (validated, encrypted at rest); demo subjects with synthetic demographics | 3 | IM-S17 | DELIVERED | intimed-platform/src/main/java/io/intimed/web/ClinicalController.java; intimed-platform/src/main/java/io/intimed/demo/DemoService.java | intimed-platform/src/test/java/io/intimed/PlatformIntegrationTest.java#exchangeTestCarriesClinicalReference… |
-| IM-E11-BL-006 | IM-E11-F04 | Story | Demographics from the host (FHIR Patient / HL7 PID-7, PID-8) instead of the local registry | 8 | IM-S21 | DEFERRED | — | — |
+| IM-E11-BL-006 | IM-E11-F04 | Story | Demographics from the host (FHIR Patient / HL7 PID-7, PID-8) instead of the local registry | 8 | IM-S21 | DELIVERED | intimed-platform/src/main/java/io/intimed/engine/association/HostDemographics.java; intimed-platform/src/main/java/io/intimed/engine/transport/DeviceListeners.java#adt (A01/A04/A08); intimed-platform/src/main/java/io/intimed/api/FhirController.java#patient (POST/PUT /fhir/r4/Patient, scope system/Patient.write) | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceDeferredIntegrationTest.java#hostDemographicsFromAdtPid7Pid8ChangeTheReferencePartition |
 | IM-E12-BL-001 | IM-E12-F01 | Story | DeviceIdentifier: parse success, key coverage, structural similarity, sending-application / GATT / serial hints, calibrated confidence and margin | 8 | IM-S18 | DELIVERED | intimed-platform/src/main/java/io/intimed/intelligence/DeviceIdentifier.java | intimed-platform/src/test/java/io/intimed/PlatformIntegrationTest.java#deviceIdentification… |
 | IM-E12-BL-002 | IM-E12-F01 | Story | Identification benchmark over every driver's golden session (top-1 accuracy) | 3 | IM-S18 | DELIVERED | intimed-platform/src/main/java/io/intimed/intelligence/DeviceIdentifier.java#benchmark | intimed-platform/src/test/java/io/intimed/PlatformIntegrationTest.java |
 | IM-E12-BL-003 | IM-E12-F01 | Story | Identification from live traffic captured on an unconfigured port (quarantine listener) and firmware-version detection | 8 | IM-S21 | DEFERRED | — | — |
@@ -200,13 +200,13 @@ Sources: HL7 v2 / IHE PCD message structure; UCUM specification (unitsofmeasure.
 | IM-E12-BL-006 | IM-E12-F02 | Story | Review the 29 family-default classifications with biomedical engineering and the GMDN/EMDN code per model | 5 | IM-S20 | PARTIAL | device-types.json | — |
 | IM-E12-BL-007 | IM-E12-F03 | Story | AutoMapper: exact code, shared clinical concept, UCUM convertibility, label similarity with clinical synonyms; AUTO / REVIEW / UNBOUND | 8 | IM-S18 | DELIVERED | intimed-platform/src/main/java/io/intimed/intelligence/AutoMapper.java | intimed-platform/src/test/java/io/intimed/PlatformIntegrationTest.java#autoMapping… |
 | IM-E12-BL-008 | IM-E12-F03 | Story | Auto-mapping benchmark (coded and label-only) against all certified bindings | 3 | IM-S18 | DELIVERED | intimed-platform/src/main/java/io/intimed/intelligence/AutoMapper.java#benchmark | intimed-platform/src/test/java/io/intimed/PlatformIntegrationTest.java |
-| IM-E12-BL-009 | IM-E12-F03 | Story | Wizard step 5 pre-fills bindings from the auto-mapper for imported templates (RR-18) with one-click accept per field | 5 | IM-S19 | PARTIAL | studio shows binding JSON to paste | — |
-| IM-E12-BL-010 | IM-E12-F03 | Story | Full terminology services (LOINC/SNOMED CT lookups, ConceptMap) for uncoded host fields | 13 | IM-S22 | DEFERRED | — | — |
+| IM-E12-BL-009 | IM-E12-F03 | Story | Wizard step 5 pre-fills bindings from the auto-mapper for imported templates (RR-18) with one-click accept per field | 5 | IM-S19 | DELIVERED | intimed-platform/src/main/java/io/intimed/console/intelligence/RecommendationEngine.java#rr17/rr18; intimed-platform/src/main/java/io/intimed/console/ConfigService.java#apply/acceptAll; intimed-platform/src/main/java/io/intimed/harness/HarnessService.java#clinicalReference | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceDeferredIntegrationTest.java#rr17RecordsThePlatformCategory…, #rr18AutoMapSuggestions… |
+| IM-E12-BL-010 | IM-E12-F03 | Story | Full terminology services (LOINC/SNOMED CT lookups, ConceptMap) for uncoded host fields | 13 | IM-S22 | PARTIAL | intimed-platform/src/main/java/io/intimed/intelligence/TerminologyService.java; intimed-platform/src/main/java/io/intimed/intelligence/FhirTerminologyClient.java; intimed-platform/src/main/java/io/intimed/intelligence/AutoMapper.java#score | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceDeferredIntegrationTest.java#terminologyClient…, #rr18… (local HTTPS stub) |
 | IM-E13-BL-001 | IM-E13-F01 | Story | Cohort library: 33 cohorts (neonate → older adult, pregnancy trimesters, altitude, fasting, DOT, respirator type) with scripted values and expected flags | 5 | IM-S17 | DELIVERED | intimed-platform/src/main/resources/simulator/profiles.json | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceTests.java#everyScriptedCohort… |
 | IM-E13-BL-002 | IM-E13-F01 | Story | Value generation in knowledge-base units, converted into the device's unit (learnt from the golden session) and protocol | 8 | IM-S18 | DELIVERED | intimed-platform/src/main/java/io/intimed/intelligence/CohortSimulator.java | intimed-platform/src/test/java/io/intimed/PlatformIntegrationTest.java#cohortSimulator… |
 | IM-E13-BL-003 | IM-E13-F02 | Story | Artefacts: noise, spike, drift, dropout, duplicate, clock skew (deterministic by seed) | 5 | IM-S18 | DELIVERED | intimed-platform/src/main/java/io/intimed/intelligence/CohortSimulator.java | intimed-platform/src/test/java/io/intimed/PlatformIntegrationTest.java |
 | IM-E13-BL-004 | IM-E13-F03 | Story | Expected-flag comparison and run-all precision report; greedy driver selection per cohort | 3 | IM-S18 | DELIVERED | intimed-platform/src/main/java/io/intimed/intelligence/CohortSimulator.java#runAll | intimed-platform/src/test/java/io/intimed/PlatformIntegrationTest.java |
-| IM-E13-BL-005 | IM-E13-F01 | Story | Time-series physiology (circadian HR, deterioration trajectories, NEWS2 progression) for continuous devices | 8 | IM-S21 | DEFERRED | — | — |
+| IM-E13-BL-005 | IM-E13-F01 | Story | Time-series physiology (circadian HR, deterioration trajectories, NEWS2 progression) for continuous devices | 8 | IM-S21 | DELIVERED | intimed-platform/src/main/java/io/intimed/intelligence/CohortSimulator.java#trajectory/interpolate; intimed-platform/src/main/java/io/intimed/clinical/News2.java; intimed-platform/src/main/java/io/intimed/web/IntelligenceController.java#trajectory; intimed-platform/src/main/resources/simulator/profiles.json (3 trajectories) | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceTests.java#trajectoryInterpolation…, intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceDeferredIntegrationTest.java#sepsisTrajectory… |
 | IM-E14-BL-001 | IM-E14-F01 | Story | Reference-interval knowledge base: 33 parameters, 8 age bands, sex/pregnancy partitions, critical limits, grades, cited sources | 8 | IM-S17 | DELIVERED | intimed-platform/src/main/resources/clinical/reference-ranges.json | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceTests.java |
 | IM-E14-BL-002 | IM-E14-F01 | Story | ReferenceRanges: match by LOINC/MDC/local/field id, partition by age/sex/pregnancy, context modifiers (altitude, fasting, respirator type, regulation), interpretation N/L/H/LL/HH + grade | 8 | IM-S17 | DELIVERED | intimed-platform/src/main/java/io/intimed/clinical/ReferenceRanges.java; intimed-platform/src/main/java/io/intimed/clinical/Demographics.java | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceTests.java#ageSexPregnancy… |
 | IM-E14-BL-003 | IM-E14-F01 | Story | Live routing annotates template fields with range, flag, partition and age band from subject demographics; per-configuration switch | 5 | IM-S17 | DELIVERED | intimed-platform/src/main/java/io/intimed/engine/pipeline/Router.java | intimed-platform/src/test/java/io/intimed/PlatformIntegrationTest.java#exchangeTestCarries… |
@@ -216,32 +216,25 @@ Sources: HL7 v2 / IHE PCD message structure; UCUM specification (unitsofmeasure.
 | IM-E14-BL-007 | IM-E14-F05 | Story | XT-17 clinical reference validation in the exchange harness (annotation coverage, cohort flags, category validation) – sealed in the evidence pack | 5 | IM-S18 | DELIVERED | intimed-platform/src/main/java/io/intimed/harness/HarnessService.java#clinicalReference | intimed-platform/src/test/java/io/intimed/PlatformIntegrationTest.java |
 | IM-E14-BL-008 | IM-E14-F01 | Story | Regulatory record & impact assessment for informational flagging (FDA CDS 2022, EU MDR Rule 11) | 2 | IM-S17 | DELIVERED | intimed-platform/src/main/java/io/intimed/quality/QualityController.java#classification | — |
 | IM-E14-BL-009 | IM-E14-F01 | Story | Percent-predicted spirometry (GLI-2012 LLN z-scores), paediatric BP percentiles, growth-chart z-scores | 13 | IM-S20 | DEFERRED | — | — |
-| IM-E14-BL-010 | IM-E14-F01 | Story | Derived values: eGFR (CKD-EPI 2021), corrected calcium, anion gap, BMI | 5 | IM-S20 | DEFERRED | — | — |
-| IM-E14-BL-011 | IM-E14-F06 | Story | Tenant interval governance: import laboratory intervals (CSV/FHIR ObservationDefinition), CLSI EP28 transference verification (20 samples), approval four-eyes, versioning | 13 | IM-S19 | DEFERRED | — | — |
-| IM-E14-BL-012 | IM-E14-F02 | Story | Delta checks against the subject's previous result and critical-value call-back acknowledgement workflow in the host | 8 | IM-S21 | DEFERRED | — | — |
+| IM-E14-BL-010 | IM-E14-F01 | Story | Derived values: eGFR (CKD-EPI 2021), corrected calcium, anion gap, BMI | 5 | IM-S20 | DELIVERED | intimed-platform/src/main/java/io/intimed/clinical/DerivedValues.java; intimed-platform/src/main/java/io/intimed/engine/pipeline/Router.java#applyDerived; intimed-platform/src/main/resources/clinical/reference-ranges.json (egfr, KDIGO G1–G5) | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceTests.java#egfrCkdEpi2021KnownValuesAndKdigoGrades, #derivedValues…; intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceDeferredIntegrationTest.java#deltaChecks…AndDerivedValuesAreLabelled |
+| IM-E14-BL-011 | IM-E14-F06 | Story | Tenant interval governance: import laboratory intervals (CSV/FHIR ObservationDefinition), CLSI EP28 transference verification (20 samples), approval four-eyes, versioning | 13 | IM-S19 | DELIVERED | intimed-platform/src/main/java/io/intimed/clinical/IntervalGovernance.java; intimed-platform/src/main/java/io/intimed/clinical/ReferenceRanges.java#effective; intimed-platform/src/main/java/io/intimed/engine/pipeline/Router.java#mapField(tenant); intimed-platform/src/main/java/io/intimed/web/IntelligenceController.java#/intervals | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceTests.java#ep28…; intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceDeferredIntegrationTest.java#intervalOverlayNeedsEp28AndFourEyes…, #rr17…Xt17PassesAgainstTheTenantOverlay |
+| IM-E14-BL-012 | IM-E14-F02 | Story | Delta checks against the subject's previous result and critical-value call-back acknowledgement workflow in the host | 8 | IM-S21 | DELIVERED | intimed-platform/src/main/java/io/intimed/clinical/DeltaCheck.java; intimed-platform/src/main/java/io/intimed/engine/pipeline/Router.java#deltaCheck; intimed-platform/src/main/java/io/intimed/events/EventBus.java (observation.flagged) | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceTests.java#deltaThresholds…; intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceDeferredIntegrationTest.java#deltaChecksEmitAnInformationalFlagEvent… |
 | IM-E15-BL-001 | IM-E15-F01 | Story | DriftMonitor: per configuration/key mean vs fleet baseline (z-score) and abnormal-flag share (series-aware); drift-alert store | 5 | IM-S19 | DELIVERED | intimed-platform/src/main/java/io/intimed/intelligence/DriftMonitor.java | demo drift drill (2 alerts) |
 | IM-E15-BL-002 | IM-E15-F02 | Story | Demo drift drill (hospital-at-home probe) and Drift tab | 2 | IM-S19 | DELIVERED | intimed-platform/src/main/java/io/intimed/demo/DemoService.java#driftDrill | manual / demo guide |
-| IM-E15-BL-003 | IM-E15-F02 | Story | Drift alert workflow: acknowledge, link to calibration record, auto-resolve, SIEM forwarding | 5 | IM-S20 | PARTIAL | alerts stored OPEN | — |
+| IM-E15-BL-003 | IM-E15-F02 | Story | Drift alert workflow: acknowledge, link to calibration record, auto-resolve, SIEM forwarding | 5 | IM-S20 | DELIVERED | intimed-platform/src/main/java/io/intimed/intelligence/DriftMonitor.java#acknowledge/resolve/analyse; intimed-platform/src/main/java/io/intimed/web/IntelligenceController.java#/drift/alerts/{id}/ack|resolve; intimed-platform/src/main/resources/static/assets/pages/intelligence.js#drift | intimed-platform/src/test/java/io/intimed/ClinicalIntelligenceDeferredIntegrationTest.java#driftAlertsAreAcknowledgedLinkedToCalibrationAutoResolvedAndForwardedToSiem |
 | IM-E15-BL-004 | IM-E15-F03 | Story | ML drift (seasonal baselines, change-point detection) and predictive maintenance from device logs | 13 | IM-S22 | DEFERRED | — | — |
 
 ## Partial and deferred items – reason and strategy
 
 | ID | Status | Title | Reason and strategy |
 |---|---|---|---|
-| IM-E11-BL-006 | DEFERRED | Demographics from the host (FHIR Patient / HL7 PID-7, PID-8) instead of the local registry | Reason: needs a host patient-context connector (ADT/FHIR Patient feed) and consent model per host. Strategy: subscribe to PID-7/8 from the existing ADT listener and FHIR Patient reads via the partner API; registry becomes a cache with source provenance. |
 | IM-E12-BL-003 | DEFERRED | Identification from live traffic captured on an unconfigured port (quarantine listener) and firmware-version detection | Reason: an unconfigured listener widens the attack surface; requires a security design review. Strategy: a quarantine mTLS listener bound to enrolled-but-unconfigured endpoints, payloads kept in a sealed sample store, identification offered in the wizard step 1. |
 | IM-E12-BL-006 | PARTIAL | Review the 29 family-default classifications with biomedical engineering and the GMDN/EMDN code per model | Reason: GMDN is a licensed nomenclature. Strategy: keep rule-based types; map to GMDN/EMDN when the licence is available; biomedical review of the 29 family-default models in IM-S20. |
-| IM-E12-BL-009 | PARTIAL | Wizard step 5 pre-fills bindings from the auto-mapper for imported templates (RR-18) with one-click accept per field | Reason: wizard recommendation contract (RR-01…RR-16) is certified; adding RR-18 needs a new rule and regression. Strategy: add RR-17 (category from template settings) and RR-18 (auto-map suggestions) to the recommendation engine in IM-S19. |
-| IM-E12-BL-010 | DEFERRED | Full terminology services (LOINC/SNOMED CT lookups, ConceptMap) for uncoded host fields | Reason: LOINC/SNOMED distribution licences and a terminology server are out of local scope. Strategy: integrate a FHIR terminology server ($lookup, $translate) behind the AutoMapper interface. |
-| IM-E13-BL-005 | DEFERRED | Time-series physiology (circadian HR, deterioration trajectories, NEWS2 progression) for continuous devices | Reason: needs validated physiological models; spot cohorts suffice for interval validation. Strategy: add trajectory scripts to profiles (piecewise linear + noise) and replay through the streaming simulator. |
+| IM-E12-BL-010 | PARTIAL | Full terminology services (LOINC/SNOMED CT lookups, ConceptMap) for uncoded host fields | Adapter delivered (IntiMed 2.1): FHIR $lookup / $validate-code / $translate client behind the AutoMapper, disabled by default, HTTPS + host allow-list, timeouts, cache; used for host codes from unknown systems. Remaining (manual): a real terminology server with LOINC / SNOMED CT licences and curated ConceptMaps for the customer's local code systems – not bundled, tested only against a local stub. |
 | IM-E14-BL-009 | DEFERRED | Percent-predicted spirometry (GLI-2012 LLN z-scores), paediatric BP percentiles, growth-chart z-scores | Reason: needs height/ethnicity inputs and validated equation sets. Strategy: add height to demographics and an equation module (GLI-2012 LMS tables) behind ReferenceRanges; dynamic intervals per subject. |
-| IM-E14-BL-010 | DEFERRED | Derived values: eGFR (CKD-EPI 2021), corrected calcium, anion gap, BMI | Reason: derived calculations are clinical functions with regulatory impact. Strategy: calculation module with versioned formulas, flagged as derived, reviewed under the CDS assessment. |
-| IM-E14-BL-011 | DEFERRED | Tenant interval governance: import laboratory intervals (CSV/FHIR ObservationDefinition), CLSI EP28 transference verification (20 samples), approval four-eyes, versioning | Reason: production use requires locally verified intervals; out of local demo scope. Strategy: tenant-scoped KB overlay with approval workflow and audit; ObservationDefinition import; XT-17 runs against the tenant overlay. |
-| IM-E14-BL-012 | DEFERRED | Delta checks against the subject's previous result and critical-value call-back acknowledgement workflow in the host | Reason: critical-value notification is an alarm-like function (excluded by the intended use). Strategy: emit a flag event to the host's notification system via webhooks; the host owns acknowledgement. |
-| IM-E15-BL-003 | PARTIAL | Drift alert workflow: acknowledge, link to calibration record, auto-resolve, SIEM forwarding | Reason: acknowledgement UI not yet built. Strategy: reuse the calibration/recall acknowledgement pattern from the catalogue and the SIEM sink of the audit service. |
 | IM-E15-BL-004 | DEFERRED | ML drift (seasonal baselines, change-point detection) and predictive maintenance from device logs | Reason: needs months of fleet data and MLOps governance. Strategy: export de-identified feature store; offline model training; models signed and versioned like driver packages; shadow-mode evaluation before alerts. |
 
-## Reference-interval knowledge base (33 parameters)
+## Reference-interval knowledge base (34 parameters)
 
 > reference intervals are DEFAULTS for integration validation and demonstration. Every deploying organisation must
 confirm or replace them with its own (laboratory-verified, CLSI EP28-A3c) intervals and action thresholds before clinical use.
@@ -266,6 +259,7 @@ Values marked 'demo action threshold' are illustrative critical limits, not clin
 | Lactate | mmol/L | 1 | Common adult laboratory reference intervals (illustrative; replace with the performing laboratory's verified intervals – CLSI EP28-A3c) |
 | Haemoglobin | g/dL | 9 | WHO 2024 Guideline on haemoglobin cutoffs to define anaemia (children 6–23 months 10.5 g/dL; pregnancy trimester-specific); upper limits are laboratory-specific demo values |
 | Creatinine | umol/L | 2 | Common adult laboratory reference intervals (illustrative; replace with the performing laboratory's verified intervals – CLSI EP28-A3c) |
+| eGFR (CKD-EPI 2021, race-free) | mL/min/{1.73_m2} | 1 | KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of CKD – GFR categories G1 ≥90, G2 60–89, G3a 45–59, G3b 30–44, G4 15–29, G5 <15 mL/min/1.73 m²; eGFR by the race-free CKD-EPI 2021 creatinine equation (Inker LA et al., NEJM 2021) |
 | HbA1c | % | 1 | ADA Standards of Care – fasting plasma glucose 3.9–5.5 mmol/L (70–99 mg/dL), HbA1c <5.7 % normal, 5.7–6.4 % prediabetes, ≥6.5 % diabetes; level 2 hypoglycaemia <3.0 mmol/L |
 | Total cholesterol | mmol/L | 1 | Common adult laboratory reference intervals (illustrative; replace with the performing laboratory's verified intervals – CLSI EP28-A3c) |
 | ALT | U/L | 2 | Common adult laboratory reference intervals (illustrative; replace with the performing laboratory's verified intervals – CLSI EP28-A3c) |
@@ -296,7 +290,7 @@ Values marked 'demo action threshold' are illustrative critical limits, not clin
 | SPECIALIST – Specialist unit systems (dialysis, neonatal, maternity, sleep) | TPL-10, TPL-11, TPL-12, TPL-15 | STRUCTURE, UNITS, CLINICAL_RANGE, CROSS_FIELD, CATEGORY_GRADES | flag+grade |
 | WELLNESS – Wellness / consumer health | TPL-22, TPL-13 | STRUCTURE, UNITS, CONSENT | informational |
 
-## Simulator cohorts (33)
+## Simulator cohorts (36)
 
 | Cohort | Demographics | Scripted values | Expected flags |
 |---|---|---|---|
@@ -333,6 +327,9 @@ Values marked 'demo action threshold' are illustrative critical limits, not clin
 | Pregnant female, 28 y – fetal heart rate 172 | {"ageYears": 28, "sex": "female", "pregnant": true, "trimester": 3} | {"fetal-hr": 172} | {"fetal-hr": "H"} |
 | Neonate, 2 days – skin temperature 35.8 °C | {"ageYears": 0.005479452054794521, "sex": "female"} | {"neonatal-skin-temp": 35.8} | {"neonatal-skin-temp": "L"} |
 | Adult male, 61 y – Kt/V 1.05 | {"ageYears": 61, "sex": "male"} | {"ktv": 1.05} | {"ktv": "L"} |
+| Sepsis deterioration over 6 h – adult female, 64 y | {"ageYears": 64, "sex": "female"} | trajectory: 4 keyframes over 360 min (noise 2.0 %) | — |
+| Post-operative recovery over 4 h – adult male, 58 y | {"ageYears": 58, "sex": "male"} | trajectory: 3 keyframes over 240 min (noise 2.0 %) | — |
+| Hypoglycaemia episode and treatment over 90 min – adult female, 45 y | {"ageYears": 45, "sex": "female"} | trajectory: 5 keyframes over 90 min (noise 1.5 %) | — |
 
 ## Device-type taxonomy (40 types)
 
@@ -382,3 +379,5 @@ Values marked 'demo action threshold' are illustrative critical limits, not clin
 ## Regulatory note
 
 Reference-range flags are informational (analogous to laboratory report flags): no diagnosis, no alarm, no treatment recommendation. They can be switched off per configuration (`params.referenceRangeFlagging=false`). Enabling them in production requires a documented regulatory assessment (FDA CDS guidance 2022; EU MDR Rule 11) and locally verified intervals (CLSI EP28-A3c). The validation studio and cohort simulator are non-clinical engineering tools.
+
+IntiMed 2.1 additions keep the same posture: derived values are OFF by default (`params.derivedValues`) and labelled "derived – verify"; delta checks (`params.deltaChecks`, default on only with flagging) emit an informational `observation.flagged` event – the host owns any call-back or acknowledgement; tenant interval overlays become effective only after EP28 verification and four-eyes approval; NEWS2 output of the trajectory simulator is informational engineering output.

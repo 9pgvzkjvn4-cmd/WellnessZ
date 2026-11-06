@@ -258,6 +258,12 @@ public class Pipeline {
      */
     public ObjectNode dryRun(String tenant, DriverPackage d, String payload, List<String> templateIds,
                              java.util.function.Function<String, JsonNode> templateLookup, io.intimed.clinical.Demographics demo) {
+        return dryRun(tenant, d, payload, templateIds, templateLookup, demo, false);
+    }
+
+    /** Dry run with the tenant's interval overlay; {@code derive} adds derived values (IM-E14-BL-010) to each mapped template. */
+    public ObjectNode dryRun(String tenant, DriverPackage d, String payload, List<String> templateIds,
+                             java.util.function.Function<String, JsonNode> templateLookup, io.intimed.clinical.Demographics demo, boolean derive) {
         ObjectNode out = Json.obj().put("driver", d.ref()).put("grammar", d.grammar().get("type").asString());
         ObjectNode cfg = Json.obj().put("id", "dry-run").put("hash", "dry-run");
         List<Parsed> sets;
@@ -280,7 +286,7 @@ public class Pipeline {
             d.bindings().properties().forEach(b -> {
                 if (templateIds != null && !templateIds.contains(b.getKey())) return;
                 JsonNode tpl = templateLookup.apply(b.getKey());
-                if (tpl != null) mapped.add(router.dryMap(b.getValue(), tpl, obs, demo));
+                if (tpl != null) mapped.add(router.dryMap(tenant, b.getValue(), tpl, obs, demo, derive));
             });
             r.put("status", "MAPPED");
         }

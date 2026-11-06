@@ -22,7 +22,7 @@ import java.util.function.BiConsumer;
 public class EventBus {
     public static final List<String> TYPES = List.of("observation.posted", "observation.held", "observation.unmatched", "device.alert",
             "device.certified", "device.published", "run.completed", "identity.revoked", "identity.isolated", "config.changed",
-            "regression.failed");
+            "regression.failed", "observation.flagged");
     private final DocumentStore store;
     private final List<BiConsumer<String, ObjectNode>> listeners = new CopyOnWriteArrayList<>();
 

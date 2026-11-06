@@ -18,7 +18,7 @@ elif [ -z "$DB" ] && [ -n "${INTIMED_DB_URL:-}" ]; then
   [ "$port" = "$hp" ] && port=5432
   export PGPASSWORD="${PGPASSWORD:-${INTIMED_DB_PASSWORD:-}}"
   q() { psql "host=${host%% *} port=$port dbname=$db user=${INTIMED_DB_USER:-intimed} sslmode=${PGSSLMODE:-prefer}" -tAc "$1" 2>&1; }
-  sens="'observation','sandbox-instance','template-instance','unmatched','dlq','raw','capture','worklist','shadow','subject','bed','enrolment'"
+  sens="'observation','sandbox-instance','template-instance','unmatched','dlq','raw','capture','worklist','shadow','subject','bed','enrolment','shadow-reference','delta-last'"
   total=$(q "select count(*) from documents where kind in ($sens)")
   plain=$(q "select count(*) from documents where kind in ($sens) and data not like 'enc:v1:%'")
   leak=$(q "select count(*) from documents where data ~ '(MRN-1002|EMP-7001)'")

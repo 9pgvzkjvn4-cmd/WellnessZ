@@ -134,6 +134,8 @@ public class ClinicalController {
         String sex = b.path("sex").asString("");
         if (java.util.List.of("male", "female").contains(sex)) s.put("sex", sex);
         if (b.path("pregnant").asBoolean(false)) s.put("pregnant", true).put("trimester", Math.max(1, Math.min(3, b.path("trimester").asInt(2))));
+        // IM-E11-BL-006: manual entries keep precedence over host ADT/FHIR demographics only while they are newer
+        io.intimed.engine.association.HostDemographics.markManual(s, Current.actor());
         return store.put(t(), "subject", id, s, "ACTIVE", null);
     }
     @GetMapping("/context/beds") public List<ObjectNode> beds() { clinical(); return store.list(t(), "bed"); }

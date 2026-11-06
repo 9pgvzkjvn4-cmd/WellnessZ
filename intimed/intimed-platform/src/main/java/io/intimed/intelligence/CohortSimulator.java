@@ -107,6 +107,15 @@ public class CohortSimulator {
     }
 
     public ObjectNode simulate(String tenant, String driverRef, String profileId, List<String> artefacts, long seed) {
+        return simulate(tenant, driverRef, profileId, artefacts, seed, null, Instant.parse("2026-03-02T09:30:00Z"), null);
+    }
+
+    /**
+     * @param overrides concept (KB entry id) → value in the knowledge-base unit, replacing the cohort script (trajectories)
+     * @param baseTs    device timestamp of the payload
+     * @param subject   subject identifier rendered into the payload (null → synthetic MRN-SIM-…)
+     */
+    public ObjectNode simulate(String tenant, String driverRef, String profileId, List<String> artefacts, long seed, Map<String, BigDecimal> overrides, Instant baseTs, String subject) {
         DriverPackage d = drivers.require(tenant, driverRef);
         JsonNode p = profile(profileId);
         Demographics demo = Demographics.of(p.get("demographics"));
@@ -119,9 +128,10 @@ public class CohortSimulator {
             JsonNode entry = ranges.entry(c.getValue());
             JsonNode sem = d.semantic(key);
             JsonNode scripted = p.path("concepts").has(c.getValue() + "@" + key) ? p.path("concepts").get(c.getValue() + "@" + key) : p.path("concepts").get(c.getValue());
+            if (overrides != null && overrides.containsKey(c.getValue())) scripted = Json.obj().put("v", overrides.get(c.getValue())).get("v");
             BigDecimal kbValue;
             String basis;
-            if (scripted != null && scripted.isNumber()) { kbValue = scripted.decimalValue(); basis = "cohort script"; }
+            if (scripted != null && scripted.isNumber()) { kbValue = scripted.decimalValue(); basis = overrides != null && overrides.containsKey(c.getValue()) ? "trajectory" : "cohort script"; }
             else {
                 ReferenceRanges.Resolved r = ranges.resolve(entry, demo);
                 if (r.gap() || r.low() == null || r.high() == null) { trace.addObject().put("key", key).put("concept", c.getValue()).put("basis", "driver default (no interval)").put("value", values.get(key)); continue; }
@@ -140,7 +150,7 @@ public class CohortSimulator {
                     .put("deviceValue", s + " " + (devUnit == null ? "" : devUnit));
         }
         List<String> applied = new ArrayList<>();
-        Instant ts = Instant.parse("2026-03-02T09:30:00Z");
+        Instant ts = baseTs;
         if (artefacts != null) for (String a : artefacts) {
             switch (a) {
                 case "NOISE" -> values.replaceAll((k, v) -> concepts(d).containsKey(k) ? scale(v, 1 + (rnd.nextDouble() - 0.5) * 0.06) : v);
@@ -153,7 +163,7 @@ public class CohortSimulator {
             applied.add(a);
         }
         String serial = d.tests().path("serial").asString("SIM-0001");
-        String payload = Simulator.render(d, values, "MRN-SIM-" + Math.floorMod(profileId.hashCode(), 1000), ts, serial);
+        String payload = Simulator.render(d, values, subject != null ? subject : "MRN-SIM-" + Math.floorMod(profileId.hashCode(), 1000), ts, serial);
         ObjectNode out = Json.obj().put("driver", d.ref()).put("profile", profileId).put("profileName", p.path("name").asString())
                 .put("demographics", demo.describe()).put("ageBand", ranges.ageBand(demo.ageYears())).put("seed", seed);
         out.set("artefacts", Json.tree(applied));
@@ -193,6 +203,108 @@ public class CohortSimulator {
             BigDecimal b = new BigDecimal(v);
             return b.multiply(BigDecimal.valueOf(f)).setScale(Math.max(0, b.scale()), RoundingMode.HALF_UP).toPlainString();
         } catch (NumberFormatException e) { return v; }
+    }
+
+    // ------------------------------------------------------------------------------------------ time series (IM-E13-BL-005)
+    /** Piecewise-linear interpolation of trajectory keyframes ({minute, values}) at a minute; held constant outside. */
+    public static Map<String, Double> interpolate(JsonNode trajectory, double minute) {
+        Map<String, Double> out = new LinkedHashMap<>();
+        List<JsonNode> kf = new ArrayList<>();
+        trajectory.forEach(kf::add);
+        kf.sort(java.util.Comparator.comparingDouble(k -> k.path("minute").asDouble()));
+        Set<String> concepts = new LinkedHashSet<>();
+        kf.forEach(k -> concepts.addAll(k.path("values").propertyNames()));
+        for (String c : concepts) {
+            JsonNode before = null, after = null;
+            for (JsonNode k : kf) {
+                if (!k.path("values").has(c)) continue;
+                if (k.path("minute").asDouble() <= minute) before = k;
+                if (k.path("minute").asDouble() >= minute && after == null) after = k;
+            }
+            if (before == null) before = after;
+            if (after == null) after = before;
+            if (before == null) continue;
+            double m0 = before.path("minute").asDouble(), m1 = after.path("minute").asDouble();
+            double v0 = before.path("values").get(c).asDouble(), v1 = after.path("values").get(c).asDouble();
+            out.put(c, m1 == m0 ? v0 : v0 + (v1 - v0) * (minute - m0) / (m1 - m0));
+        }
+        return out;
+    }
+
+    /** Last keyframe minute of a trajectory. */
+    public static int duration(JsonNode trajectory) {
+        int m = 0;
+        for (JsonNode k : trajectory) m = Math.max(m, k.path("minute").asInt());
+        return m;
+    }
+
+    /** Driver covering most trajectory concepts, preferring continuous drivers. */
+    public DriverPackage driverForTrajectory(String tenant, JsonNode profile) {
+        Set<String> need = new LinkedHashSet<>();
+        profile.path("trajectory").forEach(k -> need.addAll(k.path("values").propertyNames()));
+        DriverPackage best = null;
+        long bestScore = -1;
+        for (DriverPackage d : drivers.all(tenant)) {
+            if (d.restricted()) continue;
+            long n = need.stream().filter(c -> covers(d, c)).count() * 2 + ("CONTINUOUS".equals(d.manifest().path("captureMode").asString()) ? 1 : 0);
+            if (n > bestScore) { best = d; bestScore = n; }
+        }
+        return best;
+    }
+
+    /**
+     * Renders a trajectory as N payloads at an interval through a driver and the real dry-run pipeline: per step the
+     * interpolated values (+ seeded relative noise {@code noisePct}), the resulting interpretation flags and a NEWS2-style
+     * aggregate (informational only – IntiMed raises no alarm; consciousness/oxygen assumed alert/air).
+     */
+    public ObjectNode trajectory(String tenant, String driverRef, String profileId, int steps, int intervalMinutes, long seed, Instant start, String subject) {
+        JsonNode p = profile(profileId);
+        if (!p.path("trajectory").isArray() || p.path("trajectory").isEmpty()) throw ApiException.bad("no-trajectory", "profile " + profileId + " defines no trajectory");
+        DriverPackage d = driverRef == null || driverRef.isBlank() ? driverForTrajectory(tenant, p) : drivers.require(tenant, driverRef);
+        int iv = Math.max(1, Math.min(intervalMinutes, 240));
+        int n = steps <= 0 ? duration(p.get("trajectory")) / iv + 1 : Math.min(steps, 500);
+        double noise = p.path("noisePct").asDouble(0);
+        Random rnd = new Random(seed);
+        ObjectNode out = Json.obj().put("profile", profileId).put("name", p.path("name").asString()).put("driver", d.ref())
+                .put("captureMode", d.manifest().path("captureMode").asString("SPOT")).put("intervalMinutes", iv).put("steps", n).put("noisePct", noise).put("seed", seed)
+                .put("demographics", Demographics.of(p.get("demographics")).describe())
+                .put("disclaimer", "Engineering simulation (piecewise-linear keyframes + seeded noise) – not a validated physiological model; NEWS2 shown for information only, IntiMed raises no alarms.");
+        Set<String> covered = new LinkedHashSet<>(), uncovered = new LinkedHashSet<>();
+        p.path("trajectory").forEach(k -> k.path("values").propertyNames().forEach(c -> (covers(d, c) ? covered : uncovered).add(c)));
+        out.set("coveredConcepts", Json.tree(new ArrayList<>(covered)));
+        out.set("notCoveredByDriver", Json.tree(new ArrayList<>(uncovered)));
+        ArrayNode rows = out.putArray("series");
+        Integer firstAbnormal = null;
+        int maxNews = -1;
+        for (int i = 0; i < n; i++) {
+            int minute = i * iv;
+            Map<String, BigDecimal> ov = new LinkedHashMap<>();
+            for (var e : interpolate(p.get("trajectory"), minute).entrySet()) {
+                double v = e.getValue() * (1 + rnd.nextGaussian() * noise / 100.0);
+                ov.put(e.getKey(), BigDecimal.valueOf(v).setScale(1, RoundingMode.HALF_UP));
+            }
+            ObjectNode sim = simulate(tenant, d.ref(), profileId, List.of(), seed + i, ov, start.plusSeconds(minute * 60L), subject);
+            ObjectNode row = rows.addObject().put("step", i).put("minute", minute).put("at", start.plusSeconds(minute * 60L).toString());
+            ObjectNode vals = row.putObject("values"), flags = row.putObject("flags");
+            for (var e : ov.entrySet()) if (covered.contains(e.getKey())) vals.put(e.getKey(), e.getValue());
+            for (JsonNode set : sim.at("/dryRun/sets")) for (JsonNode m : set.path("mapped")) for (var fv : m.path("fields").properties()) {
+                String entry = fv.getValue().at("/referenceRange/entry").asString(null);
+                String code = fv.getValue().at("/interpretation/code").asString(null);
+                if (entry != null && code != null && !flags.has(entry)) flags.put(entry, code);
+            }
+            boolean abnormal = false;
+            for (var f : flags.properties()) abnormal |= !"N".equals(f.getValue().asString());
+            if (abnormal && firstAbnormal == null) firstAbnormal = minute;
+            Map<String, Double> news = new LinkedHashMap<>();
+            for (var e : ov.entrySet()) if (covered.contains(e.getKey())) news.put(e.getKey(), e.getValue().doubleValue());
+            ObjectNode n2 = io.intimed.clinical.News2.score(news);
+            row.set("news2", n2);
+            maxNews = Math.max(maxNews, n2.path("score").asInt());
+            row.put("payload", sim.get("payload").asString());
+        }
+        ObjectNode sum = out.putObject("summary").put("maxNews2", maxNews);
+        if (firstAbnormal != null) sum.put("firstAbnormalFlagMinute", firstAbnormal);
+        return out;
     }
 
     /** Smallest set of drivers covering the cohort's expected concepts (greedy). */

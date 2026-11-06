@@ -17,6 +17,7 @@
   "LAB": "Common adult laboratory reference intervals (illustrative; replace with the performing laboratory's verified intervals – CLSI EP28-A3c)",
   "VITAL": "Common adult vital-sign references (illustrative defaults)",
   "ECG": "Common adult ECG interval references (PR 120–200 ms, QRS <120 ms, QTc prolonged ≥450 ms men / ≥460 ms women, ≥500 ms high risk)",
+  "KDIGO": "KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of CKD – GFR categories G1 ≥90, G2 60–89, G3a 45–59, G3b 30–44, G4 15–29, G5 <15 mL/min/1.73 m²; eGFR by the race-free CKD-EPI 2021 creatinine equation (Inker LA et al., NEJM 2021)",
   "BIS": "Manufacturer guidance – BIS 40–60 general-anaesthesia target (treatment range, not a reference interval)"
  },
  "ageBands": [
@@ -558,6 +559,10 @@
      "note": "non-fasting / random; HH: demo action threshold"
     }
    ],
+   "delta": {
+    "pct": 50,
+    "windowHours": 24
+   },
    "modifiers": [
     {
      "param": "fasting",
@@ -675,7 +680,11 @@
      "criticalLow": 120,
      "criticalHigh": 160
     }
-   ]
+   ],
+   "delta": {
+    "abs": 8,
+    "windowHours": 48
+   }
   },
   {
    "id": "potassium",
@@ -702,7 +711,11 @@
      "criticalHigh": 6.2
     }
    ],
-   "gapNote": "paediatric potassium: laboratory-specific interval required"
+   "gapNote": "paediatric potassium: laboratory-specific interval required",
+   "delta": {
+    "abs": 1.0,
+    "windowHours": 48
+   }
   },
   {
    "id": "lactate",
@@ -822,7 +835,11 @@
      "trimester": 3
     }
    ],
-   "gapNote": "infants <6 months: laboratory-specific interval required"
+   "gapNote": "infants <6 months: laboratory-specific interval required",
+   "delta": {
+    "abs": 2.0,
+    "windowHours": 72
+   }
   },
   {
    "id": "creatinine",
@@ -853,7 +870,70 @@
      "high": 80
     }
    ],
-   "gapNote": "paediatric creatinine: age-partitioned laboratory interval required (e.g. CALIPER)"
+   "gapNote": "paediatric creatinine: age-partitioned laboratory interval required (e.g. CALIPER)",
+   "delta": {
+    "pct": 50,
+    "windowHours": 168
+   }
+  },
+  {
+   "id": "egfr",
+   "name": "eGFR (CKD-EPI 2021, race-free)",
+   "unit": "mL/min/{1.73_m2}",
+   "match": {
+    "loinc": [
+     "98979-8",
+     "62238-1"
+    ],
+    "fieldIds": [
+     "egfr"
+    ]
+   },
+   "source": "KDIGO",
+   "derived": true,
+   "ranges": [
+    {
+     "ageFrom": 18,
+     "ageTo": 200,
+     "sex": "any",
+     "low": 60,
+     "criticalLow": 15,
+     "categories": [
+      [
+       "G5 kidney failure",
+       null,
+       15
+      ],
+      [
+       "G4 severely decreased",
+       15,
+       30
+      ],
+      [
+       "G3b moderately to severely decreased",
+       30,
+       45
+      ],
+      [
+       "G3a mildly to moderately decreased",
+       45,
+       60
+      ],
+      [
+       "G2 mildly decreased",
+       60,
+       90
+      ],
+      [
+       "G1 normal or high",
+       90,
+       null
+      ]
+     ],
+     "note": "derived value (IM-E14-BL-010) – G1/G2 are not CKD without markers of kidney damage; LL below 15: demo action threshold"
+    }
+   ],
+   "gapNote": "CKD-EPI 2021 is validated for adults ≥18 y; paediatric eGFR needs the bedside Schwartz equation (height)"
   },
   {
    "id": "hba1c",
