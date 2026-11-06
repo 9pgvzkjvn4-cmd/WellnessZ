@@ -65,14 +65,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class PlatformIntegrationTest {
     static final String A = "t-alpha", B = "t-beta", PW = "Integration-Test-2026";
 
-    static {
-        try {
-            Path home = Files.createTempDirectory("intimed-it");
-            System.setProperty("intimed.home", home.toString());
-            System.setProperty("spring.datasource.url", "jdbc:h2:file:" + home + "/db/intimed;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;CIPHER=AES");
-            IntiMedApplication.prepareTls();
-        } catch (Exception e) { throw new IllegalStateException(e); }
-    }
+    static { TestHome.init(); }
 
     @Autowired TenantService tenants;
     @Autowired UserService users;
@@ -263,10 +256,14 @@ class PlatformIntegrationTest {
         audit.record(A, "user:x", "test.event", "t/1", Map.of("k", "v"));
         assertThat(audit.verify().get("valid")).isEqualTo(true);
         long seq = jdbc.sql("select max(seq) from audit_log").query(Long.class).single();
+        String original = jdbc.sql("select actor from audit_log where seq = :s").param("s", seq - 1).query(String.class).single();
         jdbc.sql("update audit_log set actor = 'user:mallory' where seq = :s").param("s", seq - 1).update();
         Map<String, Object> v = audit.verify();
         assertThat(v.get("valid")).isEqualTo(false);
         assertThat(((Number) v.get("brokenAt")).longValue()).isEqualTo(seq - 1);
+        // restore the row: the application context (and its audit chain) is shared with the other integration test classes
+        jdbc.sql("update audit_log set actor = :a where seq = :s").param("a", original).param("s", seq - 1).update();
+        assertThat(audit.verify().get("valid")).isEqualTo(true);
     }
 
     @Test

@@ -6,7 +6,9 @@ import java.util.List;
 
 /**
  * HL7 v2 (P4 ORU^R01 PCD-01/02/03, IDCO; P5 data-manager bridges) and ASTM E1394 / LIS2-A2 (P5 analysers / middleware).
- * Configured by selectors in the driver grammar; MSH-9 is checked against the allowed message types.
+ * Configured by selectors in the driver grammar; MSH-9 is checked against the allowed message types. ASTM payloads may
+ * also arrive as raw E1381 low-level captures (ENQ / STX FN … ETX C1 C2 CR LF / EOT); they are unframed and their
+ * checksums verified by {@link io.intimed.engine.transport.AstmE1381} first (IM-E01-BL-007).
  */
 public class RecordParser implements PayloadParser {
     private final boolean hl7;
@@ -18,6 +20,10 @@ public class RecordParser implements PayloadParser {
     @Override
     public List<Parsed> parse(JsonNode g, String payload) {
         PayloadParser.guard(payload, MAX_PAYLOAD);
+        if (!hl7 && io.intimed.engine.transport.AstmE1381.looksFramed(payload)) {
+            try { payload = io.intimed.engine.transport.AstmE1381.unframe(payload); }
+            catch (IllegalArgumentException e) { throw new ParseException("ASTM E1381 framing rejected: " + e.getMessage()); }
+        }
         DelimitedRecords r = new DelimitedRecords(payload, hl7);
         Parsed p = new Parsed();
         if (hl7) {

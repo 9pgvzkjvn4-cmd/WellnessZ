@@ -77,7 +77,7 @@ public class DriverRegistry {
 
     public List<DriverPackage> all(String tenant) {
         List<DriverPackage> out = new ArrayList<>(bundled.values());
-        for (ObjectNode d : store.list(tenant, "driver")) out.add(new DriverPackage(d.get("package"), d.get("channel").asString(), "VALID", d.get("publisher").asString()));
+        for (ObjectNode d : store.list(tenant, "driver")) if (!"WITHDRAWN".equals(d.path("channel").asString())) out.add(new DriverPackage(d.get("package"), d.get("channel").asString(), "VALID", d.get("publisher").asString()));
         return out;
     }
 
@@ -118,6 +118,27 @@ public class DriverRegistry {
                 .put("publishedAt", Instant.now().toString()).put("publishedBy", actor).set("package", pkg), "CANDIDATE", d.packageId());
         audit.record(tenant, actor, "driver.publish", "driver/" + d.ref(), Map.of("publisher", publisher));
         return d;
+    }
+
+    private final List<java.util.function.BiConsumer<String, String>> withdrawListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    /** Listener notified with (tenant, driverRef) after a tenant package is withdrawn (partner badge revocation, IM-E07-BL-005). */
+    public void onWithdraw(java.util.function.BiConsumer<String, String> l) { withdrawListeners.add(l); }
+
+    /**
+     * Withdraws a tenant-published package (CANDIDATE or CERTIFIED): it disappears from selection lists, existing
+     * configurations keep resolving it for audit, and withdraw listeners are notified. Bundled packages cannot be withdrawn.
+     */
+    public void withdraw(String tenant, String ref, String reason, String actor) {
+        if (bundled.containsKey(ref)) throw ApiException.conflict("driver-bundled", "bundled certified packages are withdrawn by a product release, not per tenant");
+        ObjectNode d = store.get(tenant, "driver", ref).orElseThrow(() -> ApiException.notFound("driver " + ref));
+        if ("WITHDRAWN".equals(d.path("channel").asString())) throw ApiException.conflict("driver-withdrawn", "driver already withdrawn");
+        d.put("channel", "WITHDRAWN").put("withdrawnBy", actor).put("withdrawnAt", Instant.now().toString()).put("withdrawReason", reason == null ? "" : reason);
+        store.put(tenant, "driver", ref, d, "WITHDRAWN", d.get("package").at("/manifest/packageId").asString());
+        audit.record(tenant, actor, "driver.withdraw", "driver/" + ref, Map.of("reason", reason == null ? "" : reason));
+        for (var l : withdrawListeners) {
+            try { l.accept(tenant, ref); } catch (RuntimeException e) { LOG.warn("withdraw listener failed: {}", e.getClass().getSimpleName()); }
+        }
     }
 
     public void certify(String tenant, String ref, String runId, String actor) {

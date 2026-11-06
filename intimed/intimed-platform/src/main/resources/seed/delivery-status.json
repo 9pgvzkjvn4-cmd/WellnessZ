@@ -40,10 +40,10 @@
   },
   "IM-E01-BL-007": {
    "status": "PARTIAL",
-   "increment": "L4",
-   "evidence": "intimed-platform/src/main/java/io/intimed/engine/parse/RecordParser.java (ASTM E1394/LIS2-A2), XmlParser POCT1A; drivers bloodgas.radiometer.abl90-poct1a, lab.roche.cobas-astm; QC-lot gate",
-   "reason": "POCT1-A2 conversation (HEL/DST/ACK dialogue), ASTM E1381 low-level framing and IHE LAW need analysers or vendor simulators",
-   "strategy": "Implement POCT1-A2 session state machine and E1381 framing in the gateway; validate against two data managers in the lab (IM-S9)"
+   "increment": "L6",
+   "evidence": "intimed-platform/src/main/java/io/intimed/engine/transport/AstmE1381.java (ENQ/ACK/NAK/EOT, frames ≤ 240 chars with ETB/ETX, checksum, frame numbers mod 8, 6 retransmissions, sender + receiver state machines), engine/transport/Poct1aConversation.java (HEL/DST/REQ/OBS/EOT/END/ACK dialogue); RecordParser accepts raw E1381 captures; ProtocolCodecTests",
+   "reason": "Codecs are transport-independent and unit-tested with golden frames; not yet wired to a serial/TCP listener in the device-host agent, not validated against physical analysers / data managers, IHE LAW not implemented",
+   "strategy": "Bind codecs to the device-host agent serial/TCP ports; validate with two data managers in the lab (IM-S9)"
   },
   "IM-E01-BL-008": {
    "status": "PARTIAL",
@@ -197,11 +197,11 @@
    "evidence": "seed/devices.json (225 devices, 24 families), seed/fda-codes.json (132 codes with counts)"
   },
   "IM-E02-BL-003": {
-   "status": "PARTIAL",
-   "increment": "L2",
-   "evidence": "intimed-platform/src/main/java/io/intimed/catalogue/RegisterFeedService.java (openFDA 510(k)/recall with change detection and reviewer approval)",
-   "reason": "AccessGUDID and EUDAMED bulk feeds need scheduled downloads of large extracts and a UDI index",
-   "strategy": "Add GUDID/EUDAMED delta loaders into a UDI table with pgvector search; weekly refresh with review (IM-S2 follow-up)"
+   "status": "DELIVERED",
+   "increment": "L6",
+   "evidence": "intimed-platform/src/main/java/io/intimed/catalogue/UdiFeedService.java (AccessGUDID lookup by DI, EUDAMED configurable search, content-hash change detection, shared reviewer queue → CatalogueService.applyUdiRecord), security/egress/EgressClient.java (HTTPS, host allow-list, no redirects, private-address refusal); RegisterFeedService openFDA; PartnerCatalogueTest (local stub server)",
+   "reason": "Bulk GUDID/EUDAMED extracts and a full UDI index are not loaded – lookups are on demand per DI / search; the EUDAMED public API is not contractual (shape configurable)",
+   "strategy": "Scheduled delta loaders into a UDI table with search (IM-S2 follow-up)"
   },
   "IM-E02-BL-004": {
    "status": "DELIVERED",
@@ -214,10 +214,11 @@
    "evidence": "Connectivity matrix verification states (CERTIFIED_IN_LAB / VENDOR_CONFIRMED / COMMUNITY_REPORTED / UNVERIFIED) with basis"
   },
   "IM-E02-BL-006": {
-   "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Vendor self-service portal is a P3 / IM-S16+ marketplace capability requiring partner identity and contracts",
-   "strategy": "Partner portal (separate tenant type) reusing driver publish + harness API + posture intake; certification workflow with badges"
+   "status": "DELIVERED",
+   "increment": "L6",
+   "evidence": "intimed-platform/src/main/java/io/intimed/partner/PartnerSubmissionService.java (PARTNER_DEV submission: metadata, interface spec text/PDF ≤ 5 MB with SHA-256, MDS2 + CycloneDX/SPDX SBOM → catalogue posture, signed driver via DriverRegistry.publish → CANDIDATE; SUBMITTED → IN_REVIEW → HARNESS_PASSED → CERTIFIED/REJECTED, four-eyes certify, audited); web/PartnerController.java; UI Partners & registers; PartnerCatalogueTest",
+   "reason": "Partner identity is a PARTNER_DEV user inside the hospital tenant; a separate partner tenant type, contracts and a public marketplace are not built",
+   "strategy": "Partner tenant type with cross-tenant publication of certified packages (IM-S16+)"
   },
   "IM-E02-BL-007": {
    "status": "PARTIAL",
@@ -252,11 +253,11 @@
    "evidence": "intimed-platform/src/main/java/io/intimed/console/intelligence/PolicyEngine.java (BLOCK/JUSTIFY/WARN; pre-save validation API)"
   },
   "IM-E03-BL-006": {
-   "status": "PARTIAL",
-   "increment": "L3",
-   "evidence": "intimed-platform/src/main/java/io/intimed/console/intelligence/DocAssistant.java (tenant-scoped BM25 retrieval with citations, UNVERIFIED label)",
-   "reason": "LLM explanation layer requires an approved model endpoint behind a PHI-free policy gateway",
-   "strategy": "Add the policy gateway (citations mandatory, no PHI) over Azure OpenAI/Vertex or an open-weight model; pgvector embeddings (IM-S8)"
+   "status": "DELIVERED",
+   "increment": "L6",
+   "evidence": "intimed-platform/src/main/java/io/intimed/console/intelligence/ExplanationService.java (policy gateway: global + tenant switch, PHI redaction, residency host allow-list, API key from secret:// or managed identity via IMDS, max tokens, rate limit, audit of prompt/response hashes only, UNVERIFIED label, citations required); DocAssistant BM25 retrieval; web/ExplanationController.java; PartnerCatalogueTest (stub endpoint)",
+   "reason": "Verified against an Azure OpenAI-compatible stub only; no approved production model endpoint, no pgvector embeddings",
+   "strategy": "Approve endpoint + DPA per region; add embeddings retrieval (IM-S8)"
   },
   "IM-E03-BL-007": {
    "status": "DELIVERED",
@@ -518,16 +519,15 @@
   },
   "IM-E07-BL-004": {
    "status": "PARTIAL",
-   "increment": "L4",
-   "evidence": "Web component, mdi-sdk CLI, OpenAPI-able REST API, sandbox via tenant creation",
-   "reason": "Six language SDKs and a developer portal need generators, package registries and hosting",
-   "strategy": "OpenAPI generator pipeline for TypeScript/Java/.NET/Python/Swift/Kotlin; developer portal (IM-S7)"
+   "increment": "L6",
+   "evidence": "intimed-platform/src/main/java/io/intimed/web/OpenApiController.java (OpenAPI 3.1 generated at runtime from RequestMappingHandlerMapping, /api/public/openapi.json: machine APIs, FHIR, intelligence, partner); intimed/sdk/typescript (fetch, typed) and intimed/sdk/python (urllib, offline unittest) with client-credentials helpers",
+   "reason": "Typed request/response schemas are generic objects; Java/.NET/Swift/Kotlin SDKs, package publication and a hosted developer portal are not built",
+   "strategy": "Schema annotations + OpenAPI generator pipeline per language; developer portal (IM-S7)"
   },
   "IM-E07-BL-005": {
-   "status": "DEFERRED",
-   "increment": "—",
-   "reason": "Partner certification programme with badges is P3 (IM-S16+)",
-   "strategy": "Harness suites packaged for partners; badge listing in the catalogue"
+   "status": "DELIVERED",
+   "increment": "L6",
+   "evidence": "intimed-platform/src/main/java/io/intimed/partner/BadgeService.java (badge with level, date, harness version, run id, evidence seal; shown in catalogue results and GET /api/partner/badges; auto-revoked on failing run.completed or driver withdrawal); PartnerCatalogueTest"
   },
   "IM-E07-BL-006": {
    "status": "DELIVERED",
@@ -717,6 +717,11 @@
    "id": "L5",
    "name": "Hardening: security test kit, documentation, demo pack, videos",
    "sprints": "IM-S13 … IM-S15 (local subsets)"
+  },
+  {
+   "id": "L6",
+   "name": "Backlog follow-up: partner programme & badges, UDI register feeds, AI policy gateway, OpenAPI + SDKs, lab protocol codecs",
+   "sprints": "IM-S2, IM-S7, IM-S8, IM-S9, IM-S16 (local subsets)"
   }
  ],
  "capacity": {

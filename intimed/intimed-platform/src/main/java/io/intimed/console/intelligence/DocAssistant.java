@@ -21,8 +21,8 @@ import java.util.Map;
 /**
  * Documentation assistant (IM-E03-F04 / IM-E03-BL-006, local subset): tenant-scoped retrieval over uploaded interface
  * specifications (BM25 ranking over 600-character chunks). Every suggestion cites the document and chunk, is labelled
- * UNVERIFIED until an exchange test passes, and never sets a value (ADR-03). The LLM explanation layer behind a policy
- * gateway is deferred (needs an approved model endpoint); this retrieval layer is what that gateway will ground on.
+ * UNVERIFIED until an exchange test passes, and never sets a value (ADR-03). The LLM explanation layer behind the policy
+ * gateway ({@link ExplanationService}) grounds on exactly these retrieved passages.
  */
 @Service
 public class DocAssistant {
