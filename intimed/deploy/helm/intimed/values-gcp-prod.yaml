@@ -1,0 +1,11 @@
+cloud: gcp
+environment: PROD
+profiles: postgres
+persistence:
+  storageClass: intimed-regional-pd
+  size: 128Gi
+resources:
+  requests: { cpu: "2", memory: 6Gi }
+  limits: { cpu: "4", memory: 6Gi }
+nodeSelector:
+  pool: apps

@@ -1,0 +1,31 @@
+[
+ {
+  "name": "pg-intimed-prod-ab12",
+  "region": "me-central1",
+  "diskEncryptionConfiguration": {
+   "kmsKeyName": "projects/intimed-prod-qa/locations/me-central1/keyRings/kr-intimed-prod-ab12/cryptoKeys/cmek"
+  },
+  "settings": {
+   "availabilityType": "REGIONAL",
+   "ipConfiguration": {
+    "ipv4Enabled": false,
+    "privateNetwork": "projects/intimed-prod-qa/global/networks/vpc-intimed-prod",
+    "sslMode": "ENCRYPTED_ONLY"
+   },
+   "backupConfiguration": {
+    "enabled": true,
+    "pointInTimeRecoveryEnabled": true,
+    "location": "me-central1",
+    "backupRetentionSettings": {
+     "retainedBackups": 35
+    }
+   },
+   "databaseFlags": [
+    {
+     "name": "cloudsql.enable_pgaudit",
+     "value": "on"
+    }
+   ]
+  }
+ }
+]

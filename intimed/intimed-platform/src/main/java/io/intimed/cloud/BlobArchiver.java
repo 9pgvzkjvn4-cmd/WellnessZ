@@ -33,6 +33,9 @@ import java.util.stream.Stream;
  * {@code siem/audit.jsonl} is uploaded with {@code If-None-Match: *} (never overwrites) into containers that Terraform
  * protects with a time-based immutability policy (WORM). Authentication by Entra workload identity – no storage key.
  * Disabled unless {@code intimed.archive.blob.account-url} is set (e.g. https://stintimeduatqc.blob.core.windows.net).
+ * <p>Google Cloud mode (IntiMed_GCP): {@code intimed.archive.gcs.evidence-bucket} / {@code audit-bucket} – objects are
+ * uploaded with {@code ifGenerationMatch=0} (create-only, never overwrite) into buckets in me-central1 protected by a
+ * locked retention policy; authentication by GKE Workload Identity ({@link io.intimed.security.secrets.GcpIdentity}).
  */
 @Component
 public class BlobArchiver {
@@ -41,9 +44,25 @@ public class BlobArchiver {
     private final String account;
     private final String evidenceContainer, auditContainer, prefix;
     private Supplier<String> token;
+    private String gcsEvidence = "", gcsAudit = "", gcsApi = "https://storage.googleapis.com";
 
+    @org.springframework.beans.factory.annotation.Autowired
     public BlobArchiver(@Value("${intimed.archive.blob.account-url:}") String account, @Value("${intimed.archive.blob.evidence-container:evidence}") String ev,
-                        @Value("${intimed.archive.blob.audit-container:audit}") String au, @Value("${intimed.archive.blob.prefix:${INTIMED_ENVIRONMENT:LOCAL}}") String prefix) {
+                        @Value("${intimed.archive.blob.audit-container:audit}") String au, @Value("${intimed.archive.blob.prefix:${INTIMED_ENVIRONMENT:LOCAL}}") String prefix,
+                        @Value("${intimed.archive.gcs.evidence-bucket:}") String gcsEvidence, @Value("${intimed.archive.gcs.audit-bucket:}") String gcsAudit) {
+        this(account, ev, au, prefix);
+        if (gcsEvidence != null && !gcsEvidence.isBlank()) {
+            if (!this.account.isEmpty()) throw new IllegalStateException("configure either the Azure Blob or the GCS archive, not both");
+            if (!gcsEvidence.matches("[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]") || !gcsAudit.matches("[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]"))
+                throw new IllegalStateException("intimed.archive.gcs.evidence-bucket and audit-bucket must be valid bucket names");
+            this.gcsEvidence = gcsEvidence;
+            this.gcsAudit = gcsAudit;
+            io.intimed.security.secrets.GcpIdentity id = new io.intimed.security.secrets.GcpIdentity();
+            this.token = id::token;
+        }
+    }
+
+    public BlobArchiver(String account, String ev, String au, String prefix) {
         this.account = account == null ? "" : account.replaceAll("/$", "");
         this.evidenceContainer = ev;
         this.auditContainer = au;
@@ -63,6 +82,16 @@ public class BlobArchiver {
         return b.withEndpoint(base, token);
     }
 
+    /** Test hook: GCS mode against a stub endpoint. */
+    public static BlobArchiver forTestGcs(String base, Supplier<String> token, String evidenceBucket, String auditBucket) {
+        BlobArchiver b = new BlobArchiver("", "evidence", "audit", "test");
+        b.gcsEvidence = evidenceBucket;
+        b.gcsAudit = auditBucket;
+        b.gcsApi = base;
+        b.token = token;
+        return b;
+    }
+
     private String endpoint;
 
     private BlobArchiver withEndpoint(String base, Supplier<String> tok) {
@@ -71,7 +100,7 @@ public class BlobArchiver {
         return this;
     }
 
-    public boolean enabled() { return endpoint != null || !account.isEmpty(); }
+    public boolean enabled() { return endpoint != null || !account.isEmpty() || !gcsEvidence.isEmpty(); }
 
     @Scheduled(fixedDelayString = "${intimed.archive.interval-ms:300000}", initialDelayString = "${intimed.archive.initial-delay-ms:120000}")
     public void scheduled() {
@@ -130,6 +159,7 @@ public class BlobArchiver {
     }
 
     private void put(String container, String blob, byte[] body, String type, String sha) {
+        if (!gcsEvidence.isEmpty()) { putGcs(container.equals(auditContainer) ? gcsAudit : gcsEvidence, blob, body, type); return; }
         String base = endpoint != null ? endpoint : account;
         HttpRequest r = HttpRequest.newBuilder(URI.create(base + "/" + container + "/" + blob)).timeout(Duration.ofSeconds(30))
                 .header("Authorization", "Bearer " + token.get()).header("x-ms-version", "2023-11-03").header("x-ms-blob-type", "BlockBlob")
@@ -141,6 +171,20 @@ public class BlobArchiver {
             if (res.statusCode() != 201 && res.statusCode() != 409) throw new IllegalStateException("blob upload " + container + "/" + blob + " returned HTTP " + res.statusCode());
         } catch (IOException | InterruptedException e) {
             throw new IllegalStateException("blob storage unavailable: " + e.getClass().getSimpleName());
+        }
+    }
+
+    /** GCS JSON API media upload, create-only ({@code ifGenerationMatch=0}); 412 = object already archived. */
+    private void putGcs(String bucket, String object, byte[] body, String type) {
+        String url = gcsApi + "/upload/storage/v1/b/" + bucket + "/o?uploadType=media&ifGenerationMatch=0&name="
+                + java.net.URLEncoder.encode(object, StandardCharsets.UTF_8);
+        HttpRequest r = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(30)).header("Authorization", "Bearer " + token.get())
+                .header("Content-Type", type).POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
+        try {
+            HttpResponse<String> res = http.send(r, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (res.statusCode() != 200 && res.statusCode() != 412) throw new IllegalStateException("GCS upload " + bucket + "/" + object + " returned HTTP " + res.statusCode());
+        } catch (IOException | InterruptedException e) {
+            throw new IllegalStateException("Cloud Storage unavailable: " + e.getClass().getSimpleName());
         }
     }
 }

@@ -1,0 +1,14 @@
+{
+ "name": "projects/intimed-prod-qa/policies/gcp.resourceLocations",
+ "spec": {
+  "rules": [
+   {
+    "values": {
+     "allowedValues": [
+      "in:me-central1-locations"
+     ]
+    }
+   }
+  ]
+ }
+}

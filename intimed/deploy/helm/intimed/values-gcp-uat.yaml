@@ -1,0 +1,10 @@
+cloud: gcp
+environment: UAT
+persistence:
+  storageClass: intimed-regional-pd
+  size: 32Gi
+resources:
+  requests: { cpu: "1", memory: 3Gi }
+  limits: { cpu: "2", memory: 3Gi }
+nodeSelector:
+  pool: apps

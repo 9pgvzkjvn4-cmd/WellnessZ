@@ -28,9 +28,13 @@ profile the kit computes TOTP codes itself).
 | 13 time sync & certificate expiry | SC-14 | ✓ |
 | 14 rate limiting & anomaly | SC-09, SC-13 | ✓ |
 | 15 report builder | SC-16 | ✓ |
-| 16 cloud posture | SC-17 | deferred (cloud) |
+| 16 cloud posture – `16_azure_posture_check.py` (Azure Qatar Central) / `16_gcp_posture_check.py` (GCP me-central1) | SC-17, SC-19 | offline against `fixtures/azure-*` / `fixtures/gcp-*`; live in UAT |
 | 17 tenant isolation | SC-18 | ✓ |
 | 18 recommendation guardrails | SC-19, RR-03/04 | ✓ |
 | 19 exchange harness gate | SC-20 | ✓ |
 
 Last run on the build machine: **69 checks, 69 passed**.
+
+Cloud runs: `run-kit-aks.sh` (Azure, `AZ_RESOURCE_GROUP`) and `run-kit-gke.sh` (IntiMed_GCP, `GCP_PROJECT`,
+`INTIMED_ENV=prod` for the production-only checks). Offline proof of the GCP check:
+`INTIMED_ENV=prod python3 16_gcp_posture_check.py --from-json fixtures/gcp-good` → 31/31 PASS; `fixtures/gcp-bad` → 20 FAIL.

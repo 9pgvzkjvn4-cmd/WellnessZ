@@ -18,10 +18,16 @@ public class PlatformConfig {
     @Bean
     SecretStore secretStore(@Value("${intimed.secrets.provider:local}") String provider, @Value("${intimed.secrets.vault.address:http://127.0.0.1:8200}") String addr,
                             @Value("${intimed.secrets.vault.mount:secret}") String mount, @Value("${intimed.secrets.azure.vault-uri:}") String kvUri,
+                            @Value("${intimed.secrets.gcp.project:}") String gcpProject, @Value("${intimed.secrets.gcp.location:me-central1}") String gcpLocation,
                             DocumentStore store, TenantKeyService keys, AuditService audit) {
         if ("azure-keyvault".equals(provider)) {
             io.intimed.security.secrets.AzureIdentity id = new io.intimed.security.secrets.AzureIdentity();
             return new io.intimed.security.secrets.AzureKeyVaultSecretStore(kvUri, () -> id.token("https://vault.azure.net/.default"), audit, false);
+        }
+        if ("gcp-secret-manager".equals(provider)) {
+            io.intimed.security.secrets.GcpIdentity id = new io.intimed.security.secrets.GcpIdentity();
+            String project = gcpProject == null || gcpProject.isBlank() ? id.projectId() : gcpProject;
+            return new io.intimed.security.secrets.GcpSecretManagerSecretStore("https://secretmanager.googleapis.com/v1", project, gcpLocation, id::token, audit, false);
         }
         if ("vault".equals(provider)) return new HashiCorpVaultSecretStore(addr, mount, System.getenv("VAULT_TOKEN"), audit);
         return new LocalSecretStore(store, keys, audit);

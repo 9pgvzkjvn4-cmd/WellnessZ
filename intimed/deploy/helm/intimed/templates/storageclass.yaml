@@ -1,3 +1,23 @@
+{{- if eq .Values.cloud "gcp" }}
+# Regional persistent disk (synchronously replicated across two Doha zones): the pod can restart in the second zone
+# with its data. Zones must match the app node pool (Terraform app_node_locations).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ .Values.persistence.storageClass }}
+  labels: {{- include "intimed.labels" . | nindent 4 }}
+provisioner: pd.csi.storage.gke.io
+parameters:
+  type: pd-ssd
+  replication-type: regional-pd
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: topology.gke.io/zone
+        values: {{ toJson .Values.gcp.diskZones }}
+{{- else }}
 # Zone-redundant Premium SSD (Qatar Central has three availability zones) – encrypted at rest by the platform.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -11,3 +31,4 @@ parameters:
 reclaimPolicy: Retain
 allowVolumeExpansion: true
 volumeBindingMode: WaitForFirstConsumer
+{{- end }}

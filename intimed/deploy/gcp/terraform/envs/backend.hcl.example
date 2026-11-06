@@ -1,0 +1,3 @@
+# terraform init -backend-config=envs/backend-uat.hcl   (state bucket in me-central1, uniform access, versioning)
+bucket = "<project-id>-intimed-tfstate"
+prefix = "intimed/uat"

@@ -1,0 +1,38 @@
+[
+ {
+  "name": "gke-intimed-prod",
+  "location": "me-central1",
+  "privateClusterConfig": {
+   "enablePrivateNodes": true,
+   "enablePrivateEndpoint": true
+  },
+  "controlPlaneEndpointsConfig": {
+   "ipEndpointsConfig": {
+    "enablePublicEndpoint": false
+   },
+   "dnsEndpointConfig": {
+    "allowExternalTraffic": true
+   }
+  },
+  "workloadIdentityConfig": {
+   "workloadPool": "intimed-prod-qa.svc.id.goog"
+  },
+  "shieldedNodes": {
+   "enabled": true
+  },
+  "legacyAbac": {},
+  "masterAuth": {
+   "clientCertificateConfig": {}
+  },
+  "networkConfig": {
+   "datapathProvider": "ADVANCED_DATAPATH"
+  },
+  "binaryAuthorization": {
+   "evaluationMode": "PROJECT_SINGLETON_POLICY_ENFORCE"
+  },
+  "databaseEncryption": {
+   "state": "ENCRYPTED",
+   "keyName": "projects/intimed-prod-qa/locations/me-central1/keyRings/kr-intimed-prod-ab12/cryptoKeys/cmek"
+  }
+ }
+]

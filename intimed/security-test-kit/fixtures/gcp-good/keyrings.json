@@ -1,0 +1,24 @@
+[
+ {
+  "name": "projects/intimed-prod-qa/locations/me-central1/keyRings/kr-intimed-prod-ab12",
+  "_keys": [
+   {
+    "name": "projects/intimed-prod-qa/locations/me-central1/keyRings/kr-intimed-prod-ab12/cryptoKeys/cmek",
+    "purpose": "ENCRYPT_DECRYPT",
+    "rotationPeriod": "7776000s",
+    "versionTemplate": {
+     "protectionLevel": "HSM",
+     "algorithm": "GOOGLE_SYMMETRIC_ENCRYPTION"
+    }
+   },
+   {
+    "name": "projects/intimed-prod-qa/locations/me-central1/keyRings/kr-intimed-prod-ab12/cryptoKeys/cosign-signing",
+    "purpose": "ASYMMETRIC_SIGN",
+    "versionTemplate": {
+     "protectionLevel": "HSM",
+     "algorithm": "EC_SIGN_P256_SHA256"
+    }
+   }
+  ]
+ }
+]

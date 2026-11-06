@@ -9,6 +9,20 @@ spec:
   ports:
     - { name: console, port: 9443, targetPort: console }
 ---
+{{- if eq .Values.cloud "gcp" }}
+# Console backend for the GKE Gateway (regional external Application Load Balancer, Doha). appProtocol HTTPS makes the
+# load balancer re-encrypt to the platform on 9443.
+apiVersion: v1
+kind: Service
+metadata:
+  name: intimed-console
+  labels: {{- include "intimed.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector: {{- include "intimed.selector" . | nindent 4 }}
+  ports:
+    - { name: https, port: 443, targetPort: console, protocol: TCP, appProtocol: HTTPS }
+{{- else }}
 # Console: internal load balancer, reachable only from Application Gateway WAF v2 (HTTPS re-encryption to 9443).
 apiVersion: v1
 kind: Service
@@ -26,15 +40,21 @@ spec:
   selector: {{- include "intimed.selector" . | nindent 4 }}
   ports:
     - { name: https, port: 443, targetPort: console, protocol: TCP }
+{{- end }}
 ---
 # Devices: MLLP-TLS and HTTPS ingress with mutual TLS terminated by the platform itself (client certificate must reach
-# the pod – no TLS-terminating proxy). externalTrafficPolicy Local keeps the device source IP for anomaly detection.
+# the pod – passthrough load balancer, no TLS proxy). externalTrafficPolicy Local keeps the device source IP.
 apiVersion: v1
 kind: Service
 metadata:
   name: intimed-devices
   labels: {{- include "intimed.labels" . | nindent 4 }}
   annotations:
+    {{- if eq .Values.cloud "gcp" }}
+    {{- if not .Values.devices.public }}
+    networking.gke.io/load-balancer-type: "Internal"
+    {{- end }}
+    {{- else }}
     {{- if not .Values.devices.public }}
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
     {{- if .Values.devices.subnetName }}
@@ -44,9 +64,13 @@ metadata:
     {{- if .Values.devices.loadBalancerIP }}
     service.beta.kubernetes.io/azure-load-balancer-ipv4: {{ .Values.devices.loadBalancerIP | quote }}
     {{- end }}
+    {{- end }}
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local
+  {{- if and (eq .Values.cloud "gcp") .Values.devices.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.devices.loadBalancerIP | quote }}
+  {{- end }}
   {{- if .Values.devices.public }}
   loadBalancerSourceRanges: {{- required "devices.loadBalancerSourceRanges is required when devices.public=true" .Values.devices.loadBalancerSourceRanges | toYaml | nindent 4 }}
   {{- end }}

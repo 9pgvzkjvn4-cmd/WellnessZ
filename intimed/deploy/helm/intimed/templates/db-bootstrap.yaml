@@ -1,6 +1,25 @@
 {{- if .Values.database.bootstrap.enabled }}
 # One-time / rotation job (pre-install, pre-upgrade): creates or rotates the application's least-privilege PostgreSQL
 # role with the server administrator. The admin password is mounted only into this short-lived pod.
+{{- if eq .Values.cloud "gcp" }}
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: intimed-kv-dbadmin
+  labels: {{- include "intimed.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  provider: gke
+  parameters:
+    secrets: |
+      - resourceName: "projects/{{ .Values.gcp.projectId }}/secrets/intimed-db-admin-password/versions/latest"
+        path: "INTIMED_DB_ADMIN_PASSWORD"
+      - resourceName: "projects/{{ .Values.gcp.projectId }}/secrets/intimed-db-password/versions/latest"
+        path: "INTIMED_DB_PASSWORD"
+{{- else }}
 apiVersion: secrets-store.csi.x-k8s.io/v1
 kind: SecretProviderClass
 metadata:
@@ -31,6 +50,7 @@ spec:
       data:
         - { objectName: intimed-db-admin-password, key: INTIMED_DB_ADMIN_PASSWORD }
         - { objectName: intimed-db-password, key: INTIMED_DB_PASSWORD }
+{{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -41,7 +61,11 @@ metadata:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-10"
     helm.sh/hook-delete-policy: before-hook-creation
+    {{- if eq .Values.cloud "gcp" }}
+    iam.gke.io/gcp-service-account: {{ .Values.gcp.gsaEmail | quote }}
+    {{- else }}
     azure.workload.identity/client-id: {{ .Values.azure.workloadIdentityClientId | quote }}
+    {{- end }}
 automountServiceAccountToken: false
 ---
 apiVersion: batch/v1
@@ -60,7 +84,9 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: intimed-db-bootstrap
+        {{- if ne .Values.cloud "gcp" }}
         azure.workload.identity/use: "true"
+        {{- end }}
     spec:
       restartPolicy: Never
       serviceAccountName: intimed-dbadmin
@@ -70,17 +96,26 @@ spec:
         - name: bootstrap
           image: {{ include "intimed.image" . }}
           securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
-          args: ["sdk", "db-bootstrap", "--url", {{ printf "jdbc:postgresql://%s:5432/%s?%s" .Values.database.host .Values.database.name .Values.database.params | quote }},
+          args: ["sdk", "db-bootstrap", "--url", {{ include "intimed.dbUrl" . | quote }},
                  "--admin", {{ .Values.database.bootstrap.adminUser | quote }}, "--app-user", {{ .Values.database.user | quote }}]
-          env: [ { name: JAVA_TOOL_OPTIONS, value: "-Xmx192m" } ]
+          env: [ { name: JAVA_TOOL_OPTIONS, value: "-Xmx192m" }, { name: INTIMED_SECRETS_DIR, value: /mnt/secrets } ]
+          {{- if ne .Values.cloud "gcp" }}
           envFrom: [ { secretRef: { name: intimed-dbadmin } } ]
+          {{- end }}
           resources: { requests: { cpu: 100m, memory: 320Mi }, limits: { memory: 320Mi } }
           volumeMounts:
             - { name: kv, mountPath: /mnt/secrets, readOnly: true }
             - { name: tmp, mountPath: /tmp }
+            {{- if eq .Values.cloud "gcp" }}
+            - { name: pg-ca, mountPath: /etc/intimed/pg, readOnly: true }
+            {{- end }}
       volumes:
         - name: kv
-          csi: { driver: secrets-store.csi.k8s.io, readOnly: true, volumeAttributes: { secretProviderClass: intimed-kv-dbadmin } }
+          csi: { driver: {{ if eq .Values.cloud "gcp" }}secrets-store-gke.csi.k8s.io{{ else }}secrets-store.csi.k8s.io{{ end }}, readOnly: true, volumeAttributes: { secretProviderClass: intimed-kv-dbadmin } }
+        {{- if eq .Values.cloud "gcp" }}
+        - name: pg-ca
+          configMap: { name: intimed-pg-ca }
+        {{- end }}
         - name: tmp
           emptyDir: {}
 {{- end }}

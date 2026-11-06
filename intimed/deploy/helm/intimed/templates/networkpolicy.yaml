@@ -11,16 +11,23 @@ spec:
   policyTypes: [Ingress, Egress]
   ingress:
     - from:
+        # Azure: Application Gateway subnet · GCP: proxy-only subnet of the regional Application Load Balancer
         - ipBlock: { cidr: {{ required "networkPolicy.appGatewaySubnetCidr is required" .Values.networkPolicy.appGatewaySubnetCidr }} }
+        {{- range (include "intimed.probeCidrs" . | fromJsonArray) }}
+        - ipBlock: { cidr: {{ . }} }
+        {{- end }}
       ports: [ { port: 9443, protocol: TCP } ]
     - from:
         {{- range (required "networkPolicy.deviceSourceCidrs is required" .Values.networkPolicy.deviceSourceCidrs) }}
         - ipBlock: { cidr: {{ . }} }
         {{- end }}
-        - ipBlock: { cidr: 168.63.129.16/32 }   # Azure load balancer health probes
+        {{- range (include "intimed.probeCidrs" . | fromJsonArray) }}
+        - ipBlock: { cidr: {{ . }} }   # load-balancer health checks
+        {{- end }}
       ports: [ { port: 2575, protocol: TCP }, { port: 8443, protocol: TCP } ]
     - from:
-        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }   # ama-metrics (Managed Prometheus)
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }   # Azure ama-metrics
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: gmp-system } }    # GCP Managed Prometheus
       ports: [ { port: 9444, protocol: TCP } ]
     - from:
         - podSelector: { matchLabels: { intimed.io/role: smoke } }   # helm test only
@@ -33,11 +40,16 @@ spec:
     - to:
         - ipBlock: { cidr: {{ required "networkPolicy.postgresSubnetCidr is required" .Values.networkPolicy.postgresSubnetCidr }} }
       ports: [ { port: 5432, protocol: TCP } ]
-    # HTTPS: Key Vault / Storage private endpoints, Entra ID token endpoint, allow-listed webhooks and register feeds.
-    # FQDN filtering is enforced by Azure Firewall (production) on the AKS egress route.
+    {{- if eq .Values.cloud "gcp" }}
+    - to:
+        - ipBlock: { cidr: 169.254.169.254/32 }   # GKE metadata server (Workload Identity tokens)
+      ports: [ { port: 80, protocol: TCP }, { port: 988, protocol: TCP } ]
+    {{- end }}
+    # HTTPS: Key Vault / Secret Manager / Storage, identity endpoints, allow-listed webhooks and register feeds.
+    # FQDN filtering is enforced by Azure Firewall / Cloud NGFW (production) on the egress path.
     - ports: [ { port: 443, protocol: TCP } ]
 ---
-# DB bootstrap job: DNS, PostgreSQL and Entra (token exchange) only; no ingress.
+# DB bootstrap job: DNS, PostgreSQL and identity (token exchange) only; no ingress.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -56,5 +68,10 @@ spec:
     - to:
         - ipBlock: { cidr: {{ .Values.networkPolicy.postgresSubnetCidr }} }
       ports: [ { port: 5432, protocol: TCP } ]
+    {{- if eq .Values.cloud "gcp" }}
+    - to:
+        - ipBlock: { cidr: 169.254.169.254/32 }
+      ports: [ { port: 80, protocol: TCP }, { port: 988, protocol: TCP } ]
+    {{- end }}
     - ports: [ { port: 443, protocol: TCP } ]
 {{- end }}

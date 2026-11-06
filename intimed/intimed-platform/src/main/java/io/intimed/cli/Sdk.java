@@ -82,7 +82,8 @@ public final class Sdk {
      */
     static int dbBootstrap(Map<String, String> o, Map<String, String> env) throws Exception {
         String url = req(o, "url"), admin = req(o, "admin"), app = o.getOrDefault("app-user", "intimed");
-        String adminPw = env.get("INTIMED_DB_ADMIN_PASSWORD"), appPw = env.get("INTIMED_DB_PASSWORD");
+        String adminPw = env.containsKey("INTIMED_DB_ADMIN_PASSWORD") ? env.get("INTIMED_DB_ADMIN_PASSWORD") : io.intimed.common.Secrets.get("INTIMED_DB_ADMIN_PASSWORD"),
+                appPw = env.containsKey("INTIMED_DB_PASSWORD") ? env.get("INTIMED_DB_PASSWORD") : io.intimed.common.Secrets.get("INTIMED_DB_PASSWORD");
         if (!app.matches("[a-z][a-z0-9_]{2,30}")) throw new IllegalArgumentException("invalid application role name");
         if (adminPw == null || adminPw.isBlank()) throw new IllegalArgumentException("INTIMED_DB_ADMIN_PASSWORD is not set");
         if (appPw == null || !appPw.matches("[A-Za-z0-9]{24,128}")) throw new IllegalArgumentException("INTIMED_DB_PASSWORD must be 24–128 alphanumeric characters");
@@ -113,7 +114,8 @@ public final class Sdk {
         String url = env.get("INTIMED_DB_URL");
         if (url == null) throw new IllegalArgumentException("INTIMED_DB_URL is not set (run inside the IntiMed pod)");
         String kinds = io.intimed.store.DocumentStore.SENSITIVE.stream().map(k -> "'" + k.replace("'", "") + "'").collect(java.util.stream.Collectors.joining(","));
-        try (java.sql.Connection c = java.sql.DriverManager.getConnection(url, env.getOrDefault("INTIMED_DB_USER", "intimed"), env.get("INTIMED_DB_PASSWORD"));
+        try (java.sql.Connection c = java.sql.DriverManager.getConnection(url, env.getOrDefault("INTIMED_DB_USER", "intimed"),
+                env.containsKey("INTIMED_DB_PASSWORD") ? env.get("INTIMED_DB_PASSWORD") : io.intimed.common.Secrets.get("INTIMED_DB_PASSWORD"));
              java.sql.Statement st = c.createStatement()) {
             long total = count(st, "select count(*) from documents where kind in (" + kinds + ")");
             long plain = count(st, "select count(*) from documents where kind in (" + kinds + ") and data not like 'enc:v1:%'");

@@ -1,0 +1,6 @@
+{
+ "defaultAdmissionRule": {
+  "evaluationMode": "ALWAYS_ALLOW",
+  "enforcementMode": "DRYRUN_AUDIT_LOG_ONLY"
+ }
+}

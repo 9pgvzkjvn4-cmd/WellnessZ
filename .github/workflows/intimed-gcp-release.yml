@@ -1,0 +1,205 @@
+# IntiMed_GCP – release pipeline to Google Cloud me-central1 / Doha (IM-E08-BL-006, IM-E06-BL-005):
+# build + tests → SAST (CodeQL) + secret scan → image build → vulnerability scan (Trivy) → push to Artifact Registry
+# (UAT project) → cosign signature with the Cloud KMS HSM key (never exported) → Binary Authorization attestation →
+# deploy UAT (helm, helm test, security kit GKE checks, DAST baseline) → manual approval (GitHub environment
+# "gcp-prod": required reviewers = four-eyes) → signature verification → copy to the PROD registry → PROD attestation
+# (Binary Authorization ENFORCED in PROD) → deploy PROD.
+# Auth: Workload Identity Federation (GitHub OIDC → Google service account, no stored keys). Environment variables:
+#   GCP_WIF_PROVIDER, GCP_DEPLOY_SA, GCP_PROJECT (per environment gcp-uat / gcp-prod), UAT_CONSOLE_URL,
+#   CONSOLE_HOSTNAME, COSIGN_KEY (= `terraform output -raw cosign_key`, per environment), GCP_UAT_PROJECT and
+#   UAT_COSIGN_KEY (gcp-prod only). Secret (per environment): CONSOLE_TLS_CERT_PEM / CONSOLE_TLS_KEY_PEM (optional,
+#   only on first deployment / renewal – manual guide M-02).
+# Third-party actions are referenced by tag here; pin them to commit SHAs (Renovate/Dependabot) per supply-chain policy.
+name: intimed-gcp-release
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_prod: { description: "Promote to PROD after UAT gates", type: boolean, default: false }
+  push:
+    tags: ["intimed-gcp-v*"]
+permissions:
+  contents: read
+  id-token: write
+  security-events: write
+concurrency: { group: intimed-gcp-release, cancel-in-progress: false }
+env:
+  IMAGE: intimed/platform
+  REGION: me-central1
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    defaults: { run: { working-directory: intimed } }
+    outputs: { version: "${{ steps.v.outputs.version }}" }
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with: { distribution: temurin, java-version: "21", cache: maven }
+      - name: Build, unit + integration + architecture tests, SBOM
+        run: ./mvnw -B verify
+      - id: v
+        run: echo "version=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.version)-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: platform
+          path: |
+            intimed/intimed-platform/target/intimed-platform.jar
+            intimed/intimed-platform/target/classes/META-INF/sbom/application.cdx.json
+
+  sast:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with: { distribution: temurin, java-version: "21", cache: maven }
+      - uses: github/codeql-action/init@v3
+        with: { languages: java-kotlin, queries: security-extended }
+      - run: cd intimed && ./mvnw -B -DskipTests package
+      - uses: github/codeql-action/analyze@v3
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env: { GITLEAKS_CONFIG: .gitleaks.toml }
+
+  image:
+    needs: [build, sast]
+    runs-on: ubuntu-24.04
+    environment: gcp-uat
+    outputs:
+      digest: "${{ steps.push.outputs.digest }}"
+      repo: "${{ steps.repo.outputs.repo }}"
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/download-artifact@v4
+        with: { name: platform, path: intimed/intimed-platform/target-dl }
+      - run: mkdir -p intimed/intimed-platform/target && cp intimed/intimed-platform/target-dl/target/intimed-platform.jar intimed/intimed-platform/target/
+      - uses: google-github-actions/auth@v2
+        with: { workload_identity_provider: "${{ vars.GCP_WIF_PROVIDER }}", service_account: "${{ vars.GCP_DEPLOY_SA }}" }
+      - uses: google-github-actions/setup-gcloud@v2
+      - id: repo
+        run: echo "repo=${REGION}-docker.pkg.dev/${{ vars.GCP_PROJECT }}/intimed-uat" >> "$GITHUB_OUTPUT"
+      - run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (local) for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: intimed
+          file: intimed/deploy/docker/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: local/intimed:${{ needs.build.outputs.version }}
+          provenance: false
+      - name: Vulnerability scan – block on fixable HIGH/CRITICAL
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: local/intimed:${{ needs.build.outputs.version }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+      - name: Push (immutable tags)
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: intimed
+          file: intimed/deploy/docker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.repo.outputs.repo }}/${{ env.IMAGE }}:${{ needs.build.outputs.version }}
+          provenance: mode=max
+          sbom: true
+      - uses: sigstore/cosign-installer@v3
+      - name: Sign with the Cloud KMS HSM key + Binary Authorization attestation
+        env: { REF: "${{ steps.repo.outputs.repo }}/${{ env.IMAGE }}@${{ steps.push.outputs.digest }}", P: "${{ vars.GCP_PROJECT }}", KEY: "${{ vars.COSIGN_KEY }}", E: uat }
+        run: |
+          cosign sign --yes --tlog-upload=false --key "$KEY" "$REF"
+          KR=$(echo "$KEY" | sed -E 's#.*/keyRings/([^/]+)/.*#\1#')
+          gcloud container binauthz attestations sign-and-create --project "$P" --artifact-url "$REF" \
+            --attestor "intimed-release-$E" --attestor-project "$P" \
+            --keyversion-project "$P" --keyversion-location "$REGION" --keyversion-keyring "$KR" \
+            --keyversion-key cosign-signing --keyversion 1
+
+  deploy-uat:
+    needs: [build, image]
+    runs-on: ubuntu-24.04
+    environment: gcp-uat
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: google-github-actions/auth@v2
+        with: { workload_identity_provider: "${{ vars.GCP_WIF_PROVIDER }}", service_account: "${{ vars.GCP_DEPLOY_SA }}" }
+      - uses: google-github-actions/setup-gcloud@v2
+        with: { install_components: gke-gcloud-auth-plugin }
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: 1.9.8, terraform_wrapper: false }
+      - uses: azure/setup-helm@v4
+        with: { version: v3.16.2 }
+      - name: Terraform outputs (read-only)
+        working-directory: intimed/deploy/gcp/terraform
+        run: terraform init -input=false -backend-config="bucket=${{ vars.GCP_PROJECT }}-intimed-tfstate" -backend-config="prefix=intimed/uat"
+      - name: Console TLS certificate (only when provided)
+        env: { CRT: "${{ secrets.CONSOLE_TLS_CERT_PEM }}", KEY: "${{ secrets.CONSOLE_TLS_KEY_PEM }}" }
+        run: |
+          if [ -n "$CRT" ]; then umask 077; printf '%s\n' "$CRT" > "$RUNNER_TEMP/tls.crt"; printf '%s\n' "$KEY" > "$RUNNER_TEMP/tls.key"
+            echo "CONSOLE_TLS_CERT=$RUNNER_TEMP/tls.crt" >> "$GITHUB_ENV"; echo "CONSOLE_TLS_KEY=$RUNNER_TEMP/tls.key" >> "$GITHUB_ENV"; fi
+      - name: Deploy (helm upgrade --install + helm test)
+        working-directory: intimed
+        env: { ENV: uat, CONSOLE_HOSTNAME: "${{ vars.CONSOLE_HOSTNAME }}", IMAGE_TAG: "${{ needs.build.outputs.version }}", IMAGE_DIGEST: "${{ needs.image.outputs.digest }}" }
+        run: deploy/gcp/scripts/deploy.sh
+      - name: Security kit – GCP posture (16) and container runtime (05)
+        working-directory: intimed/security-test-kit
+        env: { GCP_PROJECT: "${{ vars.GCP_PROJECT }}", INTIMED_ENV: uat }
+        run: |
+          python3 16_gcp_posture_check.py
+          python3 05_container_runtime_check.py --namespace intimed
+          python3 15_report_builder.py
+      - name: DAST baseline (OWASP ZAP) against the UAT console
+        if: ${{ vars.UAT_CONSOLE_URL != '' }}
+        uses: zaproxy/action-baseline@v0.14.0
+        with: { target: "${{ vars.UAT_CONSOLE_URL }}", allow_issue_writing: false, fail_action: true, cmd_options: "-a" }
+      - run: rm -f "$RUNNER_TEMP/tls.crt" "$RUNNER_TEMP/tls.key"
+        if: always()
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with: { name: gcp-uat-security-kit, path: intimed/security-test-kit/results }
+
+  deploy-prod:
+    if: ${{ inputs.deploy_prod || startsWith(github.ref, 'refs/tags/intimed-gcp-v') }}
+    needs: [build, image, deploy-uat]
+    runs-on: ubuntu-24.04            # GKE DNS endpoint + Artifact Registry are IAM-authenticated: no runner in the VPC needed
+    environment: gcp-prod            # required reviewers: Platform SRE + Device Administrator (four-eyes)
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: google-github-actions/auth@v2
+        with: { workload_identity_provider: "${{ vars.GCP_WIF_PROVIDER }}", service_account: "${{ vars.GCP_DEPLOY_SA }}" }
+      - uses: google-github-actions/setup-gcloud@v2
+        with: { install_components: gke-gcloud-auth-plugin }
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: 1.9.8, terraform_wrapper: false }
+      - uses: azure/setup-helm@v4
+        with: { version: v3.16.2 }
+      - uses: sigstore/cosign-installer@v3
+      - uses: imjasonh/setup-crane@v0.4
+      - name: Verify UAT signature, copy to the PROD registry, sign + attest for PROD
+        env:
+          SRC: "${{ needs.image.outputs.repo }}/${{ env.IMAGE }}@${{ needs.image.outputs.digest }}"
+          UAT_KEY: "${{ vars.UAT_COSIGN_KEY }}"
+          KEY: "${{ vars.COSIGN_KEY }}"
+          E: prod
+          P: "${{ vars.GCP_PROJECT }}"
+          TAG: "${{ needs.build.outputs.version }}"
+        run: |
+          cosign verify --insecure-ignore-tlog=true --key "$UAT_KEY" "$SRC"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          DST="${REGION}-docker.pkg.dev/$P/intimed-prod/$IMAGE"
+          crane copy "$SRC" "$DST:$TAG"
+          REF="$DST@${{ needs.image.outputs.digest }}"
+          cosign sign --yes --tlog-upload=false --key "$KEY" "$REF"
+          KR=$(echo "$KEY" | sed -E 's#.*/keyRings/([^/]+)/.*#\1#')
+          gcloud container binauthz attestations sign-and-create --project "$P" --artifact-url "$REF" \
+            --attestor "intimed-release-$E" --attestor-project "$P" \
+            --keyversion-project "$P" --keyversion-location "$REGION" --keyversion-keyring "$KR" \
+            --keyversion-key cosign-signing --keyversion 1
+      - name: Deploy PROD
+        working-directory: intimed
+        env: { ENV: prod, CONSOLE_HOSTNAME: "${{ vars.CONSOLE_HOSTNAME }}", IMAGE_TAG: "${{ needs.build.outputs.version }}", IMAGE_DIGEST: "${{ needs.image.outputs.digest }}" }
+        run: |
+          terraform -chdir=deploy/gcp/terraform init -input=false -backend-config="bucket=${{ vars.GCP_PROJECT }}-intimed-tfstate" -backend-config="prefix=intimed/prod"
+          deploy/gcp/scripts/deploy.sh

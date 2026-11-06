@@ -1,3 +1,6 @@
+# IntiMed Helm values – Azure AKS (Qatar Central) or Google GKE (Doha, me-central1): set `cloud`.
+cloud: azure                # azure | gcp
+
 # IntiMed Helm values – Azure AKS reference (Qatar Central). Environment overlays: values-uat.yaml, values-prod.yaml.
 # Every value marked REQUIRED is filled from `terraform output` by deploy/azure/scripts/render-values.sh.
 
@@ -17,12 +20,26 @@ azure:
   keyVaultUri: ""           # REQUIRED  https://<kv>.vault.azure.net/
   archiveAccountUrl: ""     # https://<storage>.blob.core.windows.net – immutable evidence/audit archive
 
+gcp:
+  projectId: ""             # REQUIRED (gcp)
+  region: me-central1
+  diskZones: [me-central1-a, me-central1-b]
+  gsaEmail: ""              # REQUIRED (gcp) Google service account bound via Workload Identity
+  evidenceBucket: ""        # REQUIRED (gcp) <project>-intimed-evidence
+  auditBucket: ""           # REQUIRED (gcp) <project>-intimed-audit
+  sqlServerCaPem: ""        # REQUIRED (gcp) Cloud SQL instance server CA (terraform output sql_server_ca_pem)
+  console:
+    hostname: ""            # REQUIRED (gcp) e.g. intimed.uat.example.qa
+    ipName: ""              # reserved regional external address (terraform output console_ip_name)
+    armorPolicy: ""         # regional Cloud Armor policy (terraform output armor_policy)
+    tlsSecretName: intimed-console-tls   # kubernetes.io/tls secret with the public certificate (Setup Guide §8)
+
 database:
   host: ""                  # REQUIRED  <server>.postgres.database.azure.com (private DNS)
   name: intimed
   user: intimed
   # TLS with full certificate and host-name verification against the JVM trust store (DigiCert / Microsoft roots)
-  params: "sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+  params: "sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"   # gcp: verify-ca against the instance CA (set automatically)
   bootstrap:
     enabled: true           # pre-install/pre-upgrade job creating/rotating the least-privilege app role
     adminUser: intimedadmin
@@ -51,6 +68,7 @@ networkPolicy:
   deviceSourceCidrs: []     # REQUIRED  hospital / VPN client ranges allowed to reach 2575/8443
   postgresSubnetCidr: ""    # REQUIRED  delegated PostgreSQL subnet
   privateEndpointSubnetCidr: ""  # Key Vault / Storage private endpoints
+  lbProbeCidrs: []          # default: azure 168.63.129.16/32, gcp 35.191.0.0/16 + 130.211.0.0/22
 
 resources:
   requests: { cpu: "1", memory: 3Gi }

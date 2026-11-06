@@ -1,0 +1,27 @@
+[
+ {
+  "name": "fw-intimed-hc",
+  "direction": "INGRESS",
+  "allowed": [
+   {
+    "IPProtocol": "tcp"
+   }
+  ],
+  "sourceRanges": [
+   "35.191.0.0/16",
+   "130.211.0.0/22"
+  ]
+ },
+ {
+  "name": "fw-intimed-deny-all",
+  "direction": "INGRESS",
+  "denied": [
+   {
+    "IPProtocol": "all"
+   }
+  ],
+  "sourceRanges": [
+   "0.0.0.0/0"
+  ]
+ }
+]

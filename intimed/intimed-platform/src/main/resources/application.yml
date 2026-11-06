@@ -2,6 +2,10 @@
 spring:
   application:
     name: intimed-platform
+  config:
+    # Secrets delivered as files (GKE Secret Manager add-on / CSI): each file name becomes a property, e.g.
+    # /mnt/secrets/INTIMED_DB_PASSWORD resolves ${INTIMED_DB_PASSWORD}. Absent locally – optional.
+    import: "optional:configtree:${INTIMED_SECRETS_DIR:/mnt/secrets}/"
   threads:
     virtual:
       enabled: true
@@ -64,6 +68,9 @@ intimed:
     provider: ${INTIMED_SECRETS_PROVIDER:local}
     azure:
       vault-uri: ${INTIMED_KEYVAULT_URI:}
+    gcp:
+      project: ${INTIMED_GCP_PROJECT:}
+      location: ${INTIMED_GCP_LOCATION:me-central1}
   feeds:
     openfda:
       enabled: ${INTIMED_OPENFDA:false}
@@ -96,6 +103,9 @@ intimed:
   archive:
     blob:
       account-url: ${INTIMED_ARCHIVE_ACCOUNT_URL:}
+    gcs:
+      evidence-bucket: ${INTIMED_ARCHIVE_GCS_EVIDENCE_BUCKET:}
+      audit-bucket: ${INTIMED_ARCHIVE_GCS_AUDIT_BUCKET:}
   webhooks:
     allowed-hosts: ${INTIMED_WEBHOOK_ALLOWED_HOSTS:localhost,127.0.0.1}
   demo:

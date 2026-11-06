@@ -26,7 +26,7 @@ public final class MasterKey {
 
     public static synchronized byte[] root() {
         if (root != null) return root;
-        String env = System.getenv("INTIMED_MASTER_KEY");
+        String env = io.intimed.common.Secrets.get("INTIMED_MASTER_KEY");
         if (env == null) env = System.getProperty("intimed.master-key");
         if (env != null && !env.isBlank()) {
             byte[] k = Base64.getDecoder().decode(env.trim());

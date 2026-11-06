@@ -1,0 +1,22 @@
+[
+ {
+  "name": "pg-intimed-prod-ab12",
+  "region": "europe-west1",
+  "settings": {
+   "availabilityType": "ZONAL",
+   "ipConfiguration": {
+    "ipv4Enabled": true,
+    "sslMode": "ALLOW_UNENCRYPTED_AND_ENCRYPTED"
+   },
+   "backupConfiguration": {
+    "enabled": true,
+    "pointInTimeRecoveryEnabled": true,
+    "location": "me-central1",
+    "backupRetentionSettings": {
+     "retainedBackups": 35
+    }
+   },
+   "databaseFlags": []
+  }
+ }
+]

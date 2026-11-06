@@ -1,0 +1,7 @@
+[
+ {
+  "name": "projects/intimed-prod-qa/locations/me-central1/repositories/intimed-prod",
+  "kmsKeyName": "projects/intimed-prod-qa/locations/me-central1/keyRings/kr-intimed-prod-ab12/cryptoKeys/cmek",
+  "dockerConfig": {}
+ }
+]

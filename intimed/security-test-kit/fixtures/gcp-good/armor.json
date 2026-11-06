@@ -1,0 +1,65 @@
+[
+ {
+  "name": "armor-console-intimed-prod",
+  "rules": [
+   {
+    "action": "deny(403)",
+    "match": {
+     "expr": {
+      "expression": "evaluatePreconfiguredWaf('sqli-v33-stable', {'sensitivity': 1})"
+     }
+    }
+   },
+   {
+    "action": "deny(403)",
+    "match": {
+     "expr": {
+      "expression": "evaluatePreconfiguredWaf('xss-v33-stable', {'sensitivity': 1})"
+     }
+    }
+   },
+   {
+    "action": "deny(403)",
+    "match": {
+     "expr": {
+      "expression": "evaluatePreconfiguredWaf('lfi-v33-stable', {'sensitivity': 1})"
+     }
+    }
+   },
+   {
+    "action": "deny(403)",
+    "match": {
+     "expr": {
+      "expression": "evaluatePreconfiguredWaf('rce-v33-stable', {'sensitivity': 1})"
+     }
+    }
+   },
+   {
+    "action": "deny(403)",
+    "match": {
+     "expr": {
+      "expression": "evaluatePreconfiguredWaf('rfi-v33-stable', {'sensitivity': 1})"
+     }
+    }
+   },
+   {
+    "action": "deny(403)",
+    "match": {
+     "expr": {
+      "expression": "evaluatePreconfiguredWaf('scannerdetection-v33-stable', {'sensitivity': 1})"
+     }
+    }
+   },
+   {
+    "action": "rate_based_ban",
+    "match": {
+     "config": {
+      "srcIpRanges": [
+       "*"
+      ]
+     }
+    }
+   }
+  ]
+ }
+]

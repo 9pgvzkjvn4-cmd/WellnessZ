@@ -1,0 +1,35 @@
+# IntiMed_GCP – infrastructure (Terraform) for me-central1 / Doha (IM-E08-BL-003). Pull requests: fmt + validate +
+# offline tests + plan (UAT). Manual run: plan + apply for the chosen environment behind the GitHub environment approval.
+name: intimed-gcp-infra
+on:
+  pull_request: { paths: ["intimed/deploy/gcp/terraform/**"] }
+  workflow_dispatch:
+    inputs:
+      environment: { description: "uat or prod", type: choice, options: [uat, prod], default: uat }
+      apply: { description: "terraform apply after plan", type: boolean, default: false }
+permissions: { contents: read, id-token: write, pull-requests: write }
+jobs:
+  terraform:
+    runs-on: ubuntu-24.04
+    environment: ${{ github.event_name == 'workflow_dispatch' && format('gcp-{0}-infra', inputs.environment) || 'gcp-uat-infra' }}
+    defaults: { run: { working-directory: intimed/deploy/gcp/terraform } }
+    env:
+      ENVNAME: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'uat' }}
+      TF_VAR_project_id: ${{ vars.GCP_PROJECT }}
+      TF_VAR_billing_account: ${{ vars.GCP_BILLING_ACCOUNT }}
+      TF_VAR_github_repository: ${{ github.repository }}
+      TF_VAR_vpn_shared_secrets: ${{ secrets.VPN_SHARED_SECRETS_JSON || '{}' }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: 1.9.8 }
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false && terraform validate && terraform test
+      - uses: google-github-actions/auth@v2
+        with: { workload_identity_provider: "${{ vars.GCP_WIF_PROVIDER }}", service_account: "${{ vars.GCP_TERRAFORM_SA }}" }
+      - run: terraform init -input=false -reconfigure -backend-config="bucket=${{ vars.GCP_PROJECT }}-intimed-tfstate" -backend-config="prefix=intimed/$ENVNAME"
+      - run: |
+          EXTRA=""; [ -f envs/$ENVNAME.local.tfvars ] && EXTRA="-var-file=envs/$ENVNAME.local.tfvars"
+          terraform plan -input=false -var-file=envs/$ENVNAME.tfvars $EXTRA -out=tfplan
+      - if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+        run: terraform apply -input=false tfplan

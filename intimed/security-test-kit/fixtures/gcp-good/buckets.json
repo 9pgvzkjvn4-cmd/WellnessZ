@@ -1,0 +1,24 @@
+[
+ {
+  "name": "intimed-prod-qa-intimed-evidence",
+  "location": "ME-CENTRAL1",
+  "uniform_bucket_level_access": true,
+  "public_access_prevention": "enforced",
+  "default_kms_key": "projects/intimed-prod-qa/locations/me-central1/keyRings/kr-intimed-prod-ab12/cryptoKeys/cmek",
+  "retention_policy": {
+   "retentionPeriod": "220752000",
+   "isLocked": true
+  }
+ },
+ {
+  "name": "intimed-prod-qa-intimed-audit",
+  "location": "ME-CENTRAL1",
+  "uniform_bucket_level_access": true,
+  "public_access_prevention": "enforced",
+  "default_kms_key": "projects/intimed-prod-qa/locations/me-central1/keyRings/kr-intimed-prod-ab12/cryptoKeys/cmek",
+  "retention_policy": {
+   "retentionPeriod": "220752000",
+   "isLocked": true
+  }
+ }
+]

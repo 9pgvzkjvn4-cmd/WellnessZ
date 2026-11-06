@@ -15,3 +15,8 @@ deploy/helm/intimed/values-*.generated.yaml
 dr-drill-*.json
 soak-report.json
 __pycache__/
+# GCP deployment – site-specific / generated (never commit)
+deploy/gcp/terraform/envs/*.local.tfvars
+deploy/gcp/terraform/envs/backend-*.hcl
+deploy/gcp/terraform/.terraform/
+dr-drill-gcp-*.json

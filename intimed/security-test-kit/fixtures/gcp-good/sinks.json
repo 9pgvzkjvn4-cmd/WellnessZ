@@ -1,0 +1,13 @@
+[
+ {
+  "name": "_Default",
+  "disabled": true
+ },
+ {
+  "name": "_Required"
+ },
+ {
+  "name": "intimed-all-to-doha",
+  "destination": "logging.googleapis.com/projects/intimed-prod-qa/locations/me-central1/buckets/intimed-logs"
+ }
+]
