@@ -487,5 +487,159 @@
   "expected": {
    "ktv": "L"
   }
+ },
+ {
+  "id": "traj-sepsis-6h",
+  "name": "Sepsis deterioration over 6 h – adult female, 64 y",
+  "group": "trajectory",
+  "demographics": {
+   "ageYears": 64,
+   "sex": "female"
+  },
+  "concepts": {},
+  "expected": {},
+  "noisePct": 2.0,
+  "trajectory": [
+   {
+    "minute": 0,
+    "values": {
+     "heart-rate": 92,
+     "resp-rate": 18,
+     "body-temp": 37.6,
+     "spo2": 96,
+     "systolic": 124,
+     "diastolic": 78
+    }
+   },
+   {
+    "minute": 120,
+    "values": {
+     "heart-rate": 108,
+     "resp-rate": 22,
+     "body-temp": 38.4,
+     "spo2": 94,
+     "systolic": 112,
+     "diastolic": 70
+    }
+   },
+   {
+    "minute": 240,
+    "values": {
+     "heart-rate": 122,
+     "resp-rate": 26,
+     "body-temp": 38.9,
+     "spo2": 92,
+     "systolic": 98,
+     "diastolic": 60
+    }
+   },
+   {
+    "minute": 360,
+    "values": {
+     "heart-rate": 134,
+     "resp-rate": 30,
+     "body-temp": 39.3,
+     "spo2": 89,
+     "systolic": 86,
+     "diastolic": 52
+    }
+   }
+  ]
+ },
+ {
+  "id": "traj-post-op-recovery",
+  "name": "Post-operative recovery over 4 h – adult male, 58 y",
+  "group": "trajectory",
+  "demographics": {
+   "ageYears": 58,
+   "sex": "male"
+  },
+  "concepts": {},
+  "expected": {},
+  "noisePct": 2.0,
+  "trajectory": [
+   {
+    "minute": 0,
+    "values": {
+     "heart-rate": 110,
+     "resp-rate": 22,
+     "body-temp": 35.8,
+     "spo2": 93,
+     "systolic": 98,
+     "diastolic": 60
+    }
+   },
+   {
+    "minute": 60,
+    "values": {
+     "heart-rate": 100,
+     "resp-rate": 20,
+     "body-temp": 36.2,
+     "spo2": 94,
+     "systolic": 108,
+     "diastolic": 66
+    }
+   },
+   {
+    "minute": 240,
+    "values": {
+     "heart-rate": 82,
+     "resp-rate": 16,
+     "body-temp": 36.8,
+     "spo2": 97,
+     "systolic": 122,
+     "diastolic": 76
+    }
+   }
+  ]
+ },
+ {
+  "id": "traj-hypoglycaemia",
+  "name": "Hypoglycaemia episode and treatment over 90 min – adult female, 45 y",
+  "group": "trajectory",
+  "demographics": {
+   "ageYears": 45,
+   "sex": "female"
+  },
+  "concepts": {},
+  "expected": {},
+  "noisePct": 1.5,
+  "trajectory": [
+   {
+    "minute": 0,
+    "values": {
+     "glucose": 5.2,
+     "heart-rate": 76
+    }
+   },
+   {
+    "minute": 30,
+    "values": {
+     "glucose": 3.4,
+     "heart-rate": 96
+    }
+   },
+   {
+    "minute": 45,
+    "values": {
+     "glucose": 2.4,
+     "heart-rate": 108
+    }
+   },
+   {
+    "minute": 60,
+    "values": {
+     "glucose": 3.8,
+     "heart-rate": 92
+    }
+   },
+   {
+    "minute": 90,
+    "values": {
+     "glucose": 5.6,
+     "heart-rate": 80
+    }
+   }
+  ]
  }
 ]

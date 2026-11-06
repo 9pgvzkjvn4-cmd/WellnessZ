@@ -180,15 +180,20 @@ public class HarnessService {
         ArrayNode vr = ev.putArray("validation");
         for (ObjectNode i : inst) {
             String tid = i.path("templateId").asString();
-            List<String> cats = categories.forTemplate(tid);
+            // RR-17 (IM-E12-BL-009): the platform category recorded on the configuration takes precedence over the template default
+            List<String> cats = new ArrayList<>(categories.forTemplate(tid));
+            String recorded = x.cfg.path("platformCategory").asString(null);
+            if (recorded != null) { cats.remove(recorded); cats.add(0, recorded); }
             ObjectNode fields = (ObjectNode) i.path("fields").deepCopy();
-            ObjectNode v = validation.validate(templates.require(x.tenant, tid), fields, cats.isEmpty() ? null : cats.get(0), io.intimed.clinical.Demographics.UNKNOWN,
+            // tenant-aware: an ACTIVE tenant interval overlay (IM-E14-BL-011) is what XT-17 validates against
+            ObjectNode v = validation.validate(x.tenant, templates.require(x.tenant, tid), fields, cats.isEmpty() ? null : cats.get(0), io.intimed.clinical.Demographics.UNKNOWN,
                     Json.obj().put("consent", true));
             for (JsonNode l : v.path("layers")) {
                 String layer = l.path("layer").asString();
                 if ("FAIL".equals(l.path("status").asString()) && List.of("UNITS", "CROSS_FIELD", "PLAUSIBILITY", "TERMINOLOGY").contains(layer)) structural = false;
             }
-            vr.addObject().put("template", tid).put("category", cats.isEmpty() ? "generic" : cats.get(0)).put("verdict", v.path("verdict").asString());
+            vr.addObject().put("template", tid).put("category", cats.isEmpty() ? "generic" : cats.get(0)).put("categorySource", recorded != null ? "configuration (RR-17)" : "template default")
+                    .put("verdict", v.path("verdict").asString());
         }
         boolean pass = annotated == expected && match == total && structural;
         x.check("XT-17", pass, annotated + "/" + expected + " clinical fields carry reference interval + interpretation; " + match + "/" + total

@@ -1,9 +1,12 @@
 // Intelligence studio (IntiMed 2.0 – IM-E11…IM-E15): validation studio, device identification, auto-mapping,
-// physiology-aware cohorts, reference-interval knowledge base, platform categories and drift. No innerHTML.
-import { h, clear, get, post, guard, badge, table, card, kpi, field, input, select, button, pre, tabs } from '../lib.js';
+// physiology-aware cohorts, reference-interval knowledge base, platform categories and drift. IntiMed 2.1: derived values and
+// delta flags in the studio (IM-E14-BL-010/012), interval governance (IM-E14-BL-011), trajectories (IM-E13-BL-005),
+// drift acknowledge/resolve (IM-E15-BL-003), terminology adapter status (IM-E12-BL-010). No innerHTML.
+import { h, clear, get, post, guard, badge, table, card, kpi, field, input, select, button, pre, tabs, modal, toast } from '../lib.js';
 
 const TABS = [['validate', 'Validation studio'], ['identify', 'Device identification'], ['automap', 'Auto-mapping'], ['cohorts', 'Simulator cohorts'],
-  ['ranges', 'Reference ranges'], ['categories', 'Platform categories'], ['types', 'Device types & profiles'], ['drift', 'Drift']];
+  ['trajectories', 'Trajectories'], ['ranges', 'Reference ranges'], ['intervals', 'Interval governance'], ['categories', 'Platform categories'],
+  ['types', 'Device types & profiles'], ['drift', 'Drift']];
 
 export async function intelligencePage(main, [sub]) {
   const tab = sub || 'validate';
@@ -11,7 +14,7 @@ export async function intelligencePage(main, [sub]) {
     h('p', { class: 'lead' }, 'See exactly what a device sends, what IntiMed maps it to, and how it is validated and flagged for each healthcare-platform category – with age-, sex- and context-partitioned reference ranges.'),
     tabs(TABS, tab, t => { location.hash = '#/intelligence/' + t; }));
   const box = h('div'); main.append(box);
-  await ({ validate, identify, automap, cohorts, ranges, categories, types, drift }[tab] || validate)(box);
+  await ({ validate, identify, automap, cohorts, trajectories, ranges, intervals, categories, types, drift }[tab] || validate)(box);
 }
 
 const FLAG_KIND = { N: 'ok', L: 'warn', H: 'warn', LL: 'bad', HH: 'bad' };
@@ -28,6 +31,8 @@ async function validate(box) {
   const preg = select([['', 'not pregnant'], ['1', 'T1'], ['2', 'T2'], ['3', 'T3']], '');
   const alt = input({ type: 'number', value: '0', min: '0', max: '6000' });
   const consent = h('input', { type: 'checkbox', checked: true });
+  const derivedOn = h('input', { type: 'checkbox' });
+  const previous = input({ placeholder: '{"potassium":{"value":4.0,"minutesAgo":120}}', class: 'in mono' });
   const payload = h('textarea', { class: 'in mono', rows: 6, placeholder: 'Paste an HL7 v2 / ASTM / XML / JSON / GDT / serial payload' });
   const out = h('div');
   const refreshTpl = () => {
@@ -36,7 +41,8 @@ async function validate(box) {
   };
   drv.addEventListener('change', refreshTpl); refreshTpl();
   const run = async () => {
-    const body = { driver: drv.value, templateId: tpl.value, category: cat.value || null, context: { consent: consent.checked, siteAltitudeM: Number(alt.value) } };
+    const body = { driver: drv.value, templateId: tpl.value, category: cat.value || null, context: { consent: consent.checked, siteAltitudeM: Number(alt.value) }, derivedValues: derivedOn.checked };
+    if (previous.value.trim()) { try { body.previous = JSON.parse(previous.value); } catch (e) { toast('Previous values must be JSON', 'err'); return; } }
     if (src.value === 'cohort') body.profile = prof.value;
     else {
       body.demographics = { ageYears: Number(age.value), sex: sex.value, siteAltitudeM: Number(alt.value) };
@@ -49,7 +55,9 @@ async function validate(box) {
   box.append(card('Input',
     h('div', { class: 'form cols' }, field('Driver (device model · option)', drv), field('Template', tpl), field('Healthcare-platform category', cat), field('Source', src),
       field('Cohort', prof, 'Demographics and scripted values from the cohort'), field('Age (years)', age, 'for golden / pasted payloads'), field('Sex', sex), field('Pregnancy', preg),
-      field('Site altitude (m)', alt), field('Consent on file', consent)),
+      field('Site altitude (m)', alt), field('Consent on file', consent),
+      field('Derived values', derivedOn, 'eGFR (CKD-EPI 2021), BMI, anion gap, corrected Ca – labelled "derived – verify" (default OFF per configuration)'),
+      field('Previous values (delta check)', previous, 'KB entry → previous value in KB unit and minutes ago')),
     field('Payload', payload), button('Validate & render', run)), out);
   run();
 }
@@ -64,7 +72,13 @@ function renderValidation(out, r) {
       { label: 'Converted from', key: 'convertedFrom' },
       { label: 'Reference range', render: f => f.referenceRange ? h('span', { title: (f.referenceRange.notes || []).join('; ') }, f.referenceRange.text, h('small', { class: 'muted' }, ' ' + f.referenceRange.partition)) : '—' },
       { label: 'Flag', render: f => flagBadge(f.interpretation) }, { label: 'Grade', key: 'grade' },
+      { label: 'Delta', render: f => f.delta ? h('span', { title: f.delta.threshold + ' within ' + f.delta.windowHours + ' h' }, badge(f.delta.flagged ? 'DELTA' : 'no delta', f.delta.flagged ? 'warn' : 'neutral'), ' Δ ' + f.delta.change) : '—' },
       { label: 'Source', render: f => f.referenceRange ? f.referenceRange.source : '—' }], r.fields, { compact: true })));
+  if (r.derived) out.append(card('Derived values (annotation block – derived – verify)', table([{ label: 'Value', render: k => r.derived[k].name },
+    { label: 'Result', render: k => r.derived[k].value + ' ' + r.derived[k].unit }, { label: 'Flag / grade', render: k => h('span', null, flagBadge(r.derived[k].interpretation), ' ', r.derived[k].grade || '') },
+    { label: 'Formula', render: k => r.derived[k].formulaId + ' v' + r.derived[k].formulaVersion }, { label: 'Inputs', render: k => JSON.stringify(r.derived[k].inputs) },
+    { label: 'Label', render: k => badge(r.derived[k].label, 'warn') }], Object.keys(r.derived), { compact: true })));
+  else if (r.derivedValuesEnabled) out.append(h('p', { class: 'muted' }, 'Derived values enabled – no formula inputs in this payload (e.g. creatinine with known age and sex for eGFR).'));
   out.append(card('Validation layers', table([{ label: 'Layer', key: 'layer' }, { label: 'Status', render: l => badge(l.status) },
     { label: 'Findings', render: l => l.findings.length ? h('ul', { class: 'tight' }, l.findings.map(f => h('li', null, badge(f.severity), ' ', f.field, ': ', f.message))) : '—' }], r.layers, { compact: true })));
   if (r.blocked && r.blocked.length) out.append(card('Blocked (not posted)', pre(r.blocked)));
@@ -106,7 +120,9 @@ function profileCard(p) {
 }
 
 async function automap(box) {
-  const [drivers, tpls] = await Promise.all([get('/api/drivers'), get('/api/templates')]);
+  const [drivers, tpls, term] = await Promise.all([get('/api/drivers'), get('/api/templates'), get('/api/intelligence/terminology/status').catch(() => null)]);
+  if (term) box.append(h('p', { class: 'muted' }, 'Terminology server adapter ($lookup / $validate-code / $translate): ', badge(term.enabled ? 'ENABLED' : 'DISABLED', term.enabled ? 'ok' : 'neutral'),
+    ' ', term.enabled ? (term.host + ' · cache ' + term.cacheEntries + ' · calls ' + term.calls) : (term.reason || ''), ' – used as an extra signal for host fields coded in systems IntiMed does not know.'));
   const drv = select(drivers.map(d => [d.ref, d.name]), 'vitals.welchallyn.csm-pcd01@1.0.0');
   const tpl = select(tpls.map(t => [t.id, t.id + ' ' + t.name]), 'TPL-02');
   const out = h('div');
@@ -185,10 +201,90 @@ async function types(box) {
     card('Taxonomy', table([{ label: 'Code', key: 'code' }, { label: 'Name', key: 'name' }, { label: 'Data class', key: 'dataClass' }, { label: 'IEEE 11073', key: 'ieee11073Specialization' }, { label: 'Models', key: 'models' }], t.types, { compact: true })));
 }
 
+async function trajectories(box) {
+  const [list, drivers] = await Promise.all([get('/api/intelligence/cohorts'), get('/api/drivers')]);
+  const trajs = list.filter(p => p.trajectory);
+  const prof = select(trajs.map(p => [p.id, p.name]), trajs[0] && trajs[0].id);
+  const drv = select([['', '(best covering driver)'], ...drivers.map(d => [d.ref, d.name])], '');
+  const iv = input({ type: 'number', value: '30', min: '1', max: '240' }), seed = input({ type: 'number', value: '42' });
+  const stream = h('input', { type: 'checkbox' }), cfg = input({ placeholder: 'published configuration id (DEVICE_ADMIN)' }), subj = input({ placeholder: 'subject id for streaming (optional)' });
+  const out = h('div');
+  box.append(card('Time-series physiology – keyframes interpolated piecewise-linearly with seeded noise, replayed through a driver',
+    h('div', { class: 'form cols' }, field('Trajectory', prof), field('Driver', drv), field('Interval (min)', iv), field('Seed', seed),
+      field('Stream into a published configuration', stream, 'live pipeline, steps re-timed to now'), field('Configuration', cfg), field('Subject', subj)),
+    button('Render trajectory', async () => {
+      const body = { profile: prof.value, driver: drv.value || null, intervalMinutes: Number(iv.value), seed: Number(seed.value), stream: stream.checked };
+      if (stream.checked) Object.assign(body, { configId: cfg.value.trim(), subject: subj.value.trim() || null });
+      const r = await guard(() => post('/api/intelligence/cohorts/trajectory', body));
+      if (!r) return;
+      const concepts = r.coveredConcepts;
+      clear(out).append(h('div', { class: 'kpis' }, kpi('Steps', r.steps, 'every ' + r.intervalMinutes + ' min'), kpi('Driver', r.captureMode, r.driver),
+        kpi('Max NEWS2 (informational)', r.summary.maxNews2), kpi('First abnormal flag', r.summary.firstAbnormalFlagMinute === undefined ? '—' : r.summary.firstAbnormalFlagMinute + ' min')),
+        h('p', { class: 'note' }, r.disclaimer),
+        r.notCoveredByDriver.length ? h('p', { class: 'muted' }, 'Not expressed by this driver: ' + r.notCoveredByDriver.join(', ')) : '',
+        table([{ label: 'Minute', key: 'minute' }, ...concepts.map(c => ({ label: c, render: s => h('span', null, String(s.values[c] === undefined ? '—' : s.values[c]), ' ', s.flags[c] ? flagBadge({ code: s.flags[c], display: '' }) : '') })),
+          { label: 'NEWS2', render: s => h('span', null, String(s.news2.score), ' ', badge(s.news2.band, s.news2.band === 'high' ? 'bad' : s.news2.band === 'low' ? 'ok' : 'warn')) }], r.series, { compact: true }),
+        r.stream ? card('Streamed into ' + cfg.value, table([{ label: 'Step', key: 'step' }, { label: 'Pipeline status', render: x => badge(x.status) }, { label: 'ACK', key: 'ack' }], r.stream, { compact: true })) : '');
+    })), out);
+}
+
+async function intervals(box) {
+  const kb = await get('/api/intelligence/reference-ranges');
+  const out = h('div'), detail = h('div');
+  const csv = h('textarea', { class: 'in mono', rows: 6 });
+  csv.value = 'entry,ageFrom,ageTo,sex,pregnant,trimester,low,high,criticalLow,criticalHigh,unit,source\npotassium,18,200,any,,,3.4,5.0,2.8,6.2,mmol/L,Local lab 2026';
+  const od = h('textarea', { class: 'in mono', rows: 6, placeholder: 'FHIR R4 ObservationDefinition (or Bundle) JSON with qualifiedInterval' });
+  const load = async () => {
+    const list = await get('/api/intelligence/intervals');
+    clear(out).append(table([{ label: 'Overlay', key: 'id' }, { label: 'Version', key: 'version' }, { label: 'Format', key: 'format' }, { label: 'Source', key: 'source' },
+      { label: 'Status', render: o => badge(o.status) }, { label: 'Imported by', key: 'importedBy' }, { label: 'Approved by', key: 'approvedBy' },
+      { label: 'Partitions verified', render: o => o.partitions.filter(p => p.verified).length + '/' + o.partitions.length },
+      { label: '', render: o => button('Open', () => show(o.id), 'ghost') }], list, { compact: true, empty: 'No tenant overlay – knowledge-base defaults apply.' }));
+  };
+  const show = async (id) => {
+    const o = await get('/api/intelligence/intervals/' + encodeURIComponent(id));
+    const res = h('textarea', { class: 'in mono', rows: 3, placeholder: '≥ 20 local reference results, comma or newline separated' });
+    const part = select(o.partitions.map(p => [p.entry + '#' + p.index, p.entry + ' – ' + p.partition + (p.verified ? ' ✓' : '')]), o.partitions[0] && (o.partitions[0].entry + '#' + o.partitions[0].index));
+    const comment = input({ placeholder: 'approval comment' });
+    const act = (path, body, msg) => async () => { if (await guard(() => post('/api/intelligence/intervals/' + encodeURIComponent(id) + path, body ? body() : {}), msg)) { await load(); await show(id); } };
+    clear(detail).append(card('Overlay ' + o.id + ' – v' + o.version + ' (' + o.status + ')',
+      h('p', { class: 'muted' }, 'DRAFT → VERIFIED (CLSI EP28-A3c: ≤ 10 % of ≥ 20 local results outside each partition) → APPROVED (four-eyes: REGULATORY / TENANT_ADMIN / PHYSICIAN, not the importer) → ACTIVE'),
+      table([{ label: 'Entry', render: p => p.entry }, { label: 'Partition', key: 'partition' }, { label: 'Interval', render: p => { const r = o.entries[p.entry][p.index]; return (r.low ?? '—') + '–' + (r.high ?? '—') + ' (crit ' + (r.criticalLow ?? '—') + ' / ' + (r.criticalHigh ?? '—') + ')'; } },
+        { label: 'EP28', render: p => badge(p.verified ? 'VERIFIED' : 'OPEN') }], o.partitions, { compact: true }),
+      (o.verification || []).length ? table([{ label: 'Partition', render: v => v.entry + ' ' + v.partition }, { label: 'n', key: 'n' }, { label: 'Outside', render: v => v.outside + ' (allowed ' + v.allowedOutside + ')' },
+        { label: 'Result', render: v => badge(v.pass ? 'PASS' : 'FAIL') }, { label: 'By', key: 'by' }], o.verification, { compact: true }) : '',
+      h('div', { class: 'form cols' }, field('Partition', part), field('Local reference results', res), field('Comment', comment)),
+      button('Verify partition (EP28)', act('/verify', () => { const [entry, index] = part.value.split('#'); return { entry, index: Number(index), results: res.value.split(/[\s,;]+/).filter(Boolean).map(Number) }; }, 'Verification recorded'), 'ghost'),
+      button('Approve (four-eyes)', act('/approve', () => ({ comment: comment.value }), 'Approved'), 'ghost'),
+      button('Activate', act('/activate', null, 'Overlay active – live annotation now uses it'), 'primary'),
+      button('Retire', act('/retire', () => ({ reason: comment.value || 'retired' }), 'Retired'), 'ghost')));
+  };
+  box.append(h('p', { class: 'note' }, kb.disclaimer),
+    card('Import laboratory intervals (tenant overlay – versioned, four-eyes)',
+      field('CSV (' + 'entry,ageFrom,ageTo,sex,pregnant,trimester,low,high,criticalLow,criticalHigh,unit,source' + ')', csv),
+      button('Import CSV', async () => { const r = await guard(() => post('/api/intelligence/intervals/import/csv', { csv: csv.value }), 'Draft overlay created'); if (r) { await load(); await show(r.id); } }),
+      field('FHIR ObservationDefinition', od),
+      button('Import ObservationDefinition', async () => { let j; try { j = JSON.parse(od.value); } catch (e) { toast('Invalid JSON', 'err'); return; } const r = await guard(() => post('/api/intelligence/intervals/import/observation-definition', j), 'Draft overlay created'); if (r) { await load(); await show(r.id); } }, 'ghost')),
+    card('Overlays', out), detail);
+  await load();
+}
+
 async function drift(box) {
   const out = h('div');
+  const decide = (a, kind) => async () => {
+    const cals = await guard(() => get('/api/intelligence/drift/alerts/' + encodeURIComponent(a.id) + '/calibrations'));
+    const note = input({ placeholder: kind === 'ack' ? 'acknowledgement note (required)' : 'resolution note (required)' });
+    const cal = select([['', '(no calibration record)'], ...(cals || []).map(c => [c.at, c.at + ' – ' + (c.passed ? 'passed' : 'failed') + ' by ' + c.by + (c.note ? ' (' + c.note + ')' : '')])], '');
+    modal(kind === 'ack' ? 'Acknowledge drift alert' : 'Resolve drift alert', h('div', { class: 'form' }, field('Note', note), field('Link calibration record', cal, 'calibration checks of configuration ' + a.configId)),
+      close => [button(kind === 'ack' ? 'Acknowledge' : 'Resolve', async () => {
+        if (await guard(() => post('/api/intelligence/drift/alerts/' + encodeURIComponent(a.id) + '/' + kind, { note: note.value, calibrationAt: cal.value || null }), kind === 'ack' ? 'Acknowledged (SIEM forwarded)' : 'Resolved (SIEM forwarded)')) { close(); await load(); }
+      }), button('Cancel', close, 'ghost')]);
+  };
   const load = async () => clear(out).append(table([{ label: 'Configuration', key: 'configId' }, { label: 'Key', key: 'key' }, { label: 'Mean', key: 'mean' }, { label: 'Fleet mean', key: 'fleetMean' }, { label: 'z', key: 'z' },
-    { label: 'Abnormal share', key: 'abnormalShare' }, { label: 'Advice', key: 'advice' }, { label: 'Status', render: a => badge(a.status || 'OPEN') }], await get('/api/intelligence/drift/alerts'), { compact: true, empty: 'No drift alerts.' }));
+    { label: 'Abnormal share', key: 'abnormalShare' }, { label: 'Advice', key: 'advice' }, { label: 'Status', render: a => h('span', { title: a.resolutionNote || a.acknowledgementNote || '' }, badge(a.status || 'OPEN'), a.resolution === 'AUTO' ? ' auto' : '') },
+    { label: 'Calibration', render: a => a.calibration ? a.calibration.at + (a.calibration.passed ? ' ✓' : ' ✗') : '—' },
+    { label: '', render: a => h('span', null, (a.status || 'OPEN') === 'OPEN' ? button('Acknowledge', decide(a, 'ack'), 'ghost') : '', (a.status || 'OPEN') !== 'RESOLVED' ? button('Resolve', decide(a, 'resolve'), 'ghost') : '') }],
+    await get('/api/intelligence/drift/alerts'), { compact: true, empty: 'No drift alerts.' }));
   box.append(card('Data-quality drift (AN-08) – per configuration vs. fleet baseline; a biomedical signal, never a clinical alarm',
     button('Analyse now', async () => { const r = await guard(() => post('/api/intelligence/drift/analyse')); if (r) { await load(); out.prepend(h('div', { class: 'kpis' }, kpi('Signals', r.signals.length), kpi('Alerts', r.alerts))); } })), out);
   await load();

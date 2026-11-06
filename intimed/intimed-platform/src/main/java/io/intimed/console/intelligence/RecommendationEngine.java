@@ -1,6 +1,8 @@
 package io.intimed.console.intelligence;
 
 import io.intimed.catalogue.CatalogueService;
+import io.intimed.clinical.PlatformCategories;
+import io.intimed.intelligence.AutoMapper;
 import io.intimed.common.Hashing;
 import io.intimed.common.Json;
 import io.intimed.console.OptionPacks;
@@ -23,7 +25,10 @@ import java.util.Map;
 /**
  * Configuration intelligence (IM-E03-F02 / IM-E03-BL-002, architecture §6): for every wizard step it proposes values
  * from three ordered knowledge sources – driver package defaults → tenant context rules → de-identified knowledge base –
- * with the rule id (RR-01…RR-16), the 'why', a confidence and the tenant-policy outcome. Recommendations are records with
+ * with the rule id (RR-01…RR-18), the 'why', a confidence and the tenant-policy outcome. RR-17 infers the healthcare-platform
+ * category from the bound templates' settings (recorded on the configuration, used by XT-17 and the validation studio);
+ * RR-18 proposes per-field bindings from the auto-mapper for templates without a driver reference binding (imported /
+ * host templates) as REVIEW-level recommendations with their confidence – never accepted in bulk below 0.8 (IM-E12-BL-009). Recommendations are records with
  * status PROPOSED; nothing is applied until an administrator accepts, adjusts or overrides (and never automatically
  * in UAT/PROD – SC-19). No language model decides any value (ADR-03).
  */
@@ -37,9 +42,17 @@ public class RecommendationEngine {
     private final TemplateRegistry templates;
     private final EndpointService endpoints;
     private final DocumentStore store;
+    private final PlatformCategories categories;
+    private final AutoMapper mapper;
+    /** Template setting code → healthcare-platform category (RR-17). */
+    static final Map<String, String> SETTING_CATEGORY = Map.of("ACUTE", "ACUTE_EHR", "OPD", "PRIMARY_CARE", "LAB", "LIS", "IMG", "IMAGING_CARDIO",
+            "RPM", "RPM_HOME", "SPEC", "SPECIALIST", "OH", "OCC_HEALTH", "WELLNESS", "WELLNESS");
+    public static final double RR18_AUTO_ACCEPT = 0.8;
 
     public RecommendationEngine(DriverRegistry drivers, CatalogueService catalogue, OptionPacks packs, KnowledgeBase kb, TemplateRegistry templates,
-                                EndpointService endpoints, DocumentStore store) {
+                                EndpointService endpoints, DocumentStore store, PlatformCategories categories, AutoMapper mapper) {
+        this.categories = categories;
+        this.mapper = mapper;
         this.drivers = drivers;
         this.catalogue = catalogue;
         this.packs = packs;
@@ -245,6 +258,8 @@ public class RecommendationEngine {
                 });
             }
         }
+        rr17(tenant, cfg, d, out);
+        rr18(tenant, cfg, d, out);
         JsonNode gates = d.recommendations().path("qualityGates").path("value");
         rec(out, "qualityGates", gates.isMissingNode() ? Json.obj() : gates, "DRIVER_DEFAULT", "RR-11",
                 gates.has("grading") ? "Family guideline grading " + gates.get("grading").asString() + " and lockouts enabled" : "Driver quality-gate defaults (plausibility, artefact, verify rules)", "HIGH");
@@ -253,6 +268,67 @@ public class RecommendationEngine {
         if (d.options().contains("P6") || d.options().contains("P8")) {
             String need = d.transport(d.options().get(0)).path("parameters").path("scopes").asString("");
             rec(out, "params.scopes", Json.tree(need), "TENANT_POLICY", "RR-15", "Minimum scopes for the bound templates" + ("CONSENT".equals(assoc) ? "; consent is required for home devices" : ""), "HIGH");
+        }
+    }
+
+    /** Templates the configuration feeds: its bindings, else the driver's reference bindings. */
+    private static List<String> boundTemplates(JsonNode cfg, DriverPackage d) {
+        List<String> t = new ArrayList<>();
+        for (JsonNode b : cfg.path("bindings")) if (b.hasNonNull("templateId") && !t.contains(b.get("templateId").asString())) t.add(b.get("templateId").asString());
+        if (t.isEmpty()) t.addAll(d.bindings().propertyNames());
+        return t;
+    }
+
+    /** RR-17: healthcare-platform category inferred from the settings of the bound templates. */
+    void rr17(String tenant, JsonNode cfg, DriverPackage d, ArrayNode out) {
+        List<String> tpls = boundTemplates(cfg, d);
+        if (tpls.isEmpty()) return;
+        String first = tpls.get(0);
+        JsonNode tpl = templates.find(tenant, first).orElse(null);
+        if (tpl == null) return;
+        List<String> ofTemplate = categories.forTemplate(first);
+        String pick = null, conf = "LOW", why;
+        List<String> settings = new ArrayList<>();
+        tpl.path("settings").forEach(s -> settings.add(s.asString()));
+        for (String s : settings) {
+            String c = SETTING_CATEGORY.get(s);
+            if (c != null && ofTemplate.contains(c)) { pick = c; conf = "HIGH"; break; }
+        }
+        if (pick == null) for (String s : settings) { String c = SETTING_CATEGORY.get(s); if (c != null) { pick = c; conf = "MEDIUM"; break; } }
+        if (pick == null && !ofTemplate.isEmpty()) { pick = ofTemplate.get(0); conf = "MEDIUM"; }
+        if (pick == null) pick = "ACUTE_EHR";
+        why = "Template " + first + " settings " + settings + " → category " + pick + " (" + categories.require(pick).path("name").asString() + "): rule pack "
+                + categories.require(pick).path("rules") + ", interpretation " + categories.require(pick).path("interpretation").asString()
+                + " – recorded on the configuration and used by XT-17 and the validation studio";
+        ObjectNode r = rec(out, "platformCategory", Json.tree(pick), "TEMPLATE", "RR-17", "LOW".equals(conf) ? why + " – no setting maps to a category: confirm with the host owner" : why, conf);
+        if ("LOW".equals(conf)) r.put("policy", "WARN");
+    }
+
+    /**
+     * RR-18: auto-map suggestions (AutoMapper) for templates the configuration feeds or the tenant imported that have no
+     * reference binding in the driver package. One recommendation per field, REVIEW level with the numeric confidence;
+     * 'accept all' skips suggestions below {@link #RR18_AUTO_ACCEPT} – those need a one-click human decision.
+     */
+    void rr18(String tenant, JsonNode cfg, DriverPackage d, ArrayNode out) {
+        java.util.Set<String> withRef = new java.util.HashSet<>(d.bindings().propertyNames());
+        java.util.LinkedHashSet<String> cand = new java.util.LinkedHashSet<>();
+        for (JsonNode b : cfg.path("bindings")) if (b.hasNonNull("templateId") && !withRef.contains(b.get("templateId").asString())) cand.add(b.get("templateId").asString());
+        for (ObjectNode t : templates.all(tenant)) if (!"REFERENCE".equals(t.path("origin").asString("REFERENCE")) && !withRef.contains(t.get("id").asString())) cand.add(t.get("id").asString());
+        for (String tid : cand) {
+            JsonNode tpl = templates.find(tenant, tid).orElse(null);
+            if (tpl == null) continue;
+            ObjectNode s = mapper.suggest(tpl, d);
+            for (JsonNode sg : s.path("suggestions")) {
+                if (!sg.hasNonNull("key")) continue;
+                double c = sg.path("confidence").asDouble();
+                boolean auto = c >= RR18_AUTO_ACCEPT;
+                ObjectNode r = rec(out, "bindings." + tid + "." + sg.get("field").asString(), Json.tree(sg.get("key").asString()), "AUTO_MAPPER", "RR-18",
+                        "Auto-map " + tpl.path("origin").asString("") + " template " + tid + " field '" + sg.path("label").asString() + "' ← driver key " + sg.get("key").asString()
+                                + " (confidence " + c + "): " + sg.path("why").asString() + (auto ? "" : " – REVIEW: below 0.8, never auto-accepted"),
+                        c >= RR18_AUTO_ACCEPT ? "HIGH" : c >= 0.65 ? "MEDIUM" : "LOW");
+                r.put("confidenceScore", c).put("level", "REVIEW").put("autoAcceptEligible", auto).put("templateId", tid).put("field", sg.get("field").asString());
+                if (!auto) r.put("policy", "WARN");
+            }
         }
     }
 

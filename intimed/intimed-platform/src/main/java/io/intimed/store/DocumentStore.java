@@ -22,7 +22,7 @@ import java.util.Set;
 @Repository
 public class DocumentStore {
     /** Kinds that can contain subject identifiers or measurements → always encrypted at rest. */
-    public static final Set<String> SENSITIVE = Set.of("observation", "sandbox-instance", "template-instance", "unmatched", "dlq", "raw", "capture", "worklist", "shadow", "subject", "bed", "enrolment");
+    public static final Set<String> SENSITIVE = Set.of("observation", "sandbox-instance", "template-instance", "unmatched", "dlq", "raw", "capture", "worklist", "shadow", "subject", "bed", "enrolment", "delta-last");
     public static final String GLOBAL = "_global";
 
     private final JdbcClient jdbc;

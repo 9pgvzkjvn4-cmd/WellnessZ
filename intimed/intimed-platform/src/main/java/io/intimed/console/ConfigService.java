@@ -236,7 +236,9 @@ public class ConfigService {
         for (ObjectNode r : store.listByRef(tenant, "recommendation", id)) {
             if (r.get("step").asInt() == step && "PROPOSED".equals(r.get("status").asString()) && List.of("ALLOWED", "WARN").contains(r.get("policy").asString())
                     && !r.get("value").isNull() && !r.get("parameter").asString().startsWith("notes.") && !List.of("prerequisites", "posture", "recalls", "timeSource", "firewall", "cloneTargets", "certificationSummary").contains(r.get("parameter").asString())
-                    && !r.get("parameter").asString().startsWith("conversions.")) {
+                    && !r.get("parameter").asString().startsWith("conversions.")
+                    // RR-18 guardrail (IM-E12-BL-009): auto-map suggestions below 0.8 are never accepted in bulk
+                    && !("RR-18".equals(r.path("rule").asString()) && r.path("confidenceScore").asDouble() < io.intimed.console.intelligence.RecommendationEngine.RR18_AUTO_ACCEPT)) {
                 done.add(decide(tenant, r.get("id").asString(), "ACCEPT", null, null, actor));
             }
         }
@@ -255,6 +257,17 @@ public class ConfigService {
             case "monitoring" -> c.set("monitoring", v);
             default -> {
                 if (param.startsWith("notes.") || param.startsWith("conversions.")) { c.withObject("accepted").set(param, v); return; }
+                if (param.startsWith("bindings.")) {
+                    // RR-18 per-field binding: bindings.<templateId>.<fieldId> = driver key
+                    String[] p = param.split("\\.", 3);
+                    if (p.length < 3) throw ApiException.bad("invalid-parameter", "binding parameter must be bindings.<template>.<field>");
+                    tools.jackson.databind.node.ArrayNode bs = c.withArray("bindings");
+                    ObjectNode b = null;
+                    for (JsonNode x : bs) if (p[1].equals(x.path("templateId").asString())) b = (ObjectNode) x;
+                    if (b == null) { b = bs.addObject().put("templateId", p[1]); b.putObject("fields"); }
+                    b.withObject("fields").set(p[2], v);
+                    return;
+                }
                 String[] parts = param.split("\\.");
                 ObjectNode cur = c;
                 for (int i = 0; i < parts.length - 1; i++) cur = cur.has(parts[i]) && cur.get(parts[i]).isObject() ? (ObjectNode) cur.get(parts[i]) : cur.putObject(parts[i]);

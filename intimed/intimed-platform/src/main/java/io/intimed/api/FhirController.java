@@ -2,7 +2,9 @@ package io.intimed.api;
 
 import io.intimed.common.ApiException;
 import io.intimed.common.Json;
+import io.intimed.engine.association.HostDemographics;
 import io.intimed.engine.pipeline.Envelope;
+import io.intimed.security.audit.AuditService;
 import io.intimed.engine.pipeline.Pipeline;
 import io.intimed.engine.pipeline.PipelineResult;
 import io.intimed.security.auth.Current;
@@ -35,8 +37,12 @@ public class FhirController {
     private final DocumentStore store;
     private final Pipeline pipeline;
     private final WebhookService webhooks;
+    private final HostDemographics demographics;
+    private final AuditService audit;
 
-    public FhirController(DocumentStore store, Pipeline pipeline, WebhookService webhooks) {
+    public FhirController(DocumentStore store, Pipeline pipeline, WebhookService webhooks, HostDemographics demographics, AuditService audit) {
+        this.demographics = demographics;
+        this.audit = audit;
         this.store = store;
         this.pipeline = pipeline;
         this.webhooks = webhooks;
@@ -56,6 +62,8 @@ public class FhirController {
                 .add(Json.obj().put("name", "_lastUpdated").put("type", "date"));
         res.addObject().put("type", "Device").putArray("interaction").add(Json.obj().put("code", "search-type"));
         res.addObject().put("type", "Subscription").putArray("interaction").add(Json.obj().put("code", "create"));
+        res.addObject().put("type", "Patient").put("documentation", "demographics feed for reference-interval partitioning (birthDate, gender) – scope system/Patient.write")
+                .putArray("interaction").add(Json.obj().put("code", "create")).add(Json.obj().put("code", "update"));
         return c;
     }
 
@@ -135,6 +143,42 @@ public class FhirController {
         ObjectNode oo = Json.obj().put("resourceType", "OperationOutcome");
         oo.putArray("issue").addObject().put("severity", "DLQ".equals(r.status) ? "error" : "information").put("code", "informational").put("diagnostics", r.status);
         return ResponseEntity.status("DLQ".equals(r.status) || "REJECTED".equals(r.status) ? 422 : 201).body(oo);
+    }
+
+    /**
+     * Host demographics (IM-E11-BL-006): a machine client (scope {@code system/Patient.write}) creates or updates the patient
+     * context – identifier (subject id), birthDate, gender – which becomes the subject registry entry with provenance
+     * FHIR. Only partitioning factors are kept; names, addresses and other Patient elements are ignored and not stored.
+     */
+    @PostMapping(value = "/Patient", consumes = {"application/fhir+json", "application/json"})
+    public ResponseEntity<Object> patientCreate(@RequestBody JsonNode p) { return patient(null, p); }
+
+    @org.springframework.web.bind.annotation.PutMapping(value = "/Patient/{id}", consumes = {"application/fhir+json", "application/json"})
+    public ResponseEntity<Object> patientUpdate(@PathVariable String id, @RequestBody JsonNode p) { return patient(id, p); }
+
+    private ResponseEntity<Object> patient(String pathId, JsonNode p) {
+        Current.requireScope("system/Patient.write");
+        if (!"Patient".equals(p.path("resourceType").asString(""))) throw ApiException.bad("not-patient", "resourceType must be Patient");
+        String subject = pathId != null ? pathId : p.at("/identifier/0/value").asString(p.path("id").asString(null));
+        if (subject == null || !subject.matches("[A-Za-z0-9._-]{1,64}")) throw ApiException.bad("identifier", "Patient.identifier[0].value (or id) must be 1–64 characters [A-Za-z0-9._-]");
+        if (p.hasNonNull("birthDate") && HostDemographics.birthDate(p.get("birthDate").asString()) == null) throw ApiException.bad("birthDate", "invalid birthDate");
+        String gender = p.path("gender").asString(null);
+        if (gender != null && !List.of("male", "female", "other", "unknown").contains(gender)) throw ApiException.bad("gender", "gender must be male, female, other or unknown");
+        Instant at = null;
+        try { if (p.at("/meta/lastUpdated").isString()) at = java.time.OffsetDateTime.parse(p.at("/meta/lastUpdated").asString()).toInstant(); } catch (RuntimeException ignored) { at = null; }
+        String tenant = Current.tenant();
+        boolean existed = store.get(tenant, "subject", subject).isPresent();
+        HostDemographics.Applied a = demographics.apply(tenant, subject, p.path("birthDate").asString(null),
+                gender == null ? null : switch (gender) { case "male" -> "M"; case "female" -> "F"; case "other" -> "O"; default -> "U"; },
+                "FHIR", at, p.at("/meta/versionId").asString(null));
+        audit.record(tenant, Current.actor(), "subject.demographics.fhir", "subject-registry", a.summary());
+        ObjectNode out = Json.obj().put("resourceType", "Patient").put("id", subject);
+        out.putArray("identifier").addObject().put("value", subject);
+        ObjectNode s = store.get(tenant, "subject", subject).orElseThrow();
+        if (s.has("birthDate")) out.put("birthDate", s.get("birthDate").asString());
+        if (s.has("sex")) out.put("gender", s.get("sex").asString());
+        out.putObject("meta").putArray("tag").addObject().put("system", "urn:intimed:demographics").put("code", a.kept().isEmpty() ? "applied" : "manual-newer-kept:" + String.join(",", a.kept()));
+        return ResponseEntity.status(existed ? 200 : 201).body(out);
     }
 
     /** rest-hook Subscription → signed webhook subscription (EP-2 → EP-4). */

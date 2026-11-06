@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpsParameters;
 import com.sun.net.httpserver.HttpsServer;
 import io.intimed.common.Json;
 import io.intimed.engine.association.AssociationEngine;
+import io.intimed.engine.association.HostDemographics;
 import io.intimed.engine.parse.DelimitedRecords;
 import io.intimed.engine.pipeline.Envelope;
 import io.intimed.engine.pipeline.Pipeline;
@@ -37,7 +38,9 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -63,6 +66,7 @@ public class DeviceListeners implements SmartLifecycle {
     private final AssociationEngine association;
     private final DocumentStore store;
     private final AuditService audit;
+    private final HostDemographics demographics;
     private final int mllpPort;
     private final int ingressPort;
     private final ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor();
@@ -71,8 +75,9 @@ public class DeviceListeners implements SmartLifecycle {
     private HttpsServer ingress;
 
     public DeviceListeners(Pipeline pipeline, EndpointService endpoints, AnomalyService anomalies, AssociationEngine association,
-                           DocumentStore store, AuditService audit,
+                           DocumentStore store, AuditService audit, HostDemographics demographics,
                            @Value("${intimed.device.mllp-port:2575}") int mllpPort, @Value("${intimed.device.ingress-port:8443}") int ingressPort) {
+        this.demographics = demographics;
         this.pipeline = pipeline;
         this.endpoints = endpoints;
         this.anomalies = anomalies;
@@ -225,9 +230,20 @@ public class DeviceListeners implements SmartLifecycle {
             case "ADT^A01", "ADT^A04" -> association.admit(tenant, bed, subject, encounter);
             case "ADT^A02" -> association.transfer(tenant, prior, bed);
             case "ADT^A03" -> association.discharge(tenant, bed == null || bed.isBlank() ? prior : bed);
+            case "ADT^A08" -> { /* update patient information – demographics only */ }
             default -> { return Mllp.ack(msg, "AR", "ADT event not supported"); }
         }
-        audit.record(tenant, "system:mllp", "association.adt", "bed/" + bed, Map.of("event", type));
+        // IM-E11-BL-006: host demographics (PID-7 birth date, PID-8 administrative sex) into the subject registry with provenance
+        HostDemographics.Applied dem = null;
+        if (List.of("ADT^A01", "ADT^A04", "ADT^A08").contains(type)) {
+            Instant at = HostDemographics.hl7Time(r.first("EVN-2.1"));
+            if (at == null) at = HostDemographics.hl7Time(r.first("MSH-7.1"));
+            dem = demographics.apply(tenant, subject, r.first("PID-7.1"), r.first("PID-8.1"), "HL7_ADT", at, r.first("MSH-10.1"));
+        }
+        Map<String, Object> det = new java.util.LinkedHashMap<>();
+        det.put("event", type);
+        if (dem != null) det.put("demographics", dem.summary());
+        audit.record(tenant, "system:mllp", "association.adt", bed == null || bed.isBlank() ? "subject-registry" : "bed/" + bed, det);
         return Mllp.ack(msg, "AA", null);
     }
 

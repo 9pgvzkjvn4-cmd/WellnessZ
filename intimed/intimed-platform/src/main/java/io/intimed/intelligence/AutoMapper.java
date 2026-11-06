@@ -22,7 +22,10 @@ import java.util.Set;
  * imported FHIR Questionnaire, host schema) with a confidence and an explanation per suggestion. Signals: exact
  * standard-code match (LOINC / IEEE 11073 MDC / local), shared clinical concept in the reference-interval knowledge
  * base, UCUM unit compatibility (convertible), and label similarity with clinical synonyms. Suggestions below 0.5 are
- * left unbound for the integration engineer (human-in-the-loop, RR-18).
+ * left unbound for the integration engineer (human-in-the-loop, RR-18). When a host field carries a code from a system
+ * IntiMed does not know, the terminology service adapter (IM-E12-BL-010, disabled by default) adds two signals:
+ * {@code ConceptMap/$translate} into LOINC (exact match with the driver key's LOINC) and the {@code $lookup} display as
+ * additional label words.
  */
 @Service
 public class AutoMapper {
@@ -36,8 +39,10 @@ public class AutoMapper {
     private final TemplateRegistry templates;
     private final Terminology terms;
     private final ReferenceRanges ranges;
+    private final TerminologyService terminology;
 
-    public AutoMapper(DriverRegistry drivers, TemplateRegistry templates, Terminology terms, ReferenceRanges ranges) {
+    public AutoMapper(DriverRegistry drivers, TemplateRegistry templates, Terminology terms, ReferenceRanges ranges, TerminologyService terminology) {
+        this.terminology = terminology;
         this.drivers = drivers;
         this.templates = templates;
         this.terms = terms;
@@ -64,6 +69,22 @@ public class AutoMapper {
             String a = code.path(sys).asString(null), b = sem.path(sys).asString(null);
             if (a != null && a.equals(b)) { s += 0.7; why.append(sys.toUpperCase()).append(' ').append(a).append(" exact; "); break; }
         }
+        String foreignSystem = code.path("system").asString(null), foreignCode = code.path("code").asString(null);
+        boolean foreign = foreignCode != null && !TerminologyService.known(foreignSystem) && !code.has("loinc") && !code.has("mdc") && !code.has("local");
+        String lookedUp = null;
+        if (foreign && terminology != null && terminology.enabled()) {
+            String semLoinc = sem.path("loinc").asString(null);
+            if (s == 0 && semLoinc != null) {
+                for (TerminologyService.Mapping m : terminology.translate(foreignSystem, foreignCode, "http://loinc.org")) {
+                    if (semLoinc.equals(m.code()) && !"disjoint".equals(m.equivalence()) && !"unmatched".equals(m.equivalence())) {
+                        s += 0.6;
+                        why.append("terminology $translate ").append(foreignCode).append(" → LOINC ").append(m.code()).append(" (").append(m.equivalence()).append("); ");
+                        break;
+                    }
+                }
+            }
+            lookedUp = terminology.lookup(foreignSystem, foreignCode).map(TerminologyService.Concept::display).orElse(null);
+        }
         JsonNode e1 = ranges.find(field, field.path("id").asString()), e2 = ranges.find(sem, sem.path("key").asString());
         if (s == 0 && e1 != null && e2 != null && e1.get("id").equals(e2.get("id"))) { s += 0.45; why.append("same clinical concept ").append(e1.get("id").asString()).append("; "); }
         boolean numericField = "quantity".equals(field.path("type").asString()) || field.has("unit");
@@ -77,14 +98,15 @@ public class AutoMapper {
             else if (terms.convert(BigDecimal.ONE, su, fu, f).isPresent()) { s += 0.1; why.append("convertible ").append(su).append(" → ").append(fu).append("; "); }
             else { s -= 0.2; why.append("unit incompatible ").append(su).append(" / ").append(fu).append("; "); }
         }
-        Set<String> a = words(field.path("label").asString("") + " " + field.path("id").asString("")), b = words(sem.path("display").asString("") + " " + sem.path("key").asString(""));
+        Set<String> a = words(field.path("label").asString("") + " " + field.path("id").asString("") + (lookedUp == null ? "" : " " + lookedUp)),
+                b = words(sem.path("display").asString("") + " " + sem.path("key").asString(""));
         Set<String> inter = new HashSet<>(a);
         inter.retainAll(b);
         Set<String> union = new HashSet<>(a);
         union.addAll(b);
         double j = union.isEmpty() ? 0 : (double) inter.size() / union.size();
-        double w = code.isMissingNode() || code.isEmpty() ? 0.55 : 0.3; // label carries more weight when the host field is uncoded
-        if (j > 0) { s += w * j; why.append(String.format("label similarity %.2f", j)); }
+        double w = code.isMissingNode() || code.isEmpty() || foreign ? 0.55 : 0.3; // label carries more weight when the host field is uncoded (or coded in an unknown system)
+        if (j > 0) { s += w * j; why.append(String.format("label similarity %.2f", j)).append(lookedUp != null ? " (incl. terminology display '" + lookedUp + "')" : ""); }
         return new Score(Math.max(0, Math.min(1, s)), why.toString().trim());
     }
 

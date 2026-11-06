@@ -24,6 +24,7 @@ SRC = {
  "LAB": "Common adult laboratory reference intervals (illustrative; replace with the performing laboratory's verified intervals – CLSI EP28-A3c)",
  "VITAL": "Common adult vital-sign references (illustrative defaults)",
  "ECG": "Common adult ECG interval references (PR 120–200 ms, QRS <120 ms, QTc prolonged ≥450 ms men / ≥460 ms women, ≥500 ms high risk)",
+ "KDIGO": "KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of CKD – GFR categories G1 ≥90, G2 60–89, G3a 45–59, G3b 30–44, G4 15–29, G5 <15 mL/min/1.73 m²; eGFR by the race-free CKD-EPI 2021 creatinine equation (Inker LA et al., NEJM 2021)",
  "BIS": "Manufacturer guidance – BIS 40–60 general-anaesthesia target (treatment range, not a reference interval)",
 }
 A = lambda f, t: {"ageFrom": f, "ageTo": t}
@@ -52,21 +53,25 @@ KB = [
       ranges=[rg(0, 1, 36.5, 37.5, 35.5, 38.5)], gapNote="incubator/warmer skin temperature interval defined for infants < 1 y only"),
  dict(id="etco2", name="End-tidal CO2", unit="mm[Hg]", match={"mdc": ["MDC_AWAY_CO2_ET"], "fieldIds": ["etco2"]}, source="VITAL", ranges=[rg(0, 200, 35, 45, 20, 60, note="critical: demo action threshold")]),
  dict(id="glucose", name="Glucose", unit="mmol/L", match={"loinc": ["15074-8", "14749-6", "2339-0", "2345-7"], "fieldIds": ["glucose"]}, source="ADA",
-      ranges=[rg(0, 200, 3.9, 7.8, 3.0, 22.2, note="non-fasting / random; HH: demo action threshold")],
+      ranges=[rg(0, 200, 3.9, 7.8, 3.0, 22.2, note="non-fasting / random; HH: demo action threshold")], delta={"pct": 50, "windowHours": 24},
       modifiers=[{"param": "fasting", "eq": True, "set": {"high": 5.5}, "note": "fasting: 3.9–5.5 mmol/L"}]),
  dict(id="ph-arterial", name="pH (arterial)", unit="[pH]", match={"loinc": ["2744-1"], "fieldIds": ["ph"]}, source="LAB", ranges=[rg(0, 200, 7.35, 7.45, 7.20, 7.60)]),
  dict(id="pco2", name="pCO2 (arterial)", unit="mm[Hg]", match={"loinc": ["2019-8"], "fieldIds": ["pco2"]}, source="LAB", ranges=[rg(0, 200, 35, 45, 20, 70)]),
  dict(id="po2", name="pO2 (arterial)", unit="mm[Hg]", match={"loinc": ["2703-7"], "fieldIds": ["po2"]}, source="LAB", ranges=[rg(0, 65, 80, 100, 60, None), rg(65, 200, 70, 100, 60, None)]),
- dict(id="sodium", name="Sodium", unit="mmol/L", match={"loinc": ["2947-0", "2951-2"], "fieldIds": ["na"]}, source="LAB", ranges=[rg(0, 200, 135, 145, 120, 160)]),
- dict(id="potassium", name="Potassium", unit="mmol/L", match={"loinc": ["6298-4", "2823-3"], "fieldIds": ["k"]}, source="LAB", ranges=[rg(18, 200, 3.5, 5.1, 2.8, 6.2)], gapNote="paediatric potassium: laboratory-specific interval required"),
+ dict(id="sodium", name="Sodium", unit="mmol/L", match={"loinc": ["2947-0", "2951-2"], "fieldIds": ["na"]}, source="LAB", ranges=[rg(0, 200, 135, 145, 120, 160)], delta={"abs": 8, "windowHours": 48}),
+ dict(id="potassium", name="Potassium", unit="mmol/L", match={"loinc": ["6298-4", "2823-3"], "fieldIds": ["k"]}, source="LAB", ranges=[rg(18, 200, 3.5, 5.1, 2.8, 6.2)], gapNote="paediatric potassium: laboratory-specific interval required", delta={"abs": 1.0, "windowHours": 48}),
  dict(id="lactate", name="Lactate", unit="mmol/L", match={"loinc": ["2518-9", "2524-7"], "fieldIds": ["lactate"]}, source="LAB", ranges=[rg(0, 200, 0.5, 2.0, None, 4.0)]),
  dict(id="haemoglobin", name="Haemoglobin", unit="g/dL", match={"loinc": ["718-7"], "fieldIds": ["hb"]}, source="WHOHB",
       ranges=[rg(0.5, 2, 10.5, 14.5, 7.0, None), rg(2, 5, 11.0, 14.5, 7.0, None), rg(5, 12, 11.5, 15.5, 7.0, None), rg(12, 15, 12.0, 16.0, 7.0, None),
               rg(15, 200, 12.0, 15.5, 7.0, None, sex="female"), rg(15, 200, 13.0, 17.5, 7.0, None, sex="male"),
               rg(15, 60, 11.0, 15.5, 7.0, None, sex="female", pregnant=True, trimester=1), rg(15, 60, 10.5, 15.5, 7.0, None, sex="female", pregnant=True, trimester=2),
-              rg(15, 60, 11.0, 15.5, 7.0, None, sex="female", pregnant=True, trimester=3)], gapNote="infants <6 months: laboratory-specific interval required"),
+              rg(15, 60, 11.0, 15.5, 7.0, None, sex="female", pregnant=True, trimester=3)], gapNote="infants <6 months: laboratory-specific interval required", delta={"abs": 2.0, "windowHours": 72}),
  dict(id="creatinine", name="Creatinine", unit="umol/L", match={"loinc": ["14682-9"], "fieldIds": ["creatinine"]}, source="LAB",
-      ranges=[rg(18, 200, 62, 106, sex="male"), rg(18, 200, 44, 80, sex="female")], gapNote="paediatric creatinine: age-partitioned laboratory interval required (e.g. CALIPER)"),
+      ranges=[rg(18, 200, 62, 106, sex="male"), rg(18, 200, 44, 80, sex="female")], gapNote="paediatric creatinine: age-partitioned laboratory interval required (e.g. CALIPER)", delta={"pct": 50, "windowHours": 168}),
+ dict(id="egfr", name="eGFR (CKD-EPI 2021, race-free)", unit="mL/min/{1.73_m2}", match={"loinc": ["98979-8", "62238-1"], "fieldIds": ["egfr"]}, source="KDIGO", derived=True,
+      ranges=[rg(18, 200, 60, None, 15, None, categories=[["G5 kidney failure", None, 15], ["G4 severely decreased", 15, 30], ["G3b moderately to severely decreased", 30, 45], ["G3a mildly to moderately decreased", 45, 60], ["G2 mildly decreased", 60, 90], ["G1 normal or high", 90, None]],
+                 note="derived value (IM-E14-BL-010) – G1/G2 are not CKD without markers of kidney damage; LL below 15: demo action threshold")],
+      gapNote="CKD-EPI 2021 is validated for adults ≥18 y; paediatric eGFR needs the bedside Schwartz equation (height)"),
  dict(id="hba1c", name="HbA1c", unit="%", match={"loinc": ["4548-4"], "fieldIds": ["hba1c"]}, source="ADA",
       ranges=[rg(0, 200, 4.0, 5.6, categories=[["Normal", None, 5.7], ["Prediabetes", 5.7, 6.5], ["Diabetes range", 6.5, None]])]),
  dict(id="cholesterol", name="Total cholesterol", unit="mmol/L", match={"loinc": ["14647-2", "2093-3"], "fieldIds": ["chol"]}, source="LAB",
@@ -213,6 +218,24 @@ PROFILES = [
  ("dialysis-inadequate", "Adult male, 61 y – Kt/V 1.05", "abnormal", dict(ageYears=61, sex="male"), {"ktv": 1.05}, {"ktv": "L"}),
 ]
 
+# Time-series physiology (IM-E13-BL-005): keyframes {minute, concept → value} interpolated piecewise-linearly with seeded
+# noise (noisePct, relative SD) and replayed through a driver at an interval. Illustrative engineering scripts – not
+# validated physiological models. No expected flags: trajectories report per-step flags and a NEWS2-style aggregate.
+TRAJECTORIES = [
+ ("traj-sepsis-6h", "Sepsis deterioration over 6 h – adult female, 64 y", dict(ageYears=64, sex="female"), 2.0, [
+   (0, {"heart-rate": 92, "resp-rate": 18, "body-temp": 37.6, "spo2": 96, "systolic": 124, "diastolic": 78}),
+   (120, {"heart-rate": 108, "resp-rate": 22, "body-temp": 38.4, "spo2": 94, "systolic": 112, "diastolic": 70}),
+   (240, {"heart-rate": 122, "resp-rate": 26, "body-temp": 38.9, "spo2": 92, "systolic": 98, "diastolic": 60}),
+   (360, {"heart-rate": 134, "resp-rate": 30, "body-temp": 39.3, "spo2": 89, "systolic": 86, "diastolic": 52})]),
+ ("traj-post-op-recovery", "Post-operative recovery over 4 h – adult male, 58 y", dict(ageYears=58, sex="male"), 2.0, [
+   (0, {"heart-rate": 110, "resp-rate": 22, "body-temp": 35.8, "spo2": 93, "systolic": 98, "diastolic": 60}),
+   (60, {"heart-rate": 100, "resp-rate": 20, "body-temp": 36.2, "spo2": 94, "systolic": 108, "diastolic": 66}),
+   (240, {"heart-rate": 82, "resp-rate": 16, "body-temp": 36.8, "spo2": 97, "systolic": 122, "diastolic": 76})]),
+ ("traj-hypoglycaemia", "Hypoglycaemia episode and treatment over 90 min – adult female, 45 y", dict(ageYears=45, sex="female"), 1.5, [
+   (0, {"glucose": 5.2, "heart-rate": 76}), (30, {"glucose": 3.4, "heart-rate": 96}), (45, {"glucose": 2.4, "heart-rate": 108}),
+   (60, {"glucose": 3.8, "heart-rate": 92}), (90, {"glucose": 5.6, "heart-rate": 80})]),
+]
+
 def assign_type(d):
     text = (d["model"] + " " + d["manufacturer"] + " " + d["use"]).lower()
     for code, name, spec, dc, rx in TYPES:
@@ -227,7 +250,9 @@ def main():
                "ageBands": [["Neonate", 0, 28 / 365], ["Infant", 28 / 365, 1], ["Toddler", 1, 3], ["Preschool", 3, 6], ["School age", 6, 13], ["Adolescent", 13, 18], ["Adult", 18, 65], ["Older adult", 65, 200]],
                "entries": KB}, open(os.path.join(R, "clinical", "reference-ranges.json"), "w"), indent=1, ensure_ascii=False)
     json.dump(CATEGORIES, open(os.path.join(R, "clinical", "platform-categories.json"), "w"), indent=1, ensure_ascii=False)
-    json.dump([dict(id=i, name=n, group=g, demographics=dm, concepts=c, expected=e) for i, n, g, dm, c, e in PROFILES],
+    json.dump([dict(id=i, name=n, group=g, demographics=dm, concepts=c, expected=e) for i, n, g, dm, c, e in PROFILES]
+              + [dict(id=i, name=n, group="trajectory", demographics=dm, concepts={}, expected={}, noisePct=nz, trajectory=[dict(minute=m, values=v) for m, v in kf])
+                 for i, n, dm, nz, kf in TRAJECTORIES],
               open(os.path.join(R, "simulator", "profiles.json"), "w"), indent=1, ensure_ascii=False)
     json.dump([dict(code=c, name=n, ieee11073Specialization=s, dataClass=dc) for c, n, s, dc, _ in TYPES if c != "AMBULATORY_ECG_EARLY"], open(os.path.join(R, "seed", "device-types.json"), "w"), indent=1, ensure_ascii=False)
     devs = json.load(open(os.path.join(R, "seed", "devices.json")))
@@ -236,7 +261,7 @@ def main():
     for d in devs:
         t, how = assign_type(d); d["deviceType"] = t; d["deviceTypeBasis"] = how; d["deviceTypeConfidence"] = 0.85 if how == "RULE_MATCH" else 0.6; c[how] += 1
     json.dump(devs, open(os.path.join(R, "seed", "devices.json"), "w"), indent=1, ensure_ascii=False)
-    print("ranges", len(KB), "categories", len(CATEGORIES), "profiles", len(PROFILES), "types", len(TYPES), dict(c), Counter(d["deviceType"] for d in devs).most_common(8))
+    print("ranges", len(KB), "categories", len(CATEGORIES), "profiles", len(PROFILES), "trajectories", len(TRAJECTORIES), "types", len(TYPES), dict(c), Counter(d["deviceType"] for d in devs).most_common(8))
 
 if __name__ == "__main__":
     main()

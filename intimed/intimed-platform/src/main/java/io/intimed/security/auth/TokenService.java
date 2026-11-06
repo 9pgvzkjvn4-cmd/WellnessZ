@@ -44,7 +44,7 @@ import java.util.Set;
 public class TokenService {
     public static final String ISSUER = "https://localhost:9443/intimed";
     public static final Set<String> SCOPES = Set.of("system/Observation.read", "system/Device.read", "system/DiagnosticReport.read",
-            "system/Subscription.write", "system/Observation.write", "harness.run", "console.read", "catalogue.read", "templates.read", "events.read");
+            "system/Subscription.write", "system/Observation.write", "system/Patient.write", "harness.run", "console.read", "catalogue.read", "templates.read", "events.read");
     private final DocumentStore store;
     private final AuditService audit;
     private final ECPrivateKey priv;
