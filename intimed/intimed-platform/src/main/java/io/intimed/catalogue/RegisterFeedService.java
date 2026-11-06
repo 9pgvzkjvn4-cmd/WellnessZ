@@ -25,7 +25,7 @@ import java.util.Map;
  * Register feeds (IM-E02-F02 / IM-E02-BL-003): openFDA 510(k), registration &amp; listing and recall endpoints with change
  * detection against the catalogue snapshot; every change is queued for reviewer approval before it becomes visible.
  * Disabled by default ({@code intimed.feeds.openfda.enabled}); egress is restricted to {@code api.fda.gov}.
- * AccessGUDID and EUDAMED connectors follow the same review queue (deferred – see docs/deferred-backlog.md).
+ * AccessGUDID and EUDAMED connectors ({@link UdiFeedService}) feed the same review queue (type {@code UDI_RECORD}).
  */
 @Service
 public class RegisterFeedService {
@@ -88,6 +88,7 @@ public class RegisterFeedService {
             String code = c.get("ref").asString().split("/")[0];
             catalogue.search(tenant, null, null, null, null, code, 300).forEach(m -> catalogue.addRecall(tenant, m.get("id").asString(), c.get("change"), "openFDA", actor));
         }
+        if (approve && "UDI_RECORD".equals(c.get("type").asString())) catalogue.applyUdiRecord(tenant, c.get("change"), actor);
         audit.record(tenant, actor, "feed.review", "feed-change/" + id, Map.of("approved", approve));
         return c;
     }

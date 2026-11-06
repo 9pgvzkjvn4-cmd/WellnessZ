@@ -6,6 +6,7 @@ import { capturePage } from './pages/capture.js';
 import { securityPage } from './pages/security.js';
 import { integrationPage, tenantPage } from './pages/integration.js';
 import { intelligencePage } from './pages/intelligence.js';
+import { partnersPage } from './pages/partners.js';
 
 export const state = { me: null, info: null };
 
@@ -21,6 +22,7 @@ const NAV = [
   ['ops', 'Queues & context', ['CLINICIAN', 'PHYSICIAN', 'DEVICE_ADMIN', 'INTEGRATION_DEV']],
   ['security', 'Security', ['SECURITY_ANALYST', 'DEVICE_ADMIN', 'CISO_DPO', 'PLATFORM_SRE', 'AUDITOR', 'TENANT_ADMIN']],
   ['integration', 'Integration & APIs', ['INTEGRATION_DEV', 'PARTNER_DEV', 'TENANT_ADMIN', 'DEVICE_ADMIN']],
+  ['partners', 'Partners & registers', ['PARTNER_DEV', 'DEVICE_ADMIN', 'REGULATORY', 'AUDITOR', 'INTEGRATION_DEV', 'TEMPLATE_OWNER', 'TENANT_ADMIN']],
   ['tenant', 'Tenant & analytics', ['TENANT_ADMIN', 'PLATFORM_SRE', 'DEVICE_ADMIN']],
   ['quality', 'Traceability & quality', null],
   ['demo', 'Demo control', null],
@@ -54,7 +56,7 @@ function shell(page, rest) {
       button('Sign out', async () => { await post('/api/auth/logout').catch(() => {}); state.me = null; location.hash = '#/login'; location.reload(); }, 'ghost')));
   root.append(h('a', { class: 'skip', href: '#main' }, 'Skip to content'), nav, h('div', { class: 'col' }, top, main));
   const pages = { overview, catalogue, configs: configsPage, wizard, runs: runsPage, run: runDetail, fleet: fleetPage, templates: templatesPage, capture: capturePage,
-    ops: opsPage, security: securityPage, integration: integrationPage, intelligence: intelligencePage, tenant: tenantPage, quality, demo };
+    ops: opsPage, security: securityPage, integration: integrationPage, intelligence: intelligencePage, partners: partnersPage, tenant: tenantPage, quality, demo };
   const fn = pages[page] || overview;
   Promise.resolve(fn(main, rest)).catch(e => { main.append(card('Error', h('p', { class: 'err' }, e.message))); });
 }

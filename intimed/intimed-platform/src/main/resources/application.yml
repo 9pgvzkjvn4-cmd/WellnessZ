@@ -63,6 +63,32 @@ intimed:
   feeds:
     openfda:
       enabled: ${INTIMED_OPENFDA:false}
+    # IM-E02-BL-003 – UDI registers (reviewer approval before any catalogue update); disabled by default
+    gudid:
+      enabled: ${INTIMED_GUDID:false}
+      base-url: https://accessgudid.nlm.nih.gov
+    eudamed:
+      enabled: ${INTIMED_EUDAMED:false}
+      # EUDAMED public API is not contractual – shape is configuration (see UdiFeedService Javadoc)
+      base-url: https://ec.europa.eu/tools/eudamed/api
+      search-path: "/devices/udiDiData?page=0&pageSize=10&iso2Code=en&primaryDi={di}"
+      text-search-path: "/devices/udiDiData?page=0&pageSize=10&iso2Code=en&tradeName={q}"
+      results-pointer: /content
+      fields: "di:/primaryDi,tradeName:/tradeName,manufacturer:/manufacturerName,model:/reference,riskClass:/riskClass/code,status:/deviceStatusType/code"
+    allowed-hosts: api.fda.gov,accessgudid.nlm.nih.gov,ec.europa.eu
+    allow-loopback-http: false
+  # IM-E03-BL-006 – LLM explanation layer behind the policy gateway; off unless enabled here AND per tenant
+  llm:
+    enabled: ${INTIMED_LLM:false}
+    endpoint: ${INTIMED_LLM_ENDPOINT:}
+    deployment: ${INTIMED_LLM_DEPLOYMENT:}
+    api-version: 2024-06-01
+    auth: api-key
+    api-key-ref: secret://azure-openai-key
+    allowed-hosts: ${INTIMED_LLM_ALLOWED_HOSTS:}
+    max-tokens: 600
+    requests-per-minute: 10
+    allow-loopback-http: false
   webhooks:
     allowed-hosts: localhost,127.0.0.1
   demo:

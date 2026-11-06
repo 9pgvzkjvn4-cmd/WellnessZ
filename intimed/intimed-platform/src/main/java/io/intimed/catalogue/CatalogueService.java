@@ -66,6 +66,7 @@ public class CatalogueService {
     public List<ObjectNode> search(String tenant, String q, String family, String option, String setting, String code, int limit) {
         String needle = q == null ? "" : q.toLowerCase(Locale.ROOT).trim();
         ObjectNode acceptance = acceptance(tenant);
+        List<ObjectNode> badges = activeBadges(tenant);
         return devices.stream().filter(d -> needle.isEmpty() || (d.get("id").asString() + " " + d.get("model").asString() + " " + d.get("manufacturer").asString()
                         + " " + d.get("family").asString() + " " + d.get("fdaCodes").toString() + " " + d.get("protocol").asString()).toLowerCase(Locale.ROOT).contains(needle))
                 .filter(d -> family == null || family.isBlank() || family.equals(d.get("family").asString()))
@@ -73,15 +74,32 @@ public class CatalogueService {
                 .filter(d -> setting == null || setting.isBlank() || d.get("settings").toString().contains(setting))
                 .filter(d -> code == null || code.isBlank() || d.get("fdaCodes").toString().contains(code.toUpperCase(Locale.ROOT)))
                 .limit(Math.max(1, Math.min(limit, 300)))
-                .map(d -> summary(tenant, d, acceptance)).collect(Collectors.toList());
+                .map(d -> summary(tenant, d, acceptance, badges)).collect(Collectors.toList());
     }
 
-    private ObjectNode summary(String tenant, ObjectNode d, ObjectNode acceptance) {
+    private ObjectNode summary(String tenant, ObjectNode d, ObjectNode acceptance, List<ObjectNode> badges) {
         ObjectNode s = (ObjectNode) d.deepCopy();
         List<DriverPackage> ds = drivers.forModel(tenant, d.get("id").asString());
         s.put("certifiedDrivers", ds.size());
         s.put("accepted", accepted(acceptance, d));
+        ArrayNode b = badgesFor(badges, d.get("id").asString());
+        if (!b.isEmpty()) s.set("badges", b);
         return s;
+    }
+
+    /** Active partner certification badges (IM-E07-BL-005) – written by the partner programme, read here by model id. */
+    public List<ObjectNode> activeBadges(String tenant) { return store.listByStatus(tenant, "badge", "ACTIVE"); }
+
+    private static ArrayNode badgesFor(List<ObjectNode> badges, String modelId) {
+        ArrayNode out = Json.arr();
+        for (ObjectNode b : badges) {
+            boolean match = false;
+            for (JsonNode m : b.path("modelIds")) match |= m.asString().equals(modelId);
+            if (match) out.addObject().put("id", b.get("id").asString()).put("level", b.path("level").asString()).put("driver", b.path("driver").asString())
+                    .put("grantedAt", b.path("grantedAt").asString()).put("harnessVersion", b.path("harnessVersion").asString())
+                    .put("evidenceSeal", b.path("evidenceSeal").asString()).put("runId", b.path("runId").asString());
+        }
+        return out;
     }
 
     public ObjectNode model(String tenant, String id) {
@@ -112,8 +130,45 @@ public class CatalogueService {
         m.set("posture", posture(tenant, id));
         m.put("accepted", accepted(acceptance(tenant), d));
         m.set("recalls", Json.tree(store.listByRef(tenant, "recall", id)));
+        m.set("badges", badgesFor(activeBadges(tenant), id));
+        m.set("udi", Json.tree(store.listByRef(tenant, "udi-record", id)));
         return m;
     }
+
+    /** Seed model or a tenant-registered model (partner submissions of models not yet in the worldwide inventory). */
+    public ObjectNode requireModel(String tenant, String id) {
+        ObjectNode d = byId.get(id);
+        if (d != null) return d;
+        return store.get(tenant, "catalogue-model", id).orElseThrow(() -> ApiException.notFound("model " + id));
+    }
+
+    /** Registers a tenant catalogue model (partner submission of a model that is not in the seed inventory). */
+    public ObjectNode registerTenantModel(String tenant, String id, String manufacturer, String model, String family, List<String> options, String actor) {
+        if (byId.containsKey(id)) throw ApiException.conflict("model-exists", "model " + id + " is in the worldwide catalogue");
+        ObjectNode d = Json.obj().put("id", id).put("manufacturer", manufacturer).put("model", model).put("family", family == null ? "Partner submitted" : family)
+                .put("protocol", "Partner interface specification").put("confidence", "Low").put("source", "PARTNER_SUBMISSION").put("registeredBy", actor);
+        d.set("options", Json.tree(options));
+        d.putArray("fdaCodes");
+        d.putArray("settings");
+        store.put(tenant, "catalogue-model", id, d, "PARTNER", null);
+        audit.record(tenant, actor, "catalogue.model.register", "model/" + id, Map.of("manufacturer", manufacturer, "model", model));
+        return d;
+    }
+
+    // ---------------------------------------------------------------- UDI records (IM-E02-BL-003)
+    /** Applies an approved UDI register change: the snapshot becomes the new baseline and is linked to the catalogue model. */
+    public ObjectNode applyUdiRecord(String tenant, JsonNode change, String actor) {
+        String key = change.path("key").asString();
+        String modelId = change.path("modelId").isNull() ? null : change.path("modelId").asString(null);
+        ObjectNode r = Json.obj().put("key", key).put("source", change.path("source").asString()).put("di", change.path("di").asString())
+                .put("hash", change.path("hash").asString()).put("modelId", modelId).put("approvedBy", actor).put("approvedAt", Instant.now().toString());
+        r.set("record", change.path("record"));
+        store.put(tenant, "udi-record", key, r, "APPROVED", modelId);
+        audit.record(tenant, actor, "catalogue.udi.apply", "udi/" + change.path("di").asString(), Map.of("source", r.get("source").asString(), "hash", r.get("hash").asString()));
+        return r;
+    }
+
+    public List<ObjectNode> udiRecords(String tenant) { return store.list(tenant, "udi-record"); }
 
     public ObjectNode requireModel(String id) {
         ObjectNode d = byId.get(id);
@@ -128,13 +183,16 @@ public class CatalogueService {
     }
 
     public ObjectNode recordPosture(String tenant, String modelId, JsonNode body, String actor) {
-        requireModel(modelId);
+        requireModel(tenant, modelId);
         ObjectNode p = Json.obj().put("modelId", modelId).put("mds2", body.path("mds2").asString("MISSING")).put("sbom", body.path("sbom").asString("MISSING"))
                 .put("eol", body.path("eol").asString(null)).put("knownVulnerabilities", body.path("knownVulnerabilities").asInt(0))
                 .put("isolation", body.path("isolation").asString("ZONED")).put("assessedBy", actor).put("assessedAt", Instant.now().toString());
         boolean ok = "RECEIVED".equals(p.get("mds2").asString()) && "RECEIVED".equals(p.get("sbom").asString())
                 && (p.get("eol").isNull() || Instant.parse(p.get("eol").asString() + "T00:00:00Z").isAfter(Instant.now())) && p.get("knownVulnerabilities").asInt() == 0;
         p.put("status", ok ? "ACCEPTABLE" : "REQUIRES_EXCEPTION");
+        if (body.has("source")) p.put("source", body.get("source").asString());
+        if (body.has("sbomComponents")) p.put("sbomComponents", body.get("sbomComponents").asInt());
+        if (body.has("submissionId")) p.put("submissionId", body.get("submissionId").asString());
         store.put(tenant, "posture", modelId, p, p.get("status").asString(), modelId);
         audit.record(tenant, actor, "posture.record", "model/" + modelId, Map.of("status", p.get("status").asString()));
         return p;
