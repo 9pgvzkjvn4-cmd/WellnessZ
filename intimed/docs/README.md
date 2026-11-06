@@ -8,7 +8,8 @@
 | Integration | [Integration guide for medical products](integration/Integration-Guide.md) · [API versioning policy](integration/API-Versioning-Policy.md) |
 | Operations | [Local runbook](operations/Runbook-Local.md) · [Capacity model](operations/Capacity-Model.md) · [MacBook setup](setup/MacBook-Setup.md) |
 | Azure Qatar Central | [Setup guide](azure/Setup-Guide.md) · [Operations, HA & DR](azure/Operations-and-DR.md) · [SLOs & runbooks](azure/SLO-and-Runbooks.md) · [Manual backlog execution guide](azure/Manual-Backlog-Execution-Guide.md) · [Cost model (xlsx)](azure/IntiMed-Azure-Qatar-Cost-Model.xlsx) |
-| Release | [Release notes 2.1.0](Release-Notes-2.1.0.md) · [Release notes 2.0.0-local](Release-Notes-2.0.0-local.md) · [Release notes 1.0.0-local](Release-Notes-1.0.0-local.md) |
+| Google Cloud Doha (IntiMed_GCP) | [Setup guide](gcp/IntiMed_GCP_Setup_Guide.md) · [Operations, HA & DR](gcp/IntiMed_GCP_Operations_and_DR.md) · [SLOs & runbooks](gcp/IntiMed_GCP_SLO_and_Runbooks.md) · [Manual backlog execution guide](gcp/IntiMed_GCP_Manual_Backlog_Execution_Guide.md) · [Cost model (xlsx)](gcp/IntiMed_GCP_Cost_Model.xlsx) |
+| Release | [Release notes 2.2.0 (IntiMed_GCP)](Release-Notes-2.2.0.md) · [Release notes 2.1.0](Release-Notes-2.1.0.md) · [Release notes 2.0.0-local](Release-Notes-2.0.0-local.md) · [Release notes 1.0.0-local](Release-Notes-1.0.0-local.md) |
 | IntiMed 2.0 enhancements | [Enhancement epics, backlog, research and traceability](enhancements/IntiMed-2.0-Enhancement-Epics-and-Backlog.md) (also .docx / .xlsx) |
 | Regulatory & quality | [Classification record](regulatory/Classification-Record.md) · [Risk management summary](regulatory/Risk-Management-Summary.md) |
 | Demo | [Demo guide](demo/Demo-Guide.md) |

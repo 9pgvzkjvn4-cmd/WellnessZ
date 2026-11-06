@@ -29,6 +29,7 @@ gcp:
   auditBucket: ""           # REQUIRED (gcp) <project>-intimed-audit
   sqlServerCaPem: ""        # REQUIRED (gcp) Cloud SQL instance server CA (terraform output sql_server_ca_pem)
   console:
+    publish: false            # phase 2: true = Gateway (regional external ALB) + Cloud Armor + TLS secret
     hostname: ""            # REQUIRED (gcp) e.g. intimed.uat.example.qa
     ipName: ""              # reserved regional external address (terraform output console_ip_name)
     armorPolicy: ""         # regional Cloud Armor policy (terraform output armor_policy)

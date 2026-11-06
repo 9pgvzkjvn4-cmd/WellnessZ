@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""SC-17 / SC-18 – container & Kubernetes runtime posture of the IntiMed namespace (AKS): non-root, read-only root
+"""SC-17 / SC-18 – container & Kubernetes runtime posture of the IntiMed namespace (AKS or GKE): non-root, read-only root
 filesystem, no privilege escalation, all capabilities dropped, seccomp, images from the private registry (by digest when
-pinned), default-deny NetworkPolicy, no Kubernetes secrets other than the CSI-synced runtime secret, workload identity.
+pinned), default-deny NetworkPolicy, no Kubernetes secrets other than the CSI-synced runtime secret, workload identity (Azure: pod label;
+GKE: service account annotated with iam.gke.io/gcp-service-account). GKE: --registry-suffix=-docker.pkg.dev
 Usage: 05_container_runtime_check.py --namespace intimed [--from-json pods.json]   (kubectl must be configured)"""
 import argparse, json, re, subprocess, sys, kitlib as k
 
@@ -18,7 +19,7 @@ def kube(kind):
 
 
 try:
-    data = json.load(open(a.from_json)) if a.from_json else {"pods": kube("pods"), "netpols": kube("networkpolicies"), "secrets": kube("secrets")}
+    data = json.load(open(a.from_json)) if a.from_json else {"pods": kube("pods"), "netpols": kube("networkpolicies"), "secrets": kube("secrets"), "serviceaccounts": kube("serviceaccounts")}
 except Exception as e:  # noqa: BLE001
     k.check(S, "SC-17", "Kubernetes API reachable", False, str(e)[:200]); k.finish(S); sys.exit(1)
 
@@ -29,7 +30,9 @@ for p in pods:
     ps = p["spec"].get("securityContext", {})
     k.check(S, "SC-17", f"{name}: runAsNonRoot", ps.get("runAsNonRoot") is True)
     k.check(S, "SC-17", f"{name}: seccomp RuntimeDefault", ps.get("seccompProfile", {}).get("type") == "RuntimeDefault")
-    k.check(S, "SC-17", f"{name}: workload identity (no pod-managed secrets)", p["metadata"]["labels"].get("azure.workload.identity/use") == "true")
+    sa = next((x for x in data.get("serviceaccounts", {}).get("items", []) if x["metadata"]["name"] == p["spec"].get("serviceAccountName")), {})
+    gke_wi = bool((sa.get("metadata", {}).get("annotations") or {}).get("iam.gke.io/gcp-service-account"))
+    k.check(S, "SC-17", f"{name}: workload identity (no pod-managed secrets)", p["metadata"]["labels"].get("azure.workload.identity/use") == "true" or gke_wi)
     for c in p["spec"]["containers"]:
         sc = c.get("securityContext", {})
         k.check(S, "SC-17", f"{name}/{c['name']}: readOnlyRootFilesystem", sc.get("readOnlyRootFilesystem") is True)

@@ -19,6 +19,6 @@ export INTIMED_HOME="$WORK" INTIMED_KUBE_POD="$POD" INTIMED_KUBE_NS="$NS"
 bash ./run-kit.sh
 rc=$?
 python3 16_gcp_posture_check.py ${GCP_PROJECT:+--project "$GCP_PROJECT"} || rc=1
-python3 05_container_runtime_check.py --namespace "$NS" || rc=1
+python3 05_container_runtime_check.py --namespace "$NS" --registry-suffix=-docker.pkg.dev || rc=1
 python3 15_report_builder.py
 exit $rc

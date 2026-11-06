@@ -63,7 +63,7 @@ public class QualityController {
 
     @GetMapping("/classification")
     public Map<String, Object> classification() {
-        return Map.of("product", "IntiMed 2.1.0", "intendedUse", "Transfer, storage, format conversion and display of medical device data; configuration management and verification of device integrations",
+        return Map.of("product", "IntiMed 2.2.0", "intendedUse", "Transfer, storage, format conversion and display of medical device data; configuration management and verification of device integrations",
                 "fdaPosition", "Medical Device Data System functions (21 CFR 880.6310) – enforcement discretion; not active patient monitoring",
                 "iec62304Class", "Class A software system with Class B items for association and routing (wrong-patient / wrong-value hazards mitigated by verification, thresholds and the publish gate)",
                 "excludedFunctionsFeatureFlags", Map.of("alarmManagement", false, "clinicalInterpretation", false, "closedLoopControl", false, "activePatientMonitoringNotification", false),

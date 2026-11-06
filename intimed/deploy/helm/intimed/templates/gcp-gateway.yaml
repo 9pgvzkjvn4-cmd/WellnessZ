@@ -1,4 +1,4 @@
-{{- if eq .Values.cloud "gcp" }}
+{{- if and (eq .Values.cloud "gcp") .Values.gcp.console.publish }}
 # Console publication on GKE: regional external Application Load Balancer in me-central1 (TLS terminates in Doha),
 # static regional IP, public certificate from a kubernetes.io/tls secret, HTTP→HTTPS redirect, TLS ≥ 1.2,
 # Cloud Armor (OWASP CRS 3.3 + rate limit, Terraform) on the backend, HTTPS health check on /api/public/info.
@@ -99,7 +99,8 @@ spec:
   default:
     sslPolicy: intimed-tls12-modern
   targetRef: { group: gateway.networking.k8s.io, kind: Gateway, name: intimed-console }
----
+{{- end }}
+{{- if eq .Values.cloud "gcp" }}
 # Managed Service for Prometheus scrapes the platform's management port.
 apiVersion: monitoring.googleapis.com/v1
 kind: PodMonitoring

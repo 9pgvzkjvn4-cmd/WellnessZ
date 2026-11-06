@@ -192,3 +192,12 @@ for _k, _v in _R.OVERLAY.items():
     if _v[5]:
         MANUAL_REF[_k] = _v[5]
 INCREMENTS += _R.INCREMENTS
+# ---- release 2.2 (IntiMed_GCP, Google Cloud me-central1 Doha) overlay – see tools/content/release_gcp.py
+import release_gcp as _G
+for _k, _v in _G.OVERLAY.items():
+    S[_k] = _v[:5]
+    if _v[5]:
+        MANUAL_REF[_k] = _v[5]
+    else:
+        MANUAL_REF.pop(_k, None)
+INCREMENTS += _G.INCREMENTS

@@ -1,0 +1,288 @@
+{
+ "region": "me-central1",
+ "location": "Doha, Qatar (3 zones, launched May 2023)",
+ "retrievedAt": "2026-11-06",
+ "currency": "USD",
+ "qar_peg": 3.64,
+ "note": "List (on-demand) prices. 'snapshot' = me-central1 value from the cited dataset; 'confirmed (global)' = global SKU confirmed on the Google pricing page; 'estimate \u2013 verify' = global/derived figure that must be confirmed in the Google Cloud Pricing Calculator for me-central1 before a budget is committed.",
+ "items": {
+  "e2-standard-2": {
+   "price": 59.435777,
+   "unit": "node-month",
+   "description": "Compute Engine e2-standard-2 (GKE node), Linux, on-demand incl. sustained-use discount",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot",
+   "month_1y": 37.4445,
+   "month_3y": 26.7461,
+   "hour": 0.081418872
+  },
+  "n2-standard-2": {
+   "price": 68.928282,
+   "unit": "node-month",
+   "description": "Compute Engine n2-standard-2 (GKE node), Linux, on-demand incl. sustained-use discount",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot",
+   "month_1y": 54.2654,
+   "month_3y": 38.765,
+   "hour": 0.11799838
+  },
+  "n2-standard-4": {
+   "price": 137.856563,
+   "unit": "node-month",
+   "description": "Compute Engine n2-standard-4 (GKE node), Linux, on-demand incl. sustained-use discount",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot",
+   "month_1y": 108.5307,
+   "month_3y": 77.5301,
+   "hour": 0.23599676
+  },
+  "n2-standard-8": {
+   "price": 275.713127,
+   "unit": "node-month",
+   "description": "Compute Engine n2-standard-8 (GKE node), Linux, on-demand incl. sustained-use discount",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot",
+   "month_1y": 217.0615,
+   "month_3y": 155.0602,
+   "hour": 0.47199352
+  },
+  "ip_vm": {
+   "price": 0.005,
+   "unit": "IP-hour",
+   "description": "External IPv4 in use (Cloud NAT / HA VPN peer-facing)",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot"
+  },
+  "nat_gw": {
+   "price": 0.0448,
+   "unit": "gateway-hour",
+   "description": "Cloud NAT gateway",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot"
+  },
+  "nat_data": {
+   "price": 0.045,
+   "unit": "GB",
+   "description": "Cloud NAT data processed",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot"
+  },
+  "vpn_tunnel": {
+   "price": 0.0615,
+   "unit": "tunnel-hour",
+   "description": "HA VPN tunnel",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot"
+  },
+  "egress": {
+   "price": 0.15,
+   "unit": "GB",
+   "description": "Internet egress (Premium tier, first TiB)",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot"
+  },
+  "pd_balanced": {
+   "price": 0.1215,
+   "unit": "GB-month",
+   "description": "Persistent Disk balanced",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot"
+  },
+  "pd_ssd_regional": {
+   "price": 0.4131,
+   "unit": "GB-month",
+   "description": "Persistent Disk ssd-replicated",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot"
+  },
+  "pd_ssd": {
+   "price": 0.20655,
+   "unit": "GB-month",
+   "description": "Persistent Disk ssd",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot"
+  },
+  "snapshot": {
+   "price": 0.03159,
+   "unit": "GB-month",
+   "description": "Persistent Disk snapshot",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot"
+  },
+  "gcs_standard": {
+   "price": 0.023,
+   "unit": "GB-month",
+   "description": "Cloud Storage Standard (regional me-central1)",
+   "source": "Cyclenerd google-cloud-pricing-cost-calculator pricing.yml (Apache-2.0), generated Thu Nov  5 11:35:36 2026 \u2013 https://github.com/Cyclenerd/google-cloud-pricing-cost-calculator",
+   "confidence": "snapshot"
+  },
+  "sql_2vcpu_7_5gb": {
+   "price": 120,
+   "unit": "instance-month",
+   "description": "Cloud SQL for PostgreSQL Enterprise 2 vCPU / 7.5 GiB (db-custom-2-7680 = db-standard-2 shape), compute only",
+   "source": "Bytebase Cloud SQL price table, PostgreSQL Enterprise, Middle East (Doha) \u2013 https://www.bytebase.com/dbcost/cloudsql/",
+   "confidence": "snapshot"
+  },
+  "sql_4vcpu_15gb": {
+   "price": 240,
+   "unit": "instance-month",
+   "description": "Cloud SQL for PostgreSQL Enterprise 4 vCPU / 15 GiB (db-custom-4-15360 = db-standard-4 shape), compute only; REGIONAL HA bills \u00d72",
+   "source": "Bytebase Cloud SQL price table, PostgreSQL Enterprise, Middle East (Doha) \u2013 https://www.bytebase.com/dbcost/cloudsql/",
+   "confidence": "snapshot"
+  },
+  "sql_ssd": {
+   "price": 0.206061,
+   "unit": "GB-month",
+   "description": "Cloud SQL SSD storage (Iowa list $0.17 \u00d7 Doha/Iowa ratio 1.21 observed on compute)",
+   "source": "derived from Bytebase ratio",
+   "confidence": "estimate \u2013 verify"
+  },
+  "sql_backup": {
+   "price": 0.09697,
+   "unit": "GB-month",
+   "description": "Cloud SQL backup storage beyond the free allowance (Iowa $0.08 \u00d7 1.21)",
+   "source": "derived from Bytebase ratio",
+   "confidence": "estimate \u2013 verify"
+  },
+  "gke_fee": {
+   "price": 0.1,
+   "unit": "cluster-hour",
+   "description": "GKE Standard cluster management fee (regional clusters not covered by the free tier)",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/kubernetes-engine/pricing",
+   "confidence": "confirmed (global)"
+  },
+  "armor_policy": {
+   "price": 5.0,
+   "unit": "policy-month",
+   "description": "Cloud Armor Standard security policy",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/armor/pricing",
+   "confidence": "confirmed (global)"
+  },
+  "armor_rule": {
+   "price": 1.0,
+   "unit": "rule-month",
+   "description": "Cloud Armor rule",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/armor/pricing",
+   "confidence": "confirmed (global)"
+  },
+  "armor_req": {
+   "price": 0.6,
+   "unit": "million requests",
+   "description": "Cloud Armor requests evaluated (regional policy)",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/armor/pricing",
+   "confidence": "confirmed (global)"
+  },
+  "kms_hsm_sym": {
+   "price": 1.0,
+   "unit": "key-version-month",
+   "description": "Cloud KMS HSM symmetric key version (CMEK)",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/kms/pricing",
+   "confidence": "estimate \u2013 verify Doha"
+  },
+  "kms_hsm_ec": {
+   "price": 2.5,
+   "unit": "key-version-month",
+   "description": "Cloud KMS HSM EC P-256 signing key version (cosign / Binary Authorization)",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/kms/pricing",
+   "confidence": "estimate \u2013 verify Doha"
+  },
+  "kms_ops": {
+   "price": 0.03,
+   "unit": "10K operations",
+   "description": "Cloud KMS cryptographic operations",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/kms/pricing",
+   "confidence": "confirmed (global)"
+  },
+  "sm_version": {
+   "price": 0.06,
+   "unit": "version-location-month",
+   "description": "Secret Manager active secret version per replica location",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/secret-manager/pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "sm_access": {
+   "price": 0.03,
+   "unit": "10K operations",
+   "description": "Secret Manager access operations",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/secret-manager/pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "log_ingest": {
+   "price": 0.5,
+   "unit": "GiB",
+   "description": "Cloud Logging ingestion beyond 50 GiB/project/month free",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/stackdriver/pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "log_retain": {
+   "price": 0.01,
+   "unit": "GiB-month",
+   "description": "Cloud Logging retention beyond 30 days",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/stackdriver/pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "gmp_samples": {
+   "price": 0.06,
+   "unit": "million samples",
+   "description": "Managed Service for Prometheus samples ingested (first tier)",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/stackdriver/pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "lb_rule": {
+   "price": 0.025,
+   "unit": "rule-hour",
+   "description": "Load balancer forwarding rule (first 5; regional external ALB and internal passthrough NLB)",
+   "source": "third-party summary of Cloud Load Balancing list price",
+   "confidence": "estimate \u2013 verify"
+  },
+  "lb_data": {
+   "price": 0.008,
+   "unit": "GB",
+   "description": "Regional external Application Load Balancer data processed",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/vpc/network-pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "ar_storage": {
+   "price": 0.1,
+   "unit": "GB-month",
+   "description": "Artifact Registry storage beyond 0.5 GB",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/artifact-registry/pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "inter_zone": {
+   "price": 0.01,
+   "unit": "GB",
+   "description": "Inter-zone traffic within me-central1",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/vpc/network-pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "dns_zone": {
+   "price": 0.2,
+   "unit": "zone-month",
+   "description": "Cloud DNS managed zone (private)",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/dns/pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "ngfw_data": {
+   "price": 0.018,
+   "unit": "GB",
+   "description": "Cloud NGFW Standard (FQDN egress policy) data processed",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/firewall/pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "scan_image": {
+   "price": 0.26,
+   "unit": "image",
+   "description": "Artifact Analysis on-push vulnerability scan",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/artifact-analysis/pricing",
+   "confidence": "estimate \u2013 verify"
+  },
+  "pubsub": {
+   "price": 40.0,
+   "unit": "TiB",
+   "description": "Pub/Sub message delivery (SIEM topic)",
+   "source": "Google Cloud public list price (global SKU) \u2013 https://cloud.google.com/pubsub/pricing",
+   "confidence": "estimate \u2013 verify"
+  }
+ }
+}

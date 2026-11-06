@@ -16,7 +16,7 @@ Everything that software can do is in the product, its Terraform/Helm and its pi
 | [M-10](#m-10) | Security assurance programme | CISO | IM-E06-BL-011, IM-E06-BL-005 |
 | [M-11](#m-11) | Operations readiness: drills, soak, on-call, FinOps, tracing | Platform SRE | IM-E01-BL-027, IM-E01-BL-030, IM-E08-BL-005, IM-E08-BL-006, IM-E08-BL-007, IM-E08-BL-009 |
 | [M-12](#m-12) | Licensed content and data-dependent intelligence | Clinical informatics / Laboratory / Data science | IM-E12-BL-006, IM-E12-BL-010, IM-E14-BL-009, IM-E14-BL-011, IM-E15-BL-004 |
-| [M-13](#m-13) | Other clouds (GCP, private cloud) and their adapters | Platform architecture | IM-E06-BL-004, IM-E06-BL-010, IM-E08-BL-003, IM-E08-BL-004, IM-E08-BL-010 |
+| [M-13](#m-13) | Private cloud (OpenShift / RKE2) and further clouds | Platform architecture | IM-E06-BL-010, IM-E08-BL-004, IM-E08-BL-010 |
 | [M-14](#m-14) | Commercial accounts and contracts | Commercial / Finance | IM-E09-BL-002, IM-E02-BL-006 |
 | [M-15](#m-15) | AI explanation endpoint approval | CISO / DPO / Clinical safety officer | IM-E03-BL-006 |
 | [M-16](#m-16) | Quarantine listener for identification of unconfigured devices (security review) | CISO with Platform architecture | IM-E12-BL-003 |
@@ -454,33 +454,34 @@ Everything that software can do is in the product, its Terraform/Helm and its pi
 
 ## M-13
 
-### Other clouds (GCP, private cloud) and their adapters
+### Private cloud (OpenShift / RKE2) and further clouds
 
 **Owner:** Platform architecture  
-**Why manual:** Outside this Azure Qatar Central release; triggered by a customer contract.
+**Why manual:** Azure Qatar Central (2.1) and Google Cloud me-central1 (2.2, IntiMed_GCP) are delivered; a client-hosted private cloud is triggered by a customer contract.
 
 **Prerequisites**
 
 - Signed customer requirement
+- Target platform (OpenShift 4.x or RKE2) with a CSI driver, an ingress/route and a secret store (Vault)
 
 **Steps**
 
-1. Reuse the Helm chart; replace the CSI provider (GCP Secret Manager / Vault) and storage class.
-2. Implement the GCP Secret Manager adapter behind SecretStore (same contract and tests as AzureKeyVaultSecretStore).
-3. Write Terraform for GKE / Cloud SQL HA / Cloud KMS or Ansible for OpenShift + Patroni; port posture script 16.
-4. Run the full security kit and DR drills in the new environment.
+1. Reuse the Helm chart; add a values profile for the platform (StorageClass of the platform CSI, Route/Ingress instead of the cloud load balancer, Vault CSI provider).
+2. Use the HashiCorp Vault SecretStore (same contract and tests as the Azure and GCP stores) and file-based runtime secrets (INTIMED_SECRETS_DIR).
+3. Provision PostgreSQL 16 with Patroni (3 nodes, synchronous replica) and object storage with object lock (MinIO) for the evidence/audit archive.
+4. Write the Ansible / GitOps for the platform; port posture script 16 (cluster + database + storage checks).
+5. Run the full security kit and the DR drills in the new environment.
 
-**Tooling shipped with the product:** Helm chart; SecretStore contract; security kit
+**Tooling shipped with the product:** Helm chart; SecretStore contract (HashiCorpVaultSecretStore); security kit
 
 **Evidence that closes the item**
 
-- Kit report in the new environment
+- Kit report in the private-cloud environment
+- DR drill report
 
 | Backlog | Title | Status |
 |---|---|---|
-| IM-E06-BL-004 | Integrate Azure Key Vault, GCP Secret Manager/Cloud KMS and HashiCorp Vault behind one secrets interface; HSM for production; CI secret scanning | PARTIAL |
 | IM-E06-BL-010 | Maintain the security test kit with cloud-specific checks (Azure, GCP, private cloud) and run it in all reference environments per release | PARTIAL |
-| IM-E08-BL-003 | Terraform modules and Helm charts for GCP (GKE, Cloud SQL HA, Pub/Sub/Strimzi, Cloud Storage, KMS/Secret Manager, Identity Platform, Cloud Armor, Logging/Chronicle) | DEFERRED |
 | IM-E08-BL-004 | Private-cloud blueprint (OpenShift/Rancher on VMware, Patroni PostgreSQL, Strimzi/NATS, MinIO, Vault, Keycloak, HAProxy/F5, Prometheus/Grafana/Loki) with Ansible/Terraform | DEFERRED |
 | IM-E08-BL-010 | Reference deployments: IntiMed-hosted SaaS (Azure) and client-hosted single tenant (GCP and private cloud) with runbook parity | PARTIAL |
 

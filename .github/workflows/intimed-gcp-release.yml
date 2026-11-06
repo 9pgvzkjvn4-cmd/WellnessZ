@@ -6,7 +6,7 @@
 # (Binary Authorization ENFORCED in PROD) → deploy PROD.
 # Auth: Workload Identity Federation (GitHub OIDC → Google service account, no stored keys). Environment variables:
 #   GCP_WIF_PROVIDER, GCP_DEPLOY_SA, GCP_PROJECT (per environment gcp-uat / gcp-prod), UAT_CONSOLE_URL,
-#   CONSOLE_HOSTNAME, COSIGN_KEY (= `terraform output -raw cosign_key`, per environment), GCP_UAT_PROJECT and
+#   CONSOLE_PUBLISH (true once the console is published), CONSOLE_HOSTNAME, COSIGN_KEY (= `terraform output -raw cosign_key`, per environment), GCP_UAT_PROJECT and
 #   UAT_COSIGN_KEY (gcp-prod only). Secret (per environment): CONSOLE_TLS_CERT_PEM / CONSOLE_TLS_KEY_PEM (optional,
 #   only on first deployment / renewal – manual guide M-02).
 # Third-party actions are referenced by tag here; pin them to commit SHAs (Renovate/Dependabot) per supply-chain policy.
@@ -141,14 +141,14 @@ jobs:
             echo "CONSOLE_TLS_CERT=$RUNNER_TEMP/tls.crt" >> "$GITHUB_ENV"; echo "CONSOLE_TLS_KEY=$RUNNER_TEMP/tls.key" >> "$GITHUB_ENV"; fi
       - name: Deploy (helm upgrade --install + helm test)
         working-directory: intimed
-        env: { ENV: uat, CONSOLE_HOSTNAME: "${{ vars.CONSOLE_HOSTNAME }}", IMAGE_TAG: "${{ needs.build.outputs.version }}", IMAGE_DIGEST: "${{ needs.image.outputs.digest }}" }
+        env: { ENV: uat, CONSOLE_PUBLISH: "${{ vars.CONSOLE_PUBLISH || 'false' }}", CONSOLE_HOSTNAME: "${{ vars.CONSOLE_HOSTNAME }}", IMAGE_TAG: "${{ needs.build.outputs.version }}", IMAGE_DIGEST: "${{ needs.image.outputs.digest }}" }
         run: deploy/gcp/scripts/deploy.sh
       - name: Security kit – GCP posture (16) and container runtime (05)
         working-directory: intimed/security-test-kit
         env: { GCP_PROJECT: "${{ vars.GCP_PROJECT }}", INTIMED_ENV: uat }
         run: |
           python3 16_gcp_posture_check.py
-          python3 05_container_runtime_check.py --namespace intimed
+          python3 05_container_runtime_check.py --namespace intimed --registry-suffix=-docker.pkg.dev
           python3 15_report_builder.py
       - name: DAST baseline (OWASP ZAP) against the UAT console
         if: ${{ vars.UAT_CONSOLE_URL != '' }}
@@ -199,7 +199,7 @@ jobs:
             --keyversion-key cosign-signing --keyversion 1
       - name: Deploy PROD
         working-directory: intimed
-        env: { ENV: prod, CONSOLE_HOSTNAME: "${{ vars.CONSOLE_HOSTNAME }}", IMAGE_TAG: "${{ needs.build.outputs.version }}", IMAGE_DIGEST: "${{ needs.image.outputs.digest }}" }
+        env: { ENV: prod, CONSOLE_PUBLISH: "${{ vars.CONSOLE_PUBLISH || 'true' }}", CONSOLE_HOSTNAME: "${{ vars.CONSOLE_HOSTNAME }}", IMAGE_TAG: "${{ needs.build.outputs.version }}", IMAGE_DIGEST: "${{ needs.image.outputs.digest }}" }
         run: |
           terraform -chdir=deploy/gcp/terraform init -input=false -backend-config="bucket=${{ vars.GCP_PROJECT }}-intimed-tfstate" -backend-config="prefix=intimed/prod"
           deploy/gcp/scripts/deploy.sh

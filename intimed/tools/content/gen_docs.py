@@ -28,12 +28,12 @@ tot = collections.Counter(); tsp = collections.Counter()
 for b in bl: tot[items[b["id"]]["status"]] += 1; tsp[items[b["id"]]["status"]] += b["sp"]
 
 # --- matrix
-L = ["# IntiMed – Requirements Traceability Matrix (release 2.1 – local + Azure Qatar Central)", "",
+L = ["# IntiMed – Requirements Traceability Matrix (release 2.2 – local + Azure Qatar Central + Google Cloud Doha / IntiMed_GCP)", "",
      "Generated from `tools/content/traceability.py` (single source of truth, also served at `/api/quality/backlog`).", "",
      "| | Items | Story points |", "|---|---:|---:|"]
 for s in ("DELIVERED", "PARTIAL", "DEFERRED"): L.append("| %s | %d | %d |" % (s, tot[s], tsp[s]))
 L += ["| **Total** | **%d** | **%d** |" % (len(bl), sum(b["sp"] for b in bl)), "",
-      "Status: **DELIVERED** – implemented in the product or its automation (LOCAL and Azure Qatar Central); **PARTIAL** – implemented as far as software can go, the remainder needs people, hardware, vendors, licences or audits; **DEFERRED** – deliberately outside this release. Every item that still needs a manual step names its section in `docs/azure/Manual-Backlog-Execution-Guide.md` (M-01…M-16).", ""]
+      "Status: **DELIVERED** – implemented in the product or its automation (LOCAL, Azure Qatar Central and Google Cloud me-central1); **PARTIAL** – implemented as far as software can go, the remainder needs people, hardware, vendors, licences or audits; **DEFERRED** – deliberately outside this release. Every item that still needs a manual step names its section M-01…M-16 in `docs/azure/Manual-Backlog-Execution-Guide.md` (Azure) and `docs/gcp/IntiMed_GCP_Manual_Backlog_Execution_Guide.md` (Google Cloud).", ""]
 for e in ep:
     L += ["## %s – %s" % (e["epic"], e["name"].split(" – ")[0]), "", "_" + e["goal"][:400] + ("…_" if len(e["goal"]) > 400 else "_"), "", "### High-level requirements → features", "",
           "| Feature | Name | HLRs | Backlog items (status) |", "|---|---|---|---|"]
@@ -47,13 +47,14 @@ for e in ep:
     L.append("")
 L += ["## HLR index", "", "| HLR | Requirement (abridged) | Priority |", "|---|---|---|"] + ["| %s | %s | %s |" % (h["id"], esc(h["requirement"][:220]), h["priority"]) for h in hl]
 L += ["", "## Tests", "", "| Test class | What it proves |", "|---|---|",
-      "| **Total 134 automated tests** (Maven) + 4 Terraform plan/apply tests (mocked providers) + security kit 69 local checks + Azure checks (01, 05, 16) | |",
+      "| **Total 138 automated tests** (Maven) + 7 Terraform tests (4 Azure, 3 GCP; mocked providers) + security kit 69 local checks + cloud checks (01, 05, 16 Azure / 16 GCP) | |",
       "| `UnitTests` (36) | All 26 driver packages valid, signed, secret-free, golden session parses every semantic key, malformed rejected; XXE refused; SFLOAT; serial checksum; GDT length; payload size; UCUM; AES-GCM context binding; RFC 6238 TOTP vector; PHI masking; secret scanner |",
       "| `PlatformIntegrationTest` (10) | Wizard with intelligence → exchange test 15/15 over real mTLS → four-eyes refusal/approval → publish gate → DEV/UAT, PROD needs SRE; live capture files into TPL-18, PHI encrypted at rest, idempotent re-send; re-test after change; RR-03 block; SC-19 accept-all refused in UAT; plaintext/no-cert/revoked refused; anomaly isolation + re-certification gate; tenant isolation (ciphertext copied across tenants cannot be read); audit tamper detection; HTTP controls (401, CSRF, CSP, HSTS, FHIR auth, webhook HMAC); password policy and lockout |",
       "| `ClinicalIntelligenceTests` (42), `ClinicalIntelligenceDeferredIntegrationTest` (8) | Reference ranges, cohorts, validation, eGFR/derived values, delta checks, EP28 governance, host demographics, RR-17/RR-18, trajectories, terminology adapter |",
       "| `OperationsCommercialTest` (8) | Regression suites, shadow sign-off, monthly report, health score, billing HMAC + reconciliation, trials (simulator-only), branding hardening, k-anonymous benchmarks |",
       "| `PartnerCatalogueTest` (9), `ProtocolCodecTests` (8) | Partner submissions + four-eyes + badges, GUDID/EUDAMED feeds, AI gateway policy, OpenAPI; ASTM E1381 / POCT1-A2 codecs |",
       "| `CloudAdaptersTest` (4) | Azure Key Vault secret store (tenant binding, HTTPS/host rules), workload-identity token exchange, immutable Blob archiver |",
+      "| `GcpAdaptersTest` (4) | GCP Secret Manager store (Doha-only replication, tenant binding, endpoint/project/region validation), metadata-server token caching, create-only GCS archive |",
       "| `ArchitectureTest` (4) | Engine core independent of control plane; security independent of engine; templates host-agnostic; nothing depends on the demo |",
       "| `security-test-kit/` | SC-01…SC-20 local scripts against the running platform (see kit README) |"]
 open(os.path.join(DOC, "Traceability-Matrix.md"), "w").write("\n".join(L) + "\n")
@@ -72,8 +73,8 @@ def group(b, i):
 for b in bl:
     i = items[b["id"]]
     if i["status"] != "DELIVERED": groups[group(b, i)].append((b, i))
-L = ["# IntiMed – Backlog items with a remaining manual or out-of-release part (release 2.1)", "",
-     "Release 2.1 adds the Azure Qatar Central deployment and implements the automatable deferred items. Every item below is **PARTIAL** (implemented as far as software can go – the remainder needs people, hardware, vendors, licences or audits) or **DEFERRED** (deliberately outside this Azure Qatar Central release). The *Manual guide* column points to the step-by-step section in `docs/azure/Manual-Backlog-Execution-Guide.md`.", "",
+L = ["# IntiMed – Backlog items with a remaining manual or out-of-release part (release 2.2)", "",
+     "Release 2.1 added the Azure Qatar Central deployment; release 2.2 adds the Google Cloud me-central1 (Doha) deployment (IntiMed_GCP). Every item below is **PARTIAL** (implemented as far as software can go – the remainder needs people, hardware, vendors, licences or audits) or **DEFERRED** (deliberately outside these cloud releases). The *Manual guide* column points to the step-by-step section M-xx – in `docs/azure/Manual-Backlog-Execution-Guide.md` for Azure and `docs/gcp/IntiMed_GCP_Manual_Backlog_Execution_Guide.md` for Google Cloud (same numbering).", "",
      "| | Items | SP |", "|---|---:|---:|", "| PARTIAL | %d | %d |" % (tot["PARTIAL"], tsp["PARTIAL"]), "| DEFERRED | %d | %d |" % (tot["DEFERRED"], tsp["DEFERRED"]), ""]
 for g, rows in groups.items():
     if not rows: continue
@@ -81,12 +82,12 @@ for g, rows in groups.items():
     for b, i in rows:
         L.append("| %s | %s | %d | %s | %s | %s | %s | %s | %s |" % (b["id"], esc(b["title"]), b["sp"], b["sprint"], i["status"], esc(i.get("evidence") or "—"), esc(i.get("reason")), esc(i.get("strategy")), i.get("manual", "—")))
     L.append("")
-L += ["## Delivered in release 2.1", "", "DELIVERED items that still name a guide section only need to be *executed* in the operated environment (e.g. soak, DR drills, site validation). The list of everything delivered is in `Traceability-Matrix.md`.", ""]
+L += ["## Delivered in releases 2.1 / 2.2", "", "DELIVERED items that still name a guide section only need to be *executed* in the operated environment (e.g. soak, DR drills, site validation). The list of everything delivered is in `Traceability-Matrix.md`.", ""]
 open(os.path.join(DOC, "Deferred-and-Partial-Backlog.md"), "w").write("\n".join(L) + "\n")
 
 # --- increments & capacity
-L = ["# IntiMed – Incremental delivery and capacity model (release 2.1)", "",
-     "The requirement pack plans 17 two-week sprints (IM-S0…IM-S16+, ≈1,395 SP). The platform was built in eight increments that follow the sprint order and the traceability above (L1–L5 local release, L6–L8 backlog follow-up and Azure Qatar Central); the capacity table compares the pack's planned story points per sprint with what is delivered.", "",
+L = ["# IntiMed – Incremental delivery and capacity model (release 2.2)", "",
+     "The requirement pack plans 17 two-week sprints (IM-S0…IM-S16+, ≈1,395 SP). The platform was built in eight increments that follow the sprint order and the traceability above (L1–L5 local release, L6–L8 backlog follow-up and Azure Qatar Central, L9 Google Cloud Doha); the capacity table compares the pack's planned story points per sprint with what is delivered.", "",
      "## Increments", "", "| Increment | Scope | Sprints covered |", "|---|---|---|"] + ["| %s | %s | %s |" % (i["id"], i["name"], i["sprints"]) for i in T.INCREMENTS]
 L += ["", "## Capacity by sprint (story points)", "", "| Sprint | Theme | Planned SP | Delivered | Partial | Deferred | Local coverage* |", "|---|---|---:|---:|---:|---:|---:|"]
 for s in sp:
@@ -135,4 +136,35 @@ for m in R.MANUAL:
             G.append("| %s | %s | %s (2.0 enhancement) |" % (i, esc(t), st))
 G += ["", R.DPIA_TEMPLATE]
 open(os.path.join(AZ, "Manual-Backlog-Execution-Guide.md"), "w").write("\n".join(G) + "\n")
+# --- IntiMed_GCP manual backlog execution guide (docs/gcp)
+import release_gcp as RG
+GC = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "gcp")
+os.makedirs(GC, exist_ok=True)
+MG = RG.manual_gcp()
+H = ["# IntiMed_GCP – Manual Backlog Execution Guide (release 2.2, Google Cloud me-central1 / Doha)", "",
+     "Everything that software can do is in the product, its Terraform/Helm (`deploy/gcp`, `deploy/helm/intimed` with `cloud: gcp`) and its pipelines (`intimed-gcp-*`). This guide covers the remaining steps that need **people, hardware, vendors, licences, audits or regulator decisions** – for every backlog item (1.0 and 2.0) that is PARTIAL or DEFERRED, and for DELIVERED items that still have to be *executed* in the operated Google Cloud environment. Section numbers M-01…M-16 are the same as in the Azure guide.", "",
+     "| Section | Title | Owner | Backlog items |", "|---|---|---|---|"]
+for m in MG:
+    H.append("| [%s](#%s) | %s | %s | %s |" % (m["id"], m["id"].lower(), m["title"], m["owner"], ", ".join(m["items"])))
+for m in MG:
+    H += ["", "## %s" % m["id"], "", "### %s" % m["title"], "", "**Owner:** %s  " % m["owner"], "**Why manual:** %s" % m["why"], "", "**Prerequisites**", ""]
+    H += ["- " + x for x in m["pre"]]
+    H += ["", "**Steps**", ""] + ["%d. %s" % (n + 1, x) for n, x in enumerate(m["steps"])]
+    H += ["", "**Tooling shipped with the product:** " + "; ".join(m["tool"]), "", "**Evidence that closes the item**", ""] + ["- " + x for x in m["evidence"]]
+    H += ["", "| Backlog | Title | Status |", "|---|---|---|"]
+    for i in m["items"]:
+        if i in items:
+            H.append("| %s | %s | %s |" % (i, esc(title.get(i, "")), items[i]["status"]))
+        else:
+            t, st = enh.get(i, ("", ""))
+            H.append("| %s | %s | %s (2.0 enhancement) |" % (i, esc(t), st))
+H += ["", "## Deferred items and their path", "", "| Backlog | Title | Remaining part | Strategy | Section |", "|---|---|---|---|---|"]
+for b in bl:
+    i = items[b["id"]]
+    if i["status"] == "DEFERRED":
+        H.append("| %s | %s | %s | %s | %s |" % (b["id"], esc(b["title"]), esc(i.get("reason")), esc(i.get("strategy")), i.get("manual", "—")))
+H += ["", R.DPIA_TEMPLATE.replace("Azure Qatar Central", "Google Cloud me-central1 (Doha)").replace("Microsoft", "Google")
+          .replace("Allowed-locations policy", "organisation policy gcp.resourceLocations").replace("(no paired region)", "(Cloud SQL backups located in me-central1)")
+          .replace("IntiMed (AKS)", "IntiMed (GKE)").replace("Key Vault HSM, workload identity, private endpoints, WAF, Sentinel", "Cloud KMS HSM (CMEK), Secret Manager, Workload Identity, private IP / Private Google Access, Cloud Armor WAF, Binary Authorization, Doha log bucket + SIEM topic")]
+open(os.path.join(GC, "IntiMed_GCP_Manual_Backlog_Execution_Guide.md"), "w").write("\n".join(H) + "\n")
 print("ok", tot, tsp)

@@ -1,0 +1,569 @@
+{
+ "pods": {
+  "items": [
+   {
+    "metadata": {
+     "name": "intimed-0",
+     "labels": {
+      "app.kubernetes.io/name": "intimed",
+      "app.kubernetes.io/instance": "intimed",
+      "app.kubernetes.io/version": "2.2.0",
+      "app.kubernetes.io/managed-by": "Helm",
+      "intimed.io/environment": "uat"
+     },
+     "namespace": "intimed"
+    },
+    "spec": {
+     "serviceAccountName": "intimed",
+     "automountServiceAccountToken": true,
+     "enableServiceLinks": false,
+     "terminationGracePeriodSeconds": 60,
+     "securityContext": {
+      "runAsNonRoot": true,
+      "runAsUser": 10001,
+      "runAsGroup": 10001,
+      "fsGroup": 10001,
+      "fsGroupChangePolicy": "OnRootMismatch",
+      "seccompProfile": {
+       "type": "RuntimeDefault"
+      }
+     },
+     "nodeSelector": {
+      "pool": "apps"
+     },
+     "containers": [
+      {
+       "name": "platform",
+       "image": "me-central1-docker.pkg.dev/intimed-uat-qa/intimed-uat/intimed/platform:2.1.0",
+       "imagePullPolicy": "IfNotPresent",
+       "securityContext": {
+        "allowPrivilegeEscalation": false,
+        "readOnlyRootFilesystem": true,
+        "capabilities": {
+         "drop": [
+          "ALL"
+         ]
+        }
+       },
+       "ports": [
+        {
+         "name": "console",
+         "containerPort": 9443
+        },
+        {
+         "name": "ingress",
+         "containerPort": 8443
+        },
+        {
+         "name": "mllp",
+         "containerPort": 2575
+        },
+        {
+         "name": "mgmt",
+         "containerPort": 9444
+        }
+       ],
+       "env": [
+        {
+         "name": "INTIMED_HOME",
+         "value": "/data"
+        },
+        {
+         "name": "INTIMED_BIND",
+         "value": "0.0.0.0"
+        },
+        {
+         "name": "INTIMED_MGMT_BIND",
+         "value": "0.0.0.0"
+        },
+        {
+         "name": "INTIMED_ENVIRONMENT",
+         "value": "UAT"
+        },
+        {
+         "name": "SPRING_PROFILES_ACTIVE",
+         "value": "postgres"
+        },
+        {
+         "name": "INTIMED_DB_URL",
+         "value": "jdbc:postgresql://10.50.48.3:5432/intimed?sslmode=verify-ca&sslrootcert=/etc/intimed/pg/server-ca.pem"
+        },
+        {
+         "name": "INTIMED_DB_USER",
+         "value": "intimed"
+        },
+        {
+         "name": "INTIMED_SECRETS_PROVIDER",
+         "value": "gcp-secret-manager"
+        },
+        {
+         "name": "INTIMED_GCP_PROJECT",
+         "value": "intimed-uat-qa"
+        },
+        {
+         "name": "INTIMED_GCP_LOCATION",
+         "value": "me-central1"
+        },
+        {
+         "name": "INTIMED_ARCHIVE_GCS_EVIDENCE_BUCKET",
+         "value": "intimed-uat-qa-intimed-evidence"
+        },
+        {
+         "name": "INTIMED_ARCHIVE_GCS_AUDIT_BUCKET",
+         "value": "intimed-uat-qa-intimed-audit"
+        },
+        {
+         "name": "INTIMED_SECRETS_DIR",
+         "value": "/mnt/secrets"
+        },
+        {
+         "name": "INTIMED_SIEM_STDOUT",
+         "value": "true"
+        },
+        {
+         "name": "INTIMED_TLS_SANS",
+         "value": "intimed-console.intimed.svc.cluster.local,devices.uat.example.qa"
+        },
+        {
+         "name": "INTIMED_WEBHOOK_ALLOWED_HOSTS",
+         "value": ""
+        },
+        {
+         "name": "INTIMED_OPENFDA",
+         "value": "false"
+        },
+        {
+         "name": "JAVA_TOOL_OPTIONS",
+         "value": "-XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/urandom"
+        }
+       ],
+       "resources": {
+        "limits": {
+         "cpu": "2",
+         "memory": "3Gi"
+        },
+        "requests": {
+         "cpu": "1",
+         "memory": "3Gi"
+        }
+       },
+       "startupProbe": {
+        "httpGet": {
+         "path": "/actuator/health/liveness",
+         "port": "mgmt"
+        },
+        "periodSeconds": 5,
+        "failureThreshold": 60
+       },
+       "livenessProbe": {
+        "httpGet": {
+         "path": "/actuator/health/liveness",
+         "port": "mgmt"
+        },
+        "periodSeconds": 15,
+        "timeoutSeconds": 5,
+        "failureThreshold": 4
+       },
+       "readinessProbe": {
+        "httpGet": {
+         "path": "/actuator/health/readiness",
+         "port": "mgmt"
+        },
+        "periodSeconds": 10,
+        "timeoutSeconds": 5,
+        "failureThreshold": 3
+       },
+       "volumeMounts": [
+        {
+         "name": "data",
+         "mountPath": "/data"
+        },
+        {
+         "name": "tmp",
+         "mountPath": "/tmp"
+        },
+        {
+         "name": "kv",
+         "mountPath": "/mnt/secrets",
+         "readOnly": true
+        },
+        {
+         "name": "pg-ca",
+         "mountPath": "/etc/intimed/pg",
+         "readOnly": true
+        }
+       ]
+      }
+     ],
+     "volumes": [
+      {
+       "name": "pg-ca",
+       "configMap": {
+        "name": "intimed-pg-ca"
+       }
+      },
+      {
+       "name": "tmp",
+       "emptyDir": {
+        "sizeLimit": "1Gi"
+       }
+      },
+      {
+       "name": "kv",
+       "csi": {
+        "driver": "secrets-store-gke.csi.k8s.io",
+        "readOnly": true,
+        "volumeAttributes": {
+         "secretProviderClass": "intimed-kv"
+        }
+       }
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "netpols": {
+  "items": [
+   {
+    "apiVersion": "networking.k8s.io/v1",
+    "kind": "NetworkPolicy",
+    "metadata": {
+     "name": "intimed",
+     "labels": {
+      "app.kubernetes.io/name": "intimed",
+      "app.kubernetes.io/instance": "intimed",
+      "app.kubernetes.io/version": "2.2.0",
+      "app.kubernetes.io/managed-by": "Helm",
+      "intimed.io/environment": "uat"
+     }
+    },
+    "spec": {
+     "podSelector": {
+      "matchLabels": {
+       "app.kubernetes.io/name": "intimed",
+       "app.kubernetes.io/instance": "intimed"
+      }
+     },
+     "policyTypes": [
+      "Ingress",
+      "Egress"
+     ],
+     "ingress": [
+      {
+       "from": [
+        {
+         "ipBlock": {
+          "cidr": "10.50.32.0/23"
+         }
+        },
+        {
+         "ipBlock": {
+          "cidr": "35.191.0.0/16"
+         }
+        },
+        {
+         "ipBlock": {
+          "cidr": "130.211.0.0/22"
+         }
+        }
+       ],
+       "ports": [
+        {
+         "port": 9443,
+         "protocol": "TCP"
+        }
+       ]
+      },
+      {
+       "from": [
+        {
+         "ipBlock": {
+          "cidr": "10.60.0.0/16"
+         }
+        },
+        {
+         "ipBlock": {
+          "cidr": "35.191.0.0/16"
+         }
+        },
+        {
+         "ipBlock": {
+          "cidr": "130.211.0.0/22"
+         }
+        }
+       ],
+       "ports": [
+        {
+         "port": 2575,
+         "protocol": "TCP"
+        },
+        {
+         "port": 8443,
+         "protocol": "TCP"
+        }
+       ]
+      },
+      {
+       "from": [
+        {
+         "namespaceSelector": {
+          "matchLabels": {
+           "kubernetes.io/metadata.name": "kube-system"
+          }
+         }
+        },
+        {
+         "namespaceSelector": {
+          "matchLabels": {
+           "kubernetes.io/metadata.name": "gmp-system"
+          }
+         }
+        }
+       ],
+       "ports": [
+        {
+         "port": 9444,
+         "protocol": "TCP"
+        }
+       ]
+      },
+      {
+       "from": [
+        {
+         "podSelector": {
+          "matchLabels": {
+           "intimed.io/role": "smoke"
+          }
+         }
+        }
+       ],
+       "ports": [
+        {
+         "port": 9443,
+         "protocol": "TCP"
+        },
+        {
+         "port": 9444,
+         "protocol": "TCP"
+        }
+       ]
+      }
+     ],
+     "egress": [
+      {
+       "to": [
+        {
+         "namespaceSelector": {
+          "matchLabels": {
+           "kubernetes.io/metadata.name": "kube-system"
+          }
+         },
+         "podSelector": {
+          "matchLabels": {
+           "k8s-app": "kube-dns"
+          }
+         }
+        }
+       ],
+       "ports": [
+        {
+         "port": 53,
+         "protocol": "UDP"
+        },
+        {
+         "port": 53,
+         "protocol": "TCP"
+        }
+       ]
+      },
+      {
+       "to": [
+        {
+         "ipBlock": {
+          "cidr": "10.50.48.0/20"
+         }
+        }
+       ],
+       "ports": [
+        {
+         "port": 5432,
+         "protocol": "TCP"
+        }
+       ]
+      },
+      {
+       "to": [
+        {
+         "ipBlock": {
+          "cidr": "169.254.169.254/32"
+         }
+        }
+       ],
+       "ports": [
+        {
+         "port": 80,
+         "protocol": "TCP"
+        },
+        {
+         "port": 988,
+         "protocol": "TCP"
+        }
+       ]
+      },
+      {
+       "ports": [
+        {
+         "port": 443,
+         "protocol": "TCP"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "apiVersion": "networking.k8s.io/v1",
+    "kind": "NetworkPolicy",
+    "metadata": {
+     "name": "intimed-db-bootstrap",
+     "labels": {
+      "app.kubernetes.io/name": "intimed",
+      "app.kubernetes.io/instance": "intimed",
+      "app.kubernetes.io/version": "2.2.0",
+      "app.kubernetes.io/managed-by": "Helm",
+      "intimed.io/environment": "uat"
+     }
+    },
+    "spec": {
+     "podSelector": {
+      "matchLabels": {
+       "app.kubernetes.io/name": "intimed-db-bootstrap"
+      }
+     },
+     "policyTypes": [
+      "Ingress",
+      "Egress"
+     ],
+     "ingress": [],
+     "egress": [
+      {
+       "to": [
+        {
+         "namespaceSelector": {
+          "matchLabels": {
+           "kubernetes.io/metadata.name": "kube-system"
+          }
+         },
+         "podSelector": {
+          "matchLabels": {
+           "k8s-app": "kube-dns"
+          }
+         }
+        }
+       ],
+       "ports": [
+        {
+         "port": 53,
+         "protocol": "UDP"
+        },
+        {
+         "port": 53,
+         "protocol": "TCP"
+        }
+       ]
+      },
+      {
+       "to": [
+        {
+         "ipBlock": {
+          "cidr": "10.50.48.0/20"
+         }
+        }
+       ],
+       "ports": [
+        {
+         "port": 5432,
+         "protocol": "TCP"
+        }
+       ]
+      },
+      {
+       "to": [
+        {
+         "ipBlock": {
+          "cidr": "169.254.169.254/32"
+         }
+        }
+       ],
+       "ports": [
+        {
+         "port": 80,
+         "protocol": "TCP"
+        },
+        {
+         "port": 988,
+         "protocol": "TCP"
+        }
+       ]
+      },
+      {
+       "ports": [
+        {
+         "port": 443,
+         "protocol": "TCP"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "secrets": {
+  "items": []
+ },
+ "serviceaccounts": {
+  "items": [
+   {
+    "apiVersion": "v1",
+    "kind": "ServiceAccount",
+    "metadata": {
+     "name": "intimed",
+     "labels": {
+      "app.kubernetes.io/name": "intimed",
+      "app.kubernetes.io/instance": "intimed",
+      "app.kubernetes.io/version": "2.2.0",
+      "app.kubernetes.io/managed-by": "Helm",
+      "intimed.io/environment": "uat"
+     },
+     "annotations": {
+      "iam.gke.io/gcp-service-account": "sa-intimed-app-uat@intimed-uat-qa.iam.gserviceaccount.com"
+     }
+    },
+    "automountServiceAccountToken": false
+   },
+   {
+    "apiVersion": "v1",
+    "kind": "ServiceAccount",
+    "metadata": {
+     "name": "intimed-dbadmin",
+     "labels": {
+      "app.kubernetes.io/name": "intimed",
+      "app.kubernetes.io/instance": "intimed",
+      "app.kubernetes.io/version": "2.2.0",
+      "app.kubernetes.io/managed-by": "Helm",
+      "intimed.io/environment": "uat"
+     },
+     "annotations": {
+      "helm.sh/hook": "pre-install,pre-upgrade",
+      "helm.sh/hook-weight": "-10",
+      "helm.sh/hook-delete-policy": "before-hook-creation",
+      "iam.gke.io/gcp-service-account": "sa-intimed-app-uat@intimed-uat-qa.iam.gserviceaccount.com"
+     }
+    },
+    "automountServiceAccountToken": false
+   }
+  ]
+ }
+}

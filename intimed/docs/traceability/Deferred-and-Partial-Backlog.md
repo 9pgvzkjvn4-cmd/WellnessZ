@@ -1,11 +1,11 @@
-# IntiMed – Backlog items with a remaining manual or out-of-release part (release 2.1)
+# IntiMed – Backlog items with a remaining manual or out-of-release part (release 2.2)
 
-Release 2.1 adds the Azure Qatar Central deployment and implements the automatable deferred items. Every item below is **PARTIAL** (implemented as far as software can go – the remainder needs people, hardware, vendors, licences or audits) or **DEFERRED** (deliberately outside this Azure Qatar Central release). The *Manual guide* column points to the step-by-step section in `docs/azure/Manual-Backlog-Execution-Guide.md`.
+Release 2.1 added the Azure Qatar Central deployment; release 2.2 adds the Google Cloud me-central1 (Doha) deployment (IntiMed_GCP). Every item below is **PARTIAL** (implemented as far as software can go – the remainder needs people, hardware, vendors, licences or audits) or **DEFERRED** (deliberately outside these cloud releases). The *Manual guide* column points to the step-by-step section M-xx – in `docs/azure/Manual-Backlog-Execution-Guide.md` for Azure and `docs/gcp/IntiMed_GCP_Manual_Backlog_Execution_Guide.md` for Google Cloud (same numbering).
 
 | | Items | SP |
 |---|---:|---:|
-| PARTIAL | 30 | 405 |
-| DEFERRED | 9 | 94 |
+| PARTIAL | 29 | 392 |
+| DEFERRED | 8 | 73 |
 
 ## Cloud environments & operations (Azure / GCP / private cloud)
 
@@ -13,12 +13,10 @@ Release 2.1 adds the Azure Qatar Central deployment and implements the automatab
 |---|---|---:|---|---|---|---|---|---|
 | IM-E01-BL-008 | Cloud API/webhook adapter framework (OAuth2, polling, webhooks, rate limits, consent scopes) incl. CRM remote-monitoring portals, RPM and wearable platforms | 13 | IM-S8 | PARTIAL | intimed-platform/src/main/java/io/intimed/api/PublicMachineController.java webhook receiver (HMAC, replay window), JsonPathParser, cloud drivers; EgressClient allow-list | Vendor cloud APIs need contracts and OAuth credentials per vendor | Guide M-05 | M-05 |
 | IM-E01-BL-015 | Driver packages – RPM, wearables & home: RPM kits (BodyTrace, Smart Meter, Tenovi, Withings), CGM/insulin clouds (Dexcom, LibreView, CareLink, t:connect, Glooko), ResMed AirView, Care Orchestrator, hospital-at-home platforms, aggregators (Validic, Human API, HealthKit, Health Connect), telehealth kits | 13 | IM-S8 | PARTIAL | drivers rpm.bodytrace.cloud-webhook, hah.masimo.safetynet-cloud, wear.aggregator.fhir-pcha | Further RPM / CGM / wearable vendors need contracts and test accounts | Guide M-05 | M-05 |
-| IM-E06-BL-004 | Integrate Azure Key Vault, GCP Secret Manager/Cloud KMS and HashiCorp Vault behind one secrets interface; HSM for production; CI secret scanning | 13 | IM-S1 | PARTIAL | intimed-platform/src/main/java/io/intimed/security/secrets/{AzureKeyVaultSecretStore,AzureIdentity}.java (Key Vault via Entra workload identity, tenant-bound tags, no keys), Key Vault Premium HSM in Terraform, CSI-synced runtime secrets, CloudAdaptersTest | GCP Secret Manager / Cloud KMS adapter not built – not needed for Azure Qatar Central | Same SecretStore contract when a GCP deployment is commissioned (guide M-13) | M-13 |
-| IM-E06-BL-010 | Maintain the security test kit with cloud-specific checks (Azure, GCP, private cloud) and run it in all reference environments per release | 13 | IM-S14 | PARTIAL | security-test-kit/{16_azure_posture_check,05_container_runtime_check,01_network_segmentation_check}.py + run-kit-aks.sh; fixtures; release pipeline runs 16 + 05 against UAT | GCP and private-cloud posture checks not built | Port script 16 to gcloud / OpenShift when those environments exist (guide M-13) | M-13 |
-| IM-E08-BL-003 | Terraform modules and Helm charts for GCP (GKE, Cloud SQL HA, Pub/Sub/Strimzi, Cloud Storage, KMS/Secret Manager, Identity Platform, Cloud Armor, Logging/Chronicle) | 21 | IM-S13 | DEFERRED | — | GCP blueprint is outside the Azure Qatar Central release | Helm chart is cloud-agnostic; add GKE/Cloud SQL Terraform when a GCP customer is signed (guide M-13) | M-13 |
-| IM-E08-BL-004 | Private-cloud blueprint (OpenShift/Rancher on VMware, Patroni PostgreSQL, Strimzi/NATS, MinIO, Vault, Keycloak, HAProxy/F5, Prometheus/Grafana/Loki) with Ansible/Terraform | 21 | IM-S13 | DEFERRED | — | Private-cloud blueprint is outside the Azure Qatar Central release | Helm values for OpenShift/RKE2 + Patroni when a private-cloud customer is signed (guide M-13) | M-13 |
+| IM-E06-BL-010 | Maintain the security test kit with cloud-specific checks (Azure, GCP, private cloud) and run it in all reference environments per release | 13 | IM-S14 | PARTIAL | security-test-kit/{16_azure_posture_check,16_gcp_posture_check,05_container_runtime_check,01_network_segmentation_check}.py + run-kit-aks.sh / run-kit-gke.sh; azure/gcp good+bad fixtures; both release pipelines run 16 + 05 against UAT | Private-cloud (OpenShift/RKE2) posture checks not built | Port script 16 to the private-cloud platform when one is commissioned (guide M-13) | M-13 |
+| IM-E08-BL-004 | Private-cloud blueprint (OpenShift/Rancher on VMware, Patroni PostgreSQL, Strimzi/NATS, MinIO, Vault, Keycloak, HAProxy/F5, Prometheus/Grafana/Loki) with Ansible/Terraform | 21 | IM-S13 | DEFERRED | — | Private-cloud blueprint is outside the Azure (2.1) and GCP (2.2) releases | Helm values for OpenShift/RKE2 + Patroni when a private-cloud customer is signed (guide M-13) | M-13 |
 | IM-E08-BL-008 | Edge packaging (gateway arm64/amd64 images, Windows device host MSI, mobile SDK packaging) and cloud-independent fleet management | 8 | IM-S1 | PARTIAL | deploy/docker/Dockerfile.gateway (arm64/amd64 OCI gateway image, non-root, sdk gateway encrypted store-and-forward) | Windows device-host MSI, code-signing and fleet management need edge hardware and a signing certificate | Guide M-03 | M-03 |
-| IM-E08-BL-010 | Reference deployments: IntiMed-hosted SaaS (Azure) and client-hosted single tenant (GCP and private cloud) with runbook parity | 8 | IM-S13 | PARTIAL | Azure Qatar Central reference deployment (IntiMed-hosted, single-tenant per customer or multi-tenant) – Terraform envs uat/prod, Setup Guide | Client-hosted GCP / private-cloud references not built | Guide M-13 | M-13 |
+| IM-E08-BL-010 | Reference deployments: IntiMed-hosted SaaS (Azure) and client-hosted single tenant (GCP and private cloud) with runbook parity | 8 | IM-S13 | PARTIAL | Reference deployments on Azure Qatar Central (2.1) and Google Cloud me-central1 Doha (2.2, IntiMed_GCP) – IntiMed-hosted or client-hosted, Terraform envs uat/prod, setup guides | Client-hosted private-cloud reference not built | Guide M-13 | M-13 |
 
 ## Edge hardware, radios and native apps
 
@@ -66,7 +64,7 @@ Release 2.1 adds the Azure Qatar Central deployment and implements the automatab
 | IM-E10-BL-003 | Build the ISO 14971 risk management file with hazard analysis and controls traced to features and tests | 13 | IM-S4 | PARTIAL | docs/regulatory/Risk-Management-Summary.md (hazards → controls → tests incl. 2.0 rows) | Complete ISO 14971 file needs the clinical safety officer and the eQMS | Guide M-09 | M-09 |
 | IM-E10-BL-006 | Post-market surveillance, complaint handling and vigilance interfaces with timelines and risk-file feedback | 5 | IM-S15 | DEFERRED | — | Post-market surveillance needs a live product | Guide M-09 | M-09 |
 
-## Delivered in release 2.1
+## Delivered in releases 2.1 / 2.2
 
 DELIVERED items that still name a guide section only need to be *executed* in the operated environment (e.g. soak, DR drills, site validation). The list of everything delivered is in `Traceability-Matrix.md`.
 

@@ -38,3 +38,4 @@ Last run on the build machine: **69 checks, 69 passed**.
 Cloud runs: `run-kit-aks.sh` (Azure, `AZ_RESOURCE_GROUP`) and `run-kit-gke.sh` (IntiMed_GCP, `GCP_PROJECT`,
 `INTIMED_ENV=prod` for the production-only checks). Offline proof of the GCP check:
 `INTIMED_ENV=prod python3 16_gcp_posture_check.py --from-json fixtures/gcp-good` → 31/31 PASS; `fixtures/gcp-bad` → 20 FAIL.
+Container runtime on GKE: `python3 05_container_runtime_check.py --from-json fixtures/gke-rendered.json --registry-suffix=-docker.pkg.dev` → 12/12 PASS (rendered `cloud: gcp` chart).

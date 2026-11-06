@@ -181,7 +181,7 @@
   "IM-E01-BL-027": {
    "status": "DELIVERED",
    "increment": "L7",
-   "evidence": "Managed Prometheus scraping of /actuator/prometheus (pod annotations), SLO alert rule group (deploy/azure/terraform/monitoring.tf), Azure Monitor workbook (dashboard.tf), Container Insights, SIEM stream → Sentinel analytics rule; docs/azure/SLO-and-Runbooks.md",
+   "evidence": "Managed Prometheus scraping of /actuator/prometheus (pod annotations), SLO alert rule group (deploy/azure/terraform/monitoring.tf), Azure Monitor workbook (dashboard.tf), Container Insights, SIEM stream → Sentinel analytics rule; docs/azure/SLO-and-Runbooks.md; GCP (IntiMed_GCP): Managed Service for Prometheus PodMonitoring, PromQL alert policies, Cloud Monitoring dashboard, SIEM log sink → Pub/Sub (Doha)",
    "reason": "Distributed trace export (OpenTelemetry) is optional for a single deployable",
    "strategy": "Enable the Azure Monitor OpenTelemetry Java agent when traces are needed (guide M-11 step 6)",
    "manual": "M-11"
@@ -458,7 +458,7 @@
   "IM-E06-BL-002": {
    "status": "DELIVERED",
    "increment": "L7",
-   "evidence": "security-test-kit/01_network_segmentation_check.py (mTLS-only device ports, plaintext refused, other ports closed, console reachability), NSGs + Kubernetes NetworkPolicies (Terraform/Helm), docs/security/Network-Reference-Designs.md",
+   "evidence": "security-test-kit/01_network_segmentation_check.py (mTLS-only device ports, plaintext refused, other ports closed, console reachability), NSGs + Kubernetes NetworkPolicies (Terraform/Helm), docs/security/Network-Reference-Designs.md; GCP (IntiMed_GCP): VPC firewall rules (device ports from site CIDRs only, deny-all ingress), Dataplane V2 NetworkPolicies, internal passthrough NLB for devices",
    "reason": "Validation must be executed from each hospital / clinic network",
    "strategy": "Run script 01 from every site segment at onboarding (guide M-02)",
    "manual": "M-02"
@@ -472,12 +472,9 @@
    "manual": "M-03"
   },
   "IM-E06-BL-004": {
-   "status": "PARTIAL",
-   "increment": "L7",
-   "evidence": "intimed-platform/src/main/java/io/intimed/security/secrets/{AzureKeyVaultSecretStore,AzureIdentity}.java (Key Vault via Entra workload identity, tenant-bound tags, no keys), Key Vault Premium HSM in Terraform, CSI-synced runtime secrets, CloudAdaptersTest",
-   "reason": "GCP Secret Manager / Cloud KMS adapter not built – not needed for Azure Qatar Central",
-   "strategy": "Same SecretStore contract when a GCP deployment is commissioned (guide M-13)",
-   "manual": "M-13"
+   "status": "DELIVERED",
+   "increment": "L9",
+   "evidence": "intimed-platform/src/main/java/io/intimed/security/secrets/{AzureKeyVaultSecretStore,AzureIdentity,GcpSecretManagerSecretStore,GcpIdentity,HashiCorpVaultSecretStore}.java – Azure Key Vault, GCP Secret Manager (Doha-only replication, tenant-bound annotations) and Vault behind one SecretStore contract; file-based runtime secrets (common/Secrets.java); CloudAdaptersTest + GcpAdaptersTest"
   },
   "IM-E06-BL-005": {
    "status": "DELIVERED",
@@ -512,10 +509,10 @@
   },
   "IM-E06-BL-010": {
    "status": "PARTIAL",
-   "increment": "L7",
-   "evidence": "security-test-kit/{16_azure_posture_check,05_container_runtime_check,01_network_segmentation_check}.py + run-kit-aks.sh; fixtures; release pipeline runs 16 + 05 against UAT",
-   "reason": "GCP and private-cloud posture checks not built",
-   "strategy": "Port script 16 to gcloud / OpenShift when those environments exist (guide M-13)",
+   "increment": "L9",
+   "evidence": "security-test-kit/{16_azure_posture_check,16_gcp_posture_check,05_container_runtime_check,01_network_segmentation_check}.py + run-kit-aks.sh / run-kit-gke.sh; azure/gcp good+bad fixtures; both release pipelines run 16 + 05 against UAT",
+   "reason": "Private-cloud (OpenShift/RKE2) posture checks not built",
+   "strategy": "Port script 16 to the private-cloud platform when one is commissioned (guide M-13)",
    "manual": "M-13"
   },
   "IM-E06-BL-011": {
@@ -588,21 +585,21 @@
    "manual": "M-01"
   },
   "IM-E08-BL-003": {
-   "status": "DEFERRED",
-   "reason": "GCP blueprint is outside the Azure Qatar Central release",
-   "strategy": "Helm chart is cloud-agnostic; add GKE/Cloud SQL Terraform when a GCP customer is signed (guide M-13)",
-   "manual": "M-13"
+   "status": "DELIVERED",
+   "increment": "L9",
+   "evidence": "deploy/gcp/terraform (VPC, private regional GKE with Workload Identity/Dataplane V2/Shielded nodes/Binary Authorization, Cloud SQL PG16 regional HA + PITR, Cloud KMS HSM CMEK, Secret Manager Doha-only, Artifact Registry, retention-locked GCS, Cloud Armor, regional ALB, HA VPN, Cloud NGFW, org location policy, monitoring, budget; terraform validate + 3 plan tests) and the Helm chart cloud=gcp mode",
+   "manual": "M-01"
   },
   "IM-E08-BL-004": {
    "status": "DEFERRED",
-   "reason": "Private-cloud blueprint is outside the Azure Qatar Central release",
+   "reason": "Private-cloud blueprint is outside the Azure (2.1) and GCP (2.2) releases",
    "strategy": "Helm values for OpenShift/RKE2 + Patroni when a private-cloud customer is signed (guide M-13)",
    "manual": "M-13"
   },
   "IM-E08-BL-005": {
    "status": "DELIVERED",
    "increment": "L7",
-   "evidence": "Zone-redundant AKS + Premium ZRS volume (pod reschedules across zones), PostgreSQL zone-redundant HA + 35-day PITR, WORM archive via intimed-platform/src/main/java/io/intimed/cloud/BlobArchiver.java, deploy/azure/scripts/dr-drill.sh (D1 zone loss, D2 DB failover, D3 PITR restore, D4 archive) – docs/azure/Operations-and-DR.md",
+   "evidence": "Zone-redundant AKS + Premium ZRS volume (pod reschedules across zones), PostgreSQL zone-redundant HA + 35-day PITR, WORM archive via intimed-platform/src/main/java/io/intimed/cloud/BlobArchiver.java, deploy/azure/scripts/dr-drill.sh (D1 zone loss, D2 DB failover, D3 PITR restore, D4 archive) – docs/azure/Operations-and-DR.md; GCP (IntiMed_GCP): regional GKE + regional PD (pod restarts in the second zone with its data), Cloud SQL REGIONAL HA + 35-day PITR, retention-locked GCS archive, deploy/gcp/scripts/dr-drill.sh (D1–D4), docs/gcp/IntiMed_GCP_Operations_and_DR.md",
    "reason": "Drills must be executed and recorded in the operated environments; Qatar Central has no paired region (cross-region DR needs a regulator decision)",
    "strategy": "Quarterly UAT / semi-annual PROD drills (guide M-11)",
    "manual": "M-11"
@@ -610,13 +607,13 @@
   "IM-E08-BL-006": {
    "status": "DELIVERED",
    "increment": "L7",
-   "evidence": ".github/workflows/intimed-azure-release.yml (tests, CodeQL, gitleaks, Trivy gate, push to ACR, cosign signature with HSM key in Key Vault, UAT deploy + helm test + posture checks + ZAP, PROD behind environment approval with signature verification), intimed-azure-infra.yml",
+   "evidence": ".github/workflows/intimed-azure-release.yml (tests, CodeQL, gitleaks, Trivy gate, push to ACR, cosign signature with HSM key in Key Vault, UAT deploy + helm test + posture checks + ZAP, PROD behind environment approval with signature verification), intimed-azure-infra.yml; GCP (IntiMed_GCP): .github/workflows/intimed-gcp-release.yml (Workload Identity Federation, Trivy gate, Artifact Registry, cosign with the Cloud KMS HSM key, Binary Authorization attestation, UAT gates, PROD approval + enforced attestation), intimed-gcp-infra.yml",
    "manual": "M-11"
   },
   "IM-E08-BL-007": {
    "status": "DELIVERED",
    "increment": "L7",
-   "evidence": "docs/azure/SLO-and-Runbooks.md (SLOs, top-20 failure modes RB-01…RB-20), alert rules, workbook, budget alerts, docs/azure/IntiMed-Azure-Qatar-Cost-Model.xlsx",
+   "evidence": "docs/azure/SLO-and-Runbooks.md (SLOs, top-20 failure modes RB-01…RB-20), alert rules, workbook, budget alerts, docs/azure/IntiMed-Azure-Qatar-Cost-Model.xlsx; GCP (IntiMed_GCP): docs/gcp/IntiMed_GCP_SLO_and_Runbooks.md, PromQL alert policies + dashboard + billing budget (monitoring.tf), docs/gcp/IntiMed_GCP_Cost_Model.xlsx",
    "reason": "On-call rota and patch windows are organisational",
    "strategy": "Staff the on-call rota and agree maintenance windows (guide M-11)",
    "manual": "M-11"
@@ -632,16 +629,16 @@
   "IM-E08-BL-009": {
    "status": "DELIVERED",
    "increment": "L7",
-   "evidence": "docs/azure/IntiMed-Azure-Qatar-Cost-Model.xlsx (live Qatar Central retail prices, UAT/PROD bill of materials, 5-year TCO, cost per connected device) built by tools/azure/cost_model.py",
+   "evidence": "docs/azure/IntiMed-Azure-Qatar-Cost-Model.xlsx (live Qatar Central retail prices, UAT/PROD bill of materials, 5-year TCO, cost per connected device) built by tools/azure/cost_model.py; GCP (IntiMed_GCP): docs/gcp/IntiMed_GCP_Cost_Model.xlsx (me-central1 price snapshot with per-line source and confidence, UAT/PROD BOM, 5-year TCO with 1y/3y CUDs) built by tools/gcp/cost_model.py",
    "reason": "Finance review and negotiated prices (EA/MACC, reservations) are organisational",
    "strategy": "Review with Finance (guide M-11 step 8)",
    "manual": "M-11"
   },
   "IM-E08-BL-010": {
    "status": "PARTIAL",
-   "increment": "L7",
-   "evidence": "Azure Qatar Central reference deployment (IntiMed-hosted, single-tenant per customer or multi-tenant) – Terraform envs uat/prod, Setup Guide",
-   "reason": "Client-hosted GCP / private-cloud references not built",
+   "increment": "L9",
+   "evidence": "Reference deployments on Azure Qatar Central (2.1) and Google Cloud me-central1 Doha (2.2, IntiMed_GCP) – IntiMed-hosted or client-hosted, Terraform envs uat/prod, setup guides",
+   "reason": "Client-hosted private-cloud reference not built",
    "strategy": "Guide M-13",
    "manual": "M-13"
   },
@@ -766,6 +763,11 @@
    "id": "L8",
    "name": "Operations & commercial: regression suites, shadow sign-off, executive reports, health scores, billing, trials, white-label, k-anonymous benchmarks",
    "sprints": "IM-S8, IM-S13, IM-S15, IM-S16+"
+  },
+  {
+   "id": "L9",
+   "name": "IntiMed_GCP: Google Cloud me-central1 (Doha) – Terraform + Helm gcp mode, Secret Manager / GCS adapters, Binary Authorization, Cloud Armor, CI/CD (WIF), GCP posture checks, cost/TCO",
+   "sprints": "IM-S1 cloud track, IM-S13, IM-S14"
   }
  ],
  "capacity": {
@@ -778,8 +780,8 @@
   },
   "IM-S1": {
    "planned": 225,
-   "delivered": 178,
-   "partial": 47,
+   "delivered": 191,
+   "partial": 34,
    "deferred": 0,
    "items": 17
   },
@@ -855,9 +857,9 @@
   },
   "IM-S13": {
    "planned": 112,
-   "delivered": 57,
+   "delivered": 78,
    "partial": 8,
-   "deferred": 47,
+   "deferred": 26,
    "items": 11
   },
   "IM-S16+": {

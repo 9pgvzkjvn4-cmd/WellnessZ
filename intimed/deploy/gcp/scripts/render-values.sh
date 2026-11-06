@@ -22,7 +22,8 @@ gcp:
   sqlServerCaPem: |
 $CA
   console:
-    hostname: "${CONSOLE_HOSTNAME:?set CONSOLE_HOSTNAME (public DNS name of the console)}"
+    publish: ${CONSOLE_PUBLISH:-false}
+    hostname: "${CONSOLE_HOSTNAME:-}"
     ipName: $(v console_ip_name)
     armorPolicy: $(v armor_policy)
 database:
