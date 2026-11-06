@@ -71,7 +71,7 @@ public class PlatformController {
     @GetMapping("/public/info")
     public Map<String, Object> info() {
         BuildProperties b = build.getIfAvailable();
-        return Map.of("product", "IntiMed", "version", b == null ? "2.0.0-local" : b.getVersion(), "environment", "LOCAL", "mllpPort", listeners.mllpPort(), "ingressPort", listeners.ingressPort());
+        return Map.of("product", "IntiMed", "version", b == null ? "2.0.0-local" : b.getVersion(), "environment", System.getenv().getOrDefault("INTIMED_ENVIRONMENT", "LOCAL"), "mllpPort", listeners.mllpPort(), "ingressPort", listeners.ingressPort());
     }
 
     @GetMapping("/overview")

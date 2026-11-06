@@ -1,0 +1,9 @@
+[
+ {
+  "name": "waf",
+  "policySettings": {
+   "mode": "Prevention",
+   "state": "Enabled"
+  }
+ }
+]

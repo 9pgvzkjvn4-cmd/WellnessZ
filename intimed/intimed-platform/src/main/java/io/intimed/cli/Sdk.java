@@ -38,11 +38,95 @@ import java.util.stream.Stream;
 
 /**
  * mdi-sdk – driver SDK, device simulator and edge gateway CLI (IM-E01-F03 / IM-E01-BL-011, IM-E01-BL-025, IM-E08-BL-008):
- * keygen · sign · sign-all · validate · test · simulate · enrol · send · gateway (encrypted store-and-forward) · totp.
+ * keygen · sign · sign-all · validate · test · simulate · enrol · send · gateway (encrypted store-and-forward) · totp · smoke.
  * Runs from the platform jar without starting the server: {@code java -jar intimed-platform.jar sdk <command> …}.
  */
 public final class Sdk {
     private Sdk() { }
+
+    /**
+     * Post-deployment smoke test ({@code helm test}): readiness on the management port and the console's TLS endpoint
+     * (protocol ≥ TLS 1.2, /api/public/info answers). Certificate trust of the console is verified by Application Gateway
+     * and by security-kit script 02 – this check proves reachability and protocol only.
+     */
+    static int smoke(String host) throws Exception {
+        java.net.http.HttpClient plain = java.net.http.HttpClient.newBuilder().version(java.net.http.HttpClient.Version.HTTP_1_1).connectTimeout(java.time.Duration.ofSeconds(5)).build();
+        var ready = plain.send(java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://" + host + ":9444/actuator/health/readiness")).GET().build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+        System.out.println("readiness: HTTP " + ready.statusCode() + " " + ready.body());
+        javax.net.ssl.SSLContext ctx = javax.net.ssl.SSLContext.getInstance("TLS");
+        ctx.init(null, new javax.net.ssl.TrustManager[]{new javax.net.ssl.X509TrustManager() {
+            public void checkClientTrusted(java.security.cert.X509Certificate[] c, String a) { }
+            public void checkServerTrusted(java.security.cert.X509Certificate[] c, String a) { }
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() { return new java.security.cert.X509Certificate[0]; }
+        }}, null);
+        javax.net.ssl.SSLParameters p = new javax.net.ssl.SSLParameters();
+        p.setEndpointIdentificationAlgorithm(null);
+        p.setProtocols(new String[]{"TLSv1.3", "TLSv1.2"});
+        java.net.http.HttpClient tls = java.net.http.HttpClient.newBuilder().version(java.net.http.HttpClient.Version.HTTP_1_1).sslContext(ctx).sslParameters(p).connectTimeout(java.time.Duration.ofSeconds(5)).build();
+        var info = tls.send(java.net.http.HttpRequest.newBuilder(java.net.URI.create("https://" + host + ":9443/api/public/info")).GET().build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+        String proto = info.sslSession().map(javax.net.ssl.SSLSession::getProtocol).orElse("none");
+        System.out.println("console: HTTP " + info.statusCode() + " " + proto + " " + info.body());
+        boolean ok = ready.statusCode() == 200 && info.statusCode() == 200 && info.body().contains("\"product\"") && proto.startsWith("TLSv1.");
+        System.out.println(ok ? "SMOKE PASS" : "SMOKE FAIL");
+        return ok ? 0 : 1;
+    }
+
+    /**
+     * One-time PostgreSQL bootstrap (Helm pre-install hook): with the server administrator, create or rotate the
+     * application's least-privilege login role and grant it the rights Flyway needs on schema public – nothing more
+     * (no superuser, no azure_pg_admin, no CREATEROLE). Passwords come from the environment (Key Vault via CSI), never
+     * from arguments, and must be ≥ 24 alphanumeric characters.
+     * {@code sdk db-bootstrap --url jdbc:postgresql://host:5432/intimed?sslmode=verify-full --admin intimedadmin --app-user intimed}
+     */
+    static int dbBootstrap(Map<String, String> o, Map<String, String> env) throws Exception {
+        String url = req(o, "url"), admin = req(o, "admin"), app = o.getOrDefault("app-user", "intimed");
+        String adminPw = env.get("INTIMED_DB_ADMIN_PASSWORD"), appPw = env.get("INTIMED_DB_PASSWORD");
+        if (!app.matches("[a-z][a-z0-9_]{2,30}")) throw new IllegalArgumentException("invalid application role name");
+        if (adminPw == null || adminPw.isBlank()) throw new IllegalArgumentException("INTIMED_DB_ADMIN_PASSWORD is not set");
+        if (appPw == null || !appPw.matches("[A-Za-z0-9]{24,128}")) throw new IllegalArgumentException("INTIMED_DB_PASSWORD must be 24–128 alphanumeric characters");
+        if (!url.startsWith("jdbc:postgresql://")) throw new IllegalArgumentException("--url must be a jdbc:postgresql URL");
+        try (java.sql.Connection c = java.sql.DriverManager.getConnection(url, admin, adminPw); java.sql.Statement st = c.createStatement()) {
+            boolean exists;
+            try (java.sql.PreparedStatement ps = c.prepareStatement("select 1 from pg_roles where rolname = ?")) {
+                ps.setString(1, app);
+                try (java.sql.ResultSet rs = ps.executeQuery()) { exists = rs.next(); }
+            }
+            String pw = "'" + appPw + "'"; // validated alphanumeric – no quoting issues
+            st.execute((exists ? "ALTER ROLE " : "CREATE ROLE ") + app + " LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD " + pw);
+            String db = c.getCatalog();
+            st.execute("GRANT CONNECT, TEMPORARY ON DATABASE \"" + db.replace("\"", "") + "\" TO " + app);
+            st.execute("GRANT USAGE, CREATE ON SCHEMA public TO " + app);
+            st.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC");
+            System.out.println("db-bootstrap: role " + app + (exists ? " rotated" : " created") + " on database " + db + " (schema public: USAGE, CREATE)");
+        }
+        return 0;
+    }
+
+    /**
+     * SC-10 in-cluster check (security kit script 10 on AKS): connects with the pod's own database credentials and
+     * verifies every PHI-bearing document is application-encrypted (enc:v1) and no subject identifier pattern is stored
+     * in clear text in any document. Prints counts only.
+     */
+    static int phiCheck(Map<String, String> env) throws Exception {
+        String url = env.get("INTIMED_DB_URL");
+        if (url == null) throw new IllegalArgumentException("INTIMED_DB_URL is not set (run inside the IntiMed pod)");
+        String kinds = io.intimed.store.DocumentStore.SENSITIVE.stream().map(k -> "'" + k.replace("'", "") + "'").collect(java.util.stream.Collectors.joining(","));
+        try (java.sql.Connection c = java.sql.DriverManager.getConnection(url, env.getOrDefault("INTIMED_DB_USER", "intimed"), env.get("INTIMED_DB_PASSWORD"));
+             java.sql.Statement st = c.createStatement()) {
+            long total = count(st, "select count(*) from documents where kind in (" + kinds + ")");
+            long plain = count(st, "select count(*) from documents where kind in (" + kinds + ") and data not like 'enc:v1:%'");
+            long leak = count(st, "select count(*) from documents where data ~ '\\m(MRN|EMP)-[0-9]{6}\\M'");
+            boolean ok = plain == 0 && leak == 0;
+            System.out.println("phi-check total=" + total + " notEncrypted=" + plain + " clearIdentifiers=" + leak + " result=" + (ok ? "PASS" : "FAIL"));
+            return ok ? 0 : 1;
+        }
+    }
+
+    private static long count(java.sql.Statement st, String sql) throws java.sql.SQLException {
+        try (java.sql.ResultSet rs = st.executeQuery(sql)) { rs.next(); return rs.getLong(1); }
+    }
 
     public static int run(String[] args) throws Exception {
         if (args.length == 0) return usage();
@@ -63,6 +147,10 @@ public final class Sdk {
             case "send" -> send(o);
             case "gateway" -> gateway(o);
             case "totp" -> { System.out.println(Totp.now(req(o, "secret"))); yield 0; }
+            case "smoke" -> smoke(args.length > 1 ? args[1] : "intimed-headless");
+            case "db-bootstrap" -> dbBootstrap(o, System.getenv());
+            case "phi-check" -> phiCheck(System.getenv());
+            case "soak" -> soak(o);
             default -> usage();
         };
     }
@@ -192,6 +280,60 @@ public final class Sdk {
         System.out.println(deliver(identity(Path.of(req(o, "identity"))), o, d, payload));
         return 0;
     }
+
+    /**
+     * Soak / performance test over the real device transport (IM-E01-BL-030): sends simulated payloads of a driver with
+     * an enrolled endpoint identity (mutual TLS) at a target rate for a duration, from parallel virtual threads, and
+     * reports throughput, ack codes and latency percentiles as JSON ({@code --out report.json}).
+     * {@code sdk soak --identity id/ --driver d.json --mllp devices.uat…:2575 --rate 50 --duration 600 --concurrency 16}
+     */
+    static int soak(Map<String, String> o) throws Exception {
+        SSLContext ssl = identity(Path.of(req(o, "identity")));
+        DriverPackage d = load(Path.of(req(o, "driver")));
+        double rate = Double.parseDouble(o.getOrDefault("rate", "20"));
+        long duration = Long.parseLong(o.getOrDefault("duration", "60"));
+        int conc = Integer.parseInt(o.getOrDefault("concurrency", "8"));
+        java.util.concurrent.ConcurrentLinkedQueue<Long> lat = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicLong> acks = new java.util.concurrent.ConcurrentHashMap<>();
+        java.util.concurrent.Semaphore inflight = new java.util.concurrent.Semaphore(conc);
+        long start = System.nanoTime(), end = start + duration * 1_000_000_000L, n = 0;
+        try (var ex = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            while (System.nanoTime() < end) {
+                long due = start + (long) (n * 1_000_000_000L / rate);
+                long wait = due - System.nanoTime();
+                if (wait > 0) Thread.sleep(wait / 1_000_000, (int) (wait % 1_000_000));
+                inflight.acquire();
+                final long i = n++;
+                ex.submit(() -> {
+                    long t0 = System.nanoTime();
+                    String key;
+                    try {
+                        String p = Simulator.render(d, Simulator.vary(Simulator.values(d), i), "SOAK-" + (i % 500), Instant.now().truncatedTo(ChronoUnit.SECONDS).plusMillis(i % 1000),
+                                d.tests().path("serial").asString("SIM"));
+                        String ack = deliver(ssl, o, d, p);
+                        key = ack.contains("|AA|") || ack.contains("\"FILED\"") || ack.contains("FILED") ? "ACCEPTED" : ack.contains("DUPLICATE") ? "DUPLICATE" : "OTHER";
+                    } catch (Exception e) { key = "ERROR:" + e.getClass().getSimpleName(); }
+                    finally { inflight.release(); }
+                    lat.add((System.nanoTime() - t0) / 1_000_000);
+                    acks.computeIfAbsent(key, k -> new java.util.concurrent.atomic.AtomicLong()).incrementAndGet();
+                });
+            }
+        }
+        long[] l = lat.stream().mapToLong(Long::longValue).sorted().toArray();
+        double secs = (System.nanoTime() - start) / 1e9;
+        tools.jackson.databind.node.ObjectNode r = io.intimed.common.Json.obj().put("driver", d.ref()).put("targetRate", rate).put("durationSec", Math.round(secs))
+                .put("sent", l.length).put("throughputPerSec", Math.round(l.length / secs * 10) / 10.0)
+                .put("p50Ms", pct(l, 50)).put("p95Ms", pct(l, 95)).put("p99Ms", pct(l, 99)).put("maxMs", l.length == 0 ? 0 : l[l.length - 1]);
+        acks.forEach((k, v) -> r.withObject("acks").put(k, v.get()));
+        String json = io.intimed.common.Json.pretty(r);
+        System.out.println(json);
+        if (o.containsKey("out")) Files.writeString(Path.of(o.get("out")), json);
+        long errors = acks.entrySet().stream().filter(e -> e.getKey().startsWith("ERROR")).mapToLong(e -> e.getValue().get()).sum();
+        double maxErr = Double.parseDouble(o.getOrDefault("max-error-rate", "0.001"));
+        return l.length > 0 && errors <= maxErr * l.length ? 0 : 1;
+    }
+
+    private static long pct(long[] s, int p) { return s.length == 0 ? 0 : s[Math.min(s.length - 1, (int) Math.ceil(p / 100.0 * s.length) - 1)]; }
 
     /** Edge gateway: streams simulated readings; on failure queues them AES-GCM encrypted and flushes in order later. */
     static int gateway(Map<String, String> o) throws Exception {

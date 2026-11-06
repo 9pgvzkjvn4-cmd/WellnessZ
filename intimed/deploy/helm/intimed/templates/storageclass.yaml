@@ -1,0 +1,13 @@
+# Zone-redundant Premium SSD (Qatar Central has three availability zones) – encrypted at rest by the platform.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ .Values.persistence.storageClass }}
+  labels: {{- include "intimed.labels" . | nindent 4 }}
+provisioner: disk.csi.azure.com
+parameters:
+  skuName: Premium_ZRS
+  cachingMode: ReadOnly
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer

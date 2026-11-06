@@ -1,0 +1,21 @@
+[
+ {
+  "name": "kv-a",
+  "id": "/kv",
+  "properties": {
+   "sku": {
+    "name": "premium"
+   },
+   "enableRbacAuthorization": true,
+   "enablePurgeProtection": true,
+   "networkAcls": {
+    "defaultAction": "Deny"
+   }
+  },
+  "_diag": [
+   {
+    "workspaceId": "/w"
+   }
+  ]
+ }
+]

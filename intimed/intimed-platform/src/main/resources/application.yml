@@ -40,7 +40,9 @@ server:
 management:
   server:
     port: ${INTIMED_MGMT_PORT:9444}
-    address: 127.0.0.1
+    # LOCAL: loopback only. Kubernetes: 0.0.0.0 so kubelet probes and Azure Managed Prometheus can reach it; a
+    # NetworkPolicy restricts the port to the node/monitoring sources (deploy/helm/intimed/templates/networkpolicy.yaml).
+    address: ${INTIMED_MGMT_BIND:127.0.0.1}
     ssl:
       enabled: false
   endpoints:
@@ -54,17 +56,22 @@ management:
 
 intimed:
   home: ${INTIMED_HOME:./intimed-data}
-  environment: LOCAL
+  environment: ${INTIMED_ENVIRONMENT:LOCAL}
   device:
     mllp-port: ${INTIMED_MLLP_PORT:2575}
     ingress-port: ${INTIMED_INGRESS_PORT:8443}
   secrets:
     provider: ${INTIMED_SECRETS_PROVIDER:local}
+    azure:
+      vault-uri: ${INTIMED_KEYVAULT_URI:}
   feeds:
     openfda:
       enabled: ${INTIMED_OPENFDA:false}
+  archive:
+    blob:
+      account-url: ${INTIMED_ARCHIVE_ACCOUNT_URL:}
   webhooks:
-    allowed-hosts: localhost,127.0.0.1
+    allowed-hosts: ${INTIMED_WEBHOOK_ALLOWED_HOSTS:localhost,127.0.0.1}
   demo:
     enabled: false
     autoprovision: true

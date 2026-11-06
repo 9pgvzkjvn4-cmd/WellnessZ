@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: intimed-headless
+  labels: {{- include "intimed.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector: {{- include "intimed.selector" . | nindent 4 }}
+  ports:
+    - { name: console, port: 9443, targetPort: console }
+---
+# Console: internal load balancer, reachable only from Application Gateway WAF v2 (HTTPS re-encryption to 9443).
+apiVersion: v1
+kind: Service
+metadata:
+  name: intimed-console
+  labels: {{- include "intimed.labels" . | nindent 4 }}
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    {{- if .Values.console.subnetName }}
+    service.beta.kubernetes.io/azure-load-balancer-internal-subnet: {{ .Values.console.subnetName | quote }}
+    {{- end }}
+    service.beta.kubernetes.io/azure-load-balancer-ipv4: {{ required "console.loadBalancerIP is required" .Values.console.loadBalancerIP | quote }}
+spec:
+  type: LoadBalancer
+  selector: {{- include "intimed.selector" . | nindent 4 }}
+  ports:
+    - { name: https, port: 443, targetPort: console, protocol: TCP }
+---
+# Devices: MLLP-TLS and HTTPS ingress with mutual TLS terminated by the platform itself (client certificate must reach
+# the pod – no TLS-terminating proxy). externalTrafficPolicy Local keeps the device source IP for anomaly detection.
+apiVersion: v1
+kind: Service
+metadata:
+  name: intimed-devices
+  labels: {{- include "intimed.labels" . | nindent 4 }}
+  annotations:
+    {{- if not .Values.devices.public }}
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    {{- if .Values.devices.subnetName }}
+    service.beta.kubernetes.io/azure-load-balancer-internal-subnet: {{ .Values.devices.subnetName | quote }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.devices.loadBalancerIP }}
+    service.beta.kubernetes.io/azure-load-balancer-ipv4: {{ .Values.devices.loadBalancerIP | quote }}
+    {{- end }}
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  {{- if .Values.devices.public }}
+  loadBalancerSourceRanges: {{- required "devices.loadBalancerSourceRanges is required when devices.public=true" .Values.devices.loadBalancerSourceRanges | toYaml | nindent 4 }}
+  {{- end }}
+  selector: {{- include "intimed.selector" . | nindent 4 }}
+  ports:
+    - { name: mllp-tls, port: 2575, targetPort: mllp, protocol: TCP }
+    - { name: https-mtls, port: 8443, targetPort: ingress, protocol: TCP }

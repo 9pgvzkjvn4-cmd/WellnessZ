@@ -35,6 +35,9 @@ public class AuditService {
     private final JdbcClient jdbc;
     private final byte[] key = MasterKey.derive("audit-chain");
     private final Path siem = Paths2.dir("siem").resolve("audit.jsonl");
+    /** Cloud SIEM forwarding: {@code INTIMED_SIEM_STDOUT=true} also writes each chained record as one JSON line to the "intimed.siem" logger. */
+    private static final boolean SIEM_STDOUT = Boolean.parseBoolean(System.getenv().getOrDefault("INTIMED_SIEM_STDOUT", "false"));
+    private static final org.slf4j.Logger SIEM_LOG = org.slf4j.LoggerFactory.getLogger("intimed.siem");
 
     public AuditService(JdbcClient jdbc) { this.jdbc = jdbc; }
 
@@ -49,6 +52,7 @@ public class AuditService {
         long seq = jdbc.sql("select max(seq) from audit_log").query(Long.class).single();
         ObjectNode line = Json.obj().put("seq", seq).put("tenant", tenant).put("ts", ts.toString()).put("actor", actor)
                 .put("action", action).put("target", target).put("detail", det).put("hash", hash);
+        if (SIEM_STDOUT) SIEM_LOG.info(Json.write(line)); // container stdout → Container Insights / Log Analytics → Microsoft Sentinel
         try {
             Files.writeString(siem, Json.write(line) + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {

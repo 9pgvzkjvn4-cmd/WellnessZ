@@ -297,7 +297,7 @@ public class DemoService implements ApplicationRunner {
             }
         }
         long inst = store.listByRef(TENANT, "template-instance", tplId).stream().filter(i -> subject.equals(i.path("subject").asString())).count();
-        r.put("templateInstances", inst).put("subject", subject).put("association", method);
+        r.put("templateInstances", inst).put("subjectRef", "sha256:" + io.intimed.common.Hashing.sha256(subject).substring(0, 12)).put("association", method); // no clear-text identifier at rest (SC-10)
         return r;
     }
 

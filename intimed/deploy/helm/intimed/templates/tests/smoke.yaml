@@ -1,0 +1,22 @@
+# `helm test <release>` – in-cluster smoke test: readiness (management port) and console TLS (TLS ≥ 1.2, info API).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: intimed-smoke
+  labels:
+    {{- include "intimed.labels" . | nindent 4 }}
+    intimed.io/role: smoke
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext: { runAsNonRoot: true, runAsUser: 10002, seccompProfile: { type: RuntimeDefault } }
+  containers:
+    - name: smoke
+      image: {{ include "intimed.image" . }}
+      securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+      env: [ { name: JAVA_TOOL_OPTIONS, value: "-Xmx128m" } ]
+      args: ["sdk", "smoke", "intimed-headless"]
+      resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { memory: 256Mi } }

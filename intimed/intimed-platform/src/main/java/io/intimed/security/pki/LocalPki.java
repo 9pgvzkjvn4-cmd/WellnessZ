@@ -147,7 +147,12 @@ public final class LocalPki {
     public synchronized ServerCredentials server() {
         Path crt = dir.resolve("server.crt");
         Path key = dir.resolve("server.key.enc");
-        if (!Files.exists(crt) || readCert(crt).getNotAfter().toInstant().isBefore(Instant.now().plus(Duration.ofDays(30)))) {
+        java.util.List<String> sans = extraSans();
+        Path sansFile = dir.resolve("server.sans");
+        String sansNow = String.join(",", sans);
+        String sansWas;
+        try { sansWas = Files.exists(sansFile) ? Files.readString(sansFile).trim() : ""; } catch (java.io.IOException e) { sansWas = ""; }
+        if (!Files.exists(crt) || readCert(crt).getNotAfter().toInstant().isBefore(Instant.now().plus(Duration.ofDays(30))) || !sansNow.equals(sansWas)) {
             KeyPair kp = ecKeyPair();
             try {
                 Instant now = Instant.now();
@@ -158,20 +163,37 @@ public final class LocalPki {
                 b.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
                 b.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyAgreement));
                 b.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(KeyPurposeId.id_kp_serverAuth));
-                b.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(new GeneralName[]{
-                        new GeneralName(GeneralName.dNSName, "localhost"), new GeneralName(GeneralName.iPAddress, "127.0.0.1"),
-                        new GeneralName(GeneralName.dNSName, "intimed.local")}));
+                java.util.List<GeneralName> gn = new java.util.ArrayList<>(java.util.List.of(new GeneralName(GeneralName.dNSName, "localhost"),
+                        new GeneralName(GeneralName.iPAddress, "127.0.0.1"), new GeneralName(GeneralName.dNSName, "intimed.local")));
+                for (String san : sans) gn.add(new GeneralName(san.matches("[0-9.]+") ? GeneralName.iPAddress : GeneralName.dNSName, san));
+                b.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(gn.toArray(new GeneralName[0])));
                 JcaX509ExtensionUtils u = new JcaX509ExtensionUtils();
                 b.addExtension(Extension.authorityKeyIdentifier, false, u.createAuthorityKeyIdentifier(root));
                 b.addExtension(Extension.subjectKeyIdentifier, false, u.createSubjectKeyIdentifier(kp.getPublic()));
                 writePem(crt, sign(b, rootKey));
                 storeKey(key, kp.getPrivate(), "server");
+                Files.writeString(sansFile, sansNow);
             } catch (Exception e) { throw new IllegalStateException(e); }
         }
         return new ServerCredentials(readCert(crt), loadKey(key, "server"));
     }
 
     public record ServerCredentials(X509Certificate cert, PrivateKey key) { }
+
+    /**
+     * Additional server-certificate SANs for cloud deployments ({@code INTIMED_TLS_SANS}, comma separated DNS names / IPv4):
+     * the in-cluster service name used by Application Gateway as backend host and the device-ingress DNS name.
+     */
+    static java.util.List<String> extraSans() {
+        String v = System.getenv("INTIMED_TLS_SANS");
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (v == null) return out;
+        for (String s : v.split(",")) {
+            s = s.trim().toLowerCase();
+            if (s.matches("[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?") && !out.contains(s)) out.add(s);
+        }
+        return out;
+    }
 
     /** Server keystore (PKCS#12) for Spring Boot's HTTPS connector; password derived from the master key. */
     public Path serverKeystore() {

@@ -1,0 +1,172 @@
+# IntiMed – release pipeline to Azure Qatar Central (IM-E08-BL-006, IM-E06-BL-005):
+# build + tests → SAST (CodeQL) + SCA → image build → vulnerability scan (Trivy) → push to ACR → cosign signature with
+# the HSM key in Key Vault → deploy UAT (helm, helm test, security kit cloud checks, DAST baseline) → manual approval
+# (GitHub environment "prod": required reviewers = four-eyes) → signature verification → deploy PROD.
+# Auth: OpenID Connect federation to Entra (no stored cloud secrets). Repository/environment variables:
+#   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID (per environment), ACR_NAME, KEY_VAULT_NAME, UAT_CONSOLE_URL.
+# Third-party actions are referenced by tag here; pin them to commit SHAs (Renovate/Dependabot) per supply-chain policy.
+name: intimed-azure-release
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_prod: { description: "Promote to PROD after UAT gates", type: boolean, default: false }
+  push:
+    tags: ["intimed-v*"]
+permissions:
+  contents: read
+  id-token: write
+  security-events: write
+concurrency: { group: intimed-release, cancel-in-progress: false }
+env:
+  IMAGE: intimed/platform
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    defaults: { run: { working-directory: intimed } }
+    outputs: { version: "${{ steps.v.outputs.version }}" }
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with: { distribution: temurin, java-version: "21", cache: maven }
+      - name: Build, unit + integration + architecture tests, SBOM
+        run: ./mvnw -B verify
+      - id: v
+        run: echo "version=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.version)-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+      - name: SDK (Python) tests
+        run: if [ -d sdk/python ]; then (cd sdk/python && python3 -m unittest discover -s tests); fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: platform
+          path: |
+            intimed/intimed-platform/target/intimed-platform.jar
+            intimed/intimed-platform/target/classes/META-INF/sbom/application.cdx.json
+
+  sast:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with: { distribution: temurin, java-version: "21", cache: maven }
+      - uses: github/codeql-action/init@v3
+        with: { languages: java-kotlin, queries: security-extended }
+      - run: cd intimed && ./mvnw -B -DskipTests package
+      - uses: github/codeql-action/analyze@v3
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env: { GITLEAKS_CONFIG: .gitleaks.toml }
+
+  image:
+    needs: [build, sast]
+    runs-on: ubuntu-24.04
+    environment: uat-registry
+    outputs: { digest: "${{ steps.push.outputs.digest }}" }
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/download-artifact@v4
+        with: { name: platform, path: intimed/intimed-platform/target-dl }
+      - run: mkdir -p intimed/intimed-platform/target && cp intimed/intimed-platform/target-dl/target/intimed-platform.jar intimed/intimed-platform/target/
+      - uses: azure/login@v2
+        with: { client-id: "${{ vars.AZURE_CLIENT_ID }}", tenant-id: "${{ vars.AZURE_TENANT_ID }}", subscription-id: "${{ vars.AZURE_SUBSCRIPTION_ID }}" }
+      - run: az acr login -n "${{ vars.ACR_NAME }}"
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (local) for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: intimed
+          file: intimed/deploy/docker/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: local/intimed:${{ needs.build.outputs.version }}
+          provenance: false
+      - name: Vulnerability scan – block on fixable HIGH/CRITICAL
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: local/intimed:${{ needs.build.outputs.version }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+      - name: Push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: intimed
+          file: intimed/deploy/docker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ vars.ACR_NAME }}.azurecr.io/${{ env.IMAGE }}:${{ needs.build.outputs.version }}
+          provenance: mode=max
+          sbom: true
+      - uses: sigstore/cosign-installer@v3
+      - name: Sign image with the HSM key in Key Vault (never exported)
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_AUTHORITY_HOST: https://login.microsoftonline.com/
+        run: |
+          cosign sign --yes --tlog-upload=false \
+            --key "azurekms://${{ vars.KEY_VAULT_NAME }}.vault.azure.net/cosign-signing" \
+            "${{ vars.ACR_NAME }}.azurecr.io/${{ env.IMAGE }}@${{ steps.push.outputs.digest }}"
+
+  deploy-uat:
+    needs: [build, image]
+    runs-on: ubuntu-24.04
+    environment: uat
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: azure/login@v2
+        with: { client-id: "${{ vars.AZURE_CLIENT_ID }}", tenant-id: "${{ vars.AZURE_TENANT_ID }}", subscription-id: "${{ vars.AZURE_SUBSCRIPTION_ID }}" }
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: 1.9.8, terraform_wrapper: false }
+      - uses: azure/setup-helm@v4
+        with: { version: v3.16.2 }
+      - uses: azure/setup-kubectl@v4
+      - run: sudo az aks install-cli --kubelogin-install-location /usr/local/bin/kubelogin >/dev/null
+      - name: Terraform outputs (read-only)
+        working-directory: intimed/deploy/azure/terraform
+        run: terraform init -input=false -backend-config=envs/backend-uat.hcl
+      - name: Deploy (helm upgrade --install + helm test)
+        working-directory: intimed
+        env: { ENV: uat, IMAGE_TAG: "${{ needs.build.outputs.version }}", IMAGE_DIGEST: "${{ needs.image.outputs.digest }}" }
+        run: deploy/azure/scripts/deploy.sh
+      - name: Security kit – cloud posture (16) and container runtime (05)
+        working-directory: intimed/security-test-kit
+        env: { AZ_RESOURCE_GROUP: "rg-intimed-uat-qc" }
+        run: |
+          python3 16_azure_posture_check.py
+          python3 05_container_runtime_check.py --namespace intimed
+          python3 15_report_builder.py
+      - name: DAST baseline (OWASP ZAP) against the UAT console
+        if: ${{ vars.UAT_CONSOLE_URL != '' }}
+        uses: zaproxy/action-baseline@v0.14.0
+        with: { target: "${{ vars.UAT_CONSOLE_URL }}", allow_issue_writing: false, fail_action: true, cmd_options: "-a" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with: { name: uat-security-kit, path: intimed/security-test-kit/results }
+
+  deploy-prod:
+    if: ${{ inputs.deploy_prod || startsWith(github.ref, 'refs/tags/intimed-v') }}
+    needs: [build, image, deploy-uat]
+    runs-on: [self-hosted, intimed-prod-vnet]   # runner inside the production VNet (private AKS, private ACR)
+    environment: prod                           # required reviewers: Platform SRE + Device Administrator (four-eyes)
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: azure/login@v2
+        with: { client-id: "${{ vars.AZURE_CLIENT_ID }}", tenant-id: "${{ vars.AZURE_TENANT_ID }}", subscription-id: "${{ vars.AZURE_SUBSCRIPTION_ID }}" }
+      - uses: sigstore/cosign-installer@v3
+      - name: Verify image signature before promotion
+        env: { AZURE_CLIENT_ID: "${{ vars.AZURE_CLIENT_ID }}", AZURE_TENANT_ID: "${{ vars.AZURE_TENANT_ID }}" }
+        run: |
+          cosign verify --insecure-ignore-tlog=true \
+            --key "azurekms://${{ vars.KEY_VAULT_NAME }}.vault.azure.net/cosign-signing" \
+            "${{ vars.ACR_NAME }}.azurecr.io/${{ env.IMAGE }}@${{ needs.image.outputs.digest }}"
+      - name: Import signed image into the production registry
+        run: |
+          az acr import -n "${{ vars.PROD_ACR_NAME }}" --source "${{ vars.ACR_NAME }}.azurecr.io/${{ env.IMAGE }}@${{ needs.image.outputs.digest }}" \
+            --image "${{ env.IMAGE }}:${{ needs.build.outputs.version }}" --force
+      - name: Deploy PROD
+        working-directory: intimed
+        env: { ENV: prod, IMAGE_TAG: "${{ needs.build.outputs.version }}", IMAGE_DIGEST: "${{ needs.image.outputs.digest }}" }
+        run: |
+          terraform -chdir=deploy/azure/terraform init -input=false -backend-config=envs/backend-prod.hcl
+          deploy/azure/scripts/deploy.sh

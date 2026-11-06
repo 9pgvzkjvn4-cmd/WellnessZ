@@ -1,0 +1,7 @@
+apiVersion: v2
+name: intimed
+description: IntiMed – intelligent medical device integration platform (single-active StatefulSet, Azure AKS reference)
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+keywords: [medical-devices, hl7, fhir, mllp, integration]

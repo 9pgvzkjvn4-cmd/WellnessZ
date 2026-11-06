@@ -1,0 +1,9 @@
+environment: PROD
+profiles: postgres
+resources:
+  requests: { cpu: "2", memory: 6Gi }
+  limits: { cpu: "4", memory: 6Gi }
+persistence:
+  size: 128Gi
+nodeSelector:
+  agentpool: apps

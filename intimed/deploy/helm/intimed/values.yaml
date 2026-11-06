@@ -1,0 +1,70 @@
+# IntiMed Helm values – Azure AKS reference (Qatar Central). Environment overlays: values-uat.yaml, values-prod.yaml.
+# Every value marked REQUIRED is filled from `terraform output` by deploy/azure/scripts/render-values.sh.
+
+image:
+  repository: ""            # REQUIRED  <acr>.azurecr.io/intimed/platform
+  tag: ""                   # REQUIRED  immutable tag; prefer digest
+  digest: ""                # sha256:… – when set, the image is pulled by digest (signed by cosign in CI)
+  pullPolicy: IfNotPresent
+
+environment: UAT            # shown in the console banner and API (/api/public/info)
+profiles: postgres          # add ",demo" only for a demo/training environment (synthetic personas and data)
+
+azure:
+  tenantId: ""              # REQUIRED  Entra tenant id
+  workloadIdentityClientId: ""   # REQUIRED  user-assigned identity client id (federated with the service account)
+  keyVaultName: ""          # REQUIRED  kv-intimed-<env>-qc
+  keyVaultUri: ""           # REQUIRED  https://<kv>.vault.azure.net/
+  archiveAccountUrl: ""     # https://<storage>.blob.core.windows.net – immutable evidence/audit archive
+
+database:
+  host: ""                  # REQUIRED  <server>.postgres.database.azure.com (private DNS)
+  name: intimed
+  user: intimed
+  # TLS with full certificate and host-name verification against the JVM trust store (DigiCert / Microsoft roots)
+  params: "sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+  bootstrap:
+    enabled: true           # pre-install/pre-upgrade job creating/rotating the least-privilege app role
+    adminUser: intimedadmin
+
+tls:
+  # Extra SANs for the platform's own server certificate: in-cluster console host (Application Gateway backend host
+  # name) and the DNS name devices use for MLLP-TLS / HTTPS ingress.
+  sans: "intimed-console.intimed.svc.cluster.local"
+
+console:
+  # Internal load balancer reached only by Application Gateway (WAF v2) in the VNet.
+  loadBalancerIP: ""        # REQUIRED  static private IP in the AKS subnet
+  subnetName: ""            # AKS node subnet name
+devices:
+  # Internal load balancer for device traffic (MLLP-TLS 2575, HTTPS mTLS 8443) – reached over site-to-site VPN /
+  # ExpressRoute from hospital networks. Set public=true only with loadBalancerSourceRanges (hospital egress IPs).
+  public: false
+  loadBalancerIP: ""        # REQUIRED for internal: static private IP in the device subnet
+  subnetName: ""            # device subnet name
+  loadBalancerSourceRanges: []
+  dnsName: ""               # e.g. devices.uat.intimed.example.qa (added to tls.sans automatically)
+
+networkPolicy:
+  enabled: true
+  appGatewaySubnetCidr: ""  # REQUIRED  e.g. 10.40.2.0/24
+  deviceSourceCidrs: []     # REQUIRED  hospital / VPN client ranges allowed to reach 2575/8443
+  postgresSubnetCidr: ""    # REQUIRED  delegated PostgreSQL subnet
+  privateEndpointSubnetCidr: ""  # Key Vault / Storage private endpoints
+
+resources:
+  requests: { cpu: "1", memory: 3Gi }
+  limits: { cpu: "3", memory: 3Gi }
+javaOptions: "-XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/urandom"
+
+persistence:
+  # Zone-redundant Premium SSD: the single active pod can be rescheduled to another availability zone with its data.
+  storageClass: intimed-premium-zrs
+  size: 64Gi
+
+webhookAllowedHosts: ""     # comma separated host allow-list for outbound webhooks (SSRF control)
+openFda: false              # outbound register feeds need the firewall FQDN rules (api.fda.gov)
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []

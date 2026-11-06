@@ -5,3 +5,12 @@ security-test-kit/results/
 dist/
 demo-pack/build/
 .DS_Store
+# Azure deployment – site-specific / generated (never commit)
+deploy/azure/terraform/.terraform/
+deploy/azure/terraform/envs/*.local.tfvars
+deploy/azure/terraform/envs/backend-*.hcl
+deploy/azure/terraform/*.tfplan
+deploy/azure/terraform/tfplan
+deploy/helm/intimed/values-*.generated.yaml
+dr-drill-*.json
+soak-report.json

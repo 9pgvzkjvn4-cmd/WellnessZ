@@ -1,0 +1,13 @@
+[
+ {
+  "name": "acr",
+  "id": "/acr",
+  "adminUserEnabled": false,
+  "anonymousPullEnabled": false,
+  "_diag": [
+   {
+    "workspaceId": "/w"
+   }
+  ]
+ }
+]

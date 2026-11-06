@@ -1,0 +1,29 @@
+# IntiMed – soak test at 2× the projected acute-care peak against UAT (IM-E01-BL-030). Runs on a self-hosted runner
+# inside the UAT VNet (or a hospital VPN client) with an enrolled soak endpoint bound to a published soak configuration.
+name: intimed-perf-soak
+on:
+  workflow_dispatch:
+    inputs:
+      rate: { description: "messages per second (2× peak)", default: "120" }
+      duration: { description: "seconds", default: "3600" }
+permissions: { contents: read }
+jobs:
+  soak:
+    runs-on: [self-hosted, intimed-uat-vnet]
+    environment: uat
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with: { distribution: temurin, java-version: "21", cache: maven }
+      - run: cd intimed && ./mvnw -B -q -DskipTests package
+      - name: Soak (mTLS MLLP, simulated IntelliVue PCD-01 periodic)
+        working-directory: intimed
+        run: |
+          java -jar intimed-platform/target/intimed-platform.jar sdk soak --identity "$SOAK_IDENTITY_DIR" \
+            --driver intimed-platform/src/main/resources/drivers/monitor.philips.intellivue-pcd01-1.0.0.json \
+            --mllp "${{ vars.UAT_DEVICES_HOST }}:2575" --rate "${{ inputs.rate }}" --duration "${{ inputs.duration }}" \
+            --concurrency 32 --max-error-rate 0.001 --out soak-report.json
+        env: { SOAK_IDENTITY_DIR: "${{ vars.SOAK_IDENTITY_DIR }}" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with: { name: soak-report, path: intimed/soak-report.json }

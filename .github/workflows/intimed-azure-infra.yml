@@ -1,0 +1,33 @@
+# IntiMed – Azure infrastructure (Terraform) for Qatar Central (IM-E08-BL-002). Pull requests: fmt + validate + plan
+# (UAT). Manual run: plan + apply for the chosen environment behind the GitHub environment approval.
+name: intimed-azure-infra
+on:
+  pull_request: { paths: ["intimed/deploy/azure/terraform/**"] }
+  workflow_dispatch:
+    inputs:
+      environment: { description: "uat or prod", type: choice, options: [uat, prod], default: uat }
+      apply: { description: "terraform apply after plan", type: boolean, default: false }
+permissions: { contents: read, id-token: write, pull-requests: write }
+jobs:
+  terraform:
+    runs-on: ubuntu-24.04
+    environment: ${{ github.event_name == 'workflow_dispatch' && format('{0}-infra', inputs.environment) || 'uat-infra' }}
+    defaults: { run: { working-directory: intimed/deploy/azure/terraform } }
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_vpn_shared_keys: ${{ secrets.VPN_SHARED_KEYS_JSON || '{}' }}
+      ENVNAME: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'uat' }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: 1.9.8 }
+      - run: terraform fmt -check -recursive
+      - run: terraform init -input=false -backend-config=envs/backend-$ENVNAME.hcl
+      - run: terraform validate
+      - run: terraform plan -input=false -var-file=envs/$ENVNAME.tfvars -var-file=envs/$ENVNAME.local.tfvars -out=tfplan
+      - if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+        run: terraform apply -input=false tfplan

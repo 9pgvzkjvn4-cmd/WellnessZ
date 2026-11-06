@@ -1,0 +1,111 @@
+# Single-active StatefulSet: the platform keeps rate limits, event bus and its local PKI in-process, so exactly one pod
+# runs. Availability comes from zone-redundant storage (pod reschedules to another zone with its volume), PostgreSQL
+# zone-redundant HA, and fast restart (RTO target 5 min) – see docs/azure/Operations-and-DR.md.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: intimed
+  labels: {{- include "intimed.labels" . | nindent 4 }}
+spec:
+  serviceName: intimed-headless
+  replicas: 1
+  podManagementPolicy: OrderedReady
+  updateStrategy: { type: RollingUpdate }
+  selector:
+    matchLabels: {{- include "intimed.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "intimed.labels" . | nindent 8 }}
+        azure.workload.identity/use: "true"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9444"
+        prometheus.io/path: /actuator/prometheus
+        {{- with .Values.podAnnotations }}{{ toYaml . | nindent 8 }}{{ end }}
+    spec:
+      serviceAccountName: intimed
+      automountServiceAccountToken: true   # needed for the projected workload-identity token only
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: { type: RuntimeDefault }
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: platform
+          image: {{ include "intimed.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          ports:
+            - { name: console, containerPort: 9443 }
+            - { name: ingress, containerPort: 8443 }
+            - { name: mllp, containerPort: 2575 }
+            - { name: mgmt, containerPort: 9444 }
+          env:
+            - { name: INTIMED_HOME, value: /data }
+            - { name: INTIMED_BIND, value: 0.0.0.0 }
+            - { name: INTIMED_MGMT_BIND, value: 0.0.0.0 }
+            - { name: INTIMED_ENVIRONMENT, value: {{ .Values.environment | quote }} }
+            - { name: SPRING_PROFILES_ACTIVE, value: {{ .Values.profiles | quote }} }
+            - { name: INTIMED_DB_URL, value: {{ printf "jdbc:postgresql://%s:5432/%s?%s" (required "database.host is required" .Values.database.host) .Values.database.name .Values.database.params | quote }} }
+            - { name: INTIMED_DB_USER, value: {{ .Values.database.user | quote }} }
+            - { name: INTIMED_SECRETS_PROVIDER, value: azure-keyvault }
+            - { name: INTIMED_KEYVAULT_URI, value: {{ required "azure.keyVaultUri is required" .Values.azure.keyVaultUri | quote }} }
+            - { name: INTIMED_ARCHIVE_ACCOUNT_URL, value: {{ .Values.azure.archiveAccountUrl | quote }} }
+            - { name: INTIMED_SIEM_STDOUT, value: "true" }
+            - { name: INTIMED_TLS_SANS, value: {{ include "intimed.sans" . | quote }} }
+            - { name: INTIMED_WEBHOOK_ALLOWED_HOSTS, value: {{ .Values.webhookAllowedHosts | quote }} }
+            - { name: INTIMED_OPENFDA, value: {{ .Values.openFda | quote }} }
+            - { name: JAVA_TOOL_OPTIONS, value: {{ .Values.javaOptions | quote }} }
+          envFrom:
+            - secretRef: { name: intimed-runtime }
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: mgmt }
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: mgmt }
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 4
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: mgmt }
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: tmp, mountPath: /tmp }
+            - { name: kv, mountPath: /mnt/secrets, readOnly: true }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 1Gi }
+        - name: kv
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes: { secretProviderClass: intimed-kv }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels: {{- include "intimed.selector" . | nindent 10 }}
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: {{ .Values.persistence.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}

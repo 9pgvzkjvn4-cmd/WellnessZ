@@ -1,0 +1,6 @@
+# terraform init -backend-config=envs/backend-uat.hcl   (state in Qatar Central, Entra auth, no access keys)
+resource_group_name  = "rg-intimed-tfstate-qc"
+storage_account_name = "stintimedtfstateqc"
+container_name       = "tfstate"
+key                  = "intimed-uat.tfstate"
+use_azuread_auth     = true

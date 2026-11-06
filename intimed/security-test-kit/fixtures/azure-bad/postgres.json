@@ -1,0 +1,24 @@
+[
+ {
+  "name": "psql",
+  "id": "/pg",
+  "network": {
+   "publicNetworkAccess": "Disabled"
+  },
+  "_params": {
+   "require_secure_transport": "ON",
+   "ssl_min_protocol_version": "TLSv1.2"
+  },
+  "backup": {
+   "backupRetentionDays": 35
+  },
+  "highAvailability": {
+   "mode": "ZoneRedundant"
+  },
+  "_diag": [
+   {
+    "workspaceId": "/w"
+   }
+  ]
+ }
+]

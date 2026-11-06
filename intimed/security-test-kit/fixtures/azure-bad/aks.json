@@ -1,0 +1,39 @@
+[
+ {
+  "name": "aks",
+  "id": "/aks",
+  "disableLocalAccounts": true,
+  "aadProfile": {
+   "enableAzureRbac": true
+  },
+  "securityProfile": {
+   "workloadIdentity": {
+    "enabled": true
+   },
+   "defender": {
+    "securityMonitoring": {
+     "enabled": true
+    }
+   }
+  },
+  "oidcIssuerProfile": {
+   "enabled": true
+  },
+  "addonProfiles": {
+   "azurepolicy": {
+    "enabled": true
+   }
+  },
+  "networkProfile": {
+   "networkPolicy": "cilium"
+  },
+  "apiServerAccessProfile": {
+   "enablePrivateCluster": true
+  },
+  "_diag": [
+   {
+    "workspaceId": "/w"
+   }
+  ]
+ }
+]

@@ -1,0 +1,6 @@
+environment: UAT
+resources:
+  requests: { cpu: "1", memory: 3Gi }
+  limits: { cpu: "2", memory: 3Gi }
+persistence:
+  size: 32Gi
