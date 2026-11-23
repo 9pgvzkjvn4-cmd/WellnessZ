@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.1.2</version>
+    <version>4.1.3</version>
     <relativePath/>
   </parent>
 
@@ -58,7 +58,7 @@
     <hapi-fhir.version>8.12.1</hapi-fhir.version>
     <hapi-hl7v2.version>2.6.0</hapi-hl7v2.version>
     <poi.version>5.5.1</poi.version>
-    <springdoc.version>3.0.2</springdoc.version>
+    <springdoc.version>3.2.0</springdoc.version>
     <logstash-encoder.version>9.0</logstash-encoder.version>
     <archunit.version>1.5.1</archunit.version>
     <pdfbox.version>3.0.8</pdfbox.version>
@@ -69,7 +69,7 @@
     <findsecbugs.version>1.14.0</findsecbugs.version>
     <!-- security overrides of Spring Boot managed versions (VAPT 2026-10: GHSA-ccrj-gw8r-854m, GHSA-xxph-c9ww-hj94) -->
     <opentelemetry.version>1.67.0</opentelemetry.version>
-    <guava.version>33.7.2-jre</guava.version>
+    <guava.version>33.8.0-jre</guava.version>
   </properties>
 
   <dependencyManagement>
